@@ -224,6 +224,17 @@ export class BuildPhase {
     const towers = towerIds.map((id) => state.towers.find((t) => t.id === id)).filter(Boolean) as TowerState[];
     if (towers.length !== towerIds.length) return false;
 
+    // Anchor the result at the currently-selected tower whenever it's one of
+    // the inputs — commitTransform places the new tower at towers[0].
+    const selId = state.selectedTowerId;
+    if (selId !== null) {
+      const selIdx = towers.findIndex((t) => t.id === selId);
+      if (selIdx > 0) {
+        const [sel] = towers.splice(selIdx, 1);
+        towers.unshift(sel);
+      }
+    }
+
     const currentRoundIds = new Set(
       state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
     );

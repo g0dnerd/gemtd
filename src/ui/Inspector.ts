@@ -207,7 +207,9 @@ function render(refs: InspectorRefs, game: Game): void {
     if (canCombine && game.state.phase === 'build') keep.classList.add('is-active');
     keep.addEventListener('click', () => {
       if (canCombine) {
-        game.cmdCombine(sameColor.slice(0, 2).map((t) => t.id));
+        const partner = sameColor.find((t) => t.id !== tower.id);
+        if (!partner) return;
+        game.cmdCombine([tower.id, partner.id]);
       } else {
         game.bus.emit('toast', { kind: 'info', text: 'Need 2 same-color, same-quality (this round).' });
       }
