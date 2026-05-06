@@ -1,0 +1,161 @@
+/* Pixel-art GemTD UI primitives — Cozy Twilight theme.
+   Adapted from design handoff; only the cozy theme is in scope. */
+
+:root {
+  --px-bg: #2a2238;
+  --px-panel: #3d3252;
+  --px-panel-2: #524470;
+  --px-ink: #f4e4c1;
+  --px-ink-dim: #b8a584;
+  --px-border-light: #f4e4c1;
+  --px-border-dark: #1a1428;
+  --px-accent: #f0a040;
+  --px-good: #58c850;
+  --px-bad: #d04848;
+
+  --gem-ruby: #e8384c;
+  --gem-ruby-d: #8c1820;
+  --gem-sapphire: #3878e8;
+  --gem-sapphire-d: #1c3878;
+  --gem-emerald: #38c860;
+  --gem-emerald-d: #186830;
+  --gem-topaz: #f0c038;
+  --gem-topaz-d: #886820;
+  --gem-amethyst: #a050e0;
+  --gem-amethyst-d: #582878;
+  --gem-opal: #f0d8d8;
+  --gem-opal-d: #a07878;
+  --gem-diamond: #d8f0f8;
+  --gem-diamond-d: #6890a8;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  background: var(--px-bg);
+  color: var(--px-ink);
+  font-family: 'VT323', ui-monospace, monospace;
+}
+
+.px-root,
+.px-root * {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+  font-smooth: never;
+  -webkit-font-smoothing: none;
+}
+
+.px-root {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.px-h {
+  font-family: 'Press Start 2P', monospace;
+  letter-spacing: 0.5px;
+  line-height: 1.4;
+}
+
+.px-body {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  line-height: 1.05;
+}
+
+.px-panel {
+  background: var(--px-panel);
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-panel-2),
+    inset -2px -2px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-border-dark);
+  padding: 12px;
+}
+
+.px-panel-inset {
+  background: var(--px-bg);
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-border-dark);
+  padding: 10px;
+}
+
+.px-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  background: var(--px-panel-2);
+  color: var(--px-ink);
+  border: none;
+  padding: 10px 14px;
+  cursor: pointer;
+  box-shadow:
+    inset 2px 2px 0 0 #7c66a4,
+    inset -2px -2px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-border-dark);
+  text-transform: uppercase;
+  transition: transform 0.05s;
+}
+.px-btn:hover { filter: brightness(1.1); }
+.px-btn:active {
+  transform: translate(1px, 1px);
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 #7c66a4,
+    0 0 0 2px var(--px-border-dark);
+}
+.px-btn:disabled {
+  filter: brightness(0.6) saturate(0.5);
+  cursor: not-allowed;
+}
+.px-btn-primary { background: var(--px-accent); color: var(--px-border-dark); }
+.px-btn-primary {
+  box-shadow:
+    inset 2px 2px 0 0 #f7c878,
+    inset -2px -2px 0 0 #a06820,
+    0 0 0 2px var(--px-border-dark);
+}
+
+.px-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.18) 0px,
+    rgba(0,0,0,0.18) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  z-index: 9999;
+}
+
+.px-bar {
+  height: 12px;
+  background: var(--px-border-dark);
+  box-shadow: inset 1px 1px 0 0 #000, 0 0 0 2px var(--px-border-dark);
+  position: relative;
+  overflow: hidden;
+}
+.px-bar-fill {
+  height: 100%;
+  background: var(--px-good);
+  box-shadow: inset 0 -2px 0 0 rgba(0,0,0,0.3), inset 0 1px 0 0 rgba(255,255,255,0.3);
+}
+
+.px-theme-cozy {
+  --px-bg: #2a2238;
+  --px-panel: #3d3252;
+  --px-panel-2: #524470;
+  --px-ink: #f4e4c1;
+  --px-ink-dim: #b8a584;
+  --px-border-dark: #1a1428;
+  --px-accent: #f0a040;
+}

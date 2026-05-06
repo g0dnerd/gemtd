@@ -1,0 +1,610 @@
+/* App-level layout: title screen, HUD shell, modals. */
+
+#app {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+/* Pixi canvas is positioned in the center column slot of the HUD. */
+.gem-canvas-host {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--px-bg);
+  box-shadow: 0 0 0 3px var(--px-border-dark), 0 0 0 6px var(--px-panel-2);
+}
+.gem-canvas-host canvas {
+  display: block;
+  image-rendering: pixelated;
+}
+
+/* ===== Title Screen ===== */
+.title-screen {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px;
+  gap: 36px;
+  position: relative;
+}
+.title-logo {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.title-logo-gem {
+  display: inline-block;
+  animation: gemFloat 2.4s ease-in-out infinite;
+}
+.title-h1 {
+  text-align: center;
+}
+.title-h1 .title-name {
+  font-size: 40px;
+  color: var(--px-accent);
+  text-shadow: 3px 3px 0 var(--px-border-dark);
+  margin-bottom: 8px;
+  line-height: 1.1;
+}
+.title-h1 .title-defense {
+  font-size: 11px;
+  color: var(--px-ink-dim);
+  letter-spacing: 2px;
+}
+.title-subtitle {
+  text-align: center;
+  color: var(--px-ink-dim);
+  font-size: 22px;
+  max-width: 280px;
+  line-height: 1.1;
+}
+.title-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 240px;
+}
+.title-menu .px-btn {
+  padding: 14px 16px;
+  font-size: 12px;
+}
+.title-menu .px-btn-primary { font-size: 13px; }
+.title-footer {
+  position: absolute;
+  bottom: 16px;
+  color: var(--px-ink-dim);
+  font-size: 14px;
+  letter-spacing: 2px;
+}
+
+@keyframes gemFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+/* ===== HUD Layout ===== */
+.hud {
+  display: grid;
+  grid-template-columns: 240px 1fr 260px;
+  grid-template-rows: 1fr;
+  width: 100%;
+  height: 100%;
+  padding: 14px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+.hud-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  min-height: 0;
+}
+.hud-col-center {
+  align-items: center;
+  justify-content: center;
+}
+
+.hud-wordmark {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  color: var(--px-accent);
+  text-shadow: 2px 2px 0 var(--px-border-dark);
+  letter-spacing: 0.5px;
+}
+
+.stat-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  min-width: 0;
+}
+.stat-chip .stat-value {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  line-height: 1;
+}
+.stat-chip .stat-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+
+/* Wave panel */
+.wave-panel { display: flex; flex-direction: column; gap: 8px; }
+.wave-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.wave-panel-head .wave-num {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  color: var(--px-accent);
+}
+.wave-panel-head .wave-clock {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: var(--px-ink-dim);
+}
+.wave-bar { height: 8px; }
+.wave-next {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+.wave-next .wave-next-count {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+}
+.wave-next .wave-next-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--px-ink-dim);
+  margin-left: auto;
+}
+
+.panel-h {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--px-accent);
+  margin-bottom: 8px;
+  letter-spacing: 0.5px;
+}
+
+/* Inspector */
+.inspector {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.inspector-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.inspector-head .name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+}
+.inspector-head .sub {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+}
+.inspector-stats {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  line-height: 1.2;
+}
+.inspector-stats .stat-key { color: var(--px-ink-dim); }
+.inspector-stats .stat-val { color: var(--px-accent); }
+.inspector-special {
+  margin-top: 4px;
+  color: #78a8f8;
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+}
+.inspector-actions {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+.inspector-empty {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+  text-align: center;
+  padding: 8px 4px;
+}
+
+/* Stash */
+.stash-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.stash-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 4px;
+}
+.stash-cell .count {
+  position: absolute;
+  bottom: 1px;
+  right: 2px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--px-ink);
+}
+.stash-cell .lvl {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--px-accent);
+}
+.stash-cell.placeholder {
+  opacity: 0.35;
+}
+
+/* Recipes */
+.recipes-list {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  line-height: 1.3;
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.recipes-list .row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 4px;
+  border-top: 1px dashed var(--px-panel-2);
+}
+.recipes-list .row:first-child { border-top: 0; }
+.recipe-gems {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.recipe-plus {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--px-ink-dim);
+  margin: 0 1px;
+}
+.recipe-tail {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 2px;
+}
+.recipe-eq {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  color: var(--px-accent);
+}
+.recipe-name {
+  font-size: 10px;
+  color: var(--px-accent);
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+/* Action bar (right column bottom) */
+.action-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: auto;
+}
+.action-bar-row { display: flex; gap: 6px; }
+.action-bar-row .px-btn { flex: 1; font-size: 8px; }
+.action-bar .px-btn-primary { font-size: 11px; }
+
+/* Draw panel — current gem rolled at wave start */
+.draw-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.draw-panel-info { display: flex; flex-direction: column; gap: 2px; }
+.draw-panel-info .draw-name {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+}
+.draw-panel-info .draw-quality {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+}
+.draw-panel .draw-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.draw-panel .draw-actions .px-btn { font-size: 8px; padding: 6px 8px; }
+
+/* Hint banner over the board */
+.board-hint {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--px-bg);
+  color: var(--px-ink);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 8px 12px;
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-border-dark);
+  z-index: 5;
+  pointer-events: none;
+}
+
+/* Modal overlay */
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(26, 20, 40, 0.85) 0%, rgba(0,0,0,0.95) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-card {
+  width: 100%;
+  max-width: 520px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+}
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.modal-head .title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 12px;
+  color: var(--px-accent);
+}
+.modal-desc {
+  font-family: 'VT323', monospace;
+  font-size: 16px;
+  color: var(--px-ink-dim);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.combine-equation {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 8px;
+  padding: 14px 8px;
+}
+.combine-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.combine-slot-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 8px;
+}
+.combine-slot-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  letter-spacing: 1px;
+  color: var(--px-ink);
+}
+.combine-arrow {
+  font-family: 'Press Start 2P', monospace;
+  color: var(--px-accent);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stats-grid .panel-h { margin-bottom: 6px; }
+.stats-grid .px-panel-inset.after {
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-accent);
+}
+.stats-grid .stat-line {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  line-height: 1.3;
+}
+.stats-grid .stat-line .v { color: var(--px-ink-dim); }
+.stats-grid .after .stat-line .v { color: var(--px-good); }
+
+.cost-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cost-actions .cost { display: flex; align-items: center; gap: 6px; font-family: 'VT323', monospace; font-size: 18px; }
+.cost-actions .actions { display: flex; gap: 8px; }
+
+/* Tutorial modal */
+.tutorial-card { max-width: 560px; }
+.tutorial-tabs {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.tutorial-tab {
+  font-size: 8px;
+  padding: 8px 10px;
+  flex: 1;
+  min-width: 0;
+}
+.tutorial-tab-active {
+  background: var(--px-accent);
+  color: var(--px-border-dark);
+  box-shadow:
+    inset 2px 2px 0 0 #f7c878,
+    inset -2px -2px 0 0 #a06820,
+    0 0 0 2px var(--px-border-dark);
+}
+.tutorial-body {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--px-ink);
+  min-height: 220px;
+  max-height: 320px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tutorial-p {
+  font-family: 'VT323', monospace;
+  font-size: 17px;
+  line-height: 1.25;
+  color: var(--px-ink);
+}
+.tutorial-p b { color: var(--px-accent); }
+.tutorial-p kbd,
+.tutorial-key-row kbd {
+  display: inline-block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 3px 6px;
+  background: var(--px-panel-2);
+  color: var(--px-ink);
+  box-shadow:
+    inset 1px 1px 0 0 #7c66a4,
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark);
+  margin: 0 2px;
+}
+.tutorial-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tutorial-row-icon {
+  flex-shrink: 0;
+  width: 28px;
+  display: flex;
+  justify-content: center;
+}
+.tutorial-keys {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 14px;
+}
+.tutorial-key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+}
+.tutorial-hint {
+  font-family: 'VT323', monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+}
+
+/* Toast notifications */
+.toast-stack {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 50;
+  pointer-events: none;
+}
+.toast {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px;
+  padding: 10px 14px;
+  background: var(--px-panel);
+  color: var(--px-ink);
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-panel-2),
+    inset -2px -2px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-border-dark);
+}
+.toast.error { color: var(--px-bad); }
+.toast.good { color: var(--px-good); }
+
+/* Game-over screen */
+.game-over {
+  position: absolute;
+  inset: 0;
+  background: rgba(26, 20, 40, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  z-index: 200;
+}
+.game-over .title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 28px;
+  color: var(--px-accent);
+  text-shadow: 3px 3px 0 var(--px-border-dark);
+}
+.game-over .subtitle {
+  font-family: 'VT323', monospace;
+  font-size: 22px;
+  color: var(--px-ink-dim);
+}
+
+/* Pixel sprite: a 1px <div> with a giant box-shadow listing every pixel.
+   Used for HTML-side gem/coin/heart icons (HUD). */
+.px-sprite {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.px-sprite > div {
+  width: var(--px-sprite-px, 3px);
+  height: var(--px-sprite-px, 3px);
+  position: absolute;
+  top: 0;
+  left: 0;
+}

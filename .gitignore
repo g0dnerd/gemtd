@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Vite
+.vite/
+vite.config.ts.timestamp-*
+vitest.config.ts.timestamp-*
+
+# Test / coverage
+coverage/
+.vitest-cache/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Local Claude settings
+.claude/settings.local.json
+
+# Project-local artifacts
+gemtd-design/
+gemtd.zip
+game.js
