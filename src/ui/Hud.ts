@@ -709,8 +709,6 @@ export function mountHud(
     status.className = "px-panel-inset draw-status";
     const primary = document.createElement("div");
     primary.className = "draw-status-primary";
-    // const secondary = document.createElement("div");
-    // secondary.className = "draw-status-secondary";
     status.append(primary);
     r.appendChild(status);
 
@@ -737,13 +735,8 @@ export function mountHud(
           ready.style.color = "var(--px-accent)";
           ready.textContent = "READY";
           primary.appendChild(ready);
-          // secondary.textContent = "Press SPACE to start the wave.";
         } else {
           primary.textContent = g.state.phase === "wave" ? "In wave" : "—";
-          // secondary.textContent =
-          //   g.state.phase === "wave"
-          //     ? "Towers fire automatically."
-          //     : "Waiting for next draw.";
         }
         return;
       }
@@ -798,25 +791,12 @@ export function mountHud(
         primary.appendChild(
           document.createTextNode(" will be kept after this wave."),
         );
-        // secondary.innerHTML = "";
-        // secondary.appendChild(
-        //   document.createTextNode("The other 4 will turn into rocks. "),
-        // );
-        // const kbd = document.createElement("kbd");
-        // kbd.textContent = "TAB";
-        // secondary.appendChild(kbd);
-        // secondary.appendChild(document.createTextNode(" cycles slots."));
       } else if (ad) {
         primary.textContent = `${GEM_PALETTE[ad.gem].name.toUpperCase()} · ${QUALITY_NAMES[ad.quality].toUpperCase()}`;
-        // secondary.textContent =
-        //   "Click a grass tile to place. TAB cycles slots.";
       } else if (placed === draws.length && draws.length > 0) {
         primary.textContent = "PICK A KEEPER";
-        // secondary.textContent =
-        // "Click a placed gem to mark it. The rest turn into rocks.";
       } else {
         primary.textContent = "—";
-        // secondary.textContent = "Pick a slot.";
       }
     }
 
