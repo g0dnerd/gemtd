@@ -543,13 +543,6 @@
   letter-spacing: 1px;
   line-height: 1.2;
 }
-.recipe-card-head .recipe-owned {
-  font-family: "VT323", monospace;
-  font-size: 13px;
-  color: var(--px-good);
-  line-height: 1;
-  margin-top: 2px;
-}
 .recipe-inputs {
   display: flex;
   align-items: center;

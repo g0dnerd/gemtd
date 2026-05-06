@@ -152,9 +152,6 @@ export function mountHud(
 
   function rebuildRecipes(): void {
     recipesList.innerHTML = "";
-    const ownedCombos = new Set(
-      game.state.towers.map((t) => t.comboKey).filter((k): k is string => !!k),
-    );
     for (const c of COMBOS) {
       const card = document.createElement("div");
       card.className = "px-panel-inset recipe-card";
@@ -168,12 +165,6 @@ export function mountHud(
       name.className = "recipe-name";
       name.textContent = c.name.toUpperCase();
       info.appendChild(name);
-      if (ownedCombos.has(c.key)) {
-        const owned = document.createElement("div");
-        owned.className = "recipe-owned";
-        owned.textContent = "OWNED ✓";
-        info.appendChild(owned);
-      }
       head.appendChild(info);
       card.appendChild(head);
 
