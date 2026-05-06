@@ -6,15 +6,14 @@
  * towers between waypoints; A* re-routes around them as long as connectivity
  * remains intact.
  *
- * We use a 21-wide x 17-tall grid:
- *   - x ∈ [0, 20], y ∈ [0, 16]
- *   - Tiles outside the build area are walls (BORDER).
- *   - The path is forced through 4 mid-board waypoints, creating natural
- *     "rooms" the player can fill in to lengthen the maze.
+ * Grid is the *fine* placement grid at 2× the canonical (coarse) tile
+ * resolution — 42 wide × 34 tall fine cells. Each tower / rock occupies one
+ * fine cell. The board's outer wall ring and the start/end corridors are
+ * 2 fine cells thick to preserve the original visual proportions.
  */
 
-export const GRID_W = 21;
-export const GRID_H = 17;
+export const GRID_W = 42;
+export const GRID_H = 34;
 
 export const enum Cell {
   /** Buildable open ground. */
@@ -42,12 +41,12 @@ export interface Waypoint {
  * is what marks a placement as a "full block."
  */
 export const WAYPOINTS: readonly Waypoint[] = [
-  { x: 0, y: 1, label: 'Start' },
-  { x: 5, y: 3, label: 'WP1' },
-  { x: 15, y: 3, label: 'WP2' },
-  { x: 15, y: 13, label: 'WP3' },
-  { x: 5, y: 13, label: 'WP4' },
-  { x: 20, y: 8, label: 'End' },
+  { x: 0, y: 2, label: 'Start' },
+  { x: 10, y: 6, label: 'WP1' },
+  { x: 30, y: 6, label: 'WP2' },
+  { x: 30, y: 26, label: 'WP3' },
+  { x: 10, y: 26, label: 'WP4' },
+  { x: 40, y: 16, label: 'End' },
 ];
 
 export const START = WAYPOINTS[0];
@@ -65,27 +64,32 @@ function buildBaseLayout(): { grid: Cell[][]; pathTiles: Set<string> } {
   for (let y = 0; y < GRID_H; y++) {
     const row: Cell[] = [];
     for (let x = 0; x < GRID_W; x++) {
-      // Outermost border tiles are walls so the maze can't escape.
-      const onBorder = x === 0 || x === GRID_W - 1 || y === 0 || y === GRID_H - 1;
+      // 2-fine-cell-thick wall border (preserves original 1 coarse-tile look).
+      const onBorder = x < 2 || x >= GRID_W - 2 || y < 2 || y >= GRID_H - 2;
       row.push(onBorder ? Cell.Wall : Cell.Grass);
     }
     grid.push(row);
   }
 
-  // Carve out the start tile (left edge) and end tile (right edge).
-  grid[START.y][START.x] = Cell.Path;
-  grid[END.y][END.x] = Cell.Path;
-
-  // Also carve a 1-tile entry/exit corridor at start and end so the
-  // path can leave the wall.
-  grid[START.y][1] = Cell.Path;
-  grid[END.y][GRID_W - 2] = Cell.Path;
-
   const pathTiles = new Set<string>();
-  pathTiles.add(`${START.x},${START.y}`);
-  pathTiles.add(`1,${START.y}`);
-  pathTiles.add(`${END.x},${END.y}`);
-  pathTiles.add(`${GRID_W - 2},${END.y}`);
+  // Carve a 2×2 start "tile" plus a 2×2 entry corridor on the left edge.
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 4; dx++) {
+      const x = dx;
+      const y = START.y + dy;
+      grid[y][x] = Cell.Path;
+      pathTiles.add(`${x},${y}`);
+    }
+  }
+  // Same on the right edge for the end tile + exit corridor.
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 4; dx++) {
+      const x = GRID_W - 4 + dx;
+      const y = END.y + dy;
+      grid[y][x] = Cell.Path;
+      pathTiles.add(`${x},${y}`);
+    }
+  }
 
   return { grid, pathTiles };
 }

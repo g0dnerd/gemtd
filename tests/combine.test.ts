@@ -49,7 +49,12 @@ function placeTower(game: FakeGame, x: number, y: number, gem: TowerState['gem']
   const id = game.nextId();
   const t: TowerState = { id, x, y, gem, quality, lastFireTick: 0, kills: 0 };
   game.state.towers.push(t);
-  game.state.grid[y][x] = Cell.Tower;
+  // Tower occupies a 2×2 fine-cell footprint anchored at (x, y).
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 2; dx++) {
+      game.state.grid[y + dy][x + dx] = Cell.Tower;
+    }
+  }
   return t;
 }
 
@@ -62,7 +67,7 @@ describe('combine: level-up (current round)', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'ruby', 1),
-      placeTower(h.game, 4, 5, 'ruby', 1),
+      placeTower(h.game, 4, 6, 'ruby', 1),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
@@ -75,21 +80,21 @@ describe('combine: level-up (current round)', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'ruby', 1),
-      placeTower(h.game, 4, 5, 'ruby', 1),
       placeTower(h.game, 4, 6, 'ruby', 1),
-      placeTower(h.game, 5, 4, 'ruby', 1),
+      placeTower(h.game, 6, 4, 'ruby', 1),
+      placeTower(h.game, 6, 6, 'ruby', 1),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers.find((t) => t.gem === 'ruby' && t.quality === 3)).toBeDefined();
-    // 3 of 4 input tiles became rocks.
-    expect(h.game.state.rocks.length).toBe(3);
+    // 3 of 4 input footprints became rocks (4 cells each).
+    expect(h.game.state.rocks.length).toBe(3 * 4);
   });
 
   it('refuses level-up when not all inputs are current-round', () => {
     const h = setup();
     const t1 = placeTower(h.game, 4, 4, 'ruby', 1);
-    const t2 = placeTower(h.game, 4, 5, 'ruby', 1);
+    const t2 = placeTower(h.game, 4, 6, 'ruby', 1);
     h.game.state.draws = asDraws([t1]); // only t1 is current-round
     expect(h.phase.combine([t1.id, t2.id])).toBe(false);
     expect(h.game.state.towers.length).toBe(2);
@@ -99,8 +104,8 @@ describe('combine: level-up (current round)', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'ruby', 1),
-      placeTower(h.game, 4, 5, 'ruby', 1),
       placeTower(h.game, 4, 6, 'ruby', 1),
+      placeTower(h.game, 4, 8, 'ruby', 1),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(false);
@@ -110,7 +115,7 @@ describe('combine: level-up (current round)', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'ruby', 5),
-      placeTower(h.game, 4, 5, 'ruby', 5),
+      placeTower(h.game, 4, 6, 'ruby', 5),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(false);
@@ -122,21 +127,21 @@ describe('combine: recipe path', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'topaz', 1),
-      placeTower(h.game, 4, 5, 'diamond', 1),
-      placeTower(h.game, 4, 6, 'sapphire', 1),
+      placeTower(h.game, 4, 6, 'diamond', 1),
+      placeTower(h.game, 4, 8, 'sapphire', 1),
     ];
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers.length).toBe(1);
     expect(h.game.state.towers[0].comboKey).toBe('silver');
-    expect(h.game.state.rocks.length).toBe(2);
+    expect(h.game.state.rocks.length).toBe(2 * 4);
   });
 
   it('matches Bloodstone (Perfect Ruby + Flawless Aquamarine + Normal Amethyst)', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'ruby', 5),
-      placeTower(h.game, 4, 5, 'aquamarine', 4),
-      placeTower(h.game, 4, 6, 'amethyst', 3),
+      placeTower(h.game, 4, 6, 'aquamarine', 4),
+      placeTower(h.game, 4, 8, 'amethyst', 3),
     ];
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers[0].comboKey).toBe('bloodstone');
@@ -146,8 +151,8 @@ describe('combine: recipe path', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'amethyst', 5),
-      placeTower(h.game, 4, 5, 'amethyst', 4),
-      placeTower(h.game, 4, 6, 'diamond', 2),
+      placeTower(h.game, 4, 6, 'amethyst', 4),
+      placeTower(h.game, 4, 8, 'diamond', 2),
     ];
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers[0].comboKey).toBe('gold');
@@ -158,8 +163,8 @@ describe('combine: recipe path', () => {
     // Silver requires Chipped (q=1) of all three; pass with q=2 instead.
     const ts = [
       placeTower(h.game, 4, 4, 'topaz', 2),
-      placeTower(h.game, 4, 5, 'diamond', 2),
-      placeTower(h.game, 4, 6, 'sapphire', 2),
+      placeTower(h.game, 4, 6, 'diamond', 2),
+      placeTower(h.game, 4, 8, 'sapphire', 2),
     ];
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(false);
   });
@@ -180,15 +185,19 @@ describe('combine: recipe path', () => {
 });
 
 describe('combine: tile fate', () => {
-  it('first input tile holds the result; other input tiles become rocks', () => {
+  it('first input footprint holds the result; other input footprints become rocks', () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, 'ruby', 1),
-      placeTower(h.game, 4, 5, 'ruby', 1),
+      placeTower(h.game, 4, 6, 'ruby', 1),
     ];
     h.game.state.draws = asDraws(ts);
     h.phase.combine(ts.map((t) => t.id));
+    // First input's 2×2 footprint holds the result tower.
     expect(h.game.state.grid[4][4]).toBe(Cell.Tower);
-    expect(h.game.state.grid[5][4]).toBe(Cell.Rock);
+    expect(h.game.state.grid[5][5]).toBe(Cell.Tower);
+    // Second input's 2×2 footprint is now rock.
+    expect(h.game.state.grid[6][4]).toBe(Cell.Rock);
+    expect(h.game.state.grid[7][5]).toBe(Cell.Rock);
   });
 });

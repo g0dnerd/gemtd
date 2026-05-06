@@ -54,7 +54,12 @@ function placeTower(game: FakeGame, x: number, y: number, gem: GemType): TowerSt
   const id = game.nextId();
   const t: TowerState = { id, x, y, gem, quality: 1, lastFireTick: 0, kills: 0 };
   game.state.towers.push(t);
-  game.state.grid[y][x] = Cell.Tower;
+  // Tower occupies a 2×2 fine-cell footprint anchored at (x, y).
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 2; dx++) {
+      game.state.grid[y + dy][x + dx] = Cell.Tower;
+    }
+  }
   return t;
 }
 
@@ -65,12 +70,13 @@ function asDrawSlot(slotId: number, tower: TowerState): DrawSlot {
 describe('BuildPhase.applyKeepAndRock', () => {
   it('rocks every current-round tower except the designated keep', () => {
     const h = setup();
+    // Anchors must not overlap (each tower is a 2×2 fine-cell footprint).
     const ts = [
       placeTower(h.game, 4, 4, 'ruby'),
-      placeTower(h.game, 4, 5, 'sapphire'),
-      placeTower(h.game, 4, 6, 'emerald'),
-      placeTower(h.game, 5, 4, 'topaz'),
-      placeTower(h.game, 5, 5, 'amethyst'),
+      placeTower(h.game, 4, 6, 'sapphire'),
+      placeTower(h.game, 4, 8, 'emerald'),
+      placeTower(h.game, 6, 4, 'topaz'),
+      placeTower(h.game, 6, 6, 'amethyst'),
     ];
     h.game.state.draws = ts.map((t, i) => asDrawSlot(i, t));
     h.game.state.designatedKeepTowerId = ts[2].id; // keep emerald
@@ -82,31 +88,37 @@ describe('BuildPhase.applyKeepAndRock', () => {
     expect(h.game.state.towers[0].id).toBe(ts[2].id);
     expect(h.game.state.grid[ts[2].y][ts[2].x]).toBe(Cell.Tower);
 
-    // Other 4 tiles converted to rocks.
-    expect(h.game.state.rocks.length).toBe(4);
+    // Other 4 towers each leave a 2×2 rock footprint.
+    expect(h.game.state.rocks.length).toBe(4 * 4);
     for (const t of ts) {
       if (t.id === ts[2].id) continue;
-      expect(h.game.state.grid[t.y][t.x]).toBe(Cell.Rock);
-      expect(h.game.state.rocks.some((r) => r.x === t.x && r.y === t.y)).toBe(true);
+      for (let dy = 0; dy < 2; dy++) {
+        for (let dx = 0; dx < 2; dx++) {
+          expect(h.game.state.grid[t.y + dy][t.x + dx]).toBe(Cell.Rock);
+          expect(
+            h.game.state.rocks.some((r) => r.x === t.x + dx && r.y === t.y + dy),
+          ).toBe(true);
+        }
+      }
     }
   });
 
   it('leaves prior-round towers untouched', () => {
     const h = setup();
-    const kept = placeTower(h.game, 3, 3, 'diamond'); // prior-round tower
+    const kept = placeTower(h.game, 2, 5, 'diamond'); // prior-round tower
     const round = [
       placeTower(h.game, 4, 4, 'ruby'),
-      placeTower(h.game, 4, 5, 'sapphire'),
+      placeTower(h.game, 4, 6, 'sapphire'),
     ];
     h.game.state.draws = round.map((t, i) => asDrawSlot(i, t));
     h.game.state.designatedKeepTowerId = round[0].id;
 
     h.phase.applyKeepAndRock();
 
-    // Kept and round[0] survive; round[1] becomes rock.
+    // Kept and round[0] survive; round[1] becomes a 2×2 rock footprint.
     expect(h.game.state.towers.find((t) => t.id === kept.id)).toBeDefined();
     expect(h.game.state.towers.find((t) => t.id === round[0].id)).toBeDefined();
     expect(h.game.state.towers.find((t) => t.id === round[1].id)).toBeUndefined();
-    expect(h.game.state.rocks.length).toBe(1);
+    expect(h.game.state.rocks.length).toBe(4);
   });
 });

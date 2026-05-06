@@ -6,7 +6,7 @@
 import { Container, Graphics, Text } from 'pixi.js';
 import { CELL, THEME } from './theme';
 import { GRID_H, GRID_W, Cell, START, END, WAYPOINTS } from '../data/map';
-import { TILE } from '../game/constants';
+import { FINE_TILE } from '../game/constants';
 
 export interface BoardLayers {
   root: Container;
@@ -59,7 +59,7 @@ export function drawCell(
   fill: number,
   hi: number,
   lo: number,
-  size = TILE,
+  size = FINE_TILE,
 ): void {
   // Body
   g.rect(cx, cy, size, size).fill(fill);
@@ -78,8 +78,8 @@ export function renderGround(layer: Container, grid: Cell[][]): void {
   for (let y = 0; y < GRID_H; y++) {
     for (let x = 0; x < GRID_W; x++) {
       const cell = grid[y][x];
-      const cx = x * TILE;
-      const cy = y * TILE;
+      const cx = x * FINE_TILE;
+      const cy = y * FINE_TILE;
       switch (cell) {
         case Cell.Grass:
           drawCell(g, cx, cy, CELL.grass, CELL.grassHi, CELL.grassLo);
@@ -99,21 +99,23 @@ export function renderGround(layer: Container, grid: Cell[][]): void {
   }
   layer.addChild(g);
 
-  // Start / End markers on top of ground.
-  const sx = START.x * TILE;
-  const sy = START.y * TILE;
-  drawCell(g, sx + 2, sy + 2, CELL.start, CELL.startHi, CELL.startLo, TILE - 4);
+  // Start / End markers on top of ground. The corridor is 2 fine cells wide,
+  // so we centre the marker inside the 2×2 region.
+  const markerSize = FINE_TILE * 2 - 4;
+  const sx = START.x * FINE_TILE;
+  const sy = START.y * FINE_TILE;
+  drawCell(g, sx + 2, sy + 2, CELL.start, CELL.startHi, CELL.startLo, markerSize);
   const sLabel = makeMonoLabel('S', 9, 0xffffff);
-  sLabel.x = sx + Math.round(TILE / 2 - sLabel.width / 2);
-  sLabel.y = sy + Math.round(TILE / 2 - sLabel.height / 2);
+  sLabel.x = sx + Math.round(FINE_TILE - sLabel.width / 2);
+  sLabel.y = sy + Math.round(FINE_TILE - sLabel.height / 2);
   layer.addChild(sLabel);
 
-  const ex = END.x * TILE;
-  const ey = END.y * TILE;
-  drawCell(g, ex + 2, ey + 2, CELL.end, CELL.endHi, CELL.endLo, TILE - 4);
+  const ex = END.x * FINE_TILE;
+  const ey = END.y * FINE_TILE;
+  drawCell(g, ex + 2, ey + 2, CELL.end, CELL.endHi, CELL.endLo, markerSize);
   const eLabel = makeMonoLabel('E', 9, 0x0a0510);
-  eLabel.x = ex + Math.round(TILE / 2 - eLabel.width / 2);
-  eLabel.y = ey + Math.round(TILE / 2 - eLabel.height / 2);
+  eLabel.x = ex + Math.round(FINE_TILE - eLabel.width / 2);
+  eLabel.y = ey + Math.round(FINE_TILE - eLabel.height / 2);
   layer.addChild(eLabel);
 }
 
@@ -137,10 +139,10 @@ export function renderCheckpoints(layer: Container): void {
   layer.removeChildren();
   const wps = WAYPOINTS.slice(1, WAYPOINTS.length - 1);
   wps.forEach((wp, idx) => {
-    const cx = wp.x * TILE + TILE / 2;
-    const cy = wp.y * TILE + TILE / 2;
+    const cx = wp.x * FINE_TILE + FINE_TILE / 2;
+    const cy = wp.y * FINE_TILE + FINE_TILE / 2;
     const g = new Graphics();
-    const half = TILE / 2 - 2;
+    const half = FINE_TILE - 2;
     // Outer dark diamond (silhouette)
     g.moveTo(cx, cy - half - 1)
       .lineTo(cx + half + 1, cy)
@@ -180,10 +182,10 @@ export function renderPathTrace(
     for (let i = 0; i < seg.length - 1; i++) {
       const a = seg[i];
       const b = seg[i + 1];
-      const ax = a.x * TILE + TILE / 2;
-      const ay = a.y * TILE + TILE / 2;
-      const bx = b.x * TILE + TILE / 2;
-      const by = b.y * TILE + TILE / 2;
+      const ax = a.x * FINE_TILE + FINE_TILE / 2;
+      const ay = a.y * FINE_TILE + FINE_TILE / 2;
+      const bx = b.x * FINE_TILE + FINE_TILE / 2;
+      const by = b.y * FINE_TILE + FINE_TILE / 2;
       g.moveTo(ax, ay).lineTo(bx, by);
     }
   }

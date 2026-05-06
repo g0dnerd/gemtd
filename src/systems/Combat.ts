@@ -7,7 +7,7 @@
  * for splash, neighbors for chain, etc.).
  */
 
-import { TILE, SIM_DT, SIM_HZ } from '../game/constants';
+import { TILE, FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ } from '../game/constants';
 import { Game } from '../game/Game';
 import { gemStats } from '../data/gems';
 import { COMBOS } from '../data/combos';
@@ -57,8 +57,9 @@ export class Combat {
 
   private fire(tower: TowerState, target: CreepState, stats: ResolvedStats): void {
     const state = this.game.state;
-    const fromX = tower.x * TILE + TILE / 2;
-    const fromY = tower.y * TILE + TILE / 2;
+    // Towers are 2×2 on the fine grid; the firing point is the centre of that footprint.
+    const fromX = (tower.x + 1) * FINE_TILE;
+    const fromY = (tower.y + 1) * FINE_TILE;
     const baseDmg = randInt(stats.dmgMin, stats.dmgMax);
     let dmg = baseDmg;
     for (const e of stats.effects) {
@@ -224,7 +225,9 @@ function computeAuraMults(towers: TowerState[]): Map<number, number> {
     const stats = effectiveStats(src);
     for (const e of stats.effects) {
       if (e.kind !== 'aura_atkspeed') continue;
-      const r2 = e.radius * e.radius;
+      // Tower coords live on the fine grid; aura radius is in coarse tiles.
+      const radiusFine = e.radius * GRID_SCALE;
+      const r2 = radiusFine * radiusFine;
       for (const tgt of towers) {
         if (tgt.id === src.id) continue;
         const dx = tgt.x - src.x;
@@ -239,8 +242,8 @@ function computeAuraMults(towers: TowerState[]): Map<number, number> {
 
 function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[]): CreepState | null {
   const r2 = (rangeTiles * TILE) * (rangeTiles * TILE);
-  const tx = t.x * TILE + TILE / 2;
-  const ty = t.y * TILE + TILE / 2;
+  const tx = (t.x + 1) * FINE_TILE;
+  const ty = (t.y + 1) * FINE_TILE;
   // Prefer the creep furthest along the path.
   let best: CreepState | null = null;
   for (const c of creeps) {

@@ -3,7 +3,22 @@
  * balance pass mechanical.
  */
 
-export const TILE = 36;          // pixels per tile (rendered)
+/**
+ * Pixel size of one *coarse* tile — kept as the canonical unit for game
+ * balance (tower ranges, creep speeds, splash radii are all expressed in
+ * coarse tiles). Visual cells are drawn at {@link FINE_TILE}.
+ */
+export const TILE = 36;
+
+/**
+ * The placement grid runs at 2× resolution: each coarse tile is 2×2 fine
+ * cells, each fine cell is FINE_TILE px on a side. Towers, rocks, and
+ * pathfinding all live on the fine grid; creep movement and ranges still
+ * use TILE for game-balance numbers.
+ */
+export const GRID_SCALE = 2;
+export const FINE_TILE = TILE / GRID_SCALE;
+
 export const SIM_HZ = 60;        // simulation tick frequency
 export const SIM_DT = 1 / SIM_HZ;
 

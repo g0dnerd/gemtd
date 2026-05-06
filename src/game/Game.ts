@@ -15,7 +15,7 @@ import { RNG } from './rng';
 import { BASE, Cell } from '../data/map';
 import { findRoute, flattenRoute } from '../systems/Pathfinding';
 import { BoardLayers, makeBoardLayers, renderGround, renderPathTrace, renderCheckpoints } from '../render/BoardRenderer';
-import { TILE, START_GOLD, START_LIVES, SIM_DT } from './constants';
+import { FINE_TILE, START_GOLD, START_LIVES, SIM_DT } from './constants';
 import { BuildPhase } from '../controllers/BuildPhase';
 import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
@@ -189,8 +189,8 @@ export class Game {
 
   /** Center the board container in the canvas host. */
   layoutBoard(canvasW: number, canvasH: number): void {
-    const boardW = this.state.grid[0].length * TILE;
-    const boardH = this.state.grid.length * TILE;
+    const boardW = this.state.grid[0].length * FINE_TILE;
+    const boardH = this.state.grid.length * FINE_TILE;
     this.board.x = Math.round((canvasW - boardW) / 2);
     this.board.y = Math.round((canvasH - boardH) / 2);
   }

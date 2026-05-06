@@ -87,19 +87,20 @@ describe('BuildPhase: place', () => {
   });
 
   it('rejects placement that fully blocks the path', () => {
-    // Pre-block column 10 except for one tile at (10, 8). That single tile is
-    // the only way through; placing on it must be rejected.
-    for (let y = 1; y < 16; y++) {
-      if (y === 8) continue;
-      h.game.state.grid[y][10] = Cell.Tower;
+    // Pre-block column 20 (between WP1 and WP2) leaving a single gap at y=15.
+    // That gap is the only way through; a 2×2 tower anchored at (19, 14) must
+    // be rejected because it would close it.
+    for (let y = 2; y < 32; y++) {
+      if (y === 15) continue;
+      h.game.state.grid[y][20] = Cell.Tower;
     }
     h.game.refreshRoute();
     expect(findRoute(h.game.state.grid)).not.toBeNull();
 
     h.phase.rollDraws();
-    const ok = h.phase.place(10, 8);
+    const ok = h.phase.place(19, 14);
     expect(ok).toBe(false);
-    expect(h.game.state.grid[8][10]).toBe(Cell.Grass);
+    expect(h.game.state.grid[14][19]).toBe(Cell.Grass);
   });
 
   it('refuses to place when there is no active draw', () => {

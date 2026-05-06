@@ -18,7 +18,40 @@ import type { GemType, Quality } from '../render/theme';
 import { GEM_TYPES } from '../render/theme';
 import { findRoute } from '../systems/Pathfinding';
 import { CHANCE_TIER_WEIGHTS, QUALITY_BASE_COST } from '../game/constants';
-import { TowerState, DRAW_COUNT, activeDraw, allDrawsPlaced, nextUnplacedSlot } from '../game/State';
+import { State, TowerState, DRAW_COUNT, activeDraw, allDrawsPlaced, nextUnplacedSlot } from '../game/State';
+
+/** Towers and their rock remnants both occupy a 2×2 fine-cell footprint. */
+const FOOTPRINT_OFFSETS: ReadonlyArray<readonly [number, number]> = [
+  [0, 0],
+  [1, 0],
+  [0, 1],
+  [1, 1],
+];
+
+function footprintCells(ax: number, ay: number): Array<{ x: number; y: number }> {
+  return FOOTPRINT_OFFSETS.map(([dx, dy]) => ({ x: ax + dx, y: ay + dy }));
+}
+
+function setFootprint(state: State, ax: number, ay: number, cell: Cell): void {
+  for (const c of footprintCells(ax, ay)) state.grid[c.y][c.x] = cell;
+}
+
+function rockFootprint(state: State, ax: number, ay: number): Array<{ x: number; y: number }> {
+  const cells = footprintCells(ax, ay);
+  for (const c of cells) {
+    state.grid[c.y][c.x] = Cell.Rock;
+    state.rocks.push({ x: c.x, y: c.y });
+  }
+  return cells;
+}
+
+function unrockFootprint(state: State, ax: number, ay: number): void {
+  for (const c of footprintCells(ax, ay)) {
+    state.grid[c.y][c.x] = Cell.Grass;
+    const idx = state.rocks.findIndex((r) => r.x === c.x && r.y === c.y);
+    if (idx >= 0) state.rocks.splice(idx, 1);
+  }
+}
 
 export class BuildPhase {
   constructor(private game: Game) {}
@@ -70,15 +103,18 @@ export class BuildPhase {
       this.game.bus.emit('toast', { kind: 'error', text: 'No gem drawn' });
       return false;
     }
-    if (x < 0 || y < 0 || x >= GRID_W || y >= GRID_H) return false;
-    if (!isBuildable(state.grid[y][x])) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Cannot build there' });
-      return false;
+    // Anchor (x, y) is the top-left of the 2×2 footprint.
+    if (x < 0 || y < 0 || x + 1 >= GRID_W || y + 1 >= GRID_H) return false;
+    for (const c of footprintCells(x, y)) {
+      if (!isBuildable(state.grid[c.y][c.x])) {
+        this.game.bus.emit('toast', { kind: 'error', text: 'Cannot build there' });
+        return false;
+      }
     }
 
-    // Tentatively block this tile and try to find a route.
+    // Tentatively block all 4 footprint cells and try to find a route.
     const tentative = new Set<string>();
-    tentative.add(`${x},${y}`);
+    for (const c of footprintCells(x, y)) tentative.add(`${c.x},${c.y}`);
     const tryRoute = findRoute(state.grid, tentative);
     if (!tryRoute) {
       this.game.bus.emit('toast', { kind: 'error', text: 'Would block path' });
@@ -99,7 +135,7 @@ export class BuildPhase {
       kills: 0,
     };
     state.towers.push(tower);
-    state.grid[y][x] = Cell.Tower;
+    setFootprint(state, x, y, Cell.Tower);
     slot.placedTowerId = id;
     state.activeDrawSlot = nextUnplacedSlot(state);
     this.game.refreshRoute();
@@ -111,7 +147,7 @@ export class BuildPhase {
         // Remove tower
         const idx = state.towers.findIndex((t) => t.id === id);
         if (idx >= 0) state.towers.splice(idx, 1);
-        state.grid[y][x] = Cell.Grass;
+        setFootprint(state, x, y, Cell.Grass);
         const s = state.draws.find((d) => d.slotId === placedSlotId);
         if (s) s.placedTowerId = null;
         state.activeDrawSlot = placedSlotId;
@@ -159,8 +195,7 @@ export class BuildPhase {
       if (idx < 0) continue;
       const t = state.towers[idx];
       state.towers.splice(idx, 1);
-      state.grid[t.y][t.x] = Cell.Rock;
-      state.rocks.push({ x: t.x, y: t.y });
+      rockFootprint(state, t.x, t.y);
     }
     this.game.refreshRoute();
     if (state.selectedTowerId !== null && !state.towers.some((t) => t.id === state.selectedTowerId)) {
@@ -246,8 +281,7 @@ export class BuildPhase {
       if (idx < 0) continue;
       const t = state.towers[idx];
       state.towers.splice(idx, 1);
-      state.grid[t.y][t.x] = Cell.Rock;
-      state.rocks.push({ x: t.x, y: t.y });
+      rockFootprint(state, t.x, t.y);
     }
     state.draws = [];
     state.activeDrawSlot = null;
@@ -279,10 +313,10 @@ export class BuildPhase {
 
     state.towers = state.towers.filter((t) => !removedIds.has(t.id));
     for (const t of inputs) {
-      state.grid[t.y][t.x] = Cell.Grass;
+      setFootprint(state, t.x, t.y, Cell.Grass);
     }
 
-    // Place the new tower at the first input's tile.
+    // Place the new tower at the first input's anchor.
     const newTower: TowerState = {
       id: this.game.nextId(),
       x: baseTower.x,
@@ -294,15 +328,14 @@ export class BuildPhase {
       kills: 0,
     };
     state.towers.push(newTower);
-    state.grid[baseTower.y][baseTower.x] = Cell.Tower;
+    setFootprint(state, baseTower.x, baseTower.y, Cell.Tower);
 
-    // Non-result tiles become rocks (mirrors keeper-rock conversion).
-    const rockedTiles: Array<{ x: number; y: number }> = [];
+    // Non-result anchors become 2×2 rock footprints (mirrors keeper-rock).
+    const rockedAnchors: Array<{ x: number; y: number }> = [];
     for (let i = 1; i < inputs.length; i++) {
       const t = inputs[i];
-      state.grid[t.y][t.x] = Cell.Rock;
-      state.rocks.push({ x: t.x, y: t.y });
-      rockedTiles.push({ x: t.x, y: t.y });
+      rockFootprint(state, t.x, t.y);
+      rockedAnchors.push({ x: t.x, y: t.y });
     }
 
     // Clear consumed draw slots; if the new tower is in the same round, fold it
@@ -330,15 +363,13 @@ export class BuildPhase {
       description: `Combine → ${outGem} L${outQuality}`,
       undo: () => {
         state.towers = state.towers.filter((t) => t.id !== newTower.id);
-        state.grid[newTower.y][newTower.x] = Cell.Grass;
-        for (const r of rockedTiles) {
-          state.grid[r.y][r.x] = Cell.Grass;
-          const idx = state.rocks.findIndex((rr) => rr.x === r.x && rr.y === r.y);
-          if (idx >= 0) state.rocks.splice(idx, 1);
+        setFootprint(state, newTower.x, newTower.y, Cell.Grass);
+        for (const r of rockedAnchors) {
+          unrockFootprint(state, r.x, r.y);
         }
         for (const t of inputs) {
           state.towers.push(t);
-          state.grid[t.y][t.x] = Cell.Tower;
+          setFootprint(state, t.x, t.y, Cell.Tower);
         }
         for (const c of slotsConsumed) {
           const d = state.draws.find((dd) => dd.slotId === c.slotId);

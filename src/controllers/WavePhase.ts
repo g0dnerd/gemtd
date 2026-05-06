@@ -7,7 +7,7 @@ import { Game } from '../game/Game';
 import { CreepState } from '../game/State';
 import { CREEP_ARCHETYPES } from '../data/creeps';
 import { WAVES } from '../data/waves';
-import { TILE, SIM_DT } from '../game/constants';
+import { FINE_TILE, GRID_SCALE, SIM_DT } from '../game/constants';
 
 export class WavePhase {
   private wave = 0;
@@ -83,8 +83,8 @@ export class WavePhase {
     const creep: CreepState = {
       id,
       pathPos: 0,
-      px: start.x * TILE + TILE / 2,
-      py: start.y * TILE + TILE / 2,
+      px: start.x * FINE_TILE + FINE_TILE / 2,
+      py: start.y * FINE_TILE + FINE_TILE / 2,
       hp,
       maxHp: hp,
       speed: arch.speed,
@@ -107,7 +107,8 @@ export class WavePhase {
     }
     const route = this.game.state.flatRoute;
     if (route.length === 0) return;
-    c.pathPos += speed * SIM_DT;
+    // speed is in coarse tiles/sec; the route is indexed in fine cells.
+    c.pathPos += speed * GRID_SCALE * SIM_DT;
     if (c.pathPos >= route.length - 1) {
       // Leaked
       c.alive = false;
@@ -118,8 +119,8 @@ export class WavePhase {
     const tA = route[i];
     const tB = route[i + 1] ?? tA;
     const frac = c.pathPos - i;
-    c.px = (tA.x + (tB.x - tA.x) * frac) * TILE + TILE / 2;
-    c.py = (tA.y + (tB.y - tA.y) * frac) * TILE + TILE / 2;
+    c.px = (tA.x + (tB.x - tA.x) * frac) * FINE_TILE + FINE_TILE / 2;
+    c.py = (tA.y + (tB.y - tA.y) * frac) * FINE_TILE + FINE_TILE / 2;
 
     // Poison ticks
     if (c.poison && c.poison.expiresAt > this.game.state.tick) {

@@ -56,7 +56,8 @@ export class TowerSpriteCache {
 /** Build a tower sprite (stone base + gem on top). */
 export function makeTowerSprite(gem: GemType, quality: Quality, cache: TowerSpriteCache): Container {
   const root = new Container();
-  // Stone base — rect with bevels.
+  // Stone base — rect with bevels. The tower occupies a 2×2 fine-cell region
+  // (= 1 coarse tile), so all measurements are in TILE units centred on (0,0).
   const base = new Graphics();
   const bw = TILE - 6;
   const bh = Math.floor(TILE * 0.55);

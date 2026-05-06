@@ -17,7 +17,7 @@ import { mountGameOver } from "./GameOver";
 import { activeDraw, allDrawsPlaced, TowerState } from "../game/State";
 import { GRID_H, GRID_W } from "../data/map";
 import {
-  TILE,
+  FINE_TILE,
   CHANCE_TIER_UPGRADE_COST,
   MAX_CHANCE_TIER,
   CHANCE_TIER_WEIGHTS,
@@ -110,8 +110,8 @@ export function mountHud(
   const canvasHost = document.createElement("div");
   canvasHost.className = "gem-canvas-host";
   // Match the host to the board pixel size (board + 6px frame).
-  const boardPxW = GRID_W * TILE;
-  const boardPxH = GRID_H * TILE;
+  const boardPxW = GRID_W * FINE_TILE;
+  const boardPxH = GRID_H * FINE_TILE;
   canvasHost.style.width = `${boardPxW}px`;
   canvasHost.style.height = `${boardPxH}px`;
   const canvas = app.canvas as HTMLCanvasElement;
@@ -491,8 +491,8 @@ export function mountHud(
     const ly = ev.clientY - rect.top;
     const bx = game.board.x;
     const by = game.board.y;
-    const tx = Math.floor((lx - bx) / TILE);
-    const ty = Math.floor((ly - by) / TILE);
+    const tx = Math.floor((lx - bx) / FINE_TILE);
+    const ty = Math.floor((ly - by) / FINE_TILE);
     if (tx < 0 || ty < 0 || tx >= GRID_W || ty >= GRID_H) return null;
     return { x: tx, y: ty };
   }

@@ -10,7 +10,7 @@
 import { Container, Graphics } from 'pixi.js';
 import type { CreepState, ProjectileState, RockState, State, TowerState } from '../game/State';
 import { activeDraw } from '../game/State';
-import { TILE } from '../game/constants';
+import { FINE_TILE, TILE } from '../game/constants';
 import { CELL, GEM_PALETTE, THEME } from './theme';
 import { TowerSpriteCache, makeTowerSprite } from './TowerRenderer';
 import { gemStats } from '../data/gems';
@@ -39,8 +39,10 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       entry = { obj };
       towerObjs.set(t.id, entry);
     }
-    entry.obj.x = t.x * TILE + TILE / 2;
-    entry.obj.y = t.y * TILE + TILE / 2;
+    // Tower anchor (t.x, t.y) is the top-left fine cell of its 2×2 footprint,
+    // so the visual centre sits on the corner shared by the 4 cells.
+    entry.obj.x = (t.x + 1) * FINE_TILE;
+    entry.obj.y = (t.y + 1) * FINE_TILE;
   }
   for (const [id, entry] of towerObjs) {
     if (!seen.has(id)) {
@@ -61,7 +63,7 @@ export function renderRocks(layer: Container, rocks: RockState[]): void {
       const obj = new Container();
       const g = new Graphics();
       // Solid stone tile with bevels.
-      const sz = TILE - 4;
+      const sz = FINE_TILE - 2;
       const ox = -sz / 2;
       const oy = -sz / 2;
       g.rect(ox, oy, sz, sz).fill(CELL.rockHi);
@@ -74,8 +76,8 @@ export function renderRocks(layer: Container, rocks: RockState[]): void {
       g.rect(ox - 1, oy - 1, 1, sz + 2).fill(0x000000);
       g.rect(ox + sz, oy - 1, 1, sz + 2).fill(0x000000);
       obj.addChild(g);
-      obj.x = r.x * TILE + TILE / 2;
-      obj.y = r.y * TILE + TILE / 2;
+      obj.x = r.x * FINE_TILE + FINE_TILE / 2;
+      obj.y = r.y * FINE_TILE + FINE_TILE / 2;
       layer.addChild(obj);
       entry = { obj };
       rockObjs.set(key, entry);
@@ -185,15 +187,26 @@ export function renderHover(
   if (state.phase !== 'build') return;
   if (hover.x < 0 || hover.y < 0 || hover.x >= GRID_W || hover.y >= GRID_H) return;
 
-  const cx = hover.x * TILE;
-  const cy = hover.y * TILE;
-  const cell = state.grid[hover.y][hover.x];
-  const color = cell === 0 ? THEME.accent : THEME.bad;
-  // Outline
-  hoverGfx.rect(cx, cy, TILE, 1).fill(color);
-  hoverGfx.rect(cx, cy + TILE - 1, TILE, 1).fill(color);
-  hoverGfx.rect(cx, cy, 1, TILE).fill(color);
-  hoverGfx.rect(cx + TILE - 1, cy, 1, TILE).fill(color);
+  // Hover anchor is the top-left of a 2×2 placement footprint.
+  const cx = hover.x * FINE_TILE;
+  const cy = hover.y * FINE_TILE;
+  const sz = FINE_TILE * 2;
+  const buildable = canPlaceFootprint(state, hover.x, hover.y);
+  const color = buildable ? THEME.accent : THEME.bad;
+  hoverGfx.rect(cx, cy, sz, 1).fill(color);
+  hoverGfx.rect(cx, cy + sz - 1, sz, 1).fill(color);
+  hoverGfx.rect(cx, cy, 1, sz).fill(color);
+  hoverGfx.rect(cx + sz - 1, cy, 1, sz).fill(color);
+}
+
+function canPlaceFootprint(state: State, ax: number, ay: number): boolean {
+  if (ax < 0 || ay < 0 || ax + 1 >= GRID_W || ay + 1 >= GRID_H) return false;
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 2; dx++) {
+      if (state.grid[ay + dy][ax + dx] !== 0) return false;
+    }
+  }
+  return true;
 }
 
 let rangeGfx: Graphics | null = null;
@@ -216,8 +229,8 @@ export function renderRangePreview(
       const range = towerRange(t);
       drawDashedCircle(
         rangeGfx,
-        t.x * TILE + TILE / 2,
-        t.y * TILE + TILE / 2,
+        (t.x + 1) * FINE_TILE,
+        (t.y + 1) * FINE_TILE,
         range * TILE,
         0xd8f0f8,
         0.7,
@@ -225,21 +238,20 @@ export function renderRangePreview(
     }
   }
 
-  // Build preview range — show on hover when there's an active draw and the tile is buildable.
+  // Build preview range — show on hover when there's an active draw and the
+  // 2×2 footprint anchored at the cursor would be a legal placement.
   if (state.phase === 'build' && hover) {
     const draw = activeDraw(state);
-    if (draw && hover.x >= 0 && hover.y >= 0 && hover.x < GRID_W && hover.y < GRID_H) {
-      if (state.grid[hover.y][hover.x] === 0) {
-        const stats = gemStats(draw.gem, draw.quality);
-        drawDashedCircle(
-          rangeGfx,
-          hover.x * TILE + TILE / 2,
-          hover.y * TILE + TILE / 2,
-          stats.range * TILE,
-          THEME.accent,
-          0.5,
-        );
-      }
+    if (draw && canPlaceFootprint(state, hover.x, hover.y)) {
+      const stats = gemStats(draw.gem, draw.quality);
+      drawDashedCircle(
+        rangeGfx,
+        (hover.x + 1) * FINE_TILE,
+        (hover.y + 1) * FINE_TILE,
+        stats.range * TILE,
+        THEME.accent,
+        0.5,
+      );
     }
   }
 }
