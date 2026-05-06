@@ -1,6 +1,22 @@
 /* Pixel-art GemTD UI primitives — Cozy Twilight theme.
    Adapted from design handoff; only the cozy theme is in scope. */
 
+@font-face {
+  font-family: 'Press Start 2P';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/PressStart2P-Regular.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'VT323';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/VT323-Regular.woff2') format('woff2');
+}
+
 :root {
   --px-bg: #2a2238;
   --px-panel: #3d3252;
