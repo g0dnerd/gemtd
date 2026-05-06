@@ -3,12 +3,12 @@
  * effect summary, and KEEP / COMBINE buttons.
  */
 
-import { Game } from '../game/Game';
-import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from '../render/theme';
-import { htmlGemTier, htmlSpecial } from '../render/htmlSprites';
-import { effectSummary, gemStats } from '../data/gems';
-import { COMBOS } from '../data/combos';
-import { TowerState } from '../game/State';
+import { Game } from "../game/Game";
+import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
+import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
+import { effectSummary, gemStats } from "../data/gems";
+import { COMBOS } from "../data/combos";
+import { TowerState } from "../game/State";
 
 export interface InspectorRefs {
   root: HTMLElement;
@@ -18,25 +18,25 @@ export interface InspectorRefs {
 }
 
 export function mountInspector(game: Game): InspectorRefs {
-  const root = document.createElement('div');
-  root.className = 'px-panel inspector';
-  const head = document.createElement('div');
-  head.className = 'panel-head';
-  const title = document.createElement('div');
-  title.className = 'panel-h px-h';
-  title.textContent = 'SELECTED · TOWER';
+  const root = document.createElement("div");
+  root.className = "px-panel inspector";
+  const head = document.createElement("div");
+  head.className = "panel-head";
+  const title = document.createElement("div");
+  title.className = "panel-h px-h";
+  title.textContent = "SELECTED · TOWER";
   head.appendChild(title);
   root.appendChild(head);
 
-  const body = document.createElement('div');
-  body.className = 'inspector-body';
+  const body = document.createElement("div");
+  body.className = "inspector-body";
   root.appendChild(body);
 
   const refs: InspectorRefs = {
     root,
     body,
     refresh: (g: Game) => render(refs, g),
-    lastFingerprint: '',
+    lastFingerprint: "",
   };
 
   render(refs, game);
@@ -62,24 +62,30 @@ function fingerprint(game: Game): string {
     return `rock|${rockId}|${game.state.phase}|${removable ? 1 : 0}|${affordable ? 1 : 0}|${cost}`;
   }
   const id = game.selectedTowerId;
-  const tower = id !== null ? game.state.towers.find((t) => t.id === id) ?? null : null;
+  const tower =
+    id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) return `none|${game.state.phase}`;
-  const isCurrentDraw = game.state.draws.some((d) => d.placedTowerId === tower.id);
+  const isCurrentDraw = game.state.draws.some(
+    (d) => d.placedTowerId === tower.id,
+  );
   const sameColor = isCurrentDraw
     ? 0
     : game.state.towers.filter(
-        (t) => t.gem === tower.gem && t.quality === tower.quality && !game.state.draws.some((d) => d.placedTowerId === t.id),
+        (t) =>
+          t.gem === tower.gem &&
+          t.quality === tower.quality &&
+          !game.state.draws.some((d) => d.placedTowerId === t.id),
       ).length;
   return [
     tower.id,
     tower.gem,
     tower.quality,
-    tower.comboKey ?? '',
+    tower.comboKey ?? "",
     game.state.phase,
-    game.state.designatedKeepTowerId ?? '',
+    game.state.designatedKeepTowerId ?? "",
     isCurrentDraw ? 1 : 0,
     sameColor,
-  ].join('|');
+  ].join("|");
 }
 
 function render(refs: InspectorRefs, game: Game): void {
@@ -87,7 +93,7 @@ function render(refs: InspectorRefs, game: Game): void {
   if (fp === refs.lastFingerprint) return;
   refs.lastFingerprint = fp;
   const body = refs.body;
-  body.innerHTML = '';
+  body.innerHTML = "";
 
   if (game.selectedRockId !== null) {
     renderRock(body, game, game.selectedRockId);
@@ -95,11 +101,12 @@ function render(refs: InspectorRefs, game: Game): void {
   }
 
   const id = game.selectedTowerId;
-  const tower = id !== null ? game.state.towers.find((t) => t.id === id) ?? null : null;
+  const tower =
+    id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) {
-    const empty = document.createElement('div');
-    empty.className = 'inspector-empty';
-    empty.textContent = 'Click a tower or rock to inspect.';
+    const empty = document.createElement("div");
+    empty.className = "inspector-empty";
+    empty.textContent = "Click a tower or rock to inspect.";
     body.appendChild(empty);
     return;
   }
@@ -107,25 +114,25 @@ function render(refs: InspectorRefs, game: Game): void {
   const stats = effectiveStatsFor(tower);
 
   // Hero row
-  const hero = document.createElement('div');
-  hero.className = 'px-panel-inset inspector-hero';
-  const frame = document.createElement('div');
-  frame.className = 'inspector-hero-frame';
+  const hero = document.createElement("div");
+  hero.className = "px-panel-inset inspector-hero";
+  const frame = document.createElement("div");
+  frame.className = "inspector-hero-frame";
   frame.appendChild(
     tower.comboKey
       ? htmlSpecial(tower.comboKey, 40, true)
       : htmlGemTier(tower.gem, tower.quality as Quality, 40, true),
   );
-  const text = document.createElement('div');
-  text.className = 'inspector-hero-text';
-  const name = document.createElement('div');
-  name.className = 'inspector-hero-name';
-  const sub = document.createElement('div');
-  sub.className = 'inspector-hero-sub';
+  const text = document.createElement("div");
+  text.className = "inspector-hero-text";
+  const name = document.createElement("div");
+  name.className = "inspector-hero-name";
+  const sub = document.createElement("div");
+  sub.className = "inspector-hero-sub";
   if (tower.comboKey) {
     const combo = COMBOS.find((c) => c.key === tower.comboKey);
-    name.textContent = combo ? combo.name.toUpperCase() : 'COMBO';
-    sub.textContent = `LV. ${tower.quality} · ${combo?.stats.blurb ?? 'COMBO'}`;
+    name.textContent = combo ? combo.name.toUpperCase() : "COMBO";
+    sub.textContent = `LV. ${tower.quality} · ${combo?.stats.blurb ?? "COMBO"}`;
   } else {
     name.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
     sub.textContent = `LV. ${tower.quality} · ${QUALITY_NAMES[tower.quality].toUpperCase()}`;
@@ -135,38 +142,38 @@ function render(refs: InspectorRefs, game: Game): void {
   body.appendChild(hero);
 
   // Stats grid
-  const grid = document.createElement('div');
-  grid.className = 'inspector-stats-grid';
+  const grid = document.createElement("div");
+  grid.className = "inspector-stats-grid";
 
-  const dmg = document.createElement('div');
-  dmg.className = 'px-panel-inset inspector-stat inspector-stat-dmg';
-  const dmgLabel = document.createElement('div');
-  dmgLabel.className = 'inspector-stat-label';
-  dmgLabel.textContent = 'DAMAGE';
-  const dmgVal = document.createElement('div');
-  dmgVal.className = 'inspector-stat-value inspector-stat-value-hero';
+  const dmg = document.createElement("div");
+  dmg.className = "px-panel-inset inspector-stat inspector-stat-dmg";
+  const dmgLabel = document.createElement("div");
+  dmgLabel.className = "inspector-stat-label";
+  dmgLabel.textContent = "DAMAGE";
+  const dmgVal = document.createElement("div");
+  dmgVal.className = "inspector-stat-value inspector-stat-value-hero";
   dmgVal.textContent = `${stats.dmgMin} – ${stats.dmgMax}`;
   dmg.append(dmgLabel, dmgVal);
   grid.appendChild(dmg);
 
-  const rng = document.createElement('div');
-  rng.className = 'px-panel-inset inspector-stat';
-  const rngLabel = document.createElement('div');
-  rngLabel.className = 'inspector-stat-label-sm';
-  rngLabel.textContent = 'RANGE';
-  const rngVal = document.createElement('div');
-  rngVal.className = 'inspector-stat-value inspector-stat-value-sec';
+  const rng = document.createElement("div");
+  rng.className = "px-panel-inset inspector-stat";
+  const rngLabel = document.createElement("div");
+  rngLabel.className = "inspector-stat-label-sm";
+  rngLabel.textContent = "RANGE";
+  const rngVal = document.createElement("div");
+  rngVal.className = "inspector-stat-value inspector-stat-value-sec";
   rngVal.textContent = stats.range.toFixed(1);
   rng.append(rngLabel, rngVal);
   grid.appendChild(rng);
 
-  const spd = document.createElement('div');
-  spd.className = 'px-panel-inset inspector-stat';
-  const spdLabel = document.createElement('div');
-  spdLabel.className = 'inspector-stat-label-sm';
-  spdLabel.textContent = 'SPEED';
-  const spdVal = document.createElement('div');
-  spdVal.className = 'inspector-stat-value inspector-stat-value-sec';
+  const spd = document.createElement("div");
+  spd.className = "px-panel-inset inspector-stat";
+  const spdLabel = document.createElement("div");
+  spdLabel.className = "inspector-stat-label-sm";
+  spdLabel.textContent = "SPEED";
+  const spdVal = document.createElement("div");
+  spdVal.className = "inspector-stat-value inspector-stat-value-sec";
   spdVal.innerHTML = `${stats.atkSpeed.toFixed(2)}<small>/s</small>`;
   spd.append(spdLabel, spdVal);
   grid.appendChild(spd);
@@ -174,48 +181,60 @@ function render(refs: InspectorRefs, game: Game): void {
   body.appendChild(grid);
 
   // Effect chip
-  if (stats.effects.length > 0 && stats.effects[0].kind !== 'none') {
-    const chip = document.createElement('div');
-    chip.className = 'inspector-effect';
-    const lbl = document.createElement('div');
-    lbl.className = 'inspector-effect-label';
+  if (stats.effects.length > 0 && stats.effects[0].kind !== "none") {
+    const chip = document.createElement("div");
+    chip.className = "inspector-effect";
+    const lbl = document.createElement("div");
+    lbl.className = "inspector-effect-label";
     lbl.textContent = `ON HIT · ${stats.effects[0].kind.toUpperCase()}`;
-    const txt = document.createElement('div');
-    txt.className = 'inspector-effect-text';
-    txt.textContent = stats.effects.map(effectSummary).filter(Boolean).join(' · ');
+    const txt = document.createElement("div");
+    txt.className = "inspector-effect-text";
+    txt.textContent = stats.effects
+      .map(effectSummary)
+      .filter(Boolean)
+      .join(" · ");
     chip.append(lbl, txt);
     body.appendChild(chip);
   }
 
   // Actions
-  const actions = document.createElement('div');
-  actions.className = 'inspector-actions';
+  const actions = document.createElement("div");
+  actions.className = "inspector-actions";
 
-  const isCurrentDraw = game.state.draws.some((d) => d.placedTowerId === tower.id);
+  const isCurrentDraw = game.state.draws.some(
+    (d) => d.placedTowerId === tower.id,
+  );
   const isKeep = game.state.designatedKeepTowerId === tower.id;
 
-  const keep = document.createElement('button');
-  keep.className = 'px-btn px-btn-good';
-  keep.style.flex = '1';
+  const keep = document.createElement("button");
+  keep.className = "px-btn px-btn-good";
+  keep.style.flex = "1";
   if (isCurrentDraw) {
-    keep.textContent = isKeep ? '★ KEEPING' : '★ MARK KEEP';
-    keep.disabled = game.state.phase !== 'build' || isKeep;
-    keep.addEventListener('click', () => game.cmdDesignateKeep(tower.id));
+    keep.textContent = isKeep ? "★ KEEPING" : "★ KEEP";
+    keep.disabled = game.state.phase !== "build" || isKeep;
+    keep.addEventListener("click", () => game.cmdDesignateKeep(tower.id));
   } else {
-    keep.textContent = '★ COMBINE';
+    keep.textContent = "★ COMBINE";
     const sameColor = game.state.towers.filter(
-      (t) => t.gem === tower.gem && t.quality === tower.quality && !game.state.draws.some((d) => d.placedTowerId === t.id),
+      (t) =>
+        t.gem === tower.gem &&
+        t.quality === tower.quality &&
+        !game.state.draws.some((d) => d.placedTowerId === t.id),
     );
     const canCombine = sameColor.length >= 2;
-    keep.disabled = game.state.phase !== 'build';
-    if (canCombine && game.state.phase === 'build') keep.classList.add('is-active');
-    keep.addEventListener('click', () => {
+    keep.disabled = game.state.phase !== "build";
+    if (canCombine && game.state.phase === "build")
+      keep.classList.add("is-active");
+    keep.addEventListener("click", () => {
       if (canCombine) {
         const partner = sameColor.find((t) => t.id !== tower.id);
         if (!partner) return;
         game.cmdCombine([tower.id, partner.id]);
       } else {
-        game.bus.emit('toast', { kind: 'info', text: 'Need 2 same-color, same-quality (this round).' });
+        game.bus.emit("toast", {
+          kind: "info",
+          text: "Need 2 same-color, same-quality (this round).",
+        });
       }
     });
   }
@@ -226,30 +245,31 @@ function render(refs: InspectorRefs, game: Game): void {
 function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
   const rock = game.state.rocks.find((r) => r.id === rockId);
   if (!rock) {
-    const empty = document.createElement('div');
-    empty.className = 'inspector-empty';
-    empty.textContent = 'Click a tower or rock to inspect.';
+    const empty = document.createElement("div");
+    empty.className = "inspector-empty";
+    empty.textContent = "Click a tower or rock to inspect.";
     body.appendChild(empty);
     return;
   }
 
-  const hero = document.createElement('div');
-  hero.className = 'px-panel-inset inspector-hero';
-  const frame = document.createElement('div');
-  frame.className = 'inspector-hero-frame';
-  const swatch = document.createElement('div');
-  swatch.style.width = '32px';
-  swatch.style.height = '32px';
-  swatch.style.background = '#7e6d5a';
-  swatch.style.boxShadow = 'inset 2px 2px 0 0 #a89478, inset -2px -2px 0 0 #4a3d2e';
+  const hero = document.createElement("div");
+  hero.className = "px-panel-inset inspector-hero";
+  const frame = document.createElement("div");
+  frame.className = "inspector-hero-frame";
+  const swatch = document.createElement("div");
+  swatch.style.width = "32px";
+  swatch.style.height = "32px";
+  swatch.style.background = "#7e6d5a";
+  swatch.style.boxShadow =
+    "inset 2px 2px 0 0 #a89478, inset -2px -2px 0 0 #4a3d2e";
   frame.appendChild(swatch);
-  const text = document.createElement('div');
-  text.className = 'inspector-hero-text';
-  const name = document.createElement('div');
-  name.className = 'inspector-hero-name';
-  name.textContent = 'ROCK';
-  const sub = document.createElement('div');
-  sub.className = 'inspector-hero-sub';
+  const text = document.createElement("div");
+  text.className = "inspector-hero-text";
+  const name = document.createElement("div");
+  name.className = "inspector-hero-name";
+  name.textContent = "ROCK";
+  const sub = document.createElement("div");
+  sub.className = "inspector-hero-sub";
   sub.textContent = `PLACED · WAVE ${rock.placedAtBuildOfWave}`;
   text.append(name, sub);
   hero.append(frame, text);
@@ -259,26 +279,26 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
   const cost = game.rockRemovalCost();
   const affordable = game.state.gold >= cost;
 
-  const note = document.createElement('div');
-  note.className = 'inspector-effect';
-  const noteLbl = document.createElement('div');
-  noteLbl.className = 'inspector-effect-label';
-  noteLbl.textContent = removable ? 'DEMOLISH · COST' : 'LOCKED · THIS ROUND';
-  const noteTxt = document.createElement('div');
-  noteTxt.className = 'inspector-effect-text';
+  const note = document.createElement("div");
+  note.className = "inspector-effect";
+  const noteLbl = document.createElement("div");
+  noteLbl.className = "inspector-effect-label";
+  noteLbl.textContent = removable ? "DEMOLISH · COST" : "LOCKED · THIS ROUND";
+  const noteTxt = document.createElement("div");
+  noteTxt.className = "inspector-effect-text";
   noteTxt.textContent = removable
     ? `${cost} gold — frees the 2×2 footprint`
-    : 'Available once this build phase ends';
+    : "Available once this build phase ends";
   note.append(noteLbl, noteTxt);
   body.appendChild(note);
 
-  const actions = document.createElement('div');
-  actions.className = 'inspector-actions';
-  const remove = document.createElement('button');
-  remove.className = 'px-btn px-btn-bad';
+  const actions = document.createElement("div");
+  actions.className = "inspector-actions";
+  const remove = document.createElement("button");
+  remove.className = "px-btn px-btn-bad";
   remove.textContent = `↯ REMOVE · ${cost}G`;
   remove.disabled = !removable || !affordable;
-  remove.addEventListener('click', () => game.cmdRemoveRock(rockId));
+  remove.addEventListener("click", () => game.cmdRemoveRock(rockId));
   actions.append(remove);
   body.appendChild(actions);
 }
@@ -288,7 +308,7 @@ interface ResolvedStats {
   dmgMax: number;
   range: number;
   atkSpeed: number;
-  effects: ReturnType<typeof gemStats>['effects'];
+  effects: ReturnType<typeof gemStats>["effects"];
 }
 
 function effectiveStatsFor(t: TowerState): ResolvedStats {
