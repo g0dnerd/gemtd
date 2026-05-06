@@ -385,6 +385,6 @@ export function renderPathTrace(
       }
     }
   }
-  g.stroke({ width: 1.5, color: THEME.info, alpha: 0.6, pixelLine: true });
+  g.stroke({ width: 3, color: THEME.info, alpha: 0.85, pixelLine: false });
   layer.addChild(g);
 }
