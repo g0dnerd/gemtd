@@ -145,7 +145,6 @@ function buildBody(): HTMLElement {
     row(htmlGem('sapphire', 22), `<b>CYCLE</b> — press <kbd>TAB</kbd> to cycle through unplaced slots, or click chips directly.`),
     row(htmlGem('topaz', 22), `<b>UNDO</b> — <kbd>U</kbd> reverses placements during build phase.`),
     p(`After the wave, you must <b>keep just one</b> of the 5 towers. The other four become permanent <b>rocks</b> that block creep paths — that's how you build your maze.`),
-    p(`Older kept towers can be sold any time with <b>right-click</b> or <kbd>S</kbd> for 75% gold (also leaving a rock).`),
     p(`Click <b>NEXT WAVE</b> (or press <kbd>SPACE</kbd>) once all 5 are placed.`),
   );
   return wrap;
@@ -183,10 +182,8 @@ function keysBody(): HTMLElement {
     ['TAB', 'Cycle active draw slot (Shift = back)'],
     ['1 / 2 / 4', 'Sim speed'],
     ['U', 'Undo last action'],
-    ['S', 'Sell selected tower (kept towers only)'],
     ['C', 'Open Combine menu'],
     ['ESC', 'Deselect / close menu'],
-    ['Right-click', 'Sell tower under cursor'],
   ];
   for (const [k, label] of keys) {
     const r = document.createElement('div');

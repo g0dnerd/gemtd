@@ -230,9 +230,6 @@ export class Game {
   cmdPlace(x: number, y: number): boolean {
     return this.buildPhase.place(x, y);
   }
-  cmdSell(towerId: number): boolean {
-    return this.buildPhase.sell(towerId);
-  }
   cmdUndo(): boolean {
     return this.buildPhase.undo();
   }

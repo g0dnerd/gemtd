@@ -11,9 +11,6 @@ export const SIM_DT = 1 / SIM_HZ;
 export const START_LIVES = 50;
 export const START_GOLD = 10;
 
-/** Sell refund as fraction of the gem's gold value. Canonical SC2 GemTD: 75%. */
-export const SELL_REFUND = 0.75;
-
 /** Speed multipliers exposed in the HUD. */
 export const SPEEDS = [1, 2, 4] as const;
 export type SpeedMultiplier = (typeof SPEEDS)[number];

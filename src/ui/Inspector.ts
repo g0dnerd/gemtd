@@ -1,6 +1,6 @@
 /**
  * Selected-tower inspector. Shows stats, range circle (rendered in PIXI),
- * effect summary, and SELL / COMBINE buttons.
+ * effect summary, and KEEP / COMBINE buttons.
  */
 
 import { Game } from '../game/Game';
@@ -8,13 +8,13 @@ import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from '../render/theme';
 import { htmlGem } from '../render/htmlSprites';
 import { effectSummary, gemStats } from '../data/gems';
 import { COMBOS } from '../data/combos';
-import { SELL_REFUND } from '../game/constants';
 import { TowerState } from '../game/State';
 
 export interface InspectorRefs {
   root: HTMLElement;
   body: HTMLDivElement;
   refresh: (g: Game) => void;
+  lastFingerprint: string;
 }
 
 export function mountInspector(game: Game): InspectorRefs {
@@ -36,6 +36,7 @@ export function mountInspector(game: Game): InspectorRefs {
     root,
     body,
     refresh: (g: Game) => render(refs, g),
+    lastFingerprint: '',
   };
 
   render(refs, game);
@@ -46,7 +47,38 @@ export function refreshInspector(refs: InspectorRefs, game: Game): void {
   refs.refresh(game);
 }
 
+/**
+ * Fingerprint of all state that affects what the inspector renders. If this
+ * is unchanged we skip the rebuild — otherwise the periodic 100ms tick would
+ * destroy and recreate the action buttons mid-click, eating clicks whenever
+ * mousedown and mouseup straddle a tick boundary.
+ */
+function fingerprint(game: Game): string {
+  const id = game.selectedTowerId;
+  const tower = id !== null ? game.state.towers.find((t) => t.id === id) ?? null : null;
+  if (!tower) return `none|${game.state.phase}`;
+  const isCurrentDraw = game.state.draws.some((d) => d.placedTowerId === tower.id);
+  const sameColor = isCurrentDraw
+    ? 0
+    : game.state.towers.filter(
+        (t) => t.gem === tower.gem && t.quality === tower.quality && !game.state.draws.some((d) => d.placedTowerId === t.id),
+      ).length;
+  return [
+    tower.id,
+    tower.gem,
+    tower.quality,
+    tower.comboKey ?? '',
+    game.state.phase,
+    game.state.designatedKeepTowerId ?? '',
+    isCurrentDraw ? 1 : 0,
+    sameColor,
+  ].join('|');
+}
+
 function render(refs: InspectorRefs, game: Game): void {
+  const fp = fingerprint(game);
+  if (fp === refs.lastFingerprint) return;
+  refs.lastFingerprint = fp;
   const body = refs.body;
   body.innerHTML = '';
   const id = game.selectedTowerId;
@@ -142,39 +174,33 @@ function render(refs: InspectorRefs, game: Game): void {
   const actions = document.createElement('div');
   actions.className = 'inspector-actions';
 
-  const sell = document.createElement('button');
-  sell.className = 'px-btn px-btn-bad';
-  sell.style.flex = '1';
-  const refundDisplay = tower.comboKey ? '?' : Math.floor(gemStats(tower.gem, tower.quality).cost * SELL_REFUND);
-  sell.textContent = `SELL · ${refundDisplay}G`;
-  sell.disabled = game.state.phase !== 'build';
-  sell.addEventListener('click', () => game.cmdSell(tower.id));
-
   const isCurrentDraw = game.state.draws.some((d) => d.placedTowerId === tower.id);
   const isKeep = game.state.designatedKeepTowerId === tower.id;
 
   const keep = document.createElement('button');
   keep.className = 'px-btn px-btn-good';
-  keep.style.flex = '1.5';
+  keep.style.flex = '1';
   if (isCurrentDraw) {
     keep.textContent = isKeep ? '★ KEEPING' : '★ MARK KEEP';
     keep.disabled = game.state.phase !== 'build' || isKeep;
     keep.addEventListener('click', () => game.cmdDesignateKeep(tower.id));
   } else {
     keep.textContent = '★ COMBINE';
+    const sameColor = game.state.towers.filter(
+      (t) => t.gem === tower.gem && t.quality === tower.quality && !game.state.draws.some((d) => d.placedTowerId === t.id),
+    );
+    const canCombine = sameColor.length >= 2;
     keep.disabled = game.state.phase !== 'build';
+    if (canCombine && game.state.phase === 'build') keep.classList.add('is-active');
     keep.addEventListener('click', () => {
-      const sameColor = game.state.towers.filter(
-        (t) => t.gem === tower.gem && t.quality === tower.quality && !game.state.draws.some((d) => d.placedTowerId === t.id),
-      );
-      if (sameColor.length >= 2) {
+      if (canCombine) {
         game.cmdCombine(sameColor.slice(0, 2).map((t) => t.id));
       } else {
         game.bus.emit('toast', { kind: 'info', text: 'Need 2 same-color, same-quality (this round).' });
       }
     });
   }
-  actions.append(sell, keep);
+  actions.append(keep);
   body.appendChild(actions);
 }
 

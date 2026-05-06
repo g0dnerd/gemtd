@@ -1,5 +1,5 @@
 /**
- * Tests around build-phase actions: 5-draw rolling, place / sell / undo / refund.
+ * Tests around build-phase actions: 5-draw rolling, place / undo.
  *
  * We use a minimal Game-like harness because BuildPhase only depends on a
  * subset of the Game surface (state, bus, refreshRoute, nextId, selectTower).
@@ -12,7 +12,6 @@ import { BASE, Cell } from '../src/data/map';
 import { findRoute, flattenRoute } from '../src/systems/Pathfinding';
 import { EventBus } from '../src/events/EventBus';
 import { RNG } from '../src/game/rng';
-import { QUALITY_BASE_COST, SELL_REFUND } from '../src/game/constants';
 
 interface FakeGame {
   state: State;
@@ -147,39 +146,6 @@ describe('BuildPhase: setActiveSlot + ready', () => {
   });
 });
 
-describe('BuildPhase: sell', () => {
-  let h: ReturnType<typeof makeFake>;
-  beforeEach(() => { h = makeFake(); });
-
-  it('refuses to sell a current-wave draw tower', () => {
-    h.phase.rollDraws();
-    h.phase.place(5, 5);
-    const tower = h.game.state.towers[0];
-    const goldBefore = h.game.state.gold;
-    expect(h.phase.sell(tower.id)).toBe(false);
-    // Tower is still there; no rock.
-    expect(h.game.state.towers.length).toBe(1);
-    expect(h.game.state.gold).toBe(goldBefore);
-  });
-
-  it('sells a kept (non-draw) tower for SELL_REFUND × cost and leaves a rock', () => {
-    h.phase.rollDraws();
-    h.phase.place(7, 7);
-    const tower = h.game.state.towers[0];
-    const draw = h.game.state.draws.find((d) => d.placedTowerId === tower.id)!;
-    // Simulate "kept" by detaching the tower from the current draws array.
-    h.game.state.draws = [];
-
-    const goldBefore = h.game.state.gold;
-    expect(h.phase.sell(tower.id)).toBe(true);
-    const expectedRefund = Math.floor(QUALITY_BASE_COST[draw.quality] * SELL_REFUND);
-    expect(h.game.state.gold - goldBefore).toBe(expectedRefund);
-    expect(h.game.state.rocks.length).toBe(1);
-    expect(h.game.state.grid[7][7]).toBe(Cell.Rock);
-    expect(h.game.state.towers.length).toBe(0);
-  });
-});
-
 describe('BuildPhase: undo', () => {
   let h: ReturnType<typeof makeFake>;
   beforeEach(() => { h = makeFake(); });
@@ -199,18 +165,6 @@ describe('BuildPhase: undo', () => {
     expect(h.game.state.draws[0].quality).toBe(slot0Before.quality);
     // Active slot is back to 0.
     expect(h.game.state.activeDrawSlot).toBe(0);
-  });
-
-  it('undo of sell restores a kept tower and removes the rock', () => {
-    h.phase.rollDraws();
-    h.phase.place(5, 5);
-    const tower = h.game.state.towers[0];
-    h.game.state.draws = []; // simulate post-keeper "kept" state
-    h.phase.sell(tower.id);
-    expect(h.game.state.rocks.length).toBe(1);
-    h.phase.undo();
-    expect(h.game.state.rocks.length).toBe(0);
-    expect(h.game.state.towers.length).toBe(1);
   });
 
   it('undo of nothing is a no-op', () => {

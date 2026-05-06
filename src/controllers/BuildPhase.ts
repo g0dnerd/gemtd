@@ -9,20 +9,15 @@
  *  - Tile must be buildable Grass.
  *  - Placement must not break the path through any consecutive waypoint pair.
  *  - Draws are free (canonical: gems aren't bought, they're rolled).
- *
- * Sell rules (mid-build, not the post-wave keeper choice):
- *  - Returns SELL_REFUND × cost.
- *  - Leaves a Rock on that tile.
  */
 
 import { Cell, GRID_H, GRID_W, isBuildable } from '../data/map';
 import { Game } from '../game/Game';
-import { gemStats } from '../data/gems';
 import { findCombo } from '../data/combos';
 import type { GemType, Quality } from '../render/theme';
 import { GEM_TYPES } from '../render/theme';
 import { findRoute } from '../systems/Pathfinding';
-import { CHANCE_TIER_WEIGHTS, QUALITY_BASE_COST, SELL_REFUND } from '../game/constants';
+import { CHANCE_TIER_WEIGHTS, QUALITY_BASE_COST } from '../game/constants';
 import { TowerState, DRAW_COUNT, activeDraw, allDrawsPlaced, nextUnplacedSlot } from '../game/State';
 
 export class BuildPhase {
@@ -121,46 +116,6 @@ export class BuildPhase {
       id, x, y, gem: tower.gem, quality: tower.quality,
     });
     this.game.bus.emit('draws:change', {});
-    return true;
-  }
-
-  sell(towerId: number): boolean {
-    const state = this.game.state;
-    if (state.phase !== 'build') {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Cannot sell during a wave' });
-      return false;
-    }
-    // Don't allow selling current-wave draws (they're committed for the wave).
-    if (state.draws.some((d) => d.placedTowerId === towerId)) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Cannot sell current draw — undo to reroll' });
-      return false;
-    }
-    const idx = state.towers.findIndex((t) => t.id === towerId);
-    if (idx < 0) return false;
-    const tower = state.towers[idx];
-    const stats = gemStats(tower.gem, tower.quality);
-    const refund = Math.floor(stats.cost * SELL_REFUND);
-    state.gold += refund;
-    state.towers.splice(idx, 1);
-    state.grid[tower.y][tower.x] = Cell.Rock;
-    state.rocks.push({ x: tower.x, y: tower.y });
-    this.game.refreshRoute();
-    this.game.selectTower(null);
-
-    state.undoStack.push({
-      description: `Sell ${tower.gem}`,
-      undo: () => {
-        state.gold -= refund;
-        state.rocks = state.rocks.filter((r) => !(r.x === tower.x && r.y === tower.y));
-        state.grid[tower.y][tower.x] = Cell.Tower;
-        state.towers.push(tower);
-        this.game.refreshRoute();
-        this.game.bus.emit('gold:change', { gold: state.gold });
-      },
-    });
-
-    this.game.bus.emit('tower:sold', { id: towerId, refund });
-    this.game.bus.emit('gold:change', { gold: state.gold });
     return true;
   }
 

@@ -14,7 +14,6 @@ export interface GameEvents {
   'creep:die': { id: number; bounty: number };
   'creep:leak': { id: number };
   'tower:placed': { id: number; x: number; y: number; gem: GemType; quality: Quality };
-  'tower:sold': { id: number; refund: number };
   'tower:fire': { id: number; targetId: number };
   'tower:hit': { id: number; targetId: number; damage: number };
   'gold:change': { gold: number };

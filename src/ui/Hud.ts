@@ -77,23 +77,25 @@ export function mountHud(
   root.appendChild(hud);
 
   // === Left column ===
-  const wordmarkRow = document.createElement("div");
-  wordmarkRow.className = "hud-wordmark-row";
-  const wordmark = document.createElement("div");
-  wordmark.className = "hud-wordmark";
-  wordmark.textContent = "GEM TD";
-  const version = document.createElement("div");
-  version.className = "hud-version";
-  version.textContent = "v0.1";
-  wordmarkRow.append(wordmark, version);
-  left.appendChild(wordmarkRow);
+  // Compact header strip: wordmark + lives + gold consolidated into one row.
+  const headerBar = document.createElement("div");
+  headerBar.className = "header-bar";
 
-  const statsRow = document.createElement("div");
-  statsRow.className = "stats-row";
-  const livesChip = makeChip(htmlHeart(20), "LIVES", "50", "#ff8898");
-  const goldChip = makeChip(htmlCoin(20), "GOLD", "100", "#ffe068");
-  statsRow.append(livesChip.root, goldChip.root);
-  left.appendChild(statsRow);
+  const wm = document.createElement("div");
+  wm.className = "wm";
+  const wmName = document.createElement("div");
+  wmName.className = "wm-name";
+  wmName.textContent = "GEM TD";
+  const wmVer = document.createElement("div");
+  wmVer.className = "wm-ver";
+  wmVer.textContent = "v0.1";
+  wm.append(wmName, wmVer);
+  headerBar.appendChild(wm);
+
+  const livesMini = makeStatMini(htmlHeart(16), "LIVES", "50", "#ff8898");
+  const goldMini = makeStatMini(htmlCoin(16), "GOLD", "100", "#ffe068");
+  headerBar.append(livesMini.root, goldMini.root);
+  left.appendChild(headerBar);
 
   const chance = makeChancePanel(game);
   left.appendChild(chance.root);
@@ -242,6 +244,69 @@ export function mountHud(
   combineRow.append(combineBtn, combineSpecialBtn);
   actionBar.appendChild(combineRow);
 
+  function refreshCombineHighlights(): void {
+    const inBuild = game.state.phase === "build";
+    const cCount = inBuild ? countCombinePairs() : 0;
+    const sCount = inBuild ? countSpecialRecipes() : 0;
+    setComboButton(combineBtn, "★ COMBINE", cCount, false);
+    setComboButton(combineSpecialBtn, "★ SPECIAL", sCount, true);
+  }
+
+  function setComboButton(
+    btn: HTMLButtonElement,
+    label: string,
+    count: number,
+    special: boolean,
+  ): void {
+    btn.textContent = label;
+    if (count > 0) {
+      btn.classList.add("combo-active");
+      btn.classList.toggle("special", special);
+      const badge = document.createElement("span");
+      badge.className = "badge-count";
+      badge.textContent = String(count);
+      btn.appendChild(badge);
+    } else {
+      btn.classList.remove("combo-active", "special");
+    }
+  }
+
+  function selectedTower(): TowerState | null {
+    const id = game.selectedTowerId;
+    if (id === null) return null;
+    return game.state.towers.find((t) => t.id === id) ?? null;
+  }
+
+  function countCombinePairs(): number {
+    const sel = selectedTower();
+    if (!sel || sel.comboKey) return 0;
+    const drawIds = new Set(
+      game.state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
+    );
+    if (!drawIds.has(sel.id)) return 0;
+    const matches = game.state.towers.filter(
+      (t) =>
+        drawIds.has(t.id) &&
+        !t.comboKey &&
+        t.gem === sel.gem &&
+        t.quality === sel.quality,
+    );
+    return matches.length >= 2 ? 1 : 0;
+  }
+
+  function countSpecialRecipes(): number {
+    const sel = selectedTower();
+    if (!sel || sel.comboKey) return 0;
+    const placed = game.state.towers.filter((t) => !t.comboKey);
+    let n = 0;
+    for (const c of COMBOS) {
+      if (matchRecipeWithMust(c, placed, sel)) n++;
+    }
+    return n;
+  }
+
   const systemRow = document.createElement("div");
   systemRow.className = "action-bar-system";
   const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root));
@@ -327,8 +392,8 @@ export function mountHud(
   }
 
   function refreshChips(): void {
-    livesChip.value.textContent = String(game.state.lives);
-    goldChip.value.textContent = String(game.state.gold);
+    livesMini.value.textContent = String(game.state.lives);
+    goldMini.value.textContent = String(game.state.gold);
   }
 
   function tick(): void {
@@ -337,6 +402,7 @@ export function mountHud(
     refreshDraw();
     chance.refresh();
     refreshStartGate();
+    refreshCombineHighlights();
     refreshInspector(inspector, game);
   }
 
@@ -355,9 +421,6 @@ export function mountHud(
   game.bus.on("lives:change", refreshChips);
   game.bus.on("tower:placed", () => {
     refreshDraw();
-    rebuildRecipes();
-  });
-  game.bus.on("tower:sold", () => {
     rebuildRecipes();
   });
   game.bus.on("combine:done", () => {
@@ -419,16 +482,9 @@ export function mountHud(
     game.hoverTile = null;
   });
   canvasHost.addEventListener("pointerdown", (ev: PointerEvent) => {
+    if (ev.button !== 0) return;
     const t = tileFromPointer(ev);
     if (!t) return;
-    // Right click → sell selected tower at that tile.
-    if (ev.button === 2) {
-      const tower = game.state.towers.find(
-        (tt) => tt.x === t.x && tt.y === t.y,
-      );
-      if (tower) game.cmdSell(tower.id);
-      return;
-    }
     // Left click on a tower → select it.
     const tower = game.state.towers.find((tt) => tt.x === t.x && tt.y === t.y);
     if (tower) {
@@ -442,66 +498,90 @@ export function mountHud(
       game.selectTower(null);
     }
   });
-  canvasHost.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
   function openCombine(initialTab?: "level" | "recipe"): void {
     mountCombineModal(root, game, initialTab);
   }
 
   /**
-   * Auto-combine: level-up two/four same gem+quality towers from the current
-   * round. Picks deterministically when multiple eligible groups exist:
-   * highest-quality first, then alphabetical by gem name. Always combines —
-   * never prompts for selection.
+   * Auto-combine: level up the selected gem with another same-gem same-quality
+   * tower from the current round. The selected tower is always one of the
+   * inputs.
    */
   function tryAutoCombine(): void {
     if (game.state.phase !== "build") return;
+    const sel = selectedTower();
+    if (!sel) {
+      game.bus.emit("toast", {
+        kind: "error",
+        text: "Select a gem to combine",
+      });
+      return;
+    }
+    if (sel.comboKey) {
+      game.bus.emit("toast", {
+        kind: "error",
+        text: "Specials cannot be levelled up",
+      });
+      return;
+    }
     const drawIds = new Set(
       game.state.draws
         .map((d) => d.placedTowerId)
         .filter((id): id is number => id !== null),
     );
-    const groups = new Map<string, TowerState[]>();
-    for (const t of game.state.towers) {
-      if (!drawIds.has(t.id)) continue;
-      if (t.comboKey) continue;
-      const k = `${t.gem}:${t.quality}`;
-      const arr = groups.get(k) ?? [];
-      arr.push(t);
-      groups.set(k, arr);
-    }
-    const eligible: TowerState[][] = [];
-    for (const arr of groups.values()) {
-      if (arr.length >= 2) eligible.push(arr);
-    }
-    if (eligible.length === 0) {
+    if (!drawIds.has(sel.id)) {
       game.bus.emit("toast", {
         kind: "error",
-        text: "No same-gem pair this round",
+        text: "Level-up only works on this round's draws",
       });
       return;
     }
-    eligible.sort((a, b) => {
-      // Prefer larger groups (4 over 2), then higher quality, then gem name.
-      if (b.length !== a.length) return b.length - a.length;
-      if (b[0].quality !== a[0].quality) return b[0].quality - a[0].quality;
-      return a[0].gem.localeCompare(b[0].gem);
-    });
-    const arr = eligible[0];
-    const take = arr.length >= 4 ? 4 : 2;
-    game.cmdCombine(arr.slice(0, take).map((t) => t.id));
+    const matches = game.state.towers.filter(
+      (t) =>
+        drawIds.has(t.id) &&
+        !t.comboKey &&
+        t.gem === sel.gem &&
+        t.quality === sel.quality,
+    );
+    if (matches.length < 2) {
+      game.bus.emit("toast", {
+        kind: "error",
+        text: "Need another same-gem, same-quality from this round",
+      });
+      return;
+    }
+    const others = matches.filter((t) => t.id !== sel.id);
+    const take = matches.length >= 4 ? 4 : 2;
+    const ids = [sel.id, ...others.slice(0, take - 1).map((t) => t.id)];
+    game.cmdCombine(ids);
   }
 
   /**
    * Auto-combine special: pick the first recipe (in COMBOS order) whose inputs
-   * are satisfiable from placed (non-combo) towers, and execute it. Always
-   * combines if at least one recipe matches — never prompts.
+   * include the selected gem and can otherwise be satisfied from placed towers.
+   * The selected tower is always consumed by the recipe.
    */
   function tryAutoCombineSpecial(): void {
     if (game.state.phase !== "build") return;
+    const sel = selectedTower();
+    if (!sel) {
+      game.bus.emit("toast", {
+        kind: "error",
+        text: "Select a gem to anchor the recipe",
+      });
+      return;
+    }
+    if (sel.comboKey) {
+      game.bus.emit("toast", {
+        kind: "error",
+        text: "Specials cannot be re-combined",
+      });
+      return;
+    }
     const placed = game.state.towers.filter((t) => !t.comboKey);
     for (const c of COMBOS) {
-      const ids = matchRecipe(c, placed);
+      const ids = matchRecipeWithMust(c, placed, sel);
       if (ids) {
         game.cmdCombine(ids);
         return;
@@ -509,14 +589,24 @@ export function mountHud(
     }
     game.bus.emit("toast", {
       kind: "error",
-      text: "No recipe is satisfiable",
+      text: "No recipe uses the selected gem yet",
     });
   }
 
-  function matchRecipe(c: ComboRecipe, towers: TowerState[]): number[] | null {
-    const used = new Set<number>();
+  function matchRecipeWithMust(
+    c: ComboRecipe,
+    towers: TowerState[],
+    must: TowerState,
+  ): number[] | null {
+    const used = new Set<number>([must.id]);
     const ids: number[] = [];
+    let consumed = false;
     for (const inp of c.inputs) {
+      if (!consumed && inp.gem === must.gem && inp.quality === must.quality) {
+        ids.push(must.id);
+        consumed = true;
+        continue;
+      }
       const t = towers.find(
         (tt) =>
           !used.has(tt.id) && tt.gem === inp.gem && tt.quality === inp.quality,
@@ -525,6 +615,7 @@ export function mountHud(
       used.add(t.id);
       ids.push(t.id);
     }
+    if (!consumed) return null;
     return ids;
   }
 
@@ -534,8 +625,6 @@ export function mountHud(
       if (game.state.phase === "build") game.cmdStartWave();
     } else if (ev.key === "u" || ev.key === "U") {
       game.cmdUndo();
-    } else if (ev.key === "s" || ev.key === "S") {
-      if (game.selectedTowerId !== null) game.cmdSell(game.selectedTowerId);
     } else if (ev.key === "1") {
       game.setSpeed(1);
       speedBtn.textContent = "1×";
@@ -570,7 +659,7 @@ export function mountHud(
   };
 
   // ===== Helpers =====
-  function makeChip(
+  function makeStatMini(
     icon: HTMLElement,
     label: string,
     value: string,
@@ -580,17 +669,17 @@ export function mountHud(
     value: HTMLDivElement;
   } {
     const r = document.createElement("div");
-    r.className = "px-panel-inset stat-chip";
+    r.className = "stat-mini";
     const iconWrap = document.createElement("div");
-    iconWrap.className = "stat-icon";
+    iconWrap.className = "stat-mini-icon";
     iconWrap.appendChild(icon);
     const col = document.createElement("div");
-    col.className = "stat-col";
+    col.className = "stat-mini-col";
     const l = document.createElement("div");
-    l.className = "stat-label";
+    l.className = "lbl";
     l.textContent = label;
     const v = document.createElement("div");
-    v.className = "stat-value";
+    v.className = "val";
     v.style.color = valueColor;
     v.textContent = value;
     col.append(l, v);
@@ -618,16 +707,14 @@ export function mountHud(
     title.className = "panel-h px-h";
     title.textContent = "CHANCE TIER";
     head.appendChild(title);
-    r.appendChild(head);
 
-    const hero = document.createElement("div");
-    hero.className = "chance-hero";
-    const lvl = document.createElement("div");
+    const collapsed = document.createElement("div");
+    collapsed.className = "chance-collapsed";
+    const lvl = document.createElement("span");
     lvl.className = "chance-lvl";
-    const next = document.createElement("div");
-    next.className = "chance-next";
-    hero.append(lvl, next);
-    r.appendChild(hero);
+    collapsed.appendChild(lvl);
+    head.appendChild(collapsed);
+    r.appendChild(head);
 
     const bars = document.createElement("div");
     bars.className = "chance-bars";
@@ -642,7 +729,6 @@ export function mountHud(
       const t = g.state.chanceTier;
       lvl.textContent = `LV. ${t}`;
       const cost = t < MAX_CHANCE_TIER ? CHANCE_TIER_UPGRADE_COST[t] : null;
-      next.textContent = cost !== null ? `NEXT ${cost}G` : "MAX";
 
       const row = CHANCE_TIER_WEIGHTS[t];
       bars.innerHTML = "";
@@ -675,10 +761,13 @@ export function mountHud(
       if (t >= MAX_CHANCE_TIER) {
         upBtn.textContent = "MAX TIER";
         upBtn.disabled = true;
+        upBtn.classList.remove("is-affordable");
       } else {
         upBtn.textContent = `UPGRADE · ${cost}G`;
-        upBtn.disabled =
-          g.state.phase !== "build" || g.state.gold < (cost ?? 0);
+        const inBuild = g.state.phase === "build";
+        const affordable = g.state.gold >= (cost ?? 0);
+        upBtn.disabled = !inBuild || !affordable;
+        upBtn.classList.toggle("is-affordable", inBuild && affordable);
       }
     }
 
@@ -695,48 +784,37 @@ export function mountHud(
     head.className = "panel-head";
     const title = document.createElement("div");
     title.className = "panel-h px-h";
-    title.textContent = "DRAW · 0/5 PLACED";
-    const action = document.createElement("div");
-    action.className = "draw-keeper-tag";
-    head.append(title, action);
+    title.textContent = "DRAW · 0/5";
+    const tag = document.createElement("div");
+    tag.className = "draw-keeper-tag";
+    head.append(title, tag);
     r.appendChild(head);
 
     const grid = document.createElement("div");
     grid.className = "draw-grid";
     r.appendChild(grid);
 
-    const status = document.createElement("div");
-    status.className = "px-panel-inset draw-status";
-    const primary = document.createElement("div");
-    primary.className = "draw-status-primary";
-    status.append(primary);
-    r.appendChild(status);
-
     function refresh(): void {
       grid.innerHTML = "";
       const draws = g.state.draws;
       const placed = draws.filter((d) => d.placedTowerId !== null).length;
       const total = draws.length || 5;
-      title.textContent = `DRAW · ${placed}/${total} PLACED`;
-
-      const keeperSet = g.state.designatedKeepTowerId !== null;
-      action.textContent = keeperSet ? "★ KEEPER SET" : "";
+      title.textContent = `DRAW · ${placed}/${total}`;
 
       if (draws.length === 0) {
         for (let i = 0; i < 5; i++) {
           const ph = document.createElement("div");
           ph.className = "px-panel-inset draw-cell placed-non-keep";
-          ph.appendChild(htmlGem("diamond", 26));
+          ph.appendChild(htmlGem("diamond", 22));
           grid.appendChild(ph);
         }
+        const keeperSet = g.state.designatedKeepTowerId !== null;
         if (g.state.phase === "build" && keeperSet) {
-          primary.innerHTML = "";
-          const ready = document.createElement("span");
-          ready.style.color = "var(--px-accent)";
-          ready.textContent = "READY";
-          primary.appendChild(ready);
+          tag.textContent = "★ READY";
+          tag.style.color = "var(--px-accent)";
         } else {
-          primary.textContent = g.state.phase === "wave" ? "In wave" : "—";
+          tag.textContent = g.state.phase === "wave" ? "IN WAVE" : "";
+          tag.style.color = "var(--px-ink-dim)";
         }
         return;
       }
@@ -757,7 +835,7 @@ export function mountHud(
         } else if (isActive) {
           cell.classList.add("is-active");
         }
-        cell.appendChild(htmlGem(d.gem, 26, d.quality > 2));
+        cell.appendChild(htmlGem(d.gem, 22, d.quality > 2));
         const q = document.createElement("div");
         q.className = "draw-quality";
         q.textContent = `L${d.quality}`;
@@ -783,20 +861,16 @@ export function mountHud(
 
       const ad = activeDraw(g.state);
       if (keepDraw) {
-        primary.innerHTML = "";
-        const star = document.createElement("span");
-        star.className = "keep-name";
-        star.textContent = `★ ${GEM_PALETTE[keepDraw.gem].name}`;
-        primary.appendChild(star);
-        primary.appendChild(
-          document.createTextNode(" will be kept after this wave."),
-        );
+        tag.textContent = `★ ${GEM_PALETTE[keepDraw.gem].name.toUpperCase()} · ${QUALITY_NAMES[keepDraw.quality].toUpperCase()}`;
+        tag.style.color = "var(--px-good)";
       } else if (ad) {
-        primary.textContent = `${GEM_PALETTE[ad.gem].name.toUpperCase()} · ${QUALITY_NAMES[ad.quality].toUpperCase()}`;
+        tag.textContent = `${GEM_PALETTE[ad.gem].name.toUpperCase()} · ${QUALITY_NAMES[ad.quality].toUpperCase()}`;
+        tag.style.color = "var(--px-accent)";
       } else if (placed === draws.length && draws.length > 0) {
-        primary.textContent = "PICK A KEEPER";
+        tag.textContent = "PICK A KEEPER";
+        tag.style.color = "var(--px-accent)";
       } else {
-        primary.textContent = "—";
+        tag.textContent = "";
       }
     }
 
