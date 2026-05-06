@@ -82,9 +82,12 @@
 .title-footer {
   position: absolute;
   bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
   color: var(--px-ink-dim);
   font-size: 14px;
   letter-spacing: 2px;
+  text-align: center;
 }
 
 @keyframes gemFloat {
@@ -111,7 +114,7 @@
 .hud-col {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
   min-height: 0;
 }
@@ -119,31 +122,13 @@
 .hud-col-right {
   overflow: hidden;
 }
+.hud-col-right {
+  gap: 10px;
+}
 .hud-col-center {
   align-items: center;
   justify-content: center;
   position: relative;
-}
-
-/* Wordmark row at top of left column */
-.hud-wordmark-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 4px 4px 8px;
-}
-.hud-wordmark {
-  font-family: "Press Start 2P", monospace;
-  font-size: 14px;
-  color: var(--px-accent);
-  text-shadow: 2px 2px 0 var(--px-border-dark);
-  letter-spacing: 1.5px;
-}
-.hud-version {
-  font-family: "Press Start 2P", monospace;
-  font-size: 7px;
-  color: var(--px-ink-dim);
-  letter-spacing: 1px;
 }
 
 /* Section header inside a panel */
@@ -159,52 +144,82 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
   border-bottom: 2px solid var(--px-bg);
 }
 
 /* Override default panel padding to match redesign */
 .px-panel {
+  padding: 10px;
+}
+.hud-col-right .px-panel {
   padding: 14px;
 }
 
-/* Stats row (lives + gold) */
-.stats-row {
+/* Compact header strip: wordmark + lives + gold in one row */
+.header-bar {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 8px;
+  align-items: stretch;
+  padding: 4px;
+  background: var(--px-bg);
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-border-dark);
 }
-.stat-chip {
-  padding: 8px 14px;
+.header-bar .wm {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4px 8px 4px 6px;
+  border-right: 2px solid var(--px-panel);
+}
+.header-bar .wm-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  color: var(--px-accent);
+  text-shadow: 2px 2px 0 var(--px-border-dark);
+  letter-spacing: 1.5px;
+}
+.header-bar .wm-ver {
+  font-family: "Press Start 2P", monospace;
+  font-size: 6px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+.header-bar .stat-mini {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  padding: 0 4px;
   min-width: 0;
 }
-.stat-chip .stat-icon {
+.header-bar .stat-mini .stat-mini-icon {
   flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.stat-chip .stat-col {
+.header-bar .stat-mini .stat-mini-col {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  flex: 1;
   min-width: 0;
 }
-.stat-chip .stat-label {
+.header-bar .stat-mini .lbl {
   font-family: "Press Start 2P", monospace;
-  font-size: 9px;
+  font-size: 7px;
   color: var(--px-ink-dim);
-  letter-spacing: 1.5px;
+  letter-spacing: 1px;
 }
-.stat-chip .stat-value {
+.header-bar .stat-mini .val {
   font-family: "VT323", monospace;
-  font-size: 28px;
+  font-size: 22px;
   line-height: 1;
+  margin-top: 2px;
 }
 
 /* Threat preview panel (right column) */
@@ -301,29 +316,23 @@
   letter-spacing: 1px;
 }
 
-/* Chance tier panel */
-.chance-hero {
+/* Chance tier panel — collapsed: LV. X moved into the panel header */
+.chance-collapsed {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  /* margin-bottom: 12px; */
+  align-items: center;
+  gap: 8px;
 }
-.chance-hero .chance-lvl {
+.chance-collapsed .chance-lvl {
   font-family: "VT323", monospace;
-  font-size: 30px;
-  color: var(--px-accent);
+  font-size: 22px;
+  color: var(--px-ink);
   line-height: 1;
-}
-.chance-hero .chance-next {
-  font-family: "VT323", monospace;
-  font-size: 14px;
-  color: var(--px-ink-dim);
 }
 .chance-bars {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 4px;
+  margin-bottom: 8px;
 }
 .chance-row {
   display: flex;
@@ -334,17 +343,26 @@
   display: flex;
   justify-content: space-between;
   font-family: "VT323", monospace;
-  font-size: 16px;
+  font-size: 14px;
 }
 .chance-row-head .chance-pct {
   color: var(--px-ink);
 }
 .chance-bar {
-  height: 6px;
+  height: 5px;
 }
 .chance-upgrade {
   width: 100%;
-  font-size: 9px;
+  font-size: 8px;
+  padding: 7px 10px;
+  transition: box-shadow 120ms ease-out, opacity 120ms ease-out;
+}
+.chance-upgrade.is-affordable:not(:disabled) {
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-accent-hi),
+    inset -2px -2px 0 0 var(--px-accent-lo),
+    0 0 0 2px var(--px-border-dark),
+    0 0 12px var(--px-accent);
 }
 
 /* Inspector */
@@ -353,7 +371,6 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: scroll;
 }
 .inspector-body {
   display: flex;
@@ -364,13 +381,13 @@
 .inspector-hero {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 12px;
-  margin-bottom: 12px;
+  gap: 12px;
+  padding: 10px;
+  margin-bottom: 10px;
 }
 .inspector-hero-frame {
-  width: 56px;
-  height: 56px;
+  width: 44px;
+  height: 44px;
   background: var(--px-bg);
   box-shadow:
     inset 1px 1px 0 0 var(--px-panel-2),
@@ -387,16 +404,16 @@
 }
 .inspector-hero-name {
   font-family: "Press Start 2P", monospace;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--px-ink);
   letter-spacing: 1px;
   line-height: 1.2;
 }
 .inspector-hero-sub {
   font-family: "VT323", monospace;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--px-ink-dim);
-  margin-top: 4px;
+  margin-top: 2px;
   line-height: 1;
 }
 .inspector-stats-grid {
@@ -406,7 +423,7 @@
   margin-bottom: 10px;
 }
 .inspector-stat {
-  padding: 10px;
+  padding: 9px 10px;
 }
 .inspector-stat-dmg {
   grid-column: 1 / -1;
@@ -429,15 +446,15 @@
   margin-top: 4px;
 }
 .inspector-stat-value-hero {
-  font-size: 28px;
+  font-size: 22px;
   color: var(--px-accent);
 }
 .inspector-stat-value-sec {
-  font-size: 22px;
+  font-size: 18px;
   color: var(--px-ink);
 }
 .inspector-stat-value-sec small {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--px-ink-dim);
 }
 .inspector-effect {
@@ -447,18 +464,18 @@
     0 0 0 2px var(--px-border-dark),
     0 0 0 3px rgba(120, 168, 248, 0.3);
   padding: 8px 10px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .inspector-effect-label {
   font-family: "Press Start 2P", monospace;
   font-size: 8px;
-  color: var(--px-info);
+  color: var(--px-accent);
   letter-spacing: 1px;
   margin-bottom: 4px;
 }
 .inspector-effect-text {
   font-family: "VT323", monospace;
-  font-size: 16px;
+  font-size: 14px;
   color: var(--px-ink);
   line-height: 1.1;
 }
@@ -466,9 +483,20 @@
   display: flex;
   gap: 6px;
   margin-top: auto;
+  padding-top: 10px;
 }
 .inspector-actions .px-btn {
   font-size: 9px;
+  flex: 1;
+  transition: box-shadow 120ms ease-out, opacity 120ms ease-out;
+}
+.inspector-actions .px-btn-good.is-active:not(:disabled) {
+  box-shadow:
+    inset 2px 2px 0 0 #88e878,
+    inset -2px -2px 0 0 #2a8a30,
+    0 0 0 2px var(--px-border-dark),
+    0 0 0 4px #98e890,
+    0 0 12px var(--px-good);
 }
 .inspector-empty {
   font-family: "VT323", monospace;
@@ -588,18 +616,24 @@
   font-size: 9px;
   padding: 8px 10px;
 }
+.action-bar-reset {
+  width: 100%;
+  font-size: 10px;
+  padding: 10px 12px;
+  letter-spacing: 1px;
+}
 
 /* Draw panel — 5 gems rolled at start of build phase */
 .draw-keeper-tag {
   font-family: "VT323", monospace;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--px-good);
 }
 .draw-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 4px;
+  margin-bottom: 0;
 }
 .draw-cell {
   position: relative;
@@ -661,70 +695,6 @@
   50% {
     transform: scale(1.06);
   }
-}
-.draw-status {
-  padding: 10px;
-  background: var(--px-bg);
-}
-.draw-status-primary {
-  font-family: "VT323", monospace;
-  font-size: 16px;
-  color: var(--px-ink);
-  line-height: 1.2;
-}
-.draw-status-primary .keep-name {
-  color: var(--px-good);
-}
-.draw-status-secondary {
-  font-family: "VT323", monospace;
-  font-size: 14px;
-  color: var(--px-ink-dim);
-  margin-top: 4px;
-  line-height: 1.2;
-}
-
-/* Hint banner above the board */
-.board-hint {
-  background: var(--px-bg);
-  color: var(--px-ink);
-  padding: 8px 18px;
-  margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow:
-    inset 2px 2px 0 0 var(--px-border-dark),
-    inset -2px -2px 0 0 var(--px-panel-2),
-    0 0 0 2px var(--px-accent);
-  pointer-events: none;
-  font-family: "VT323", monospace;
-  white-space: nowrap;
-}
-.board-hint-pill {
-  background: var(--px-accent);
-  color: var(--px-border-dark);
-  font-family: "Press Start 2P", monospace;
-  font-size: 9px;
-  padding: 3px 7px;
-  letter-spacing: 1px;
-}
-.board-hint-pill.wave {
-  background: var(--px-bad);
-  color: var(--px-ink);
-}
-.board-hint-pill.keeper {
-  background: var(--px-good);
-  color: var(--px-border-dark);
-}
-.board-hint-msg {
-  font-size: 18px;
-  color: var(--px-ink);
-}
-.board-hint-key {
-  font-family: "Press Start 2P", monospace;
-  font-size: 9px;
-  color: var(--px-ink-dim);
-  letter-spacing: 1px;
 }
 
 /* Modal overlay */
@@ -1171,4 +1141,93 @@
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* Combine / Special button "satisfiable" highlight.
+   The button glows green when at least one same-gem same-quality pair
+   exists this round; blue when at least one recipe is buildable. */
+@keyframes comboPulse {
+  0%, 100% {
+    box-shadow:
+      inset 2px 2px 0 0 var(--px-accent-hi),
+      inset -2px -2px 0 0 var(--px-accent-lo),
+      0 0 0 2px var(--px-border-dark),
+      0 0 0 4px var(--px-good),
+      0 0 14px 2px rgba(88, 200, 80, 0.65);
+  }
+  50% {
+    box-shadow:
+      inset 2px 2px 0 0 var(--px-accent-hi),
+      inset -2px -2px 0 0 var(--px-accent-lo),
+      0 0 0 2px var(--px-border-dark),
+      0 0 0 4px var(--px-good),
+      0 0 22px 6px rgba(88, 200, 80, 0.95);
+  }
+}
+@keyframes comboPulseSpecial {
+  0%, 100% {
+    box-shadow:
+      inset 2px 2px 0 0 var(--px-accent-hi),
+      inset -2px -2px 0 0 var(--px-accent-lo),
+      0 0 0 2px var(--px-border-dark),
+      0 0 0 4px var(--px-info),
+      0 0 14px 2px rgba(120, 168, 248, 0.65);
+  }
+  50% {
+    box-shadow:
+      inset 2px 2px 0 0 var(--px-accent-hi),
+      inset -2px -2px 0 0 var(--px-accent-lo),
+      0 0 0 2px var(--px-border-dark),
+      0 0 0 4px var(--px-info),
+      0 0 22px 6px rgba(120, 168, 248, 0.95);
+  }
+}
+@keyframes comboShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+.combo-active {
+  position: relative;
+  background: var(--px-accent) !important;
+  color: var(--px-border-dark) !important;
+  animation: comboPulse 1.6s ease-in-out infinite;
+  overflow: hidden;
+}
+.combo-active.special {
+  animation: comboPulseSpecial 1.6s ease-in-out infinite;
+}
+.combo-active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  animation: comboShimmer 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.combo-active:disabled {
+  animation: none;
+}
+.combo-active:disabled::after {
+  display: none;
+}
+.badge-count {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 4px;
+  background: var(--px-good);
+  color: var(--px-border-dark);
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  letter-spacing: 0;
+  vertical-align: middle;
+}
+.combo-active.special .badge-count {
+  background: var(--px-info);
 }

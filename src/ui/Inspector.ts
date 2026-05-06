@@ -54,6 +54,13 @@ export function refreshInspector(refs: InspectorRefs, game: Game): void {
  * mousedown and mouseup straddle a tick boundary.
  */
 function fingerprint(game: Game): string {
+  const rockId = game.selectedRockId;
+  if (rockId !== null) {
+    const removable = game.canRemoveRock(rockId);
+    const cost = game.rockRemovalCost();
+    const affordable = game.state.gold >= cost;
+    return `rock|${rockId}|${game.state.phase}|${removable ? 1 : 0}|${affordable ? 1 : 0}|${cost}`;
+  }
   const id = game.selectedTowerId;
   const tower = id !== null ? game.state.towers.find((t) => t.id === id) ?? null : null;
   if (!tower) return `none|${game.state.phase}`;
@@ -81,12 +88,18 @@ function render(refs: InspectorRefs, game: Game): void {
   refs.lastFingerprint = fp;
   const body = refs.body;
   body.innerHTML = '';
+
+  if (game.selectedRockId !== null) {
+    renderRock(body, game, game.selectedRockId);
+    return;
+  }
+
   const id = game.selectedTowerId;
   const tower = id !== null ? game.state.towers.find((t) => t.id === id) ?? null : null;
   if (!tower) {
     const empty = document.createElement('div');
     empty.className = 'inspector-empty';
-    empty.textContent = 'Click a tower to inspect.';
+    empty.textContent = 'Click a tower or rock to inspect.';
     body.appendChild(empty);
     return;
   }
@@ -201,6 +214,66 @@ function render(refs: InspectorRefs, game: Game): void {
     });
   }
   actions.append(keep);
+  body.appendChild(actions);
+}
+
+function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
+  const rock = game.state.rocks.find((r) => r.id === rockId);
+  if (!rock) {
+    const empty = document.createElement('div');
+    empty.className = 'inspector-empty';
+    empty.textContent = 'Click a tower or rock to inspect.';
+    body.appendChild(empty);
+    return;
+  }
+
+  const hero = document.createElement('div');
+  hero.className = 'px-panel-inset inspector-hero';
+  const frame = document.createElement('div');
+  frame.className = 'inspector-hero-frame';
+  const swatch = document.createElement('div');
+  swatch.style.width = '32px';
+  swatch.style.height = '32px';
+  swatch.style.background = '#7e6d5a';
+  swatch.style.boxShadow = 'inset 2px 2px 0 0 #a89478, inset -2px -2px 0 0 #4a3d2e';
+  frame.appendChild(swatch);
+  const text = document.createElement('div');
+  text.className = 'inspector-hero-text';
+  const name = document.createElement('div');
+  name.className = 'inspector-hero-name';
+  name.textContent = 'ROCK';
+  const sub = document.createElement('div');
+  sub.className = 'inspector-hero-sub';
+  sub.textContent = `PLACED · WAVE ${rock.placedAtBuildOfWave}`;
+  text.append(name, sub);
+  hero.append(frame, text);
+  body.appendChild(hero);
+
+  const removable = game.canRemoveRock(rockId);
+  const cost = game.rockRemovalCost();
+  const affordable = game.state.gold >= cost;
+
+  const note = document.createElement('div');
+  note.className = 'inspector-effect';
+  const noteLbl = document.createElement('div');
+  noteLbl.className = 'inspector-effect-label';
+  noteLbl.textContent = removable ? 'DEMOLISH · COST' : 'LOCKED · THIS ROUND';
+  const noteTxt = document.createElement('div');
+  noteTxt.className = 'inspector-effect-text';
+  noteTxt.textContent = removable
+    ? `${cost} gold — frees the 2×2 footprint`
+    : 'Available once this build phase ends';
+  note.append(noteLbl, noteTxt);
+  body.appendChild(note);
+
+  const actions = document.createElement('div');
+  actions.className = 'inspector-actions';
+  const remove = document.createElement('button');
+  remove.className = 'px-btn px-btn-bad';
+  remove.textContent = `↯ REMOVE · ${cost}G`;
+  remove.disabled = !removable || !affordable;
+  remove.addEventListener('click', () => game.cmdRemoveRock(rockId));
+  actions.append(remove);
   body.appendChild(actions);
 }
 

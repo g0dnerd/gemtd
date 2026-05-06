@@ -29,6 +29,10 @@ export interface TowerState {
 export interface RockState {
   x: number;
   y: number;
+  /** Footprint anchor id — all 4 cells of one 2×2 rock share the same id. */
+  id: number;
+  /** Wave whose build phase this rock was placed in. Used to gate removal. */
+  placedAtBuildOfWave: number;
 }
 
 export interface CreepState {
@@ -120,6 +124,10 @@ export interface State {
   /** Undo stack for the current build phase. */
   undoStack: BuildAction[];
   selectedTowerId: number | null;
+  /** Currently selected rock anchor id (mutually exclusive with selectedTowerId). */
+  selectedRockId: number | null;
+  /** Lifetime count of rocks the player has demolished — drives removal cost scaling. */
+  rocksRemoved: number;
   /** Total simulation ticks since game start. */
   tick: number;
   /** Number of waves remaining; computed on init. */
@@ -173,6 +181,8 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     chanceTier: 0,
     undoStack: [],
     selectedTowerId: null,
+    selectedRockId: null,
+    rocksRemoved: 0,
     tick: 0,
     totalWaves,
     waveStats: { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 },

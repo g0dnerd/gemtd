@@ -48,6 +48,9 @@ export class Game {
   /** Currently selected tower (if any). null otherwise. */
   selectedTowerId: number | null = null;
 
+  /** Currently selected rock anchor id (mutually exclusive with selectedTowerId). */
+  selectedRockId: number | null = null;
+
   constructor(app: Application) {
     this.app = app;
     this.rng = new RNG((Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0);
@@ -96,7 +99,10 @@ export class Game {
     this.state.designatedKeepTowerId = null;
     this.state.chanceTier = 0;
     this.state.selectedTowerId = null;
+    this.state.selectedRockId = null;
     this.selectedTowerId = null;
+    this.selectedRockId = null;
+    this.state.rocksRemoved = 0;
     this.state.tick = 0;
     this.state.wave = 0;
     this.state.lives = START_LIVES;
@@ -181,6 +187,57 @@ export class Game {
   selectTower(id: number | null): void {
     this.selectedTowerId = id;
     this.state.selectedTowerId = id;
+    if (id !== null) {
+      this.selectedRockId = null;
+      this.state.selectedRockId = null;
+    }
+  }
+
+  selectRock(id: number | null): void {
+    this.selectedRockId = id;
+    this.state.selectedRockId = id;
+    if (id !== null) {
+      this.selectedTowerId = null;
+      this.state.selectedTowerId = null;
+    }
+  }
+
+  /** Cost in gold to demolish the next rock. Starts at 2 and grows by 1 per removal. */
+  rockRemovalCost(): number {
+    return 2 + this.state.rocksRemoved;
+  }
+
+  /** True when the rock can be removed: not currently in the same build phase it was placed in. */
+  canRemoveRock(rockId: number): boolean {
+    const rock = this.state.rocks.find((r) => r.id === rockId);
+    if (!rock) return false;
+    return !(this.state.phase === 'build' && this.state.wave === rock.placedAtBuildOfWave);
+  }
+
+  cmdRemoveRock(rockId: number): boolean {
+    const state = this.state;
+    const cells = state.rocks.filter((r) => r.id === rockId);
+    if (cells.length === 0) return false;
+    if (!this.canRemoveRock(rockId)) {
+      this.bus.emit('toast', { kind: 'error', text: 'Wait until this round ends' });
+      return false;
+    }
+    const cost = this.rockRemovalCost();
+    if (state.gold < cost) {
+      this.bus.emit('toast', { kind: 'error', text: `Need ${cost}g` });
+      return false;
+    }
+    for (const c of cells) {
+      state.grid[c.y][c.x] = Cell.Grass;
+    }
+    state.rocks = state.rocks.filter((r) => r.id !== rockId);
+    state.gold -= cost;
+    state.rocksRemoved += 1;
+    if (state.selectedRockId === rockId) this.selectRock(null);
+    this.refreshRoute();
+    this.bus.emit('gold:change', { gold: state.gold });
+    this.bus.emit('toast', { kind: 'good', text: `Rock cleared · −${cost}g` });
+    return true;
   }
 
   setSpeed(s: 1 | 2 | 4): void {

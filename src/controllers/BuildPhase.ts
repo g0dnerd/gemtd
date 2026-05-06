@@ -36,11 +36,11 @@ function setFootprint(state: State, ax: number, ay: number, cell: Cell): void {
   for (const c of footprintCells(ax, ay)) state.grid[c.y][c.x] = cell;
 }
 
-function rockFootprint(state: State, ax: number, ay: number): Array<{ x: number; y: number }> {
+function rockFootprint(state: State, ax: number, ay: number, id: number): Array<{ x: number; y: number }> {
   const cells = footprintCells(ax, ay);
   for (const c of cells) {
     state.grid[c.y][c.x] = Cell.Rock;
-    state.rocks.push({ x: c.x, y: c.y });
+    state.rocks.push({ x: c.x, y: c.y, id, placedAtBuildOfWave: state.wave });
   }
   return cells;
 }
@@ -195,7 +195,7 @@ export class BuildPhase {
       if (idx < 0) continue;
       const t = state.towers[idx];
       state.towers.splice(idx, 1);
-      rockFootprint(state, t.x, t.y);
+      rockFootprint(state, t.x, t.y, this.game.nextId());
     }
     this.game.refreshRoute();
     if (state.selectedTowerId !== null && !state.towers.some((t) => t.id === state.selectedTowerId)) {
@@ -281,7 +281,7 @@ export class BuildPhase {
       if (idx < 0) continue;
       const t = state.towers[idx];
       state.towers.splice(idx, 1);
-      rockFootprint(state, t.x, t.y);
+      rockFootprint(state, t.x, t.y, this.game.nextId());
     }
     state.draws = [];
     state.activeDrawSlot = null;
@@ -334,7 +334,7 @@ export class BuildPhase {
     const rockedAnchors: Array<{ x: number; y: number }> = [];
     for (let i = 1; i < inputs.length; i++) {
       const t = inputs[i];
-      rockFootprint(state, t.x, t.y);
+      rockFootprint(state, t.x, t.y, this.game.nextId());
       rockedAnchors.push({ x: t.x, y: t.y });
     }
 

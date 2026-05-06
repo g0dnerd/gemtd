@@ -123,20 +123,6 @@ export function mountHud(
 
   game.layoutBoard(boardPxW, boardPxH);
 
-  const hint = document.createElement("div");
-  hint.className = "board-hint";
-  const hintPill = document.createElement("span");
-  hintPill.className = "board-hint-pill";
-  hintPill.textContent = "BUILD";
-  const hintMsg = document.createElement("span");
-  hintMsg.className = "board-hint-msg";
-  hintMsg.textContent = "Place all 5 gems → mark one keeper";
-  const hintKey = document.createElement("span");
-  hintKey.className = "board-hint-key";
-  hintKey.textContent = "TAB cycles";
-  hint.append(hintPill, hintMsg, hintKey);
-  center.insertBefore(hint, canvasHost);
-
   // === Right column ===
   const threats = document.createElement("div");
   threats.className = "px-panel threat-panel";
@@ -325,6 +311,13 @@ export function mountHud(
   const exitBtn = makeBtn("EXIT", onExit);
   systemRow.append(helpBtn, exitBtn);
   actionBar.appendChild(systemRow);
+
+  const resetBtn = document.createElement("button");
+  resetBtn.className = "px-btn px-btn-bad action-bar-reset";
+  resetBtn.textContent = "↺ RESET RUN · R";
+  resetBtn.addEventListener("click", () => game.newGame());
+  actionBar.appendChild(resetBtn);
+
   right.appendChild(actionBar);
 
   function refreshThreats(): void {
@@ -462,20 +455,6 @@ export function mountHud(
   game.bus.on("phase:enter", ({ phase }) => {
     if (phase === "wave") {
       startBtn.disabled = true;
-      hintPill.textContent = "WAVE";
-      hintPill.className = "board-hint-pill wave";
-      hintMsg.textContent = "Wave in progress — towers fire automatically";
-      hintKey.textContent = "1× 2× 4×";
-    } else if (phase === "build") {
-      hintPill.textContent = "BUILD";
-      hintPill.className = "board-hint-pill";
-      if (inPrePlacement()) {
-        hintMsg.textContent = "Upgrade chance tier, then start placement";
-        hintKey.textContent = "SPACE starts";
-      } else {
-        hintMsg.textContent = "Place all 5 gems → mark one keeper";
-        hintKey.textContent = "TAB cycles";
-      }
     } else if (phase === "gameover" || phase === "victory") {
       mountGameOver(root, game, phase, onExit);
     }
@@ -513,11 +492,18 @@ export function mountHud(
       game.selectTower(tower.id);
       return;
     }
+    // Click on a rock cell → select the rock for inspection / removal.
+    const rock = game.state.rocks.find((rr) => rr.x === t.x && rr.y === t.y);
+    if (rock) {
+      game.selectRock(rock.id);
+      return;
+    }
     // Otherwise: try to place if there's an active draw.
     if (activeDraw(game.state)) {
       game.cmdPlace(t.x, t.y);
     } else {
       game.selectTower(null);
+      game.selectRock(null);
     }
   });
 
@@ -660,6 +646,9 @@ export function mountHud(
       openCombine();
     } else if (ev.key === "Escape") {
       game.selectTower(null);
+      game.selectRock(null);
+    } else if (ev.key === "r" || ev.key === "R") {
+      game.newGame();
     } else if (ev.key === "Tab") {
       // Cycle active draw slot (forward; Shift+Tab for backward).
       ev.preventDefault();
