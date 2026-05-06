@@ -637,8 +637,35 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 0;
   cursor: pointer;
+  background: var(--px-bg);
+}
+.draw-cell::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70%;
+  background: linear-gradient(
+    to bottom,
+    color-mix(in oklab, var(--gem-glow) 70%, white) 0%,
+    color-mix(in oklab, var(--gem-glow) 70%, white) 18%,
+    var(--gem-glow) 18%,
+    color-mix(in oklab, var(--gem-glow) 80%, var(--px-border-dark)) 100%
+  );
+  box-shadow: inset 0 -2px 0 0 rgba(0, 0, 0, 0.35);
+  z-index: 0;
+  pointer-events: none;
+}
+.draw-cell .draw-sprite-host {
+  position: relative;
+  z-index: 1;
+  transform: translateY(-5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .draw-cell.placed-non-keep {
   opacity: 0.55;
@@ -663,13 +690,16 @@
   text-align: center;
   font-family: "Press Start 2P", monospace;
   font-size: 7px;
-  color: var(--px-ink-dim);
+  color: var(--px-ink);
   letter-spacing: 1px;
+  text-shadow: 1px 1px 0 var(--px-border-dark);
+  z-index: 2;
 }
 .draw-cell .draw-keep-badge {
   position: absolute;
   top: -2px;
   right: -2px;
+  z-index: 3;
   width: 16px;
   height: 16px;
   background: var(--px-good);

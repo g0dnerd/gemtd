@@ -632,7 +632,11 @@ export function mountHud(
         for (let i = 0; i < 5; i++) {
           const ph = document.createElement("div");
           ph.className = "px-panel-inset draw-cell placed-non-keep";
-          ph.appendChild(htmlGemTier("diamond", 3, 22));
+          ph.style.setProperty("--gem-glow", GEM_PALETTE.diamond.css.mid);
+          const phHost = document.createElement("div");
+          phHost.className = "draw-sprite-host";
+          phHost.appendChild(htmlGemTier("diamond", 3, 22));
+          ph.appendChild(phHost);
           grid.appendChild(ph);
         }
         const keeperSet = g.state.designatedKeepTowerId !== null;
@@ -662,7 +666,11 @@ export function mountHud(
         } else if (isActive) {
           cell.classList.add("is-active");
         }
-        cell.appendChild(htmlGemTier(d.gem, d.quality, 22, d.quality > 2));
+        cell.style.setProperty("--gem-glow", GEM_PALETTE[d.gem].css.mid);
+        const host = document.createElement("div");
+        host.className = "draw-sprite-host";
+        host.appendChild(htmlGemTier(d.gem, d.quality, 22, d.quality > 2));
+        cell.appendChild(host);
         const q = document.createElement("div");
         q.className = "draw-quality";
         q.textContent = `L${d.quality}`;
