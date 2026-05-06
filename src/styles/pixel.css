@@ -10,8 +10,13 @@
   --px-border-light: #f4e4c1;
   --px-border-dark: #1a1428;
   --px-accent: #f0a040;
+  --px-accent-hi: #f7c878;
+  --px-accent-lo: #a06820;
   --px-good: #58c850;
   --px-bad: #d04848;
+  --px-info: #78a8f8;
+  --px-ink-dimmer: #8c7a5e;
+  --px-panel-2-hi: #7c66a4;
 
   --gem-ruby: #e8384c;
   --gem-ruby-d: #8c1820;
@@ -64,7 +69,7 @@ html, body {
 
 .px-body {
   font-family: 'VT323', monospace;
-  font-size: 22px;
+  font-size: 16px;
   line-height: 1.05;
 }
 
@@ -111,14 +116,30 @@ html, body {
     0 0 0 2px var(--px-border-dark);
 }
 .px-btn:disabled {
-  filter: brightness(0.6) saturate(0.5);
+  filter: brightness(0.55) saturate(0.4);
   cursor: not-allowed;
 }
 .px-btn-primary { background: var(--px-accent); color: var(--px-border-dark); }
 .px-btn-primary {
   box-shadow:
-    inset 2px 2px 0 0 #f7c878,
-    inset -2px -2px 0 0 #a06820,
+    inset 2px 2px 0 0 var(--px-accent-hi),
+    inset -2px -2px 0 0 var(--px-accent-lo),
+    0 0 0 2px var(--px-border-dark);
+}
+.px-btn-good {
+  background: var(--px-good);
+  color: var(--px-border-dark);
+  box-shadow:
+    inset 2px 2px 0 0 #88e878,
+    inset -2px -2px 0 0 #2a8a30,
+    0 0 0 2px var(--px-border-dark);
+}
+.px-btn-bad {
+  background: var(--px-bad);
+  color: var(--px-ink);
+  box-shadow:
+    inset 2px 2px 0 0 #e87878,
+    inset -2px -2px 0 0 #802a2a,
     0 0 0 2px var(--px-border-dark);
 }
 

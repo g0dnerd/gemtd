@@ -14,7 +14,9 @@
   justify-content: center;
   overflow: hidden;
   background: var(--px-bg);
-  box-shadow: 0 0 0 3px var(--px-border-dark), 0 0 0 6px var(--px-panel-2);
+  box-shadow:
+    0 0 0 3px var(--px-border-dark),
+    0 0 0 6px var(--px-panel-2);
 }
 .gem-canvas-host canvas {
   display: block;
@@ -74,7 +76,9 @@
   padding: 14px 16px;
   font-size: 12px;
 }
-.title-menu .px-btn-primary { font-size: 13px; }
+.title-menu .px-btn-primary {
+  font-size: 13px;
+}
 .title-footer {
   position: absolute;
   bottom: 16px;
@@ -84,19 +88,24 @@
 }
 
 @keyframes gemFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
 }
 
 /* ===== HUD Layout ===== */
 .hud {
   display: grid;
-  grid-template-columns: 240px 1fr 260px;
+  grid-template-columns: 264px 1fr 296px;
   grid-template-rows: 1fr;
   width: 100%;
   height: 100%;
-  padding: 14px;
-  gap: 12px;
+  padding: 8px;
+  gap: 10px;
   box-sizing: border-box;
 }
 .hud-col {
@@ -106,79 +115,236 @@
   min-width: 0;
   min-height: 0;
 }
+.hud-col-left,
+.hud-col-right {
+  overflow: hidden;
+}
 .hud-col-center {
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
-.hud-wordmark {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
-  color: var(--px-accent);
-  text-shadow: 2px 2px 0 var(--px-border-dark);
-  letter-spacing: 0.5px;
-}
-
-.stat-chip {
+/* Wordmark row at top of left column */
+.hud-wordmark-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
-  min-width: 0;
+  justify-content: space-between;
+  padding: 4px 4px 8px;
 }
-.stat-chip .stat-value {
-  font-family: 'VT323', monospace;
-  font-size: 18px;
-  line-height: 1;
+.hud-wordmark {
+  font-family: "Press Start 2P", monospace;
+  font-size: 14px;
+  color: var(--px-accent);
+  text-shadow: 2px 2px 0 var(--px-border-dark);
+  letter-spacing: 1.5px;
 }
-.stat-chip .stat-label {
-  font-family: 'Press Start 2P', monospace;
+.hud-version {
+  font-family: "Press Start 2P", monospace;
   font-size: 7px;
   color: var(--px-ink-dim);
   letter-spacing: 1px;
 }
 
-/* Wave panel */
-.wave-panel { display: flex; flex-direction: column; gap: 8px; }
-.wave-panel-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-}
-.wave-panel-head .wave-num {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
+/* Section header inside a panel */
+.panel-h {
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
   color: var(--px-accent);
+  letter-spacing: 1px;
+  margin: 0;
 }
-.wave-panel-head .wave-clock {
-  font-family: 'VT323', monospace;
-  font-size: 16px;
-  color: var(--px-ink-dim);
-}
-.wave-bar { height: 8px; }
-.wave-next {
+.panel-head {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
-  margin-top: 2px;
-}
-.wave-next .wave-next-count {
-  font-family: 'VT323', monospace;
-  font-size: 16px;
-}
-.wave-next .wave-next-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  color: var(--px-ink-dim);
-  margin-left: auto;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--px-bg);
 }
 
-.panel-h {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+/* Override default panel padding to match redesign */
+.px-panel {
+  padding: 14px;
+}
+
+/* Stats row (lives + gold) */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.stat-chip {
+  padding: 8px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.stat-chip .stat-icon {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.stat-chip .stat-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.stat-chip .stat-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1.5px;
+}
+.stat-chip .stat-value {
+  font-family: "VT323", monospace;
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* Threat preview panel (right column) */
+.threat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.threat-row {
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 32px 1fr auto;
+  align-items: center;
+  gap: 10px;
+}
+.threat-row.is-current {
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-panel-2),
+    inset -2px -2px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-accent);
+}
+.threat-num {
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--px-ink-dim);
+  text-align: center;
+}
+.threat-num.is-current {
   color: var(--px-accent);
-  margin-bottom: 8px;
-  letter-spacing: 0.5px;
+}
+.threat-mid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.threat-arch {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  letter-spacing: 1px;
+}
+.threat-weak-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.threat-weak-lbl {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+.threat-weak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  background: var(--px-bg);
+  box-shadow: inset 1px 1px 0 0 var(--px-border-dark);
+}
+.threat-weak-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink);
+  letter-spacing: 1px;
+}
+.threat-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.threat-hp {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.threat-hp-val {
+  font-family: "VT323", monospace;
+  font-size: 18px;
+  color: var(--px-ink);
+  line-height: 1;
+}
+.threat-hp-unit {
+  font-family: "VT323", monospace;
+  font-size: 13px;
+  color: var(--px-ink-dim);
+}
+.threat-count {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+
+/* Chance tier panel */
+.chance-hero {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  /* margin-bottom: 12px; */
+}
+.chance-hero .chance-lvl {
+  font-family: "VT323", monospace;
+  font-size: 30px;
+  color: var(--px-accent);
+  line-height: 1;
+}
+.chance-hero .chance-next {
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+}
+.chance-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.chance-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.chance-row-head {
+  display: flex;
+  justify-content: space-between;
+  font-family: "VT323", monospace;
+  font-size: 16px;
+}
+.chance-row-head .chance-pct {
+  color: var(--px-ink);
+}
+.chance-bar {
+  height: 6px;
+}
+.chance-upgrade {
+  width: 100%;
+  font-size: 9px;
 }
 
 /* Inspector */
@@ -187,227 +353,472 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: scroll;
 }
-.inspector-head {
+.inspector-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+.inspector-hero {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  gap: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
 }
-.inspector-head .name {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-}
-.inspector-head .sub {
-  font-family: 'VT323', monospace;
-  font-size: 14px;
-  color: var(--px-ink-dim);
-}
-.inspector-stats {
-  font-family: 'VT323', monospace;
-  font-size: 14px;
-  line-height: 1.2;
-}
-.inspector-stats .stat-key { color: var(--px-ink-dim); }
-.inspector-stats .stat-val { color: var(--px-accent); }
-.inspector-special {
-  margin-top: 4px;
-  color: #78a8f8;
-  font-family: 'VT323', monospace;
-  font-size: 14px;
-}
-.inspector-actions {
-  display: flex;
-  gap: 4px;
-  margin-top: 10px;
-}
-.inspector-empty {
-  font-family: 'VT323', monospace;
-  font-size: 14px;
-  color: var(--px-ink-dim);
-  text-align: center;
-  padding: 8px 4px;
-}
-
-/* Stash */
-.stash-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-}
-.stash-cell {
-  position: relative;
-  aspect-ratio: 1;
+.inspector-hero-frame {
+  width: 56px;
+  height: 56px;
+  background: var(--px-bg);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-border-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  padding: 4px;
+  flex: 0 0 auto;
 }
-.stash-cell .count {
-  position: absolute;
-  bottom: 1px;
-  right: 2px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+.inspector-hero-text {
+  flex: 1;
+  min-width: 0;
+}
+.inspector-hero-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
   color: var(--px-ink);
+  letter-spacing: 1px;
+  line-height: 1.2;
 }
-.stash-cell .lvl {
-  position: absolute;
-  top: 1px;
-  left: 2px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+.inspector-hero-sub {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink-dim);
+  margin-top: 4px;
+  line-height: 1;
+}
+.inspector-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.inspector-stat {
+  padding: 10px;
+}
+.inspector-stat-dmg {
+  grid-column: 1 / -1;
+}
+.inspector-stat-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+.inspector-stat-label-sm {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+.inspector-stat-value {
+  font-family: "VT323", monospace;
+  line-height: 1;
+  margin-top: 4px;
+}
+.inspector-stat-value-hero {
+  font-size: 28px;
   color: var(--px-accent);
 }
-.stash-cell.placeholder {
-  opacity: 0.35;
+.inspector-stat-value-sec {
+  font-size: 22px;
+  color: var(--px-ink);
+}
+.inspector-stat-value-sec small {
+  font-size: 14px;
+  color: var(--px-ink-dim);
+}
+.inspector-effect {
+  background: var(--px-bg);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-border-dark),
+    0 0 0 3px rgba(120, 168, 248, 0.3);
+  padding: 8px 10px;
+  margin-bottom: 12px;
+}
+.inspector-effect-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-info);
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.inspector-effect-text {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink);
+  line-height: 1.1;
+}
+.inspector-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+}
+.inspector-actions .px-btn {
+  font-size: 9px;
+}
+.inspector-empty {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink-dim);
+  text-align: center;
+  padding: 12px 4px;
 }
 
 /* Recipes */
+.recipes-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 .recipes-list {
-  font-family: 'VT323', monospace;
-  font-size: 14px;
-  line-height: 1.3;
-  max-height: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   overflow-y: auto;
+  min-height: 0;
+  padding-right: 4px;
+}
+.recipe-card {
+  padding: 10px;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.recipes-list .row {
+.recipe-card-head {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 6px 4px;
-  border-top: 1px dashed var(--px-panel-2);
+  align-items: center;
+  gap: 10px;
 }
-.recipes-list .row:first-child { border-top: 0; }
-.recipe-gems {
+.recipe-card-head .recipe-info {
+  flex: 1;
+  min-width: 0;
+}
+.recipe-card-head .recipe-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  color: var(--px-accent);
+  letter-spacing: 1px;
+  line-height: 1.2;
+}
+.recipe-card-head .recipe-owned {
+  font-family: "VT323", monospace;
+  font-size: 13px;
+  color: var(--px-good);
+  line-height: 1;
+  margin-top: 2px;
+}
+.recipe-inputs {
   display: flex;
   align-items: center;
   gap: 4px;
   flex-wrap: wrap;
 }
-.recipe-plus {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  color: var(--px-ink-dim);
-  margin: 0 1px;
-}
-.recipe-tail {
-  display: flex;
+.recipe-pill {
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding-left: 2px;
+  gap: 4px;
+  padding: 3px 6px;
+  background: var(--px-bg);
+  box-shadow: inset 1px 1px 0 0 var(--px-border-dark);
 }
-.recipe-eq {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  color: var(--px-accent);
+.recipe-pill-q {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
 }
-.recipe-name {
-  font-size: 10px;
-  color: var(--px-accent);
-  letter-spacing: 0.5px;
-  line-height: 1.2;
+.recipe-plus {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  color: var(--px-ink-dimmer);
 }
 
 /* Action bar (right column bottom) */
 .action-bar {
   display: flex;
   flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+.action-bar .px-btn-primary {
+  width: 100%;
+  font-size: 13px;
+  padding: 16px 18px;
+}
+.action-bar-utils {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   gap: 6px;
-  margin-top: auto;
 }
-.action-bar-row { display: flex; gap: 6px; }
-.action-bar-row .px-btn { flex: 1; font-size: 8px; }
-.action-bar .px-btn-primary { font-size: 11px; }
-
-/* Draw panel — current gem rolled at wave start */
-.draw-panel {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.draw-panel-info { display: flex; flex-direction: column; gap: 2px; }
-.draw-panel-info .draw-name {
-  font-family: 'Press Start 2P', monospace;
+.action-bar-utils .px-btn {
   font-size: 9px;
+  padding: 8px 10px;
 }
-.draw-panel-info .draw-quality {
-  font-family: 'VT323', monospace;
+.action-bar-combine {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.action-bar-combine .px-btn {
+  font-size: 9px;
+  padding: 10px 8px;
+  letter-spacing: 0.5px;
+}
+.action-bar-system {
+  display: flex;
+  gap: 6px;
+}
+.action-bar-system .px-btn {
+  flex: 1;
+  font-size: 9px;
+  padding: 8px 10px;
+}
+
+/* Draw panel — 5 gems rolled at start of build phase */
+.draw-keeper-tag {
+  font-family: "VT323", monospace;
   font-size: 14px;
-  color: var(--px-ink-dim);
+  color: var(--px-good);
 }
-.draw-panel .draw-actions {
+.draw-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.draw-cell {
+  position: relative;
+  aspect-ratio: 1;
   display: flex;
-  gap: 4px;
-  margin-left: auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: pointer;
 }
-.draw-panel .draw-actions .px-btn { font-size: 8px; padding: 6px 8px; }
-
-/* Hint banner over the board */
-.board-hint {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--px-bg);
-  color: var(--px-ink);
-  font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  padding: 8px 12px;
+.draw-cell.placed-non-keep {
+  opacity: 0.55;
+}
+.draw-cell.is-keep {
   box-shadow:
     inset 2px 2px 0 0 var(--px-border-dark),
     inset -2px -2px 0 0 var(--px-panel-2),
-    0 0 0 2px var(--px-border-dark);
-  z-index: 5;
+    0 0 0 2px var(--px-good);
+}
+.draw-cell.is-active {
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-accent);
+}
+.draw-cell .draw-quality {
+  position: absolute;
+  bottom: 2px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+.draw-cell .draw-keep-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  background: var(--px-good);
+  color: var(--px-border-dark);
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px var(--px-border-dark);
+  animation: keepPulse 2.4s ease-in-out infinite;
+}
+@keyframes keepPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+.draw-status {
+  padding: 10px;
+  background: var(--px-bg);
+}
+.draw-status-primary {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink);
+  line-height: 1.2;
+}
+.draw-status-primary .keep-name {
+  color: var(--px-good);
+}
+.draw-status-secondary {
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+/* Hint banner above the board */
+.board-hint {
+  background: var(--px-bg);
+  color: var(--px-ink);
+  padding: 8px 18px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-accent);
   pointer-events: none;
+  font-family: "VT323", monospace;
+  white-space: nowrap;
+}
+.board-hint-pill {
+  background: var(--px-accent);
+  color: var(--px-border-dark);
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  padding: 3px 7px;
+  letter-spacing: 1px;
+}
+.board-hint-pill.wave {
+  background: var(--px-bad);
+  color: var(--px-ink);
+}
+.board-hint-pill.keeper {
+  background: var(--px-good);
+  color: var(--px-border-dark);
+}
+.board-hint-msg {
+  font-size: 18px;
+  color: var(--px-ink);
+}
+.board-hint-key {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
 }
 
 /* Modal overlay */
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(26, 20, 40, 0.85) 0%, rgba(0,0,0,0.95) 100%);
+  background: radial-gradient(
+    circle at center,
+    rgba(26, 20, 40, 0.85) 0%,
+    rgba(0, 0, 0, 0.95) 100%
+  );
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
 }
 .modal-card {
-  width: 100%;
-  max-width: 520px;
+  width: 94%;
+  max-width: 640px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding: 18px;
+  padding: 22px;
 }
 .modal-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
+.modal-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.modal-head .badge {
+  background: var(--px-accent);
+  color: var(--px-border-dark);
+  font-family: "Press Start 2P", monospace;
+  font-size: 14px;
+  padding: 8px 10px;
+  letter-spacing: 1px;
+}
 .modal-head .title {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 12px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 16px;
   color: var(--px-accent);
+  letter-spacing: 1.5px;
 }
 .modal-desc {
-  font-family: 'VT323', monospace;
+  font-family: "VT323", monospace;
   font-size: 16px;
   color: var(--px-ink-dim);
   text-align: center;
   line-height: 1.1;
 }
 
+/* Combine modal segmented tab control */
+.combine-tabs {
+  display: flex;
+  gap: 0;
+  box-shadow: 0 0 0 2px var(--px-border-dark);
+}
+.combine-tab {
+  flex: 1;
+  padding: 12px 14px;
+  background: var(--px-panel-2);
+  color: var(--px-ink);
+  border: none;
+  cursor: pointer;
+  font-family: "Press Start 2P", monospace;
+  letter-spacing: 1px;
+  text-align: left;
+}
+.combine-tab.active {
+  background: var(--px-accent);
+  color: var(--px-border-dark);
+}
+.combine-tab-title {
+  font-size: 11px;
+}
+.combine-tab-sub {
+  font-size: 8px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
+
+/* Equation panel */
 .combine-equation {
   display: flex;
   align-items: center;
-  justify-content: space-around;
-  gap: 8px;
-  padding: 14px 8px;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 18px 14px;
 }
 .combine-slot {
   display: flex;
@@ -416,54 +827,201 @@
   gap: 6px;
 }
 .combine-slot-frame {
+  background: var(--px-panel);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-border-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  padding: 8px;
 }
-.combine-slot-label {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  letter-spacing: 1px;
+.combine-slot-frame.in {
+  width: 64px;
+  height: 64px;
+}
+.combine-slot-frame.out {
+  width: 80px;
+  height: 80px;
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-accent);
+}
+.combine-slot-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
   color: var(--px-ink);
+  letter-spacing: 1px;
+}
+.combine-slot-name.out {
+  font-size: 11px;
+  color: var(--px-accent);
+}
+.combine-slot-q {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+.combine-slot-blurb {
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+  text-align: center;
+  max-width: 160px;
+}
+.combine-plus {
+  font-family: "Press Start 2P", monospace;
+  font-size: 18px;
+  color: var(--px-ink-dim);
+}
+.combine-arrow-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
 }
 .combine-arrow {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
+  font-size: 18px;
   color: var(--px-accent);
 }
 
-.stats-grid {
+/* Stat diff grid */
+.combine-stats-diff {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
 }
-.stats-grid .panel-h { margin-bottom: 6px; }
-.stats-grid .px-panel-inset.after {
+.combine-stats-diff .px-panel-inset {
+  padding: 10px;
+}
+.combine-diff-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 9px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+.combine-diff-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 6px;
+}
+.combine-diff-before {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink-dim);
+  text-decoration: line-through;
+}
+.combine-diff-arrow {
+  font-family: "Press Start 2P", monospace;
+  font-size: 11px;
+  color: var(--px-ink-dim);
+}
+.combine-diff-arrow.good {
+  color: var(--px-good);
+}
+.combine-diff-after {
+  font-family: "VT323", monospace;
+  font-size: 20px;
+  color: var(--px-ink);
+}
+.combine-diff-after.good {
+  color: var(--px-good);
+}
+
+/* Picker */
+.combine-picker-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.combine-picker-status {
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+}
+.combine-picker {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 6px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.combine-pick-cell {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  cursor: pointer;
+}
+.combine-pick-cell.selected {
+  background: var(--px-panel-2);
   box-shadow:
     inset 2px 2px 0 0 var(--px-border-dark),
     inset -2px -2px 0 0 var(--px-panel-2),
     0 0 0 2px var(--px-accent);
 }
-.stats-grid .stat-line {
-  font-family: 'VT323', monospace;
-  font-size: 14px;
-  line-height: 1.3;
+.combine-pick-cell .pick-q {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+  margin-top: 4px;
 }
-.stats-grid .stat-line .v { color: var(--px-ink-dim); }
-.stats-grid .after .stat-line .v { color: var(--px-good); }
+.combine-pick-cell .pick-tag {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  background: var(--px-good);
+  color: var(--px-border-dark);
+  font-family: "Press Start 2P", monospace;
+  font-size: 6px;
+  padding: 2px 3px;
+  letter-spacing: 0.5px;
+}
+.combine-pick-cell .pick-tag.kept {
+  background: var(--px-panel-2);
+  color: var(--px-ink-dim);
+}
 
-.cost-actions {
+/* Modal footer */
+.combine-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  padding-top: 6px;
 }
-.cost-actions .cost { display: flex; align-items: center; gap: 6px; font-family: 'VT323', monospace; font-size: 18px; }
-.cost-actions .actions { display: flex; gap: 8px; }
+.combine-cost {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "VT323", monospace;
+  font-size: 18px;
+  color: var(--px-ink);
+}
+.combine-cost-free {
+  color: var(--px-good);
+}
+.combine-cost-note {
+  color: var(--px-ink-dim);
+  font-size: 14px;
+}
+.combine-actions {
+  display: flex;
+  gap: 8px;
+}
 
 /* Tutorial modal */
-.tutorial-card { max-width: 560px; }
+.tutorial-card {
+  max-width: 560px;
+}
 .tutorial-tabs {
   display: flex;
   gap: 4px;
@@ -484,7 +1042,7 @@
     0 0 0 2px var(--px-border-dark);
 }
 .tutorial-body {
-  font-family: 'VT323', monospace;
+  font-family: "VT323", monospace;
   font-size: 18px;
   line-height: 1.25;
   color: var(--px-ink);
@@ -496,16 +1054,18 @@
   gap: 10px;
 }
 .tutorial-p {
-  font-family: 'VT323', monospace;
+  font-family: "VT323", monospace;
   font-size: 17px;
   line-height: 1.25;
   color: var(--px-ink);
 }
-.tutorial-p b { color: var(--px-accent); }
+.tutorial-p b {
+  color: var(--px-accent);
+}
 .tutorial-p kbd,
 .tutorial-key-row kbd {
   display: inline-block;
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 9px;
   padding: 3px 6px;
   background: var(--px-panel-2);
@@ -539,7 +1099,7 @@
   font-size: 16px;
 }
 .tutorial-hint {
-  font-family: 'VT323', monospace;
+  font-family: "VT323", monospace;
   font-size: 14px;
   color: var(--px-ink-dim);
 }
@@ -557,7 +1117,7 @@
   pointer-events: none;
 }
 .toast {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 9px;
   padding: 10px 14px;
   background: var(--px-panel);
@@ -567,8 +1127,12 @@
     inset -2px -2px 0 0 var(--px-border-dark),
     0 0 0 2px var(--px-border-dark);
 }
-.toast.error { color: var(--px-bad); }
-.toast.good { color: var(--px-good); }
+.toast.error {
+  color: var(--px-bad);
+}
+.toast.good {
+  color: var(--px-good);
+}
 
 /* Game-over screen */
 .game-over {
@@ -583,13 +1147,13 @@
   z-index: 200;
 }
 .game-over .title {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 28px;
   color: var(--px-accent);
   text-shadow: 3px 3px 0 var(--px-border-dark);
 }
 .game-over .subtitle {
-  font-family: 'VT323', monospace;
+  font-family: "VT323", monospace;
   font-size: 22px;
   color: var(--px-ink-dim);
 }

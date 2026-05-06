@@ -13,6 +13,7 @@ export const THEME = {
   accent: 0xf0a040,
   good: 0x58c850,
   bad: 0xd04848,
+  info: 0x78a8f8,
 } as const;
 
 export const CELL = {

@@ -5,63 +5,95 @@
  * pure HTML/CSS using the design's pixel-art tokens.
  */
 
-import type { Application } from 'pixi.js';
-import { Game } from '../game/Game';
-import { GEM_PALETTE, GEM_TYPES, GemType, QUALITY_NAMES, Quality } from '../render/theme';
-import { htmlCoin, htmlGem, htmlHeart } from '../render/htmlSprites';
-import { gemStats, effectSummary } from '../data/gems';
-import { COMBOS } from '../data/combos';
-import { mountInspector, refreshInspector } from './Inspector';
-import { mountCombineModal } from './CombineModal';
-import { mountTutorialModal } from './TutorialModal';
-import { mountGameOver } from './GameOver';
-import { activeDraw, allDrawsPlaced } from '../game/State';
-import { GRID_H, GRID_W } from '../data/map';
-import { TILE, CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER, CHANCE_TIER_WEIGHTS } from '../game/constants';
-import { WAVES } from '../data/waves';
+import type { Application } from "pixi.js";
+import { Game } from "../game/Game";
+import { GEM_PALETTE, GemType, QUALITY_NAMES } from "../render/theme";
+import { htmlCoin, htmlGem, htmlHeart } from "../render/htmlSprites";
+import { COMBOS, ComboRecipe } from "../data/combos";
+import { mountInspector, refreshInspector } from "./Inspector";
+import { mountCombineModal } from "./CombineModal";
+import { mountTutorialModal } from "./TutorialModal";
+import { mountGameOver } from "./GameOver";
+import { activeDraw, allDrawsPlaced, TowerState } from "../game/State";
+import { GRID_H, GRID_W } from "../data/map";
+import {
+  TILE,
+  CHANCE_TIER_UPGRADE_COST,
+  MAX_CHANCE_TIER,
+  CHANCE_TIER_WEIGHTS,
+} from "../game/constants";
+import { WAVES, WaveDef } from "../data/waves";
+import type { CreepKind } from "../data/creeps";
 
-interface HudRefs {
-  livesValue: HTMLDivElement;
-  goldValue: HTMLDivElement;
-  waveNum: HTMLDivElement;
-  waveBar: HTMLDivElement;
-  waveCount: HTMLDivElement;
-  waveLabel: HTMLDivElement;
-  drawHost: HTMLDivElement;
-  stashList: HTMLDivElement;
-  startWaveBtn: HTMLButtonElement;
-  speedBtn: HTMLButtonElement;
-  undoBtn: HTMLButtonElement;
-  combineBtn: HTMLButtonElement;
-}
+const TIER_LABELS = [
+  "CHIPPED",
+  "FLAWED",
+  "NORMAL",
+  "FLAWLESS",
+  "PERFECT",
+] as const;
+const TIER_COLORS = [
+  "#8c7a5e",
+  "var(--px-ink-dim)",
+  "var(--px-ink)",
+  "var(--px-accent)",
+  "var(--px-good)",
+] as const;
 
-export function mountHud(root: HTMLElement, app: Application, game: Game, onExit: () => void): () => void {
-  const hud = document.createElement('div');
-  hud.className = 'hud';
+const ARCHETYPE_COLORS: Record<CreepKind, string> = {
+  normal: "var(--px-ink)",
+  fast: "#78e898",
+  armored: "var(--px-ink-dim)",
+  air: "#78a8f8",
+  boss: "#ff6878",
+};
 
-  const left = document.createElement('div');
-  left.className = 'hud-col hud-col-left';
-  const center = document.createElement('div');
-  center.className = 'hud-col hud-col-center';
-  const right = document.createElement('div');
-  right.className = 'hud-col hud-col-right';
+/** Static lookup: which gem each creep archetype is weak to. */
+const ARCHETYPE_WEAKNESS: Record<CreepKind, GemType> = {
+  normal: "ruby",
+  fast: "topaz",
+  armored: "emerald",
+  air: "sapphire",
+  boss: "amethyst",
+};
+
+export function mountHud(
+  root: HTMLElement,
+  app: Application,
+  game: Game,
+  onExit: () => void,
+): () => void {
+  const hud = document.createElement("div");
+  hud.className = "hud";
+
+  const left = document.createElement("div");
+  left.className = "hud-col hud-col-left";
+  const center = document.createElement("div");
+  center.className = "hud-col hud-col-center";
+  const right = document.createElement("div");
+  right.className = "hud-col hud-col-right";
 
   hud.append(left, center, right);
   root.appendChild(hud);
 
   // === Left column ===
-  const wordmark = document.createElement('div');
-  wordmark.className = 'hud-wordmark';
-  wordmark.textContent = 'GEM TOWER';
-  left.appendChild(wordmark);
+  const wordmarkRow = document.createElement("div");
+  wordmarkRow.className = "hud-wordmark-row";
+  const wordmark = document.createElement("div");
+  wordmark.className = "hud-wordmark";
+  wordmark.textContent = "GEM TD";
+  const version = document.createElement("div");
+  version.className = "hud-version";
+  version.textContent = "v0.1";
+  wordmarkRow.append(wordmark, version);
+  left.appendChild(wordmarkRow);
 
-  const livesChip = makeChip(htmlHeart(14), 'LIVES', '50', '#ff8898');
-  const goldChip = makeChip(htmlCoin(14), 'GOLD', '100', '#ffe068');
-  left.appendChild(livesChip.root);
-  left.appendChild(goldChip.root);
-
-  const wave = makeWavePanel();
-  left.appendChild(wave.root);
+  const statsRow = document.createElement("div");
+  statsRow.className = "stats-row";
+  const livesChip = makeChip(htmlHeart(20), "LIVES", "50", "#ff8898");
+  const goldChip = makeChip(htmlCoin(20), "GOLD", "100", "#ffe068");
+  statsRow.append(livesChip.root, goldChip.root);
+  left.appendChild(statsRow);
 
   const chance = makeChancePanel(game);
   left.appendChild(chance.root);
@@ -73,8 +105,8 @@ export function mountHud(root: HTMLElement, app: Application, game: Game, onExit
   left.appendChild(inspector.root);
 
   // === Center column: Pixi canvas host ===
-  const canvasHost = document.createElement('div');
-  canvasHost.className = 'gem-canvas-host';
+  const canvasHost = document.createElement("div");
+  canvasHost.className = "gem-canvas-host";
   // Match the host to the board pixel size (board + 6px frame).
   const boardPxW = GRID_W * TILE;
   const boardPxH = GRID_H * TILE;
@@ -89,162 +121,209 @@ export function mountHud(root: HTMLElement, app: Application, game: Game, onExit
 
   game.layoutBoard(boardPxW, boardPxH);
 
-  const hint = document.createElement('div');
-  hint.className = 'board-hint';
-  hint.textContent = 'CLICK A GRASS TILE TO PLACE THE DRAWN GEM';
-  canvasHost.appendChild(hint);
+  const hint = document.createElement("div");
+  hint.className = "board-hint";
+  const hintPill = document.createElement("span");
+  hintPill.className = "board-hint-pill";
+  hintPill.textContent = "BUILD";
+  const hintMsg = document.createElement("span");
+  hintMsg.className = "board-hint-msg";
+  hintMsg.textContent = "Place all 5 gems → mark one keeper";
+  const hintKey = document.createElement("span");
+  hintKey.className = "board-hint-key";
+  hintKey.textContent = "TAB cycles";
+  hint.append(hintPill, hintMsg, hintKey);
+  center.insertBefore(hint, canvasHost);
 
   // === Right column ===
-  const stash = document.createElement('div');
-  stash.className = 'px-panel';
-  const stashTitle = document.createElement('div');
-  stashTitle.className = 'panel-h px-h';
-  stashTitle.textContent = 'STASH (0)';
-  const stashGrid = document.createElement('div');
-  stashGrid.className = 'stash-grid';
-  stash.append(stashTitle, stashGrid);
-  right.appendChild(stash);
+  const threats = document.createElement("div");
+  threats.className = "px-panel threat-panel";
+  const threatsHead = document.createElement("div");
+  threatsHead.className = "panel-head";
+  const threatsTitle = document.createElement("div");
+  threatsTitle.className = "panel-h px-h";
+  threatsTitle.textContent = "THREAT · NEXT 3";
+  threatsHead.appendChild(threatsTitle);
+  const threatsList = document.createElement("div");
+  threatsList.className = "threat-list";
+  threats.append(threatsHead, threatsList);
+  right.appendChild(threats);
 
-  const recipes = document.createElement('div');
-  recipes.className = 'px-panel';
-  const recipesH = document.createElement('div');
-  recipesH.className = 'panel-h px-h';
-  recipesH.textContent = 'RECIPES';
-  const recipesList = document.createElement('div');
-  recipesList.className = 'recipes-list';
-  recipesList.style.maxHeight = '180px';
-  recipesList.style.overflowY = 'auto';
-  for (const c of COMBOS) {
-    const row = document.createElement('div');
-    row.className = 'row';
-    const gems = document.createElement('div');
-    gems.className = 'recipe-gems';
-    for (let i = 0; i < c.inputs.length; i++) {
-      const inp = c.inputs[i];
-      const cell = document.createElement('div');
-      cell.style.display = 'inline-flex';
-      cell.style.flexDirection = 'column';
-      cell.style.alignItems = 'center';
-      cell.appendChild(htmlGem(inp.gem, 18, inp.quality > 2));
-      const q = document.createElement('span');
-      q.style.fontSize = '6px';
-      q.style.color = 'var(--px-ink-dim)';
-      q.textContent = `L${inp.quality}`;
-      cell.appendChild(q);
-      gems.appendChild(cell);
-      if (i < c.inputs.length - 1) {
-        const plus = document.createElement('span');
-        plus.className = 'recipe-plus';
-        plus.textContent = '+';
-        gems.appendChild(plus);
-      }
-    }
-    row.appendChild(gems);
-    const tail = document.createElement('div');
-    tail.className = 'recipe-tail';
-    const eq = document.createElement('span');
-    eq.className = 'recipe-eq';
-    eq.textContent = '=';
-    const name = document.createElement('span');
-    name.className = 'recipe-name px-h';
-    name.textContent = c.name.toUpperCase();
-    tail.append(eq, name);
-    row.appendChild(tail);
-    recipesList.appendChild(row);
-  }
-  recipes.append(recipesH, recipesList);
+  const recipes = document.createElement("div");
+  recipes.className = "px-panel recipes-panel";
+  const recipesHead = document.createElement("div");
+  recipesHead.className = "panel-head";
+  const recipesH = document.createElement("div");
+  recipesH.className = "panel-h px-h";
+  recipesH.textContent = `RECIPES · ${COMBOS.length}`;
+  recipesHead.appendChild(recipesH);
+  const recipesList = document.createElement("div");
+  recipesList.className = "recipes-list";
+  recipes.append(recipesHead, recipesList);
   right.appendChild(recipes);
 
+  function rebuildRecipes(): void {
+    recipesList.innerHTML = "";
+    const ownedCombos = new Set(
+      game.state.towers.map((t) => t.comboKey).filter((k): k is string => !!k),
+    );
+    for (const c of COMBOS) {
+      const card = document.createElement("div");
+      card.className = "px-panel-inset recipe-card";
+
+      const head = document.createElement("div");
+      head.className = "recipe-card-head";
+      head.appendChild(htmlGem(c.visualGem, 28, true));
+      const info = document.createElement("div");
+      info.className = "recipe-info";
+      const name = document.createElement("div");
+      name.className = "recipe-name";
+      name.textContent = c.name.toUpperCase();
+      info.appendChild(name);
+      if (ownedCombos.has(c.key)) {
+        const owned = document.createElement("div");
+        owned.className = "recipe-owned";
+        owned.textContent = "OWNED ✓";
+        info.appendChild(owned);
+      }
+      head.appendChild(info);
+      card.appendChild(head);
+
+      const inputs = document.createElement("div");
+      inputs.className = "recipe-inputs";
+      for (let i = 0; i < c.inputs.length; i++) {
+        const inp = c.inputs[i];
+        const pill = document.createElement("div");
+        pill.className = "recipe-pill";
+        pill.appendChild(htmlGem(inp.gem, 14, inp.quality > 2));
+        const q = document.createElement("span");
+        q.className = "recipe-pill-q";
+        q.textContent = `L${inp.quality}`;
+        pill.appendChild(q);
+        inputs.appendChild(pill);
+        if (i < c.inputs.length - 1) {
+          const plus = document.createElement("span");
+          plus.className = "recipe-plus";
+          plus.textContent = "+";
+          inputs.appendChild(plus);
+        }
+      }
+      card.appendChild(inputs);
+      recipesList.appendChild(card);
+    }
+  }
+
   // Action bar (bottom-aligned)
-  const actionBar = document.createElement('div');
-  actionBar.className = 'action-bar';
-  const startBtn = document.createElement('button');
-  startBtn.className = 'px-btn px-btn-primary';
-  startBtn.textContent = '▶ NEXT WAVE';
-  startBtn.addEventListener('click', () => game.cmdStartWave());
+  const actionBar = document.createElement("div");
+  actionBar.className = "action-bar";
+  const startBtn = document.createElement("button");
+  startBtn.className = "px-btn px-btn-primary";
+  startBtn.textContent = "▶ NEXT WAVE · SPACE";
+  startBtn.addEventListener("click", () => game.cmdStartWave());
   actionBar.appendChild(startBtn);
-  const row = document.createElement('div');
-  row.className = 'action-bar-row';
-  const undoBtn = makeBtn('↶ UNDO', () => game.cmdUndo());
-  const speedBtn = makeBtn('1×', () => {
-    const nextSpeed = (game.state.speed === 1 ? 2 : game.state.speed === 2 ? 4 : 1) as 1 | 2 | 4;
+
+  const utilsRow = document.createElement("div");
+  utilsRow.className = "action-bar-utils";
+  const undoBtn = makeBtn("↶ UNDO", () => game.cmdUndo());
+  const speedBtn = makeBtn("1×", () => {
+    const nextSpeed = (
+      game.state.speed === 1 ? 2 : game.state.speed === 2 ? 4 : 1
+    ) as 1 | 2 | 4;
     game.setSpeed(nextSpeed);
     speedBtn.textContent = `${nextSpeed}×`;
   });
-  const combineBtn = makeBtn('★ COMBINE', () => {
-    openCombine();
-  });
-  row.append(undoBtn, speedBtn, combineBtn);
-  actionBar.appendChild(row);
-  const bottomRow = document.createElement('div');
-  bottomRow.className = 'action-bar-row';
-  const helpBtn = makeBtn('? HOW TO PLAY', () => mountTutorialModal(root));
-  const exitBtn = makeBtn('TITLE', onExit);
-  bottomRow.append(helpBtn, exitBtn);
-  actionBar.appendChild(bottomRow);
+  utilsRow.append(undoBtn, speedBtn);
+  actionBar.appendChild(utilsRow);
+
+  const combineRow = document.createElement("div");
+  combineRow.className = "action-bar-combine";
+  const combineBtn = makeBtn("★ COMBINE", () => tryAutoCombine());
+  const combineSpecialBtn = makeBtn("★ SPECIAL", () => tryAutoCombineSpecial());
+  combineRow.append(combineBtn, combineSpecialBtn);
+  actionBar.appendChild(combineRow);
+
+  const systemRow = document.createElement("div");
+  systemRow.className = "action-bar-system";
+  const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root));
+  const exitBtn = makeBtn("EXIT", onExit);
+  systemRow.append(helpBtn, exitBtn);
+  actionBar.appendChild(systemRow);
   right.appendChild(actionBar);
 
-  // Stash list updater
-  function refreshStash(): void {
-    stashGrid.innerHTML = '';
-    const s = game.state;
-    // Group towers by gem+quality for a "composition" view.
-    const counts = new Map<string, { gem: GemType; quality: Quality; count: number }>();
-    for (const t of s.towers) {
-      if (t.comboKey) continue; // combos render under "Recipes" only
-      const key = `${t.gem}:${t.quality}`;
-      const e = counts.get(key);
-      if (e) {
-        e.count++;
-      } else {
-        counts.set(key, { gem: t.gem, quality: t.quality, count: 1 });
-      }
+  function refreshThreats(): void {
+    threatsList.innerHTML = "";
+    const cur = Math.max(1, game.state.wave || 1);
+    // During wave: show current + next 2; during build: also show current (the upcoming wave).
+    const start = cur;
+    const end = Math.min(WAVES.length, start + 2);
+    for (let n = start; n <= end; n++) {
+      const def = WAVES[n - 1];
+      if (!def) continue;
+      const isCurrent = n === cur;
+      threatsList.appendChild(makeThreatRow(def, isCurrent));
     }
-    stashTitle.textContent = `STASH (${s.towers.length})`;
-    if (counts.size === 0) {
-      // 7 placeholder cells
-      for (const g of GEM_TYPES) {
-        const cell = document.createElement('div');
-        cell.className = 'px-panel-inset stash-cell placeholder';
-        cell.appendChild(htmlGem(g, 22));
-        stashGrid.appendChild(cell);
-      }
-      return;
-    }
-    for (const e of counts.values()) {
-      const cell = document.createElement('div');
-      cell.className = 'px-panel-inset stash-cell';
-      cell.appendChild(htmlGem(e.gem, 22, e.quality > 2));
-      if (e.count > 1) {
-        const c = document.createElement('div');
-        c.className = 'count';
-        c.textContent = `×${e.count}`;
-        cell.appendChild(c);
-      }
-      const lvl = document.createElement('div');
-      lvl.className = 'lvl';
-      lvl.textContent = `L${e.quality}`;
-      cell.appendChild(lvl);
-      stashGrid.appendChild(cell);
-    }
+  }
+
+  function makeThreatRow(def: WaveDef, isCurrent: boolean): HTMLDivElement {
+    const row = document.createElement("div");
+    row.className =
+      "px-panel-inset threat-row" + (isCurrent ? " is-current" : "");
+
+    const num = document.createElement("div");
+    num.className = "threat-num" + (isCurrent ? " is-current" : "");
+    num.textContent = String(def.number).padStart(2, "0");
+    row.appendChild(num);
+
+    const mid = document.createElement("div");
+    mid.className = "threat-mid";
+    const arch = document.createElement("div");
+    arch.className = "threat-arch";
+    arch.style.color = ARCHETYPE_COLORS[def.kind];
+    arch.textContent = def.kind.toUpperCase();
+    const weakRow = document.createElement("div");
+    weakRow.className = "threat-weak-row";
+    const weakLbl = document.createElement("span");
+    weakLbl.className = "threat-weak-lbl";
+    weakLbl.textContent = "WEAK";
+    const weakGem = ARCHETYPE_WEAKNESS[def.kind];
+    const pill = document.createElement("span");
+    pill.className = "threat-weak-pill";
+    pill.appendChild(htmlGem(weakGem, 12));
+    const pillName = document.createElement("span");
+    pillName.className = "threat-weak-name";
+    pillName.textContent = GEM_PALETTE[weakGem].name.toUpperCase();
+    pill.appendChild(pillName);
+    weakRow.append(weakLbl, pill);
+    mid.append(arch, weakRow);
+    row.appendChild(mid);
+
+    const right = document.createElement("div");
+    right.className = "threat-right";
+    const hp = document.createElement("div");
+    hp.className = "threat-hp";
+    const hpVal = document.createElement("span");
+    hpVal.className = "threat-hp-val";
+    hpVal.textContent = formatHp(def.hp);
+    const hpUnit = document.createElement("span");
+    hpUnit.className = "threat-hp-unit";
+    hpUnit.textContent = "hp";
+    hp.append(hpVal, hpUnit);
+    const cnt = document.createElement("div");
+    cnt.className = "threat-count";
+    cnt.textContent = `×${def.count}`;
+    right.append(hp, cnt);
+    row.appendChild(right);
+
+    return row;
+  }
+
+  function formatHp(hp: number): string {
+    if (hp >= 1000) return `${Math.round(hp / 100) / 10}k`;
+    return String(hp);
   }
 
   function refreshDraw(): void {
     draw.refresh();
-  }
-
-  function refreshWave(): void {
-    const w = game.state.wave || 1;
-    const def = WAVES[w - 1];
-    wave.num.textContent = `WAVE ${w}/${WAVES.length}`;
-    if (def) {
-      const total = def.count;
-      const killed = game.state.waveStats.killedThisWave + game.state.waveStats.leakedThisWave;
-      const ratio = total > 0 ? killed / total : 0;
-      wave.bar.style.width = `${Math.round(ratio * 100)}%`;
-      wave.count.textContent = `×${Math.max(0, total - game.state.waveStats.spawnedThisWave + (game.state.waveStats.killedThisWave + game.state.waveStats.leakedThisWave))}`;
-      wave.label.textContent = def.kind === 'boss' ? 'NEXT: BOSS' : `NEXT: ${def.kind.toUpperCase()}`;
-    }
   }
 
   function refreshChips(): void {
@@ -254,36 +333,65 @@ export function mountHud(root: HTMLElement, app: Application, game: Game, onExit
 
   function tick(): void {
     refreshChips();
-    refreshStash();
+    refreshThreats();
     refreshDraw();
-    refreshWave();
     chance.refresh();
     refreshStartGate();
     refreshInspector(inspector, game);
   }
 
   function refreshStartGate(): void {
-    if (game.state.phase !== 'build') return;
-    const concluded = game.state.draws.length === 0 && game.state.designatedKeepTowerId !== null;
-    const ready = concluded || (allDrawsPlaced(game.state) && game.state.designatedKeepTowerId !== null);
+    if (game.state.phase !== "build") return;
+    const concluded =
+      game.state.draws.length === 0 &&
+      game.state.designatedKeepTowerId !== null;
+    const ready =
+      concluded ||
+      (allDrawsPlaced(game.state) && game.state.designatedKeepTowerId !== null);
     startBtn.disabled = !ready;
   }
 
-  game.bus.on('gold:change', refreshChips);
-  game.bus.on('lives:change', refreshChips);
-  game.bus.on('tower:placed', () => { refreshStash(); refreshDraw(); });
-  game.bus.on('tower:sold', () => { refreshStash(); });
-  game.bus.on('combine:done', () => { refreshStash(); });
-  game.bus.on('draws:roll', () => { refreshDraw(); });
-  game.bus.on('draws:change', () => { refreshDraw(); });
-  game.bus.on('phase:enter', ({ phase }) => {
-    if (phase === 'wave') {
+  game.bus.on("gold:change", refreshChips);
+  game.bus.on("lives:change", refreshChips);
+  game.bus.on("tower:placed", () => {
+    refreshDraw();
+    rebuildRecipes();
+  });
+  game.bus.on("tower:sold", () => {
+    rebuildRecipes();
+  });
+  game.bus.on("combine:done", () => {
+    rebuildRecipes();
+  });
+  game.bus.on("wave:start", () => {
+    refreshThreats();
+  });
+  game.bus.on("wave:end", () => {
+    refreshThreats();
+  });
+  game.bus.on("phase:enter", () => {
+    refreshThreats();
+  });
+  game.bus.on("draws:roll", () => {
+    refreshDraw();
+  });
+  game.bus.on("draws:change", () => {
+    refreshDraw();
+  });
+  game.bus.on("phase:enter", ({ phase }) => {
+    if (phase === "wave") {
       startBtn.disabled = true;
-      hint.textContent = 'WAVE IN PROGRESS';
-    } else if (phase === 'build') {
+      hintPill.textContent = "WAVE";
+      hintPill.className = "board-hint-pill wave";
+      hintMsg.textContent = "Wave in progress — towers fire automatically";
+      hintKey.textContent = "1× 2× 4×";
+    } else if (phase === "build") {
       startBtn.disabled = true;
-      hint.textContent = 'PLACE ALL 5 GEMS — MARK ONE TO KEEP — TAB CYCLES SLOTS';
-    } else if (phase === 'gameover' || phase === 'victory') {
+      hintPill.textContent = "BUILD";
+      hintPill.className = "board-hint-pill";
+      hintMsg.textContent = "Place all 5 gems → mark one keeper";
+      hintKey.textContent = "TAB cycles";
+    } else if (phase === "gameover" || phase === "victory") {
       mountGameOver(root, game, phase, onExit);
     }
   });
@@ -304,18 +412,20 @@ export function mountHud(root: HTMLElement, app: Application, game: Game, onExit
     return { x: tx, y: ty };
   }
 
-  canvasHost.addEventListener('pointermove', (ev: PointerEvent) => {
+  canvasHost.addEventListener("pointermove", (ev: PointerEvent) => {
     game.hoverTile = tileFromPointer(ev);
   });
-  canvasHost.addEventListener('pointerleave', () => {
+  canvasHost.addEventListener("pointerleave", () => {
     game.hoverTile = null;
   });
-  canvasHost.addEventListener('pointerdown', (ev: PointerEvent) => {
+  canvasHost.addEventListener("pointerdown", (ev: PointerEvent) => {
     const t = tileFromPointer(ev);
     if (!t) return;
     // Right click → sell selected tower at that tile.
     if (ev.button === 2) {
-      const tower = game.state.towers.find((tt) => tt.x === t.x && tt.y === t.y);
+      const tower = game.state.towers.find(
+        (tt) => tt.x === t.x && tt.y === t.y,
+      );
       if (tower) game.cmdSell(tower.id);
       return;
     }
@@ -332,167 +442,243 @@ export function mountHud(root: HTMLElement, app: Application, game: Game, onExit
       game.selectTower(null);
     }
   });
-  canvasHost.addEventListener('contextmenu', (ev) => ev.preventDefault());
+  canvasHost.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
-  function openCombine(): void {
-    mountCombineModal(root, game);
+  function openCombine(initialTab?: "level" | "recipe"): void {
+    mountCombineModal(root, game, initialTab);
+  }
+
+  /**
+   * Auto-combine: level-up two/four same gem+quality towers from the current
+   * round. Picks deterministically when multiple eligible groups exist:
+   * highest-quality first, then alphabetical by gem name. Always combines —
+   * never prompts for selection.
+   */
+  function tryAutoCombine(): void {
+    if (game.state.phase !== "build") return;
+    const drawIds = new Set(
+      game.state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
+    );
+    const groups = new Map<string, TowerState[]>();
+    for (const t of game.state.towers) {
+      if (!drawIds.has(t.id)) continue;
+      if (t.comboKey) continue;
+      const k = `${t.gem}:${t.quality}`;
+      const arr = groups.get(k) ?? [];
+      arr.push(t);
+      groups.set(k, arr);
+    }
+    const eligible: TowerState[][] = [];
+    for (const arr of groups.values()) {
+      if (arr.length >= 2) eligible.push(arr);
+    }
+    if (eligible.length === 0) {
+      game.bus.emit("toast", {
+        kind: "error",
+        text: "No same-gem pair this round",
+      });
+      return;
+    }
+    eligible.sort((a, b) => {
+      // Prefer larger groups (4 over 2), then higher quality, then gem name.
+      if (b.length !== a.length) return b.length - a.length;
+      if (b[0].quality !== a[0].quality) return b[0].quality - a[0].quality;
+      return a[0].gem.localeCompare(b[0].gem);
+    });
+    const arr = eligible[0];
+    const take = arr.length >= 4 ? 4 : 2;
+    game.cmdCombine(arr.slice(0, take).map((t) => t.id));
+  }
+
+  /**
+   * Auto-combine special: pick the first recipe (in COMBOS order) whose inputs
+   * are satisfiable from placed (non-combo) towers, and execute it. Always
+   * combines if at least one recipe matches — never prompts.
+   */
+  function tryAutoCombineSpecial(): void {
+    if (game.state.phase !== "build") return;
+    const placed = game.state.towers.filter((t) => !t.comboKey);
+    for (const c of COMBOS) {
+      const ids = matchRecipe(c, placed);
+      if (ids) {
+        game.cmdCombine(ids);
+        return;
+      }
+    }
+    game.bus.emit("toast", {
+      kind: "error",
+      text: "No recipe is satisfiable",
+    });
+  }
+
+  function matchRecipe(c: ComboRecipe, towers: TowerState[]): number[] | null {
+    const used = new Set<number>();
+    const ids: number[] = [];
+    for (const inp of c.inputs) {
+      const t = towers.find(
+        (tt) =>
+          !used.has(tt.id) && tt.gem === inp.gem && tt.quality === inp.quality,
+      );
+      if (!t) return null;
+      used.add(t.id);
+      ids.push(t.id);
+    }
+    return ids;
   }
 
   const onKey = (ev: KeyboardEvent) => {
-    if (ev.key === ' ') {
+    if (ev.key === " ") {
       ev.preventDefault();
-      if (game.state.phase === 'build') game.cmdStartWave();
-    } else if (ev.key === 'u' || ev.key === 'U') {
+      if (game.state.phase === "build") game.cmdStartWave();
+    } else if (ev.key === "u" || ev.key === "U") {
       game.cmdUndo();
-    } else if (ev.key === 's' || ev.key === 'S') {
+    } else if (ev.key === "s" || ev.key === "S") {
       if (game.selectedTowerId !== null) game.cmdSell(game.selectedTowerId);
-    } else if (ev.key === '1') {
+    } else if (ev.key === "1") {
       game.setSpeed(1);
-      speedBtn.textContent = '1×';
-    } else if (ev.key === '2') {
+      speedBtn.textContent = "1×";
+    } else if (ev.key === "2") {
       game.setSpeed(2);
-      speedBtn.textContent = '2×';
-    } else if (ev.key === '4') {
+      speedBtn.textContent = "2×";
+    } else if (ev.key === "4") {
       game.setSpeed(4);
-      speedBtn.textContent = '4×';
-    } else if (ev.key === 'c' || ev.key === 'C') {
+      speedBtn.textContent = "4×";
+    } else if (ev.key === "c" || ev.key === "C") {
       openCombine();
-    } else if (ev.key === 'Escape') {
+    } else if (ev.key === "Escape") {
       game.selectTower(null);
-    } else if (ev.key === 'Tab') {
+    } else if (ev.key === "Tab") {
       // Cycle active draw slot (forward; Shift+Tab for backward).
       ev.preventDefault();
       game.cmdCycleActiveSlot(ev.shiftKey ? -1 : 1);
-    } else if (ev.key === '?' || ev.key === 'h' || ev.key === 'H') {
+    } else if (ev.key === "?" || ev.key === "h" || ev.key === "H") {
       mountTutorialModal(root);
     }
   };
-  window.addEventListener('keydown', onKey);
+  window.addEventListener("keydown", onKey);
 
   // Initial paint.
+  rebuildRecipes();
   tick();
 
   return () => {
     window.clearInterval(tickHandle);
-    window.removeEventListener('keydown', onKey);
+    window.removeEventListener("keydown", onKey);
     hud.remove();
   };
 
   // ===== Helpers =====
-  function makeChip(icon: HTMLElement, label: string, value: string, valueColor: string): {
+  function makeChip(
+    icon: HTMLElement,
+    label: string,
+    value: string,
+    valueColor: string,
+  ): {
     root: HTMLDivElement;
     value: HTMLDivElement;
   } {
-    const r = document.createElement('div');
-    r.className = 'px-panel-inset stat-chip';
-    r.appendChild(icon);
-    const v = document.createElement('div');
-    v.className = 'stat-value';
+    const r = document.createElement("div");
+    r.className = "px-panel-inset stat-chip";
+    const iconWrap = document.createElement("div");
+    iconWrap.className = "stat-icon";
+    iconWrap.appendChild(icon);
+    const col = document.createElement("div");
+    col.className = "stat-col";
+    const l = document.createElement("div");
+    l.className = "stat-label";
+    l.textContent = label;
+    const v = document.createElement("div");
+    v.className = "stat-value";
     v.style.color = valueColor;
     v.textContent = value;
-    const l = document.createElement('div');
-    l.className = 'stat-label';
-    l.textContent = label;
-    r.append(v, l);
+    col.append(l, v);
+    r.append(iconWrap, col);
     return { root: r, value: v };
   }
 
   function makeBtn(label: string, onClick: () => void): HTMLButtonElement {
-    const b = document.createElement('button');
-    b.className = 'px-btn';
+    const b = document.createElement("button");
+    b.className = "px-btn";
     b.textContent = label;
-    b.addEventListener('click', onClick);
+    b.addEventListener("click", onClick);
     return b;
   }
 
-  function makeWavePanel(): { root: HTMLDivElement; num: HTMLDivElement; bar: HTMLDivElement; count: HTMLDivElement; label: HTMLDivElement } {
-    const r = document.createElement('div');
-    r.className = 'px-panel wave-panel';
-    const head = document.createElement('div');
-    head.className = 'wave-panel-head';
-    const num = document.createElement('div');
-    num.className = 'wave-num px-h';
-    num.textContent = `WAVE 1/${WAVES.length}`;
-    const clock = document.createElement('div');
-    clock.className = 'wave-clock';
-    clock.textContent = '—';
-    head.append(num, clock);
-
-    const bar = document.createElement('div');
-    bar.className = 'px-bar wave-bar';
-    const fill = document.createElement('div');
-    fill.className = 'px-bar-fill';
-    fill.style.background = 'var(--px-accent)';
-    fill.style.width = '0%';
-    bar.appendChild(fill);
-
-    const next = document.createElement('div');
-    next.className = 'wave-next';
-    const sprite = document.createElement('div');
-    sprite.appendChild(htmlGem('amethyst', 18));
-    const count = document.createElement('div');
-    count.className = 'wave-next-count';
-    count.textContent = '×0';
-    const label = document.createElement('div');
-    label.className = 'wave-next-label px-h';
-    label.textContent = 'NEXT';
-    next.append(sprite, count, label);
-
-    r.append(head, bar, next);
-    return { root: r, num, bar: fill, count, label };
-  }
-
-  function makeChancePanel(g: Game): { root: HTMLDivElement; refresh: () => void } {
-    const r = document.createElement('div');
-    r.className = 'px-panel';
-    const head = document.createElement('div');
-    head.className = 'panel-h px-h';
-    head.textContent = 'CHANCE TIER';
+  function makeChancePanel(g: Game): {
+    root: HTMLDivElement;
+    refresh: () => void;
+  } {
+    const r = document.createElement("div");
+    r.className = "px-panel";
+    const head = document.createElement("div");
+    head.className = "panel-head";
+    const title = document.createElement("div");
+    title.className = "panel-h px-h";
+    title.textContent = "CHANCE TIER";
+    head.appendChild(title);
     r.appendChild(head);
 
-    const tierLine = document.createElement('div');
-    tierLine.style.display = 'flex';
-    tierLine.style.justifyContent = 'space-between';
-    tierLine.style.alignItems = 'center';
-    tierLine.style.marginTop = '4px';
-    tierLine.style.fontSize = '9px';
-    const tierVal = document.createElement('div');
-    tierVal.style.color = 'var(--px-accent)';
-    tierVal.style.fontWeight = 'bold';
-    tierLine.appendChild(tierVal);
-    r.appendChild(tierLine);
+    const hero = document.createElement("div");
+    hero.className = "chance-hero";
+    const lvl = document.createElement("div");
+    lvl.className = "chance-lvl";
+    const next = document.createElement("div");
+    next.className = "chance-next";
+    hero.append(lvl, next);
+    r.appendChild(hero);
 
-    const dist = document.createElement('div');
-    dist.style.fontSize = '7px';
-    dist.style.color = 'var(--px-ink-dim)';
-    dist.style.marginTop = '4px';
-    dist.style.lineHeight = '1.4';
-    r.appendChild(dist);
+    const bars = document.createElement("div");
+    bars.className = "chance-bars";
+    r.appendChild(bars);
 
-    const upBtn = document.createElement('button');
-    upBtn.className = 'px-btn';
-    upBtn.style.fontSize = '8px';
-    upBtn.style.width = '100%';
-    upBtn.style.marginTop = '6px';
-    upBtn.addEventListener('click', () => g.cmdUpgradeChanceTier());
+    const upBtn = document.createElement("button");
+    upBtn.className = "px-btn px-btn-primary chance-upgrade";
+    upBtn.addEventListener("click", () => g.cmdUpgradeChanceTier());
     r.appendChild(upBtn);
 
     function refresh(): void {
       const t = g.state.chanceTier;
-      tierVal.textContent = `LEVEL ${t}`;
-      const labels = ['Chip', 'Flaw', 'Norm', 'Flwl', 'Perf'];
+      lvl.textContent = `LV. ${t}`;
+      const cost = t < MAX_CHANCE_TIER ? CHANCE_TIER_UPGRADE_COST[t] : null;
+      next.textContent = cost !== null ? `NEXT ${cost}G` : "MAX";
+
       const row = CHANCE_TIER_WEIGHTS[t];
-      dist.textContent = labels
-        .map((lbl, i) => `${lbl} ${Math.round(row[i] * 100)}%`)
-        .filter((_, i) => row[i] > 0)
-        .join(' · ');
+      bars.innerHTML = "";
+      for (let i = 0; i < row.length; i++) {
+        const pct = Math.round(row[i] * 100);
+        if (pct <= 0) continue;
+        const wrap = document.createElement("div");
+        wrap.className = "chance-row";
+        const headRow = document.createElement("div");
+        headRow.className = "chance-row-head";
+        const label = document.createElement("span");
+        label.style.color = TIER_COLORS[i];
+        label.textContent = TIER_LABELS[i];
+        const pctEl = document.createElement("span");
+        pctEl.className = "chance-pct";
+        pctEl.textContent = `${pct}%`;
+        headRow.append(label, pctEl);
+        wrap.appendChild(headRow);
+        const bar = document.createElement("div");
+        bar.className = "px-bar chance-bar";
+        const fill = document.createElement("div");
+        fill.className = "px-bar-fill";
+        fill.style.background = TIER_COLORS[i];
+        fill.style.width = `${pct}%`;
+        bar.appendChild(fill);
+        wrap.appendChild(bar);
+        bars.appendChild(wrap);
+      }
+
       if (t >= MAX_CHANCE_TIER) {
-        upBtn.textContent = 'MAX TIER';
+        upBtn.textContent = "MAX TIER";
         upBtn.disabled = true;
       } else {
-        const cost = CHANCE_TIER_UPGRADE_COST[t];
-        upBtn.textContent = `UPGRADE (${cost}g)`;
-        upBtn.disabled = g.state.phase !== 'build' || g.state.gold < cost;
+        upBtn.textContent = `UPGRADE · ${cost}G`;
+        upBtn.disabled =
+          g.state.phase !== "build" || g.state.gold < (cost ?? 0);
       }
     }
 
@@ -503,136 +689,145 @@ export function mountHud(root: HTMLElement, app: Application, game: Game, onExit
     root: HTMLDivElement;
     refresh: () => void;
   } {
-    const r = document.createElement('div');
-    r.className = 'px-panel draw-panel';
-    const head = document.createElement('div');
-    head.className = 'panel-h px-h';
-    head.textContent = 'DRAW (0/5)';
+    const r = document.createElement("div");
+    r.className = "px-panel";
+    const head = document.createElement("div");
+    head.className = "panel-head";
+    const title = document.createElement("div");
+    title.className = "panel-h px-h";
+    title.textContent = "DRAW · 0/5 PLACED";
+    const action = document.createElement("div");
+    action.className = "draw-keeper-tag";
+    head.append(title, action);
     r.appendChild(head);
 
-    const chips = document.createElement('div');
-    chips.style.display = 'grid';
-    chips.style.gridTemplateColumns = 'repeat(5, 1fr)';
-    chips.style.gap = '4px';
-    chips.style.marginTop = '4px';
-    r.appendChild(chips);
+    const grid = document.createElement("div");
+    grid.className = "draw-grid";
+    r.appendChild(grid);
 
-    const info = document.createElement('div');
-    info.className = 'draw-panel-info';
-    info.style.marginTop = '6px';
-    const name = document.createElement('div');
-    name.className = 'draw-name';
-    const quality = document.createElement('div');
-    quality.className = 'draw-quality';
-    info.append(name, quality);
-    r.appendChild(info);
+    const status = document.createElement("div");
+    status.className = "px-panel-inset draw-status";
+    const primary = document.createElement("div");
+    primary.className = "draw-status-primary";
+    // const secondary = document.createElement("div");
+    // secondary.className = "draw-status-secondary";
+    status.append(primary);
+    r.appendChild(status);
 
     function refresh(): void {
-      chips.innerHTML = '';
+      grid.innerHTML = "";
       const draws = g.state.draws;
       const placed = draws.filter((d) => d.placedTowerId !== null).length;
-      head.textContent = `DRAW (${placed}/${draws.length || 5})`;
+      const total = draws.length || 5;
+      title.textContent = `DRAW · ${placed}/${total} PLACED`;
+
+      const keeperSet = g.state.designatedKeepTowerId !== null;
+      action.textContent = keeperSet ? "★ KEEPER SET" : "";
 
       if (draws.length === 0) {
-        if (g.state.phase === 'build' && g.state.designatedKeepTowerId !== null) {
-          name.textContent = 'RECIPE LOCKED';
-          quality.textContent = 'Press SPACE to start wave';
-        } else {
-          name.textContent = '—';
-          quality.textContent = g.state.phase === 'wave' ? 'In wave' : 'No draw';
-        }
         for (let i = 0; i < 5; i++) {
-          const ph = document.createElement('div');
-          ph.className = 'px-panel-inset stash-cell placeholder';
-          ph.style.opacity = '0.3';
-          ph.appendChild(htmlGem('diamond', 18));
-          chips.appendChild(ph);
+          const ph = document.createElement("div");
+          ph.className = "px-panel-inset draw-cell placed-non-keep";
+          ph.appendChild(htmlGem("diamond", 26));
+          grid.appendChild(ph);
+        }
+        if (g.state.phase === "build" && keeperSet) {
+          primary.innerHTML = "";
+          const ready = document.createElement("span");
+          ready.style.color = "var(--px-accent)";
+          ready.textContent = "READY";
+          primary.appendChild(ready);
+          // secondary.textContent = "Press SPACE to start the wave.";
+        } else {
+          primary.textContent = g.state.phase === "wave" ? "In wave" : "—";
+          // secondary.textContent =
+          //   g.state.phase === "wave"
+          //     ? "Towers fire automatically."
+          //     : "Waiting for next draw.";
         }
         return;
       }
 
+      let keepDraw: (typeof draws)[number] | null = null;
       for (const d of draws) {
-        const cell = document.createElement('button');
-        cell.className = 'px-panel-inset stash-cell';
-        cell.style.cursor = 'pointer';
-        cell.style.padding = '4px';
-        cell.style.position = 'relative';
-        const isActive = d.slotId === g.state.activeDrawSlot && d.placedTowerId === null;
+        const cell = document.createElement("button");
+        cell.className = "px-panel-inset draw-cell";
+        const isActive =
+          d.slotId === g.state.activeDrawSlot && d.placedTowerId === null;
         const isPlaced = d.placedTowerId !== null;
-        const isKeep = isPlaced && d.placedTowerId === g.state.designatedKeepTowerId;
-        cell.style.opacity = isPlaced && !isKeep ? '0.45' : '1';
-        if (isActive) {
-          cell.style.boxShadow = 'inset 2px 2px 0 0 var(--px-border-dark), inset -2px -2px 0 0 var(--px-panel-2), 0 0 0 2px var(--px-accent)';
-        } else if (isKeep) {
-          cell.style.boxShadow = 'inset 2px 2px 0 0 var(--px-border-dark), inset -2px -2px 0 0 var(--px-panel-2), 0 0 0 2px #58c850';
-        }
-        cell.appendChild(htmlGem(d.gem, 22, d.quality > 2));
-        const lvl = document.createElement('div');
-        lvl.className = 'lvl';
-        lvl.textContent = `L${d.quality}`;
-        cell.appendChild(lvl);
+        const isKeep =
+          isPlaced && d.placedTowerId === g.state.designatedKeepTowerId;
+        if (isPlaced && !isKeep) cell.classList.add("placed-non-keep");
         if (isKeep) {
-          const star = document.createElement('div');
-          star.style.position = 'absolute';
-          star.style.top = '2px';
-          star.style.right = '2px';
-          star.style.fontSize = '10px';
-          star.style.color = '#58c850';
-          star.textContent = '★';
-          cell.appendChild(star);
-        } else if (isPlaced) {
-          const check = document.createElement('div');
-          check.style.position = 'absolute';
-          check.style.top = '2px';
-          check.style.right = '2px';
-          check.style.fontSize = '10px';
-          check.style.color = 'var(--px-accent)';
-          check.textContent = '✓';
-          cell.appendChild(check);
+          cell.classList.add("is-keep");
+          keepDraw = d;
+        } else if (isActive) {
+          cell.classList.add("is-active");
         }
-        cell.title = isPlaced ? 'Click to mark as keep' : 'Click to select slot';
-        cell.addEventListener('click', () => {
+        cell.appendChild(htmlGem(d.gem, 26, d.quality > 2));
+        const q = document.createElement("div");
+        q.className = "draw-quality";
+        q.textContent = `L${d.quality}`;
+        cell.appendChild(q);
+        if (isKeep) {
+          const star = document.createElement("div");
+          star.className = "draw-keep-badge";
+          star.textContent = "★";
+          cell.appendChild(star);
+        }
+        cell.title = isPlaced
+          ? "Click to mark as keep"
+          : "Click to select slot";
+        cell.addEventListener("click", () => {
           if (isPlaced && d.placedTowerId !== null) {
             g.cmdDesignateKeep(d.placedTowerId);
           } else {
             g.cmdSetActiveSlot(d.slotId);
           }
         });
-        chips.appendChild(cell);
+        grid.appendChild(cell);
       }
 
       const ad = activeDraw(g.state);
-      if (ad) {
-        name.textContent = GEM_PALETTE[ad.gem].name.toUpperCase();
-        quality.textContent = QUALITY_NAMES[ad.quality];
+      if (keepDraw) {
+        primary.innerHTML = "";
+        const star = document.createElement("span");
+        star.className = "keep-name";
+        star.textContent = `★ ${GEM_PALETTE[keepDraw.gem].name}`;
+        primary.appendChild(star);
+        primary.appendChild(
+          document.createTextNode(" will be kept after this wave."),
+        );
+        // secondary.innerHTML = "";
+        // secondary.appendChild(
+        //   document.createTextNode("The other 4 will turn into rocks. "),
+        // );
+        // const kbd = document.createElement("kbd");
+        // kbd.textContent = "TAB";
+        // secondary.appendChild(kbd);
+        // secondary.appendChild(document.createTextNode(" cycles slots."));
+      } else if (ad) {
+        primary.textContent = `${GEM_PALETTE[ad.gem].name.toUpperCase()} · ${QUALITY_NAMES[ad.quality].toUpperCase()}`;
+        // secondary.textContent =
+        //   "Click a grass tile to place. TAB cycles slots.";
       } else if (placed === draws.length && draws.length > 0) {
-        if (g.state.designatedKeepTowerId === null) {
-          name.textContent = 'PICK KEEPER';
-          quality.textContent = 'Click a chip to mark keep';
-        } else {
-          name.textContent = 'READY';
-          quality.textContent = 'Press SPACE to start wave';
-        }
+        primary.textContent = "PICK A KEEPER";
+        // secondary.textContent =
+        // "Click a placed gem to mark it. The rest turn into rocks.";
       } else {
-        name.textContent = '—';
-        quality.textContent = 'Pick a slot';
+        primary.textContent = "—";
+        // secondary.textContent = "Pick a slot.";
       }
     }
 
     return { root: r, refresh };
   }
+}
 
-  // Currently unused — if we want a "next wave preview" gem in the wave panel, swap this in.
-  // function _gemForKind(kind: string): GemType {
-  //   if (kind === 'fast') return 'sapphire';
-  //   if (kind === 'armored') return 'opal';
-  //   if (kind === 'air') return 'diamond';
-  //   if (kind === 'boss') return 'ruby';
-  //   return 'amethyst';
-  // }
-
-  void gemStats;
-  void effectSummary;
+interface HudRefs {
+  livesValue: HTMLDivElement;
+  goldValue: HTMLDivElement;
+  startWaveBtn: HTMLButtonElement;
 }
 
 interface InspectorRefs {

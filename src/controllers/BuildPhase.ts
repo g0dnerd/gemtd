@@ -246,7 +246,9 @@ export class BuildPhase {
         this.game.bus.emit('toast', { kind: 'error', text: 'Already perfect' });
         return false;
       }
-      this.commitTransform(towers, towers[0].gem, newQ, undefined);
+      const newTowerId = this.commitTransform(towers, towers[0].gem, newQ, undefined);
+      this.autoConcludeRound(newTowerId);
+      this.game.enterWave();
       return true;
     }
 
@@ -262,6 +264,7 @@ export class BuildPhase {
     const newTowerId = this.commitTransform(towers, combo.visualGem, outputQ, combo.key);
     if (inputTouchedRound) {
       this.autoConcludeRound(newTowerId);
+      this.game.enterWave();
     }
     return true;
   }

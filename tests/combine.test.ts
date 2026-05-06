@@ -15,6 +15,7 @@ interface FakeGame {
   nextId(): number;
   refreshRoute(): boolean;
   selectTower(id: number | null): void;
+  enterWave(): void;
 }
 
 function setup() {
@@ -37,6 +38,7 @@ function setup() {
       return true;
     },
     selectTower: (id) => { state.selectedTowerId = id; },
+    enterWave: () => {},
   };
   const phase = new BuildPhase(game as unknown as import('../src/game/Game').Game);
   game.refreshRoute();

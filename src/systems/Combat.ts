@@ -61,11 +61,9 @@ export class Combat {
     const fromY = tower.y * TILE + TILE / 2;
     const baseDmg = randInt(stats.dmgMin, stats.dmgMax);
     let dmg = baseDmg;
-    let isCrit = false;
     for (const e of stats.effects) {
       if (e.kind === 'crit' && Math.random() < e.chance) {
         dmg = Math.round(dmg * e.multiplier);
-        isCrit = true;
       }
     }
     const proj: ProjectileState = {
@@ -82,9 +80,6 @@ export class Combat {
     };
     state.projectiles.push(proj);
     this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
-    if (isCrit) {
-      this.game.bus.emit('toast', { kind: 'good', text: 'CRIT!' });
-    }
   }
 
   private impact(p: ProjectileState): void {

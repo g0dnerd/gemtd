@@ -8,6 +8,7 @@ import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from '../render/theme';
 import { htmlGem } from '../render/htmlSprites';
 import { effectSummary, gemStats } from '../data/gems';
 import { COMBOS } from '../data/combos';
+import { SELL_REFUND } from '../game/constants';
 import { TowerState } from '../game/State';
 
 export interface InspectorRefs {
@@ -20,11 +21,15 @@ export function mountInspector(game: Game): InspectorRefs {
   const root = document.createElement('div');
   root.className = 'px-panel inspector';
   const head = document.createElement('div');
-  head.className = 'panel-h px-h';
-  head.textContent = 'SELECTED';
+  head.className = 'panel-head';
+  const title = document.createElement('div');
+  title.className = 'panel-h px-h';
+  title.textContent = 'SELECTED · TOWER';
+  head.appendChild(title);
   root.appendChild(head);
 
   const body = document.createElement('div');
+  body.className = 'inspector-body';
   root.appendChild(body);
 
   const refs: InspectorRefs = {
@@ -54,71 +59,114 @@ function render(refs: InspectorRefs, game: Game): void {
     return;
   }
 
-  const headRow = document.createElement('div');
-  headRow.className = 'inspector-head';
-  headRow.appendChild(htmlGem(tower.gem, 28, tower.quality > 2));
-  const title = document.createElement('div');
+  const stats = effectiveStatsFor(tower);
+
+  // Hero row
+  const hero = document.createElement('div');
+  hero.className = 'px-panel-inset inspector-hero';
+  const frame = document.createElement('div');
+  frame.className = 'inspector-hero-frame';
+  frame.appendChild(htmlGem(tower.gem, 40, true));
+  const text = document.createElement('div');
+  text.className = 'inspector-hero-text';
   const name = document.createElement('div');
-  name.className = 'name';
-  const quality = document.createElement('div');
-  quality.className = 'sub';
+  name.className = 'inspector-hero-name';
+  const sub = document.createElement('div');
+  sub.className = 'inspector-hero-sub';
   if (tower.comboKey) {
     const combo = COMBOS.find((c) => c.key === tower.comboKey);
     name.textContent = combo ? combo.name.toUpperCase() : 'COMBO';
-    quality.textContent = `Lv.${tower.quality} · ${combo?.stats.blurb ?? ''}`;
+    sub.textContent = `LV. ${tower.quality} · ${combo?.stats.blurb ?? 'COMBO'}`;
   } else {
     name.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
-    quality.textContent = `Lv.${tower.quality} · ${QUALITY_NAMES[tower.quality]}`;
+    sub.textContent = `LV. ${tower.quality} · ${QUALITY_NAMES[tower.quality].toUpperCase()}`;
   }
-  title.append(name, quality);
-  headRow.appendChild(title);
-  body.appendChild(headRow);
+  text.append(name, sub);
+  hero.append(frame, text);
+  body.appendChild(hero);
 
-  const stats = effectiveStatsFor(tower);
-  const sBlock = document.createElement('div');
-  sBlock.className = 'inspector-stats';
-  sBlock.innerHTML = `
-    <div><span class="stat-key">DMG </span><span class="stat-val">${stats.dmgMin}-${stats.dmgMax}</span></div>
-    <div><span class="stat-key">RNG </span><span class="stat-val">${stats.range.toFixed(1)}</span></div>
-    <div><span class="stat-key">SPD </span><span class="stat-val">${stats.atkSpeed.toFixed(2)}/s</span></div>
-  `;
-  body.appendChild(sBlock);
+  // Stats grid
+  const grid = document.createElement('div');
+  grid.className = 'inspector-stats-grid';
 
+  const dmg = document.createElement('div');
+  dmg.className = 'px-panel-inset inspector-stat inspector-stat-dmg';
+  const dmgLabel = document.createElement('div');
+  dmgLabel.className = 'inspector-stat-label';
+  dmgLabel.textContent = 'DAMAGE';
+  const dmgVal = document.createElement('div');
+  dmgVal.className = 'inspector-stat-value inspector-stat-value-hero';
+  dmgVal.textContent = `${stats.dmgMin} – ${stats.dmgMax}`;
+  dmg.append(dmgLabel, dmgVal);
+  grid.appendChild(dmg);
+
+  const rng = document.createElement('div');
+  rng.className = 'px-panel-inset inspector-stat';
+  const rngLabel = document.createElement('div');
+  rngLabel.className = 'inspector-stat-label-sm';
+  rngLabel.textContent = 'RANGE';
+  const rngVal = document.createElement('div');
+  rngVal.className = 'inspector-stat-value inspector-stat-value-sec';
+  rngVal.textContent = stats.range.toFixed(1);
+  rng.append(rngLabel, rngVal);
+  grid.appendChild(rng);
+
+  const spd = document.createElement('div');
+  spd.className = 'px-panel-inset inspector-stat';
+  const spdLabel = document.createElement('div');
+  spdLabel.className = 'inspector-stat-label-sm';
+  spdLabel.textContent = 'SPEED';
+  const spdVal = document.createElement('div');
+  spdVal.className = 'inspector-stat-value inspector-stat-value-sec';
+  spdVal.innerHTML = `${stats.atkSpeed.toFixed(2)}<small>/s</small>`;
+  spd.append(spdLabel, spdVal);
+  grid.appendChild(spd);
+
+  body.appendChild(grid);
+
+  // Effect chip
   if (stats.effects.length > 0 && stats.effects[0].kind !== 'none') {
-    const sp = document.createElement('div');
-    sp.className = 'inspector-special';
-    sp.textContent = stats.effects.map(effectSummary).filter(Boolean).join(' · ');
-    body.appendChild(sp);
+    const chip = document.createElement('div');
+    chip.className = 'inspector-effect';
+    const lbl = document.createElement('div');
+    lbl.className = 'inspector-effect-label';
+    lbl.textContent = `ON HIT · ${stats.effects[0].kind.toUpperCase()}`;
+    const txt = document.createElement('div');
+    txt.className = 'inspector-effect-text';
+    txt.textContent = stats.effects.map(effectSummary).filter(Boolean).join(' · ');
+    chip.append(lbl, txt);
+    body.appendChild(chip);
   }
 
+  // Actions
   const actions = document.createElement('div');
   actions.className = 'inspector-actions';
 
   const sell = document.createElement('button');
-  sell.className = 'px-btn';
+  sell.className = 'px-btn px-btn-bad';
   sell.style.flex = '1';
-  sell.style.fontSize = '8px';
-  const refundDisplay = tower.comboKey ? '?' : Math.floor(gemStats(tower.gem, tower.quality).cost * 0.75);
-  sell.textContent = `SELL (${refundDisplay}g)`;
+  const refundDisplay = tower.comboKey ? '?' : Math.floor(gemStats(tower.gem, tower.quality).cost * SELL_REFUND);
+  sell.textContent = `SELL · ${refundDisplay}G`;
   sell.disabled = game.state.phase !== 'build';
   sell.addEventListener('click', () => game.cmdSell(tower.id));
 
   const isCurrentDraw = game.state.draws.some((d) => d.placedTowerId === tower.id);
   const isKeep = game.state.designatedKeepTowerId === tower.id;
 
-  const upgrade = document.createElement('button');
-  upgrade.className = 'px-btn px-btn-primary';
-  upgrade.style.flex = '1';
-  upgrade.style.fontSize = '8px';
+  const keep = document.createElement('button');
+  keep.className = 'px-btn px-btn-good';
+  keep.style.flex = '1.5';
   if (isCurrentDraw) {
-    upgrade.textContent = isKeep ? '★ KEEPING' : 'MARK KEEP';
-    upgrade.disabled = game.state.phase !== 'build' || isKeep;
-    upgrade.addEventListener('click', () => game.cmdDesignateKeep(tower.id));
+    keep.textContent = isKeep ? '★ KEEPING' : '★ MARK KEEP';
+    keep.disabled = game.state.phase !== 'build' || isKeep;
+    keep.addEventListener('click', () => game.cmdDesignateKeep(tower.id));
   } else {
-    upgrade.textContent = 'COMBINE';
-    upgrade.disabled = game.state.phase !== 'build';
-    upgrade.addEventListener('click', () => {
-      const sameColor = game.state.towers.filter((t) => t.gem === tower.gem && t.quality === tower.quality && !game.state.draws.some((d) => d.placedTowerId === t.id));
+    keep.textContent = '★ COMBINE';
+    keep.disabled = game.state.phase !== 'build';
+    keep.addEventListener('click', () => {
+      const sameColor = game.state.towers.filter(
+        (t) => t.gem === tower.gem && t.quality === tower.quality && !game.state.draws.some((d) => d.placedTowerId === t.id),
+      );
       if (sameColor.length >= 2) {
         game.cmdCombine(sameColor.slice(0, 2).map((t) => t.id));
       } else {
@@ -126,7 +174,7 @@ function render(refs: InspectorRefs, game: Game): void {
       }
     });
   }
-  actions.append(sell, upgrade);
+  actions.append(sell, keep);
   body.appendChild(actions);
 }
 

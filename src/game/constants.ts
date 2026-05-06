@@ -3,7 +3,7 @@
  * balance pass mechanical.
  */
 
-export const TILE = 32;          // pixels per tile (rendered)
+export const TILE = 36;          // pixels per tile (rendered)
 export const SIM_HZ = 60;        // simulation tick frequency
 export const SIM_DT = 1 / SIM_HZ;
 
@@ -17,9 +17,6 @@ export const SELL_REFUND = 0.75;
 /** Speed multipliers exposed in the HUD. */
 export const SPEEDS = [1, 2, 4] as const;
 export type SpeedMultiplier = (typeof SPEEDS)[number];
-
-/** Default seed for the PRNG — flips every fresh game start. */
-export const DEFAULT_SEED = 0xC0FFEE;
 
 /**
  * Random-draw odds per chance-tier level. Rows are L0..L8; columns are

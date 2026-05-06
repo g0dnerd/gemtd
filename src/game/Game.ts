@@ -9,13 +9,13 @@
  */
 
 import { Application, Container, Ticker } from 'pixi.js';
-import { State, emptyState } from './State';
+import { State, emptyState, allDrawsPlaced } from './State';
 import { EventBus } from '../events/EventBus';
 import { RNG } from './rng';
 import { BASE, Cell } from '../data/map';
 import { findRoute, flattenRoute } from '../systems/Pathfinding';
 import { BoardLayers, makeBoardLayers, renderGround, renderPathTrace, renderCheckpoints } from '../render/BoardRenderer';
-import { TILE, START_GOLD, START_LIVES, SIM_DT, DEFAULT_SEED } from './constants';
+import { TILE, START_GOLD, START_LIVES, SIM_DT } from './constants';
 import { BuildPhase } from '../controllers/BuildPhase';
 import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
@@ -50,7 +50,7 @@ export class Game {
 
   constructor(app: Application) {
     this.app = app;
-    this.rng = new RNG(DEFAULT_SEED);
+    this.rng = new RNG((Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0);
 
     const grid: Cell[][] = BASE.grid.map((row) => row.slice());
     this.state = emptyState(grid, WAVES.length);
@@ -263,6 +263,9 @@ export class Game {
     }
     state.designatedKeepTowerId = towerId;
     this.bus.emit('draws:change', {});
+    if (allDrawsPlaced(state)) {
+      this.enterWave();
+    }
     return true;
   }
   cmdUpgradeChanceTier(): boolean {
