@@ -8,7 +8,13 @@
 import type { Application } from "pixi.js";
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, QUALITY_NAMES } from "../render/theme";
-import { htmlCoin, htmlGem, htmlGemTier, htmlHeart, htmlSpecial } from "../render/htmlSprites";
+import {
+  htmlCoin,
+  htmlGem,
+  htmlGemTier,
+  htmlHeart,
+  htmlSpecial,
+} from "../render/htmlSprites";
 import { COMBOS } from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
 import { mountCombineModal } from "./CombineModal";
@@ -174,7 +180,9 @@ export function mountHud(
         const inp = c.inputs[i];
         const pill = document.createElement("div");
         pill.className = "recipe-pill";
-        pill.appendChild(htmlGemTier(inp.gem, inp.quality, 16, inp.quality > 2));
+        pill.appendChild(
+          htmlGemTier(inp.gem, inp.quality, 16, inp.quality > 2),
+        );
         const q = document.createElement("span");
         q.className = "recipe-pill-q";
         q.textContent = `L${inp.quality}`;
@@ -204,7 +212,11 @@ export function mountHud(
   /** True when build phase is open but no draws are rolled yet. */
   function inPrePlacement(): boolean {
     const s = game.state;
-    return s.phase === "build" && s.draws.length === 0 && s.designatedKeepTowerId === null;
+    return (
+      s.phase === "build" &&
+      s.draws.length === 0 &&
+      s.designatedKeepTowerId === null
+    );
   }
 
   function triggerStartCta(): void {
@@ -599,7 +611,7 @@ export function mountHud(
     head.className = "panel-head";
     const title = document.createElement("div");
     title.className = "panel-h px-h";
-    title.textContent = "DRAW · 0/5";
+    title.textContent = "GEMS · 0/5";
     const tag = document.createElement("div");
     tag.className = "draw-keeper-tag";
     head.append(title, tag);
@@ -614,7 +626,7 @@ export function mountHud(
       const draws = g.state.draws;
       const placed = draws.filter((d) => d.placedTowerId !== null).length;
       const total = draws.length || 5;
-      title.textContent = `DRAW · ${placed}/${total}`;
+      title.textContent = `GEMS · ${placed}/${total}`;
 
       if (draws.length === 0) {
         for (let i = 0; i < 5; i++) {
