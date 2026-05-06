@@ -32,6 +32,17 @@ export const CELL = {
   end: 0xf0c038,
   endHi: 0xffe068,
   endLo: 0x886820,
+  // Variant B "Cobblestone Keep" tokens.
+  wallSeam: 0x0a0510,
+  wallBrickAlt: 0x241830,
+  pathStone: 0x9a7c54,
+  pathStoneAlt: 0x7a5e38,
+  pathMortar: 0x3a2818,
+  grassClover: 0x88e878,
+  grassTuft: 0x5a8a60,
+  crystalLight: 0xc8e0ff,
+  crystalCore: 0x78a8f8,
+  crystalDeep: 0x3868c8,
 } as const;
 
 export type GemType = 'ruby' | 'sapphire' | 'emerald' | 'topaz' | 'amethyst' | 'opal' | 'diamond' | 'aquamarine';

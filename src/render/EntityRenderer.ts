@@ -7,42 +7,75 @@
  * source entity has been removed.
  */
 
-import { Container, Graphics } from 'pixi.js';
-import type { CreepState, ProjectileState, RockState, State, TowerState } from '../game/State';
-import { activeDraw } from '../game/State';
-import { FINE_TILE, TILE } from '../game/constants';
-import { CELL, GEM_PALETTE, THEME } from './theme';
-import { TowerSpriteCache, makeTowerSprite } from './TowerRenderer';
-import { gemStats } from '../data/gems';
-import { COMBOS } from '../data/combos';
-import { CREEP_SPRITE } from './sprites';
-import { drawPixelGrid } from './pixelTexture';
-import { GRID_W, GRID_H } from '../data/map';
+import { Container, Graphics } from "pixi.js";
+import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
+import { activeDraw } from "../game/State";
+import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
+import { GEM_PALETTE, THEME } from "./theme";
+import { TowerSpriteCache, makeTowerSprite, makeRockSprite } from "./TowerRenderer";
+import { gemStats } from "../data/gems";
+import { COMBOS } from "../data/combos";
+import { SPRITE_BY_KIND } from "./sprites";
+import { drawPixelGrid } from "./pixelTexture";
+import { GRID_W, GRID_H } from "../data/map";
+import { SPECIAL_FX, pickRock } from "./spriteData";
 
 interface PerEntity {
   obj: Container;
 }
 
-const towerObjs = new Map<number, PerEntity>();
+interface TowerEntry {
+  obj: Container;
+  /** Cached comboKey so we can rebuild the sprite if a tower is upgraded. */
+  comboKey: string | undefined;
+  quality: number;
+  /** FX layer (halo/aura/orbit/ground), only set for special towers. */
+  fx?: TowerFx;
+}
+
+interface TowerFx {
+  halo: Graphics;
+  ground?: Graphics;
+  aura?: Graphics;
+  orbit?: Graphics;
+  haloPeak: number;
+  haloPulse: number;
+  glow: number;
+}
+
+const towerObjs = new Map<number, TowerEntry>();
 const rockObjs = new Map<string, PerEntity>();
 const creepObjs = new Map<number, PerEntity>();
 const projectileObjs = new Map<number, PerEntity>();
 
-export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache): void {
+export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number): void {
   const seen = new Set<number>();
   for (const t of towers) {
     seen.add(t.id);
     let entry = towerObjs.get(t.id);
-    if (!entry) {
-      const obj = makeTowerSprite(t.gem, t.quality, cache);
+    if (!entry || entry.comboKey !== t.comboKey || entry.quality !== t.quality) {
+      // First placement, or the tower's identity changed (combine).
+      if (entry) {
+        entry.obj.destroy({ children: true });
+        towerObjs.delete(t.id);
+      }
+      const obj = new Container();
+      // FX layers go behind the tower sprite.
+      let fx: TowerFx | undefined;
+      if (t.comboKey && SPECIAL_FX[t.comboKey]) {
+        fx = makeSpecialFx(obj, t.comboKey);
+      }
+      const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey);
+      obj.addChild(towerSprite);
       layer.addChild(obj);
-      entry = { obj };
+      entry = { obj, comboKey: t.comboKey, quality: t.quality, fx };
       towerObjs.set(t.id, entry);
     }
     // Tower anchor (t.x, t.y) is the top-left fine cell of its 2×2 footprint,
     // so the visual centre sits on the corner shared by the 4 cells.
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
+    if (entry.fx) animateTowerFx(entry.fx, tick);
   }
   for (const [id, entry] of towerObjs) {
     if (!seen.has(id)) {
@@ -52,32 +85,115 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
   }
 }
 
-export function renderRocks(layer: Container, rocks: RockState[]): void {
+/** Build the per-special FX layer (halo + optional ground tint, aura, orbit). */
+function makeSpecialFx(parent: Container, comboKey: string): TowerFx {
+  const fxCfg = SPECIAL_FX[comboKey];
+  const ground = fxCfg.ground !== null ? new Graphics() : undefined;
+  if (ground) {
+    // 1×1 coarse tile, centred on tower anchor (which sits on the 2×2 corner).
+    const half = TILE / 2;
+    ground.rect(-half + 1, -half + 1, TILE - 2, TILE - 2).fill(fxCfg.ground!);
+    ground.alpha = 0.45;
+    parent.addChild(ground);
+  }
+
+  const halo = new Graphics();
+  // Soft radial glow approximated by stacking concentric translucent circles.
+  const r = TILE * 0.9;
+  for (let i = 6; i > 0; i--) {
+    const t = i / 6;
+    halo.circle(0, 0, r * t).fill({ color: fxCfg.glow, alpha: 0.12 });
+  }
+  parent.addChild(halo);
+
+  let aura: Graphics | undefined;
+  if (fxCfg.aura) {
+    aura = new Graphics();
+    drawDashedRing(aura, TILE * 0.62, fxCfg.glow);
+    parent.addChild(aura);
+  }
+
+  let orbit: Graphics | undefined;
+  if (fxCfg.orbit) {
+    orbit = new Graphics();
+    orbit.rect(-2, -2, 4, 4).fill(fxCfg.glow);
+    parent.addChild(orbit);
+  }
+
+  return {
+    halo,
+    ground,
+    aura,
+    orbit,
+    haloPeak: fxCfg.halo,
+    haloPulse: fxCfg.pulse,
+    glow: fxCfg.glow,
+  };
+}
+
+function drawDashedRing(g: Graphics, radius: number, color: number): void {
+  const segs = 24;
+  const dashArc = (Math.PI * 2) / segs;
+  for (let i = 0; i < segs; i++) {
+    if (i % 2 === 1) continue;
+    const a0 = i * dashArc;
+    const a1 = a0 + dashArc * 0.6;
+    g.arc(0, 0, radius, a0, a1).stroke({
+      width: 1.5,
+      color,
+      alpha: 0.6,
+      pixelLine: true,
+    });
+  }
+}
+
+function animateTowerFx(fx: TowerFx, tick: number): void {
+  const t = tick / SIM_HZ;
+  const phase = (Math.sin((t / fx.haloPulse) * Math.PI * 2) + 1) / 2;
+  // Halo: pulse between 40% and 100% of peak alpha.
+  fx.halo.alpha = fx.haloPeak * (0.4 + 0.6 * phase);
+
+  if (fx.aura) {
+    // Slow rotation, 6 s per turn.
+    fx.aura.rotation = (t / 6) * Math.PI * 2;
+    fx.aura.alpha = 0.55;
+  }
+  if (fx.orbit) {
+    // 4 s loop around the tower at ~radius TILE*0.55.
+    const ang = (t / 4) * Math.PI * 2;
+    const r = TILE * 0.55;
+    fx.orbit.x = Math.cos(ang) * r;
+    fx.orbit.y = Math.sin(ang) * r * 0.9;
+  }
+}
+
+export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSpriteCache): void {
   const seen = new Set<string>();
   for (const r of rocks) {
     const key = `${r.x},${r.y}`;
     seen.add(key);
     let entry = rockObjs.get(key);
     if (!entry) {
-      // Generate a rock sprite each time (cheap, infrequent).
+      const kind = pickRock(r.x, r.y);
       const obj = new Container();
-      const g = new Graphics();
-      // Solid stone tile with bevels.
-      const sz = FINE_TILE - 2;
-      const ox = -sz / 2;
-      const oy = -sz / 2;
-      g.rect(ox, oy, sz, sz).fill(CELL.rockHi);
-      g.rect(ox + 2, oy + 2, sz - 4, sz - 4).fill(CELL.rock);
-      g.rect(ox, oy + sz - 1, sz, 1).fill(CELL.rockLo);
-      g.rect(ox + sz - 1, oy, 1, sz).fill(CELL.rockLo);
-      // outline
-      g.rect(ox - 1, oy - 1, sz + 2, 1).fill(0x000000);
-      g.rect(ox - 1, oy + sz, sz + 2, 1).fill(0x000000);
-      g.rect(ox - 1, oy - 1, 1, sz + 2).fill(0x000000);
-      g.rect(ox + sz, oy - 1, 1, sz + 2).fill(0x000000);
-      obj.addChild(g);
-      obj.x = r.x * FINE_TILE + FINE_TILE / 2;
-      obj.y = r.y * FINE_TILE + FINE_TILE / 2;
+      const sprite = makeRockSprite(cache, kind);
+      sprite.width = FINE_TILE;
+      sprite.height = FINE_TILE;
+      obj.addChild(sprite);
+      // Crystal rocks get a soft inner glow on top.
+      if (kind === "crystal") {
+        const glow = new Graphics();
+        const cx = (8 / 16) * FINE_TILE;
+        const cy = (5 / 16) * FINE_TILE;
+        const gr = (3 / 16) * FINE_TILE;
+        for (let i = 4; i > 0; i--) {
+          glow.circle(cx, cy, gr * (i / 4)).fill({ color: 0xa8e8f0, alpha: 0.12 });
+        }
+        glow.blendMode = "screen";
+        obj.addChild(glow);
+      }
+      obj.x = r.x * FINE_TILE;
+      obj.y = r.y * FINE_TILE;
       layer.addChild(obj);
       entry = { obj };
       rockObjs.set(key, entry);
@@ -99,6 +215,7 @@ export function renderCreeps(layer: Container, creeps: CreepState[]): void {
     let entry = creepObjs.get(c.id);
     if (!entry) {
       const palette = GEM_PALETTE[c.color];
+      const sprite = SPRITE_BY_KIND[c.kind];
       const g = new Graphics();
       const px = 3;
       const colors = {
@@ -106,15 +223,25 @@ export function renderCreeps(layer: Container, creeps: CreepState[]): void {
         mid: palette.mid,
         dark: palette.dark,
         outline: 0x0a0510,
+        sparkle: THEME.ink,
+        extra: THEME.bad,
+        accent: THEME.accent,
       };
-      drawPixelGrid(g, CREEP_SPRITE, colors, px, -CREEP_SPRITE[0].length * px / 2, -CREEP_SPRITE.length * px / 2);
+      drawPixelGrid(
+        g,
+        sprite,
+        colors,
+        px,
+        -sprite[0].length * px / 2,
+        -sprite.length * px / 2,
+      );
 
-      // HP bar
+      // HP bar — bumped up to clear the taller 12×12 sprite (36px tall).
       const hpBg = new Graphics();
-      hpBg.rect(-10, -16, 20, 3).fill(0x000000);
+      hpBg.rect(-10, -22, 20, 3).fill(0x000000);
       g.addChild(hpBg);
       const hpBar = new Graphics();
-      hpBar.label = 'hp';
+      hpBar.label = "hp";
       g.addChild(hpBar);
 
       const obj = new Container();
@@ -127,11 +254,11 @@ export function renderCreeps(layer: Container, creeps: CreepState[]): void {
     entry.obj.y = c.py;
     // Update HP bar
     const inner = entry.obj.children[0] as Container;
-    const hpBar = inner.children.find((ch) => (ch as Graphics).label === 'hp') as Graphics | undefined;
+    const hpBar = inner.children.find((ch) => (ch as Graphics).label === "hp") as Graphics | undefined;
     if (hpBar) {
       hpBar.clear();
       const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
-      hpBar.rect(-10, -16, 20 * ratio, 3).fill(THEME.good);
+      hpBar.rect(-10, -22, 20 * ratio, 3).fill(THEME.good);
     }
   }
   for (const [id, entry] of creepObjs) {
@@ -184,7 +311,7 @@ export function renderHover(
   }
   hoverGfx.clear();
   if (!hover) return;
-  if (state.phase !== 'build') return;
+  if (state.phase !== "build") return;
   if (hover.x < 0 || hover.y < 0 || hover.x >= GRID_W || hover.y >= GRID_H) return;
 
   // Hover anchor is the top-left of a 2×2 placement footprint.
@@ -240,7 +367,7 @@ export function renderRangePreview(
 
   // Build preview range — show on hover when there's an active draw and the
   // 2×2 footprint anchored at the cursor would be a legal placement.
-  if (state.phase === 'build' && hover) {
+  if (state.phase === "build" && hover) {
     const draw = activeDraw(state);
     if (draw && canPlaceFootprint(state, hover.x, hover.y)) {
       const stats = gemStats(draw.gem, draw.quality);
@@ -275,3 +402,4 @@ function drawDashedCircle(g: Graphics, cx: number, cy: number, r: number, color:
     g.arc(cx, cy, r, a0, a1).stroke({ width: 1.5, color, alpha, pixelLine: true });
   }
 }
+

@@ -3,10 +3,13 @@
  *
  * Convention for pixel grid values:
  *   0 = transparent
- *   1 = light
- *   2 = mid
- *   3 = dark
+ *   1 = light                (palette.light)
+ *   2 = mid                  (palette.mid)
+ *   3 = dark                 (palette.dark)
  *   4 = outline (#0a0510)
+ *   5 = ink     (#f4e4c1)    eye whites / armor highlights
+ *   6 = bad     (#d04848)    boss red glow eyes
+ *   7 = accent  (#f0a040)    boss crown / warm metal trims
  */
 
 export type PixelGrid = readonly (readonly number[])[];
@@ -26,7 +29,7 @@ export const GEM_SPRITE: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 0, 0],
 ];
 
-/** Basic creep shape. */
+/** Basic creep shape (legacy 8×8 fallback — replaced by per-archetype sprites). */
 export const CREEP_SPRITE: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 0, 0],
   [0, 4, 2, 2, 2, 2, 4, 0],
@@ -37,6 +40,100 @@ export const CREEP_SPRITE: PixelGrid = [
   [0, 4, 2, 2, 2, 2, 4, 0],
   [0, 0, 4, 0, 0, 4, 0, 0],
 ];
+
+/* -------------------------------------------------------------------------
+ * 12×12 archetype sprites (Variant B "Cobblestone Keep").
+ * ------------------------------------------------------------------------- */
+
+/** NORMAL — slow purple ooze with dripping bottom row. */
+export const SPRITE_NORMAL: PixelGrid = [
+  [0,0,0,4,4,4,4,4,4,0,0,0],
+  [0,0,4,1,1,2,2,1,1,4,0,0],
+  [0,4,1,1,2,2,2,2,1,1,4,0],
+  [0,4,1,2,2,2,2,2,2,1,4,0],
+  [4,1,2,4,4,2,2,4,4,2,1,4],
+  [4,2,2,4,5,2,2,4,5,2,2,4],
+  [4,2,2,2,2,2,2,2,2,2,2,4],
+  [4,2,2,2,3,3,3,3,2,2,2,4],
+  [4,2,2,3,3,2,2,3,3,2,2,4],
+  [0,4,2,3,2,2,2,2,3,2,4,0],
+  [0,0,4,4,2,4,4,2,4,4,0,0],
+  [0,0,0,0,4,0,0,4,0,0,0,0],
+];
+
+/** FAST — sleek wedge leaning forward, with trailing speed dots. */
+export const SPRITE_FAST: PixelGrid = [
+  [0,0,0,0,0,4,4,4,0,0,0,0],
+  [0,0,0,0,4,1,1,2,4,0,0,0],
+  [0,0,0,4,1,1,2,2,2,4,0,0],
+  [0,0,4,1,2,4,5,2,2,4,0,0],
+  [0,4,1,2,2,4,5,2,2,2,4,0],
+  [4,2,2,2,2,2,2,2,2,3,3,4],
+  [4,2,2,4,4,2,2,2,3,3,4,0],
+  [0,4,2,2,2,2,2,3,3,4,0,0],
+  [0,0,4,2,2,2,3,3,4,0,0,0],
+  [3,0,4,2,2,3,3,4,0,0,0,0],
+  [0,3,0,4,4,4,4,0,0,0,0,0],
+  [0,0,3,0,0,0,0,0,0,0,0,0],
+];
+
+/** ARMORED — stocky helmet/plate block. */
+export const SPRITE_ARMORED: PixelGrid = [
+  [0,0,4,4,4,4,4,4,4,4,0,0],
+  [0,4,3,3,3,3,3,3,3,3,4,0],
+  [4,3,1,1,1,1,1,1,1,1,3,4],
+  [4,3,1,4,4,4,4,4,4,1,3,4],
+  [4,3,1,4,5,4,4,5,4,1,3,4],
+  [4,3,1,1,4,4,4,4,1,1,3,4],
+  [4,3,2,2,2,2,2,2,2,2,3,4],
+  [4,3,2,4,2,2,2,2,4,2,3,4],
+  [4,3,2,2,2,4,4,2,2,2,3,4],
+  [4,3,3,2,2,2,2,2,2,3,3,4],
+  [0,4,4,3,3,3,3,3,3,4,4,0],
+  [0,0,0,4,4,0,0,4,4,0,0,0],
+];
+
+/** AIR — bright bat/wisp with detached drop-shadow underneath. */
+export const SPRITE_AIR: PixelGrid = [
+  [4,4,0,0,0,0,0,0,0,0,4,4],
+  [4,3,4,0,0,4,4,0,0,4,3,4],
+  [4,3,3,4,4,1,1,4,4,3,3,4],
+  [4,2,3,1,1,1,1,1,1,3,2,4],
+  [4,2,2,1,4,5,5,4,1,2,2,4],
+  [0,4,2,1,5,4,4,5,1,2,4,0],
+  [0,4,2,2,1,1,1,1,2,2,4,0],
+  [0,0,4,2,2,2,2,2,2,4,0,0],
+  [0,0,0,4,4,2,2,4,4,0,0,0],
+  [0,0,0,0,0,4,4,0,0,0,0,0],
+  [0,0,4,4,0,0,0,0,4,4,0,0],
+  [0,0,0,0,4,4,4,4,0,0,0,0],
+];
+
+/** BOSS — crowned ruby brute with red glow-eyes. */
+export const SPRITE_BOSS: PixelGrid = [
+  [0,0,0,7,7,0,0,7,7,0,0,0],
+  [0,0,7,7,4,7,7,4,7,7,0,0],
+  [0,4,4,4,4,4,4,4,4,4,4,0],
+  [4,3,3,1,1,3,3,1,1,3,3,4],
+  [4,3,1,1,2,2,2,2,1,1,3,4],
+  [4,1,2,4,6,2,2,6,4,2,1,4],
+  [4,1,2,6,6,2,2,6,6,2,1,4],
+  [4,2,2,2,2,4,4,2,2,2,2,4],
+  [4,2,2,2,4,5,5,4,2,2,2,4],
+  [4,3,2,2,4,4,4,4,2,2,3,4],
+  [0,4,3,3,3,2,2,3,3,3,4,0],
+  [0,0,4,4,4,4,4,4,4,4,0,0],
+];
+
+import type { CreepKind } from '../data/creeps';
+
+export const SPRITE_BY_KIND: Record<CreepKind, PixelGrid> = {
+  normal: SPRITE_NORMAL,
+  fast: SPRITE_FAST,
+  armored: SPRITE_ARMORED,
+  air: SPRITE_AIR,
+  boss: SPRITE_BOSS,
+};
 
 /** Heart for the lives chip. */
 export const HEART_SPRITE: PixelGrid = [

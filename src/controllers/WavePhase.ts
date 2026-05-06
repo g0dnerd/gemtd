@@ -82,6 +82,7 @@ export class WavePhase {
     const hp = Math.round(def.hp * arch.hpMult);
     const creep: CreepState = {
       id,
+      kind: arch.kind,
       pathPos: 0,
       px: start.x * FINE_TILE + FINE_TILE / 2,
       py: start.y * FINE_TILE + FINE_TILE / 2,

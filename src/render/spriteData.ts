@@ -1,0 +1,426 @@
+/**
+ * Pixel grids for tier silhouettes (T1..T5), 10 special-combo silhouettes, and
+ * the 4 rock variants. Ported byte-for-byte from the design handoff
+ * (gem-sprites.jsx).
+ *
+ * Cell value convention:
+ *   0 = transparent
+ *   1 = palette.light
+ *   2 = palette.mid
+ *   3 = palette.dark
+ *   4 = OUTLINE (#0a0510)
+ *   5 = palette.sparkle (specials, mossy/crystal rocks)
+ *   6 = palette.extra (crystal rock only)
+ */
+
+import type { PixelGrid } from "./sprites";
+import type { GemType } from "./theme";
+
+// ===== Tier silhouettes (10×10) =========================================
+
+/** T1 Chipped — three broken pieces. */
+export const TIER_SHARD: PixelGrid = [
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 4, 4, 0, 0, 0, 0, 0],
+  [0, 0, 4, 2, 3, 4, 0, 4, 4, 0],
+  [0, 4, 2, 3, 3, 4, 4, 2, 3, 4],
+  [0, 4, 3, 3, 4, 0, 4, 3, 3, 4],
+  [0, 0, 4, 4, 0, 0, 0, 4, 4, 0],
+  [0, 4, 4, 0, 0, 0, 0, 0, 0, 0],
+  [4, 2, 3, 4, 0, 0, 0, 0, 0, 0],
+  [0, 4, 4, 0, 0, 0, 0, 0, 0, 0],
+];
+
+/** T2 Flawed — squat round gem with dim, small reflections. */
+export const TIER_CUT: PixelGrid = [
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 0, 4, 4, 4, 4, 0, 0, 0],
+  [0, 0, 4, 2, 1, 2, 2, 4, 0, 0],
+  [0, 4, 2, 1, 2, 2, 2, 3, 4, 0],
+  [4, 2, 2, 2, 2, 2, 3, 3, 2, 4],
+  [4, 2, 2, 2, 2, 3, 3, 3, 3, 4],
+  [0, 4, 2, 2, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 2, 3, 3, 3, 4, 0, 0],
+  [0, 0, 0, 4, 4, 4, 4, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+/** T3 Normal — emerald cut. */
+export const TIER_GEM: PixelGrid = [
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+  [0, 4, 1, 1, 1, 2, 2, 2, 4, 0],
+  [4, 1, 1, 4, 4, 4, 4, 2, 3, 4],
+  [4, 1, 4, 1, 1, 2, 2, 4, 3, 4],
+  [4, 2, 4, 1, 2, 2, 3, 4, 3, 4],
+  [4, 2, 2, 4, 4, 4, 4, 3, 3, 4],
+  [0, 4, 2, 2, 2, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+/** T4 Flawless — classic round brilliant. */
+export const TIER_BRILLIANT: PixelGrid = [
+  [0, 0, 0, 4, 4, 4, 4, 0, 0, 0],
+  [0, 4, 4, 1, 1, 2, 2, 4, 4, 0],
+  [4, 1, 4, 1, 1, 2, 2, 4, 3, 4],
+  [4, 1, 1, 4, 4, 4, 4, 3, 3, 4],
+  [0, 4, 1, 1, 2, 2, 2, 3, 4, 0],
+  [0, 0, 4, 1, 2, 2, 3, 4, 0, 0],
+  [0, 0, 0, 4, 2, 3, 3, 4, 0, 0],
+  [0, 0, 0, 0, 4, 2, 3, 4, 0, 0],
+  [0, 0, 0, 0, 0, 4, 3, 4, 0, 0],
+  [0, 0, 0, 0, 0, 0, 4, 0, 0, 0],
+];
+
+/** T5 Perfect — heroic marquise cut. */
+export const TIER_CROWN: PixelGrid = [
+  [0, 0, 0, 0, 4, 4, 0, 0, 0, 0],
+  [0, 0, 0, 4, 1, 2, 4, 0, 0, 0],
+  [0, 0, 4, 1, 1, 2, 2, 4, 0, 0],
+  [0, 4, 1, 1, 4, 4, 2, 3, 4, 0],
+  [4, 1, 1, 4, 1, 2, 4, 3, 3, 4],
+  [4, 1, 4, 1, 2, 2, 3, 4, 3, 4],
+  [0, 4, 1, 1, 2, 2, 3, 3, 4, 0],
+  [0, 0, 4, 1, 4, 4, 3, 4, 0, 0],
+  [0, 0, 0, 4, 1, 3, 4, 0, 0, 0],
+  [0, 0, 0, 0, 4, 4, 0, 0, 0, 0],
+];
+
+export const TIER_GRIDS: Record<1 | 2 | 3 | 4 | 5, PixelGrid> = {
+  1: TIER_SHARD,
+  2: TIER_CUT,
+  3: TIER_GEM,
+  4: TIER_BRILLIANT,
+  5: TIER_CROWN,
+};
+
+// ===== Special silhouettes (8×8) =========================================
+
+const STAR_RUBY: PixelGrid = [
+  [0, 0, 0, 4, 4, 0, 0, 0],
+  [0, 0, 4, 1, 2, 4, 0, 0],
+  [4, 4, 2, 1, 2, 3, 4, 4],
+  [4, 1, 1, 5, 2, 2, 3, 4],
+  [4, 2, 2, 5, 2, 3, 3, 4],
+  [4, 4, 2, 3, 3, 3, 4, 4],
+  [0, 0, 4, 3, 3, 4, 0, 0],
+  [0, 0, 0, 4, 4, 0, 0, 0],
+];
+
+const SILVER: PixelGrid = [
+  [0, 4, 4, 4, 4, 4, 4, 0],
+  [4, 1, 1, 1, 2, 2, 2, 4],
+  [4, 1, 2, 2, 2, 2, 3, 4],
+  [4, 2, 2, 5, 5, 2, 3, 4],
+  [4, 2, 2, 5, 5, 2, 3, 4],
+  [4, 2, 2, 2, 2, 3, 3, 4],
+  [4, 3, 3, 3, 3, 3, 3, 4],
+  [0, 4, 4, 4, 4, 4, 4, 0],
+];
+
+const MALACHITE: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 4, 1, 1, 2, 2, 4, 0],
+  [4, 3, 3, 3, 3, 3, 3, 4],
+  [4, 1, 2, 2, 2, 2, 2, 4],
+  [4, 3, 3, 3, 3, 3, 3, 4],
+  [4, 2, 2, 2, 2, 2, 2, 4],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+];
+
+const JADE: PixelGrid = [
+  [4, 4, 4, 4, 4, 4, 4, 4],
+  [4, 1, 1, 2, 2, 2, 2, 4],
+  [4, 1, 4, 4, 4, 4, 2, 4],
+  [4, 2, 4, 3, 3, 4, 2, 4],
+  [4, 2, 4, 3, 3, 4, 2, 4],
+  [4, 2, 4, 4, 4, 4, 3, 4],
+  [4, 2, 2, 2, 3, 3, 3, 4],
+  [4, 4, 4, 4, 4, 4, 4, 4],
+];
+
+const GOLD: PixelGrid = [
+  [0, 4, 4, 4, 4, 4, 4, 0],
+  [4, 1, 2, 2, 2, 2, 2, 4],
+  [4, 2, 2, 5, 5, 2, 3, 4],
+  [0, 4, 4, 4, 4, 4, 4, 0],
+  [4, 1, 2, 5, 5, 2, 2, 4],
+  [4, 2, 2, 2, 2, 2, 3, 4],
+  [4, 2, 3, 3, 3, 3, 3, 4],
+  [0, 4, 4, 4, 4, 4, 4, 0],
+];
+
+const DARK_EMERALD: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [4, 3, 1, 5, 5, 2, 3, 4],
+  [4, 3, 2, 4, 4, 3, 3, 4],
+  [4, 3, 2, 5, 4, 3, 3, 4],
+  [4, 3, 3, 2, 2, 3, 3, 4],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+];
+
+const PINK_DIAMOND: PixelGrid = [
+  [0, 4, 4, 0, 0, 4, 4, 0],
+  [4, 1, 1, 4, 4, 1, 2, 4],
+  [4, 1, 1, 1, 2, 2, 2, 4],
+  [4, 2, 1, 2, 2, 2, 3, 4],
+  [0, 4, 2, 2, 2, 3, 4, 0],
+  [0, 0, 4, 2, 3, 4, 0, 0],
+  [0, 0, 0, 4, 4, 0, 0, 0],
+  [0, 0, 0, 0, 0, 0, 0, 0],
+];
+
+const BLACK_OPAL: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [4, 3, 3, 1, 2, 3, 3, 4],
+  [4, 3, 1, 1, 5, 2, 3, 4],
+  [4, 3, 2, 5, 2, 2, 3, 4],
+  [4, 3, 3, 2, 2, 3, 3, 4],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+];
+
+const URANIUM: PixelGrid = [
+  [0, 4, 4, 4, 4, 4, 4, 0],
+  [4, 1, 1, 5, 5, 2, 2, 4],
+  [4, 3, 3, 3, 3, 3, 3, 4],
+  [4, 2, 5, 2, 2, 5, 2, 4],
+  [4, 2, 2, 5, 5, 2, 2, 4],
+  [4, 3, 3, 3, 3, 3, 3, 4],
+  [4, 2, 2, 2, 2, 2, 2, 4],
+  [0, 4, 4, 4, 4, 4, 4, 0],
+];
+
+const BLOODSTONE: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 4, 1, 5, 2, 2, 4, 0],
+  [4, 1, 5, 2, 2, 3, 2, 4],
+  [4, 2, 2, 4, 2, 3, 3, 4],
+  [4, 2, 2, 2, 4, 3, 3, 4],
+  [4, 2, 3, 2, 2, 4, 3, 4],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+];
+
+export interface SpecialPalette {
+  light: number;
+  mid: number;
+  dark: number;
+  sparkle: number;
+}
+
+export interface SpecialSpriteSpec {
+  grid: PixelGrid;
+  palette: SpecialPalette;
+  /** Visual gem hint kept for projectile tinting. */
+  visualGem: GemType;
+}
+
+const hex = (s: string): number => parseInt(s.slice(1), 16);
+
+export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
+  star_ruby: {
+    grid: STAR_RUBY,
+    palette: { light: hex("#ff9090"), mid: hex("#e8384c"), dark: hex("#5c0810"), sparkle: hex("#ffe8a0") },
+    visualGem: "ruby",
+  },
+  silver: {
+    grid: SILVER,
+    palette: { light: hex("#ffffff"), mid: hex("#c8d8e0"), dark: hex("#5070a0"), sparkle: hex("#ffffff") },
+    visualGem: "diamond",
+  },
+  malachite: {
+    grid: MALACHITE,
+    palette: { light: hex("#a8f0a0"), mid: hex("#38c860"), dark: hex("#0c4818"), sparkle: hex("#fff8d8") },
+    visualGem: "emerald",
+  },
+  jade: {
+    grid: JADE,
+    palette: { light: hex("#c8f0d8"), mid: hex("#58c898"), dark: hex("#1c5848"), sparkle: hex("#ffffff") },
+    visualGem: "emerald",
+  },
+  gold: {
+    grid: GOLD,
+    palette: { light: hex("#fff0a0"), mid: hex("#f0c038"), dark: hex("#80501c"), sparkle: hex("#ffffff") },
+    visualGem: "topaz",
+  },
+  dark_emerald: {
+    grid: DARK_EMERALD,
+    palette: { light: hex("#88e8a0"), mid: hex("#1c8838"), dark: hex("#08200c"), sparkle: hex("#a0ffd8") },
+    visualGem: "emerald",
+  },
+  pink_diamond: {
+    grid: PINK_DIAMOND,
+    palette: { light: hex("#ffd8e8"), mid: hex("#f088c0"), dark: hex("#882048"), sparkle: hex("#ffffff") },
+    visualGem: "ruby",
+  },
+  black_opal: {
+    grid: BLACK_OPAL,
+    palette: { light: hex("#a8c8f0"), mid: hex("#3848a8"), dark: hex("#0c0820"), sparkle: hex("#f0a8ff") },
+    visualGem: "opal",
+  },
+  uranium: {
+    grid: URANIUM,
+    palette: { light: hex("#d8ffa0"), mid: hex("#88d048"), dark: hex("#284820"), sparkle: hex("#ffffa0") },
+    visualGem: "topaz",
+  },
+  bloodstone: {
+    grid: BLOODSTONE,
+    palette: { light: hex("#ff8068"), mid: hex("#c8202c"), dark: hex("#380808"), sparkle: hex("#ffe060") },
+    visualGem: "ruby",
+  },
+};
+
+// ===== Special FX descriptors ============================================
+
+export interface SpecialFx {
+  /** Halo glow color (RGB number). */
+  glow: number;
+  /** Peak halo opacity (0..1). */
+  halo: number;
+  /** Pulse period, seconds. */
+  pulse: number;
+  /** If set, draw a single sparkle pixel orbiting the tower. */
+  orbit: boolean;
+  /** If set, draw a dashed ring just outside the tile. */
+  aura: boolean;
+  /** Tile-tinted ground color (RGB number) or null. */
+  ground: number | null;
+}
+
+export const SPECIAL_FX: Record<string, SpecialFx> = {
+  bloodstone:   { glow: hex("#ff5040"), halo: 0.7,  pulse: 2.4, orbit: false, aura: false, ground: hex("#681818") },
+  pink_diamond: { glow: hex("#ff80c0"), halo: 0.55, pulse: 1.8, orbit: true,  aura: false, ground: null },
+  uranium:      { glow: hex("#c0ff60"), halo: 0.85, pulse: 1.2, orbit: false, aura: true,  ground: hex("#446618") },
+  black_opal:   { glow: hex("#a0a0ff"), halo: 0.6,  pulse: 3.0, orbit: true,  aura: true,  ground: null },
+  jade:         { glow: hex("#80e8b0"), halo: 0.35, pulse: 3.0, orbit: false, aura: false, ground: null },
+  malachite:    { glow: hex("#a0e878"), halo: 0.4,  pulse: 2.4, orbit: false, aura: false, ground: null },
+  star_ruby:    { glow: hex("#ffa040"), halo: 0.55, pulse: 2.0, orbit: false, aura: false, ground: hex("#5c1010") },
+  gold:         { glow: hex("#ffd840"), halo: 0.6,  pulse: 2.4, orbit: false, aura: false, ground: null },
+  silver:       { glow: hex("#e0e8f0"), halo: 0.4,  pulse: 2.4, orbit: false, aura: false, ground: null },
+  dark_emerald: { glow: hex("#28e0a0"), halo: 0.5,  pulse: 1.6, orbit: false, aura: false, ground: hex("#082018") },
+};
+
+// ===== Rocks (16×16, tile-filling) =======================================
+
+export const ROCK_BOULDER: PixelGrid = [
+  [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2],
+  [2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3],
+  [3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+];
+
+export const ROCK_MOSSY: PixelGrid = [
+  [5, 5, 1, 2, 5, 5, 2, 2, 5, 5, 2, 2, 2, 2, 3, 3],
+  [5, 1, 5, 2, 2, 2, 2, 5, 5, 2, 2, 2, 2, 3, 3, 3],
+  [1, 5, 5, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2],
+  [2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3],
+  [3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+];
+
+export const ROCK_CRACKED: PixelGrid = [
+  [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 4, 2, 3, 3, 3],
+  [2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 4, 3, 3, 3, 3, 2],
+  [2, 2, 1, 2, 2, 2, 2, 2, 2, 4, 3, 3, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 2, 2, 4, 4, 2, 2, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 2, 4, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 4, 3, 2, 2, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 2, 4, 3, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 4, 3, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 4, 3, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3],
+  [2, 2, 4, 3, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3],
+  [3, 4, 3, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+];
+
+export const ROCK_CRYSTAL: PixelGrid = [
+  [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],
+  [1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2],
+  [2, 2, 1, 2, 2, 2, 2, 5, 5, 2, 2, 3, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 5, 5, 6, 2, 2, 2, 3, 3, 2, 2],
+  [2, 2, 2, 2, 2, 2, 5, 6, 6, 5, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 5, 6, 5, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 5, 5, 2, 2, 2, 2, 2, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3],
+  [3, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+  [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3],
+];
+
+export type RockKind = "boulder" | "mossy" | "cracked" | "crystal";
+
+export interface RockPalette {
+  light: number;
+  mid: number;
+  dark: number;
+  sparkle?: number;
+  extra?: number;
+}
+
+export const ROCK_GRIDS: Record<RockKind, PixelGrid> = {
+  boulder: ROCK_BOULDER,
+  mossy: ROCK_MOSSY,
+  cracked: ROCK_CRACKED,
+  crystal: ROCK_CRYSTAL,
+};
+
+export const ROCK_PALETTES: Record<RockKind, RockPalette> = {
+  boulder: { light: hex("#a09080"), mid: hex("#7a6a5a"), dark: hex("#3a2a20") },
+  mossy: {
+    light: hex("#a09080"), mid: hex("#7a6a5a"), dark: hex("#3a2a20"),
+    sparkle: hex("#5c8848"), extra: hex("#3a6028"),
+  },
+  cracked: { light: hex("#a89888"), mid: hex("#807060"), dark: hex("#3a2a20") },
+  crystal: {
+    light: hex("#a09080"), mid: hex("#7a6a5a"), dark: hex("#3a2a20"),
+    sparkle: hex("#a8e8f0"), extra: hex("#3878e8"),
+  },
+};
+
+/** Deterministic per-tile rock variant — same coords always render the same. */
+export function pickRock(x: number, y: number): RockKind {
+  const h = (x * 73856093) ^ (y * 19349663);
+  const m = ((h % 12) + 12) % 12;
+  if (m < 6) return "boulder";
+  if (m < 9) return "mossy";
+  if (m < 11) return "cracked";
+  return "crystal";
+}

@@ -8,7 +8,7 @@
 import type { Application } from "pixi.js";
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, QUALITY_NAMES } from "../render/theme";
-import { htmlCoin, htmlGem, htmlHeart } from "../render/htmlSprites";
+import { htmlCoin, htmlGem, htmlGemTier, htmlHeart, htmlSpecial } from "../render/htmlSprites";
 import { COMBOS, ComboRecipe } from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
 import { mountCombineModal } from "./CombineModal";
@@ -158,7 +158,7 @@ export function mountHud(
 
       const head = document.createElement("div");
       head.className = "recipe-card-head";
-      head.appendChild(htmlGem(c.visualGem, 28, true));
+      head.appendChild(htmlSpecial(c.key, 28, true));
       const info = document.createElement("div");
       info.className = "recipe-info";
       const name = document.createElement("div");
@@ -174,7 +174,7 @@ export function mountHud(
         const inp = c.inputs[i];
         const pill = document.createElement("div");
         pill.className = "recipe-pill";
-        pill.appendChild(htmlGem(inp.gem, 14, inp.quality > 2));
+        pill.appendChild(htmlGemTier(inp.gem, inp.quality, 16, inp.quality > 2));
         const q = document.createElement("span");
         q.className = "recipe-pill-q";
         q.textContent = `L${inp.quality}`;
@@ -807,7 +807,7 @@ export function mountHud(
         for (let i = 0; i < 5; i++) {
           const ph = document.createElement("div");
           ph.className = "px-panel-inset draw-cell placed-non-keep";
-          ph.appendChild(htmlGem("diamond", 22));
+          ph.appendChild(htmlGemTier("diamond", 3, 22));
           grid.appendChild(ph);
         }
         const keeperSet = g.state.designatedKeepTowerId !== null;
@@ -837,7 +837,7 @@ export function mountHud(
         } else if (isActive) {
           cell.classList.add("is-active");
         }
-        cell.appendChild(htmlGem(d.gem, 22, d.quality > 2));
+        cell.appendChild(htmlGemTier(d.gem, d.quality, 22, d.quality > 2));
         const q = document.createElement("div");
         q.className = "draw-quality";
         q.textContent = `L${d.quality}`;

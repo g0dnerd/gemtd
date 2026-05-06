@@ -32,6 +32,18 @@
   --gem-opal-d: #a07878;
   --gem-diamond: #d8f0f8;
   --gem-diamond-d: #6890a8;
+
+  /* Variant B "Cobblestone Keep" tokens. */
+  --px-wall-seam: #0a0510;
+  --px-wall-brick-alt: #241830;
+  --px-path-stone: #9a7c54;
+  --px-path-stone-alt: #7a5e38;
+  --px-path-mortar: #3a2818;
+  --px-grass-clover: #88e878;
+  --px-grass-tuft: #5a8a60;
+  --px-crystal-light: #c8e0ff;
+  --px-crystal-core: #78a8f8;
+  --px-crystal-deep: #3868c8;
 }
 
 html, body {

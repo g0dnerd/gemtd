@@ -8,7 +8,7 @@
 
 import { Game } from '../game/Game';
 import { GEM_PALETTE, GemType, QUALITY_NAMES, Quality } from '../render/theme';
-import { htmlCoin, htmlGem } from '../render/htmlSprites';
+import { htmlCoin, htmlGemTier, htmlSpecial } from '../render/htmlSprites';
 import { COMBOS, findCombo } from '../data/combos';
 import { effectSummary, gemStats } from '../data/gems';
 import { TowerState } from '../game/State';
@@ -159,7 +159,11 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
         slot.className = 'combine-slot';
         const frame = document.createElement('div');
         frame.className = 'combine-slot-frame in';
-        frame.appendChild(htmlGem(t.gem, 44, true));
+        frame.appendChild(
+          t.comboKey
+            ? htmlSpecial(t.comboKey, 44, true)
+            : htmlGemTier(t.gem, t.quality, 44, true),
+        );
         slot.appendChild(frame);
         const n = document.createElement('div');
         n.className = 'combine-slot-name';
@@ -191,7 +195,11 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
         out.className = 'combine-slot';
         const frame = document.createElement('div');
         frame.className = 'combine-slot-frame out';
-        frame.appendChild(htmlGem(preview.gem, 56, true));
+        frame.appendChild(
+          preview.comboKey
+            ? htmlSpecial(preview.comboKey, 56, true)
+            : htmlGemTier(preview.gem, preview.quality, 56, true),
+        );
         out.appendChild(frame);
         const n = document.createElement('div');
         n.className = 'combine-slot-name out';
@@ -260,7 +268,7 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
     confirm.disabled = !out;
   }
 
-  function previewOutput(): { gem: GemType; quality: Quality; label: string; blurb: string; stats: { dmgMin: number; dmgMax: number; range: number; atkSpeed: number; effects: ReturnType<typeof gemStats>['effects'] } } | null {
+  function previewOutput(): { gem: GemType; quality: Quality; comboKey?: string; label: string; blurb: string; stats: { dmgMin: number; dmgMax: number; range: number; atkSpeed: number; effects: ReturnType<typeof gemStats>['effects'] } } | null {
     if (selected.length < 2) return null;
 
     const currentRoundIds = new Set(
@@ -295,6 +303,7 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
       return {
         gem: combo.visualGem,
         quality: outputQ,
+        comboKey: combo.key,
         label: combo.name.toUpperCase(),
         blurb: combo.stats.blurb,
         stats: {
@@ -326,7 +335,7 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
       const cell = document.createElement('button');
       cell.className = 'px-panel-inset combine-pick-cell';
       if (selected.includes(t)) cell.classList.add('selected');
-      cell.appendChild(htmlGem(t.gem, 26, t.quality > 2));
+      cell.appendChild(htmlGemTier(t.gem, t.quality, 26, t.quality > 2));
       const q = document.createElement('div');
       q.className = 'pick-q';
       q.textContent = `L${t.quality}`;

@@ -5,6 +5,7 @@
  */
 
 import { Cell } from '../data/map';
+import type { CreepKind } from '../data/creeps';
 import type { GemType, Quality } from '../render/theme';
 
 export type Phase = 'title' | 'build' | 'wave' | 'gameover' | 'victory';
@@ -37,6 +38,8 @@ export interface RockState {
 
 export interface CreepState {
   id: number;
+  /** Archetype — drives sprite selection. */
+  kind: CreepKind;
   /** Fractional position along the flattened route, in tiles. */
   pathPos: number;
   /** Cached pixel position for rendering — populated each tick. */

@@ -1,12 +1,16 @@
 /**
  * Renders the static board: walls, grass, path, start/end markers.
  * Towers / rocks / creeps / projectiles are drawn on separate layers.
+ *
+ * Visual direction: Variant B "Cobblestone Keep" — cobblestone path tiling,
+ * brick-seamed walls, sparse-decorated grass, banner-flag checkpoints, a
+ * cave-mouth spawn marker, and a crystal-shrine end marker.
  */
 
-import { Container, Graphics, Text } from 'pixi.js';
-import { CELL, THEME } from './theme';
-import { GRID_H, GRID_W, Cell, START, END, WAYPOINTS } from '../data/map';
-import { FINE_TILE } from '../game/constants';
+import { Container, Graphics, Text } from "pixi.js";
+import { CELL, THEME } from "./theme";
+import { GRID_H, GRID_W, Cell, START, END, WAYPOINTS } from "../data/map";
+import { FINE_TILE } from "../game/constants";
 
 export interface BoardLayers {
   root: Container;
@@ -24,31 +28,54 @@ export interface BoardLayers {
 
 export function makeBoardLayers(): BoardLayers {
   const root = new Container();
-  root.label = 'board-root';
+  root.label = "board-root";
 
   const ground = new Container();
-  ground.label = 'ground';
+  ground.label = "ground";
   const pathOverlay = new Container();
-  pathOverlay.label = 'pathOverlay';
+  pathOverlay.label = "pathOverlay";
   const checkpoints = new Container();
-  checkpoints.label = 'checkpoints';
+  checkpoints.label = "checkpoints";
   const rocks = new Container();
-  rocks.label = 'rocks';
+  rocks.label = "rocks";
   const towers = new Container();
-  towers.label = 'towers';
+  towers.label = "towers";
   const preview = new Container();
-  preview.label = 'preview';
+  preview.label = "preview";
   const creeps = new Container();
-  creeps.label = 'creeps';
+  creeps.label = "creeps";
   const projectiles = new Container();
-  projectiles.label = 'projectiles';
+  projectiles.label = "projectiles";
   const fx = new Container();
-  fx.label = 'fx';
+  fx.label = "fx";
   const ui = new Container();
-  ui.label = 'ui';
+  ui.label = "ui";
 
-  root.addChild(ground, pathOverlay, checkpoints, rocks, towers, preview, creeps, projectiles, fx, ui);
-  return { root, ground, pathOverlay, checkpoints, rocks, towers, preview, creeps, projectiles, fx, ui };
+  root.addChild(
+    ground,
+    pathOverlay,
+    checkpoints,
+    rocks,
+    towers,
+    preview,
+    creeps,
+    projectiles,
+    fx,
+    ui,
+  );
+  return {
+    root,
+    ground,
+    pathOverlay,
+    checkpoints,
+    rocks,
+    towers,
+    preview,
+    creeps,
+    projectiles,
+    fx,
+    ui,
+  };
 }
 
 /** Draws a single beveled cell at (cx, cy) in pixels with given colors. */
@@ -82,48 +109,184 @@ export function renderGround(layer: Container, grid: Cell[][]): void {
       const cy = y * FINE_TILE;
       switch (cell) {
         case Cell.Grass:
-          drawCell(g, cx, cy, CELL.grass, CELL.grassHi, CELL.grassLo);
+          drawGrassCell(g, cx, cy, x, y);
           break;
         case Cell.Path:
-          drawCell(g, cx, cy, CELL.path, CELL.pathHi, CELL.pathLo);
+          drawCobbleCell(g, cx, cy, x, y);
           break;
         case Cell.Wall:
-          drawCell(g, cx, cy, THEME.borderDark, THEME.panel2, 0x000000);
+          drawWallCell(g, cx, cy, x, y);
           break;
         case Cell.Tower:
         case Cell.Rock:
-          drawCell(g, cx, cy, CELL.grass, CELL.grassHi, CELL.grassLo);
+          drawGrassCell(g, cx, cy, x, y);
           break;
       }
     }
   }
   layer.addChild(g);
 
-  // Start / End markers on top of ground. The corridor is 2 fine cells wide,
-  // so we centre the marker inside the 2×2 region.
-  const markerSize = FINE_TILE * 2 - 4;
-  const sx = START.x * FINE_TILE;
-  const sy = START.y * FINE_TILE;
-  drawCell(g, sx + 2, sy + 2, CELL.start, CELL.startHi, CELL.startLo, markerSize);
-  const sLabel = makeMonoLabel('S', 9, 0xffffff);
-  sLabel.x = sx + Math.round(FINE_TILE - sLabel.width / 2);
-  sLabel.y = sy + Math.round(FINE_TILE - sLabel.height / 2);
-  layer.addChild(sLabel);
+  // Start (cave mouth) and End (crystal shrine) markers, drawn on top of the
+  // path corridor at the 2×2 anchor cells.
+  drawCaveSpawn(layer, START.x * FINE_TILE, START.y * FINE_TILE);
+  drawCrystalShrine(layer, END.x * FINE_TILE, END.y * FINE_TILE);
+}
 
-  const ex = END.x * FINE_TILE;
-  const ey = END.y * FINE_TILE;
-  drawCell(g, ex + 2, ey + 2, CELL.end, CELL.endHi, CELL.endLo, markerSize);
-  const eLabel = makeMonoLabel('E', 9, 0x0a0510);
-  eLabel.x = ex + Math.round(FINE_TILE - eLabel.width / 2);
-  eLabel.y = ey + Math.round(FINE_TILE - eLabel.height / 2);
+/** Grass tile with deterministic per-cell decoration noise. */
+function drawGrassCell(g: Graphics, cx: number, cy: number, x: number, y: number): void {
+  drawCell(g, cx, cy, CELL.grass, CELL.grassHi, CELL.grassLo);
+  const n = (x * 23 + y * 41) % 29;
+  if (n === 0) {
+    g.rect(cx + 5, cy + 5, 2, 2).fill(CELL.grassTuft);
+    g.rect(cx + 7, cy + 6, 2, 2).fill(CELL.grassTuft);
+    g.rect(cx + 6, cy + 8, 2, 2).fill(CELL.grassTuft);
+  } else if (n === 11) {
+    g.rect(cx + 10, cy + 10, 2, 2).fill(CELL.grassClover);
+  } else if (n === 20) {
+    g.rect(cx + 3, cy + 11, 3, 1).fill(CELL.grassHi);
+  }
+}
+
+/** Cobblestone tile — one stone per fine cell with mortar gaps. */
+function drawCobbleCell(g: Graphics, cx: number, cy: number, x: number, y: number): void {
+  const even = ((x + y) & 1) === 0;
+  const base = even ? CELL.path : CELL.pathStoneAlt;
+  // Body
+  g.rect(cx, cy, FINE_TILE, FINE_TILE).fill(base);
+  // 2px highlight on top and left
+  g.rect(cx, cy, FINE_TILE, 2).fill(CELL.pathHi);
+  g.rect(cx, cy, 2, FINE_TILE).fill(CELL.pathHi);
+  // 2px shadow on bottom and right
+  g.rect(cx, cy + FINE_TILE - 2, FINE_TILE, 2).fill(CELL.pathLo);
+  g.rect(cx + FINE_TILE - 2, cy, 2, FINE_TILE).fill(CELL.pathLo);
+  // 1px mortar gap on top + left edges (right/bottom mortar comes from
+  // adjacent cells' shadow lines).
+  g.rect(cx, cy, FINE_TILE, 1).fill(CELL.pathMortar);
+  g.rect(cx, cy, 1, FINE_TILE).fill(CELL.pathMortar);
+}
+
+/** Stone-wall tile — bevel + brick seams. */
+function drawWallCell(g: Graphics, cx: number, cy: number, x: number, y: number): void {
+  const even = ((x + y) & 1) === 0;
+  const base = even ? THEME.borderDark : CELL.wallBrickAlt;
+  g.rect(cx, cy, FINE_TILE, FINE_TILE).fill(base);
+  // Inset 1px highlight (top/left) and shadow (bottom/right).
+  g.rect(cx, cy, FINE_TILE, 1).fill(THEME.panel2);
+  g.rect(cx, cy, 1, FINE_TILE).fill(THEME.panel2);
+  g.rect(cx, cy + FINE_TILE - 1, FINE_TILE, 1).fill(0x000000);
+  g.rect(cx + FINE_TILE - 1, cy, 1, FINE_TILE).fill(0x000000);
+  // Brick seams: a horizontal mortar line every other row, with the
+  // vertical mortar shifted on alternate rows so the bricks read as offset.
+  if (y % 2 === 0) {
+    g.rect(cx, cy + 6, FINE_TILE, 1).fill(CELL.wallSeam);
+    g.rect(cx + 8, cy, 1, FINE_TILE).fill(CELL.wallSeam);
+  } else {
+    g.rect(cx, cy + 12, FINE_TILE, 1).fill(CELL.wallSeam);
+    // Offset vertical seam by 2 cells so bricks alternate.
+    if ((x + 1) % 2 === 0) {
+      g.rect(cx + 8, cy, 1, FINE_TILE).fill(CELL.wallSeam);
+    }
+  }
+}
+
+/**
+ * Cave-mouth spawn marker.
+ * Origin (ox, oy) is the top-left pixel of the 2×2 spawn region.
+ * Coordinates are taken verbatim from the design handoff.
+ */
+function drawCaveSpawn(layer: Container, ox: number, oy: number): void {
+  const g = new Graphics();
+  // Rocky frame
+  g.rect(ox + 0, oy + 4, 40, 36).fill(0x3a2818);
+  // Inner rock
+  g.rect(ox + 2, oy + 6, 36, 32).fill(0x5a4030);
+  // Cave void
+  g.rect(ox + 4, oy + 8, 32, 28).fill(0x1a1428);
+  // Pure black opening
+  g.rect(ox + 6, oy + 8, 28, 2).fill(0x0a0510);
+  g.rect(ox + 5, oy + 10, 30, 22).fill(0x0a0510);
+  // Stalactites
+  g.rect(ox + 8, oy + 8, 2, 2).fill(0x5a4030);
+  g.rect(ox + 28, oy + 8, 2, 2).fill(0x5a4030);
+  // Skull
+  g.rect(ox + 15, oy + 2, 8, 6).fill(0xf4e4c1);
+  g.rect(ox + 16, oy + 3, 2, 2).fill(0x0a0510);
+  g.rect(ox + 20, oy + 3, 2, 2).fill(0x0a0510);
+  g.rect(ox + 17, oy + 6, 1, 2).fill(0x0a0510);
+  g.rect(ox + 19, oy + 6, 1, 2).fill(0x0a0510);
+  // Glowing red eyes inside the cave
+  g.rect(ox + 15, oy + 18, 2, 2).fill(0xd04848);
+  g.rect(ox + 21, oy + 18, 2, 2).fill(0xd04848);
+  // S badge — 12×10 chip with bevel + outline
+  drawBadge(g, ox + 13, oy + 24, 12, 10, 0xd04848, 0xf06868, 0x802020);
+  layer.addChild(g);
+
+  const sLabel = makeMonoLabel("S", 7, 0xf4e4c1);
+  sLabel.x = ox + 13 + Math.round((12 - sLabel.width) / 2);
+  sLabel.y = oy + 24 + Math.round((10 - sLabel.height) / 2);
+  layer.addChild(sLabel);
+}
+
+/**
+ * Crystal-shrine end marker.
+ * Origin (ox, oy) is the top-left pixel of the 2×2 end region.
+ */
+function drawCrystalShrine(layer: Container, ox: number, oy: number): void {
+  const g = new Graphics();
+  // Halo — a few alpha-blended concentric circles centered on the crystal.
+  const cxh = ox + 18;
+  const cyh = oy + 16;
+  for (let i = 4; i >= 1; i--) {
+    g.circle(cxh, cyh, 6 + i * 4).fill({ color: 0x78a8f8, alpha: 0.1 });
+  }
+  // Pedestal
+  g.rect(ox + 4, oy + 26, 36, 14).fill(0x5a4a6a);
+  g.rect(ox + 4, oy + 26, 36, 2).fill(0x7c66a4);
+  g.rect(ox + 2, oy + 36, 40, 4).fill(0x1a1428);
+  // Crystal shaft
+  g.rect(ox + 14, oy + 2, 10, 18).fill(CELL.crystalCore);
+  g.rect(ox + 14, oy + 2, 3, 18).fill(CELL.crystalLight);
+  g.rect(ox + 14, oy + 2, 1, 18).fill(0xffffff);
+  g.rect(ox + 22, oy + 2, 2, 18).fill(CELL.crystalDeep);
+  // Crystal tip
+  g.rect(ox + 16, oy + 0, 6, 2).fill(CELL.crystalCore);
+  g.rect(ox + 18, oy - 2, 2, 2).fill(0xffffff);
+  // E badge
+  drawBadge(g, ox + 14, oy + 30, 12, 10, 0xf0c038, 0xffe068, 0x886820);
+  layer.addChild(g);
+
+  const eLabel = makeMonoLabel("E", 7, 0x1a1428);
+  eLabel.x = ox + 14 + Math.round((12 - eLabel.width) / 2);
+  eLabel.y = oy + 30 + Math.round((10 - eLabel.height) / 2);
   layer.addChild(eLabel);
+}
+
+/** Beveled badge chip (used by S/E + flag numerals). 1px outer outline. */
+function drawBadge(
+  g: Graphics,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  fill: number,
+  hi: number,
+  lo: number,
+): void {
+  // 1px outer outline
+  g.rect(x - 1, y - 1, w + 2, h + 2).fill(0x1a1428);
+  // body + bevel
+  g.rect(x, y, w, h).fill(fill);
+  g.rect(x, y, w, 1).fill(hi);
+  g.rect(x, y, 1, h).fill(hi);
+  g.rect(x, y + h - 1, w, 1).fill(lo);
+  g.rect(x + w - 1, y, 1, h).fill(lo);
 }
 
 function makeMonoLabel(s: string, size: number, color: number): Text {
   return new Text({
     text: s,
     style: {
-      fontFamily: 'Press Start 2P',
+      fontFamily: "Press Start 2P",
       fontSize: size,
       fill: color,
     },
@@ -131,46 +294,62 @@ function makeMonoLabel(s: string, size: number, color: number): Text {
 }
 
 /**
- * Render checkpoint markers on the mid-board waypoints (everything between
- * Start and End). Creeps are routed through these tiles, so the player needs
- * to see them to plan a maze. Drawn as a diamond ring with a numeric label.
+ * Render checkpoint markers as numbered red banners on poles. Each banner
+ * sits at the waypoint's fine cell, with the cloth extending up-and-right
+ * so it doesn't overlap surrounding tower placements.
  */
 export function renderCheckpoints(layer: Container): void {
   layer.removeChildren();
   const wps = WAYPOINTS.slice(1, WAYPOINTS.length - 1);
   wps.forEach((wp, idx) => {
-    const cx = wp.x * FINE_TILE + FINE_TILE / 2;
-    const cy = wp.y * FINE_TILE + FINE_TILE / 2;
+    const ox = wp.x * FINE_TILE;
+    const oy = wp.y * FINE_TILE;
     const g = new Graphics();
-    const half = FINE_TILE - 2;
-    // Outer dark diamond (silhouette)
-    g.moveTo(cx, cy - half - 1)
-      .lineTo(cx + half + 1, cy)
-      .lineTo(cx, cy + half + 1)
-      .lineTo(cx - half - 1, cy)
-      .closePath()
-      .fill({ color: 0x000000, alpha: 0.55 });
-    // Inner accent diamond
-    g.moveTo(cx, cy - half)
-      .lineTo(cx + half, cy)
-      .lineTo(cx, cy + half)
-      .lineTo(cx - half, cy)
-      .closePath()
-      .stroke({ color: THEME.accent, width: 2, alpha: 0.95, pixelLine: true });
-    // Center dot
-    g.rect(cx - 2, cy - 2, 4, 4).fill({ color: THEME.accent, alpha: 0.9 });
+
+    // Soft warm glow under the banner.
+    for (let i = 3; i >= 1; i--) {
+      g.ellipse(ox + 17, oy + 15, 10 + i * 3, 5 + i * 2).fill({
+        color: 0xf0a040,
+        alpha: 0.06,
+      });
+    }
+
+    // Pole + soft side light.
+    g.rect(ox + 9, oy - 18, 2, 29).fill(0x1a1428);
+    g.rect(ox + 8, oy - 18, 1, 29).fill(0xb8a584);
+    // Pennant ornament on top.
+    g.rect(ox + 8, oy - 20, 4, 2).fill(0xf0a040);
+
+    // Flag body + stripes.
+    g.rect(ox + 11, oy - 17, 16, 12).fill(0xd04848);
+    g.rect(ox + 11, oy - 17, 16, 2).fill(0xf06868);
+    g.rect(ox + 11, oy - 7, 16, 2).fill(0x802020);
+
+    // Swallowtail cutouts — punch them with grass color so the banner reads
+    // as notched even on top of grass tiles next to the path.
+    g.rect(ox + 23, oy - 15, 4, 2).fill(CELL.grass);
+    g.rect(ox + 25, oy - 13, 2, 2).fill(CELL.grass);
+    g.rect(ox + 23, oy - 11, 4, 2).fill(CELL.grass);
+
     layer.addChild(g);
 
-    const label = makeMonoLabel(String(idx + 1), 7, THEME.accent);
-    label.x = Math.round(cx - label.width / 2);
-    label.y = Math.round(cy - label.height / 2 + half - 4);
-    layer.addChild(label);
+    // Numeral with 1px shadow.
+    const numStr = String(idx + 1);
+    const shadow = makeMonoLabel(numStr, 8, 0x1a1428);
+    shadow.x = ox + 17 - Math.round(shadow.width / 2) + 1;
+    shadow.y = oy - 16 + 1;
+    layer.addChild(shadow);
+    const num = makeMonoLabel(numStr, 8, 0xf4e4c1);
+    num.x = ox + 17 - Math.round(num.width / 2);
+    num.y = oy - 16;
+    layer.addChild(num);
   });
 }
 
 /**
- * Re-render the path overlay: faint dotted line through current creep route.
- * Also used to show the "active" path for visual confirmation.
+ * Re-render the path overlay: a faint dashed cool-blue polyline tracing the
+ * current creep route. Pixi's Graphics has no built-in dash, so we emit short
+ * sub-segments along each edge.
  */
 export function renderPathTrace(
   layer: Container,
@@ -178,6 +357,9 @@ export function renderPathTrace(
 ): void {
   layer.removeChildren();
   const g = new Graphics();
+  const dash = 6;
+  const gap = 4;
+  const period = dash + gap;
   for (const seg of segments) {
     for (let i = 0; i < seg.length - 1; i++) {
       const a = seg[i];
@@ -186,9 +368,23 @@ export function renderPathTrace(
       const ay = a.y * FINE_TILE + FINE_TILE / 2;
       const bx = b.x * FINE_TILE + FINE_TILE / 2;
       const by = b.y * FINE_TILE + FINE_TILE / 2;
-      g.moveTo(ax, ay).lineTo(bx, by);
+      const dx = bx - ax;
+      const dy = by - ay;
+      const len = Math.hypot(dx, dy);
+      if (len <= 0) continue;
+      const ux = dx / len;
+      const uy = dy / len;
+      let t = 0;
+      while (t < len) {
+        const t2 = Math.min(t + dash, len);
+        g.moveTo(ax + ux * t, ay + uy * t).lineTo(
+          ax + ux * t2,
+          ay + uy * t2,
+        );
+        t += period;
+      }
     }
   }
-  g.stroke({ width: 1, color: THEME.accent, alpha: 0.4, pixelLine: true });
+  g.stroke({ width: 1.5, color: THEME.info, alpha: 0.6, pixelLine: true });
   layer.addChild(g);
 }

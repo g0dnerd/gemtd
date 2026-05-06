@@ -41,12 +41,12 @@ export interface Waypoint {
  * is what marks a placement as a "full block."
  */
 export const WAYPOINTS: readonly Waypoint[] = [
-  { x: 0, y: 2, label: 'Start' },
-  { x: 10, y: 6, label: 'WP1' },
-  { x: 30, y: 6, label: 'WP2' },
-  { x: 30, y: 26, label: 'WP3' },
-  { x: 10, y: 26, label: 'WP4' },
-  { x: 40, y: 16, label: 'End' },
+  { x: 0, y: 2, label: "Start" },
+  { x: 10, y: 6, label: "WP1" },
+  { x: 30, y: 6, label: "WP2" },
+  { x: 30, y: 26, label: "WP3" },
+  { x: 10, y: 26, label: "WP4" },
+  { x: 40, y: 16, label: "End" },
 ];
 
 export const START = WAYPOINTS[0];

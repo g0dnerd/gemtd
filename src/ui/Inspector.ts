@@ -5,7 +5,7 @@
 
 import { Game } from '../game/Game';
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from '../render/theme';
-import { htmlGem } from '../render/htmlSprites';
+import { htmlGemTier, htmlSpecial } from '../render/htmlSprites';
 import { effectSummary, gemStats } from '../data/gems';
 import { COMBOS } from '../data/combos';
 import { TowerState } from '../game/State';
@@ -111,7 +111,11 @@ function render(refs: InspectorRefs, game: Game): void {
   hero.className = 'px-panel-inset inspector-hero';
   const frame = document.createElement('div');
   frame.className = 'inspector-hero-frame';
-  frame.appendChild(htmlGem(tower.gem, 40, true));
+  frame.appendChild(
+    tower.comboKey
+      ? htmlSpecial(tower.comboKey, 40, true)
+      : htmlGemTier(tower.gem, tower.quality as Quality, 40, true),
+  );
   const text = document.createElement('div');
   text.className = 'inspector-hero-text';
   const name = document.createElement('div');

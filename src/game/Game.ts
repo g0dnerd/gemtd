@@ -275,8 +275,8 @@ export class Game {
   }
 
   private renderEntities(): void {
-    renderTowers(this.layers.towers, this.state.towers, this.towerSprites);
-    renderRocks(this.layers.rocks, this.state.rocks);
+    renderTowers(this.layers.towers, this.state.towers, this.towerSprites, this.state.tick);
+    renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites);
     renderCreeps(this.layers.creeps, this.state.creeps);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
     renderRangePreview(this.layers.preview, this.state, this.hoverTile, this.selectedTowerId);

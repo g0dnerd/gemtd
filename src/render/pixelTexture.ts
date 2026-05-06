@@ -7,11 +7,21 @@ import { Graphics, RenderTexture, Renderer, Texture, Sprite, Container, BlurFilt
 import { PixelGrid, OUTLINE_COLOR } from './sprites';
 
 export interface SpriteColors {
-  /** Hex color strings (no '#'). Index 1 = light, 2 = mid, 3 = dark, 4 = outline. */
+  /**
+   * Pixel-grid value → color slot:
+   *   1 = light, 2 = mid, 3 = dark (gem-tinted)
+   *   4 = outline      (defaults to OUTLINE_COLOR)
+   *   5 = sparkle/ink  (also used for eye whites / armor highlights)
+   *   6 = extra/bad    (boss red glow eyes)
+   *   7 = accent       (boss crown / warm metal trims)
+   */
   light: number;
   mid: number;
   dark: number;
   outline?: number;
+  sparkle?: number;
+  extra?: number;
+  accent?: number;
 }
 
 const HEX_OUTLINE = parseInt(OUTLINE_COLOR.slice(1), 16);
@@ -25,11 +35,14 @@ export function drawPixelGrid(
   ox = 0,
   oy = 0,
 ): void {
-  const palette: Record<number, number> = {
+  const palette: Record<number, number | undefined> = {
     1: colors.light,
     2: colors.mid,
     3: colors.dark,
     4: colors.outline ?? HEX_OUTLINE,
+    5: colors.sparkle,
+    6: colors.extra,
+    7: colors.accent,
   };
   for (let y = 0; y < grid.length; y++) {
     const row = grid[y];
