@@ -220,9 +220,21 @@ export function mountHud(
   actionBar.className = "action-bar";
   const startBtn = document.createElement("button");
   startBtn.className = "px-btn px-btn-primary";
-  startBtn.textContent = "▶ NEXT WAVE · SPACE";
-  startBtn.addEventListener("click", () => game.cmdStartWave());
+  startBtn.textContent = "▶ START PLACEMENT · SPACE";
+  startBtn.addEventListener("click", () => triggerStartCta());
   actionBar.appendChild(startBtn);
+
+  /** True when build phase is open but no draws are rolled yet. */
+  function inPrePlacement(): boolean {
+    const s = game.state;
+    return s.phase === "build" && s.draws.length === 0 && s.designatedKeepTowerId === null;
+  }
+
+  function triggerStartCta(): void {
+    if (game.state.phase !== "build") return;
+    if (inPrePlacement()) game.cmdStartPlacement();
+    else game.cmdStartWave();
+  }
 
   const utilsRow = document.createElement("div");
   utilsRow.className = "action-bar-utils";
@@ -408,6 +420,12 @@ export function mountHud(
 
   function refreshStartGate(): void {
     if (game.state.phase !== "build") return;
+    if (inPrePlacement()) {
+      startBtn.textContent = "▶ START PLACEMENT · SPACE";
+      startBtn.disabled = false;
+      return;
+    }
+    startBtn.textContent = "▶ NEXT WAVE · SPACE";
     const concluded =
       game.state.draws.length === 0 &&
       game.state.designatedKeepTowerId !== null;
@@ -449,11 +467,15 @@ export function mountHud(
       hintMsg.textContent = "Wave in progress — towers fire automatically";
       hintKey.textContent = "1× 2× 4×";
     } else if (phase === "build") {
-      startBtn.disabled = true;
       hintPill.textContent = "BUILD";
       hintPill.className = "board-hint-pill";
-      hintMsg.textContent = "Place all 5 gems → mark one keeper";
-      hintKey.textContent = "TAB cycles";
+      if (inPrePlacement()) {
+        hintMsg.textContent = "Upgrade chance tier, then start placement";
+        hintKey.textContent = "SPACE starts";
+      } else {
+        hintMsg.textContent = "Place all 5 gems → mark one keeper";
+        hintKey.textContent = "TAB cycles";
+      }
     } else if (phase === "gameover" || phase === "victory") {
       mountGameOver(root, game, phase, onExit);
     }
@@ -622,7 +644,7 @@ export function mountHud(
   const onKey = (ev: KeyboardEvent) => {
     if (ev.key === " ") {
       ev.preventDefault();
-      if (game.state.phase === "build") game.cmdStartWave();
+      triggerStartCta();
     } else if (ev.key === "u" || ev.key === "U") {
       game.cmdUndo();
     } else if (ev.key === "1") {

@@ -236,6 +236,14 @@ export class Game {
   cmdStartWave(): void {
     this.enterWave();
   }
+  /** Roll the round's draws. Only valid in build phase before placement begins. */
+  cmdStartPlacement(): boolean {
+    const state = this.state;
+    if (state.phase !== 'build') return false;
+    if (state.draws.length > 0 || state.designatedKeepTowerId !== null) return false;
+    this.buildPhase.rollDraws();
+    return true;
+  }
   cmdSetActiveSlot(slotId: number): void {
     this.buildPhase.setActiveSlot(slotId);
   }

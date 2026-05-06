@@ -23,8 +23,16 @@ import { TowerState, DRAW_COUNT, activeDraw, allDrawsPlaced, nextUnplacedSlot } 
 export class BuildPhase {
   constructor(private game: Game) {}
 
+  /**
+   * Build phase opens in a "pre-placement" sub-state with no draws rolled yet,
+   * so the player can spend wave-end gold on chance-tier upgrades before
+   * committing to the round's draws. {@link rollDraws} flips us into placement.
+   *
+   * Exception: on wave 1 the player has no gold to upgrade with, so we roll
+   * straight away to skip an empty pre-placement screen.
+   */
   onEnter(): void {
-    this.rollDraws();
+    if (this.game.state.wave === 1) this.rollDraws();
   }
 
   /** Generate DRAW_COUNT fresh draw slots. */

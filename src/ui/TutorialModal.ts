@@ -140,7 +140,7 @@ function goalBody(): HTMLElement {
 function buildBody(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.append(
-    p(`Every build phase you draw <b>5 random gems</b>. You must place all 5 to start the wave.`),
+    p(`Every build phase opens with no gems drawn yet — spend wave gold on <b>chance-tier upgrades</b> first, then click <b>START PLACEMENT</b> (or <kbd>SPACE</kbd>) to roll your <b>5 random gems</b> for the round.`),
     row(htmlGem('emerald', 22, true), `<b>PLACE</b> — click a slot in the DRAW panel to select it, then click a grass tile.`),
     row(htmlGem('sapphire', 22), `<b>CYCLE</b> — press <kbd>TAB</kbd> to cycle through unplaced slots, or click chips directly.`),
     row(htmlGem('topaz', 22), `<b>UNDO</b> — <kbd>U</kbd> reverses placements during build phase.`),
