@@ -481,14 +481,26 @@
 }
 .inspector-actions {
   display: flex;
+  flex-direction: column;
   gap: 6px;
   margin-top: auto;
   padding-top: 10px;
 }
 .inspector-actions .px-btn {
   font-size: 9px;
-  flex: 1;
   transition: box-shadow 120ms ease-out, opacity 120ms ease-out;
+}
+.inspector-action-keep {
+  width: 100%;
+}
+.inspector-actions-combine {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.inspector-actions-combine .px-btn {
+  padding: 10px 8px;
+  letter-spacing: 0.5px;
 }
 .inspector-actions .px-btn-good.is-active:not(:disabled) {
   box-shadow:
@@ -589,16 +601,6 @@
 .action-bar-utils .px-btn {
   font-size: 9px;
   padding: 8px 10px;
-}
-.action-bar-combine {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px;
-}
-.action-bar-combine .px-btn {
-  font-size: 9px;
-  padding: 10px 8px;
-  letter-spacing: 0.5px;
 }
 .action-bar-system {
   display: flex;

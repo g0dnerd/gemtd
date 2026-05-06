@@ -9,12 +9,12 @@ import type { Application } from "pixi.js";
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, QUALITY_NAMES } from "../render/theme";
 import { htmlCoin, htmlGem, htmlGemTier, htmlHeart, htmlSpecial } from "../render/htmlSprites";
-import { COMBOS, ComboRecipe } from "../data/combos";
+import { COMBOS } from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
 import { mountCombineModal } from "./CombineModal";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
-import { activeDraw, allDrawsPlaced, TowerState } from "../game/State";
+import { activeDraw, allDrawsPlaced } from "../game/State";
 import { GRID_H, GRID_W } from "../data/map";
 import {
   FINE_TILE,
@@ -226,76 +226,6 @@ export function mountHud(
   utilsRow.append(undoBtn, speedBtn);
   actionBar.appendChild(utilsRow);
 
-  const combineRow = document.createElement("div");
-  combineRow.className = "action-bar-combine";
-  const combineBtn = makeBtn("★ COMBINE", () => tryAutoCombine());
-  const combineSpecialBtn = makeBtn("★ SPECIAL", () => tryAutoCombineSpecial());
-  combineRow.append(combineBtn, combineSpecialBtn);
-  actionBar.appendChild(combineRow);
-
-  function refreshCombineHighlights(): void {
-    const inBuild = game.state.phase === "build";
-    const cCount = inBuild ? countCombinePairs() : 0;
-    const sCount = inBuild ? countSpecialRecipes() : 0;
-    setComboButton(combineBtn, "★ COMBINE", cCount, false);
-    setComboButton(combineSpecialBtn, "★ SPECIAL", sCount, true);
-  }
-
-  function setComboButton(
-    btn: HTMLButtonElement,
-    label: string,
-    count: number,
-    special: boolean,
-  ): void {
-    btn.textContent = label;
-    if (count > 0) {
-      btn.classList.add("combo-active");
-      btn.classList.toggle("special", special);
-      const badge = document.createElement("span");
-      badge.className = "badge-count";
-      badge.textContent = String(count);
-      btn.appendChild(badge);
-    } else {
-      btn.classList.remove("combo-active", "special");
-    }
-  }
-
-  function selectedTower(): TowerState | null {
-    const id = game.selectedTowerId;
-    if (id === null) return null;
-    return game.state.towers.find((t) => t.id === id) ?? null;
-  }
-
-  function countCombinePairs(): number {
-    const sel = selectedTower();
-    if (!sel || sel.comboKey) return 0;
-    const drawIds = new Set(
-      game.state.draws
-        .map((d) => d.placedTowerId)
-        .filter((id): id is number => id !== null),
-    );
-    if (!drawIds.has(sel.id)) return 0;
-    const matches = game.state.towers.filter(
-      (t) =>
-        drawIds.has(t.id) &&
-        !t.comboKey &&
-        t.gem === sel.gem &&
-        t.quality === sel.quality,
-    );
-    return matches.length >= 2 ? 1 : 0;
-  }
-
-  function countSpecialRecipes(): number {
-    const sel = selectedTower();
-    if (!sel || sel.comboKey) return 0;
-    const placed = game.state.towers.filter((t) => !t.comboKey);
-    let n = 0;
-    for (const c of COMBOS) {
-      if (matchRecipeWithMust(c, placed, sel)) n++;
-    }
-    return n;
-  }
-
   const systemRow = document.createElement("div");
   systemRow.className = "action-bar-system";
   const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root));
@@ -398,7 +328,6 @@ export function mountHud(
     refreshDraw();
     chance.refresh();
     refreshStartGate();
-    refreshCombineHighlights();
     refreshInspector(inspector, game);
   }
 
@@ -500,122 +429,6 @@ export function mountHud(
 
   function openCombine(initialTab?: "level" | "recipe"): void {
     mountCombineModal(root, game, initialTab);
-  }
-
-  /**
-   * Auto-combine: level up the selected gem with another same-gem same-quality
-   * tower from the current round. The selected tower is always one of the
-   * inputs.
-   */
-  function tryAutoCombine(): void {
-    if (game.state.phase !== "build") return;
-    const sel = selectedTower();
-    if (!sel) {
-      game.bus.emit("toast", {
-        kind: "error",
-        text: "Select a gem to combine",
-      });
-      return;
-    }
-    if (sel.comboKey) {
-      game.bus.emit("toast", {
-        kind: "error",
-        text: "Specials cannot be levelled up",
-      });
-      return;
-    }
-    const drawIds = new Set(
-      game.state.draws
-        .map((d) => d.placedTowerId)
-        .filter((id): id is number => id !== null),
-    );
-    if (!drawIds.has(sel.id)) {
-      game.bus.emit("toast", {
-        kind: "error",
-        text: "Level-up only works on this round's draws",
-      });
-      return;
-    }
-    const matches = game.state.towers.filter(
-      (t) =>
-        drawIds.has(t.id) &&
-        !t.comboKey &&
-        t.gem === sel.gem &&
-        t.quality === sel.quality,
-    );
-    if (matches.length < 2) {
-      game.bus.emit("toast", {
-        kind: "error",
-        text: "Need another same-gem, same-quality from this round",
-      });
-      return;
-    }
-    const others = matches.filter((t) => t.id !== sel.id);
-    const take = matches.length >= 4 ? 4 : 2;
-    const ids = [sel.id, ...others.slice(0, take - 1).map((t) => t.id)];
-    game.cmdCombine(ids);
-  }
-
-  /**
-   * Auto-combine special: pick the first recipe (in COMBOS order) whose inputs
-   * include the selected gem and can otherwise be satisfied from placed towers.
-   * The selected tower is always consumed by the recipe.
-   */
-  function tryAutoCombineSpecial(): void {
-    if (game.state.phase !== "build") return;
-    const sel = selectedTower();
-    if (!sel) {
-      game.bus.emit("toast", {
-        kind: "error",
-        text: "Select a gem to anchor the recipe",
-      });
-      return;
-    }
-    if (sel.comboKey) {
-      game.bus.emit("toast", {
-        kind: "error",
-        text: "Specials cannot be re-combined",
-      });
-      return;
-    }
-    const placed = game.state.towers.filter((t) => !t.comboKey);
-    for (const c of COMBOS) {
-      const ids = matchRecipeWithMust(c, placed, sel);
-      if (ids) {
-        game.cmdCombine(ids);
-        return;
-      }
-    }
-    game.bus.emit("toast", {
-      kind: "error",
-      text: "No recipe uses the selected gem yet",
-    });
-  }
-
-  function matchRecipeWithMust(
-    c: ComboRecipe,
-    towers: TowerState[],
-    must: TowerState,
-  ): number[] | null {
-    const used = new Set<number>([must.id]);
-    const ids: number[] = [];
-    let consumed = false;
-    for (const inp of c.inputs) {
-      if (!consumed && inp.gem === must.gem && inp.quality === must.quality) {
-        ids.push(must.id);
-        consumed = true;
-        continue;
-      }
-      const t = towers.find(
-        (tt) =>
-          !used.has(tt.id) && tt.gem === inp.gem && tt.quality === inp.quality,
-      );
-      if (!t) return null;
-      used.add(t.id);
-      ids.push(t.id);
-    }
-    if (!consumed) return null;
-    return ids;
   }
 
   const onKey = (ev: KeyboardEvent) => {

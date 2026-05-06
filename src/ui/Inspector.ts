@@ -7,7 +7,7 @@ import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
 import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
-import { COMBOS } from "../data/combos";
+import { COMBOS, ComboRecipe } from "../data/combos";
 import { TowerState } from "../game/State";
 
 export interface InspectorRefs {
@@ -68,14 +68,8 @@ function fingerprint(game: Game): string {
   const isCurrentDraw = game.state.draws.some(
     (d) => d.placedTowerId === tower.id,
   );
-  const sameColor = isCurrentDraw
-    ? 0
-    : game.state.towers.filter(
-        (t) =>
-          t.gem === tower.gem &&
-          t.quality === tower.quality &&
-          !game.state.draws.some((d) => d.placedTowerId === t.id),
-      ).length;
+  const combineCount = countCombinePairs(game, tower);
+  const specialCount = countSpecialRecipes(game, tower);
   return [
     tower.id,
     tower.gem,
@@ -84,7 +78,8 @@ function fingerprint(game: Game): string {
     game.state.phase,
     game.state.designatedKeepTowerId ?? "",
     isCurrentDraw ? 1 : 0,
-    sameColor,
+    combineCount,
+    specialCount,
   ].join("|");
 }
 
@@ -205,41 +200,194 @@ function render(refs: InspectorRefs, game: Game): void {
     (d) => d.placedTowerId === tower.id,
   );
   const isKeep = game.state.designatedKeepTowerId === tower.id;
+  const inBuild = game.state.phase === "build";
 
-  const keep = document.createElement("button");
-  keep.className = "px-btn px-btn-good";
-  keep.style.flex = "1";
   if (isCurrentDraw) {
+    const keep = document.createElement("button");
+    keep.className = "px-btn px-btn-good inspector-action-keep";
     keep.textContent = isKeep ? "★ KEEPING" : "★ KEEP";
-    keep.disabled = game.state.phase !== "build" || isKeep;
+    keep.disabled = !inBuild || isKeep;
     keep.addEventListener("click", () => game.cmdDesignateKeep(tower.id));
-  } else {
-    keep.textContent = "★ COMBINE";
-    const sameColor = game.state.towers.filter(
-      (t) =>
-        t.gem === tower.gem &&
-        t.quality === tower.quality &&
-        !game.state.draws.some((d) => d.placedTowerId === t.id),
-    );
-    const canCombine = sameColor.length >= 2;
-    keep.disabled = game.state.phase !== "build";
-    if (canCombine && game.state.phase === "build")
-      keep.classList.add("is-active");
-    keep.addEventListener("click", () => {
-      if (canCombine) {
-        const partner = sameColor.find((t) => t.id !== tower.id);
-        if (!partner) return;
-        game.cmdCombine([tower.id, partner.id]);
-      } else {
-        game.bus.emit("toast", {
-          kind: "info",
-          text: "Need 2 same-color, same-quality (this round).",
-        });
-      }
-    });
+    actions.append(keep);
   }
-  actions.append(keep);
+
+  const comboRow = document.createElement("div");
+  comboRow.className = "inspector-actions-combine";
+
+  const combineCount = countCombinePairs(game, tower);
+  const specialCount = countSpecialRecipes(game, tower);
+
+  const combineBtn = document.createElement("button");
+  combineBtn.className = "px-btn";
+  combineBtn.disabled = !inBuild || !!tower.comboKey;
+  setComboButton(combineBtn, "★ COMBINE", combineCount, false);
+  combineBtn.addEventListener("click", () => tryAutoCombine(game));
+
+  const specialBtn = document.createElement("button");
+  specialBtn.className = "px-btn";
+  specialBtn.disabled = !inBuild || !!tower.comboKey;
+  setComboButton(specialBtn, "★ SPECIAL", specialCount, true);
+  specialBtn.addEventListener("click", () => tryAutoCombineSpecial(game));
+
+  comboRow.append(combineBtn, specialBtn);
+  actions.append(comboRow);
   body.appendChild(actions);
+}
+
+function setComboButton(
+  btn: HTMLButtonElement,
+  label: string,
+  count: number,
+  special: boolean,
+): void {
+  btn.textContent = label;
+  if (count > 0) {
+    btn.classList.add("combo-active");
+    btn.classList.toggle("special", special);
+    const badge = document.createElement("span");
+    badge.className = "badge-count";
+    badge.textContent = String(count);
+    btn.appendChild(badge);
+  } else {
+    btn.classList.remove("combo-active", "special");
+  }
+}
+
+function countCombinePairs(game: Game, sel: TowerState): number {
+  if (sel.comboKey) return 0;
+  const drawIds = new Set(
+    game.state.draws
+      .map((d) => d.placedTowerId)
+      .filter((id): id is number => id !== null),
+  );
+  if (!drawIds.has(sel.id)) return 0;
+  const matches = game.state.towers.filter(
+    (t) =>
+      drawIds.has(t.id) &&
+      !t.comboKey &&
+      t.gem === sel.gem &&
+      t.quality === sel.quality,
+  );
+  return matches.length >= 2 ? 1 : 0;
+}
+
+function countSpecialRecipes(game: Game, sel: TowerState): number {
+  if (sel.comboKey) return 0;
+  const placed = game.state.towers.filter((t) => !t.comboKey);
+  let n = 0;
+  for (const c of COMBOS) {
+    if (matchRecipeWithMust(c, placed, sel)) n++;
+  }
+  return n;
+}
+
+function matchRecipeWithMust(
+  c: ComboRecipe,
+  towers: TowerState[],
+  must: TowerState,
+): number[] | null {
+  const used = new Set<number>([must.id]);
+  const ids: number[] = [];
+  let consumed = false;
+  for (const inp of c.inputs) {
+    if (!consumed && inp.gem === must.gem && inp.quality === must.quality) {
+      ids.push(must.id);
+      consumed = true;
+      continue;
+    }
+    const t = towers.find(
+      (tt) =>
+        !used.has(tt.id) && tt.gem === inp.gem && tt.quality === inp.quality,
+    );
+    if (!t) return null;
+    used.add(t.id);
+    ids.push(t.id);
+  }
+  if (!consumed) return null;
+  return ids;
+}
+
+function selectedTower(game: Game): TowerState | null {
+  const id = game.selectedTowerId;
+  if (id === null) return null;
+  return game.state.towers.find((t) => t.id === id) ?? null;
+}
+
+function tryAutoCombine(game: Game): void {
+  if (game.state.phase !== "build") return;
+  const sel = selectedTower(game);
+  if (!sel) {
+    game.bus.emit("toast", { kind: "error", text: "Select a gem to combine" });
+    return;
+  }
+  if (sel.comboKey) {
+    game.bus.emit("toast", {
+      kind: "error",
+      text: "Specials cannot be levelled up",
+    });
+    return;
+  }
+  const drawIds = new Set(
+    game.state.draws
+      .map((d) => d.placedTowerId)
+      .filter((id): id is number => id !== null),
+  );
+  if (!drawIds.has(sel.id)) {
+    game.bus.emit("toast", {
+      kind: "error",
+      text: "Level-up only works on this round's draws",
+    });
+    return;
+  }
+  const matches = game.state.towers.filter(
+    (t) =>
+      drawIds.has(t.id) &&
+      !t.comboKey &&
+      t.gem === sel.gem &&
+      t.quality === sel.quality,
+  );
+  if (matches.length < 2) {
+    game.bus.emit("toast", {
+      kind: "error",
+      text: "Need another same-gem, same-quality from this round",
+    });
+    return;
+  }
+  const others = matches.filter((t) => t.id !== sel.id);
+  const take = matches.length >= 4 ? 4 : 2;
+  const ids = [sel.id, ...others.slice(0, take - 1).map((t) => t.id)];
+  game.cmdCombine(ids);
+}
+
+function tryAutoCombineSpecial(game: Game): void {
+  if (game.state.phase !== "build") return;
+  const sel = selectedTower(game);
+  if (!sel) {
+    game.bus.emit("toast", {
+      kind: "error",
+      text: "Select a gem to anchor the recipe",
+    });
+    return;
+  }
+  if (sel.comboKey) {
+    game.bus.emit("toast", {
+      kind: "error",
+      text: "Specials cannot be re-combined",
+    });
+    return;
+  }
+  const placed = game.state.towers.filter((t) => !t.comboKey);
+  for (const c of COMBOS) {
+    const ids = matchRecipeWithMust(c, placed, sel);
+    if (ids) {
+      game.cmdCombine(ids);
+      return;
+    }
+  }
+  game.bus.emit("toast", {
+    kind: "error",
+    text: "No recipe uses the selected gem yet",
+  });
 }
 
 function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
