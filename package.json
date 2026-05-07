@@ -7,8 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "npm run build && wrangler dev",
-    "test": "vitest run",
+    "test": "vitest run --exclude tests/sim-run.test.ts",
     "test:watch": "vitest",
+    "sim": "npx vitest run tests/sim-run.test.ts",
     "typecheck": "tsc --noEmit",
     "deploy": "npm run build && wrangler deploy"
   },
