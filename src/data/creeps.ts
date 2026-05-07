@@ -56,10 +56,10 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
   },
   boss: {
     kind: 'boss',
-    speed: 1.0,
+    speed: 1.2,
     color: 'ruby',
-    hpMult: 8.0,
-    bountyMult: 4.0,
+    hpMult: 3.5,
+    bountyMult: 3.0,
     flags: { boss: true },
   },
 };

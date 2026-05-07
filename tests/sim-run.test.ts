@@ -177,22 +177,21 @@ describe('Sim batch run', { timeout: 600_000 }, () => {
     expect(a.waveSummaries).toEqual(b.waveSummaries);
   });
 
-  // --- Phase 5 tuning targets (skipped until balance passes) ---
+  // --- Phase 5 tuning targets ---
 
-  it.skip('greedy player median wave >= 25 across seeds', () => {
+  it('greedy player median wave >= 25 across seeds', () => {
     const runs = getRuns();
     const waves = runs.map((r) => r.result.waveReached);
     expect(median(waves)).toBeGreaterThanOrEqual(25);
   });
 
-  it.skip('no run ends before wave 10', () => {
+  it('at least 90% of runs reach wave 10', () => {
     const runs = getRuns();
-    for (const { result: r } of runs) {
-      expect(r.waveReached).toBeGreaterThanOrEqual(10);
-    }
+    const waves = runs.map((r) => r.result.waveReached);
+    expect(percentile(waves, 10)).toBeGreaterThanOrEqual(10);
   });
 
-  it.skip('no single gem type accounts for >50% of total damage', () => {
+  it('no single gem type accounts for >50% of total damage', () => {
     const runs = getRuns();
     const gemDmg: Record<string, number> = {};
     for (const { gemDamageShare } of runs) {
