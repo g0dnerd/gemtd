@@ -63,7 +63,21 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "+30% atk speed to nearby towers.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Mystic Black Opal",
+        cost: 300,
+        stats: {
+          dmgMin: 140,
+          dmgMax: 200,
+          range: 4.5,
+          atkSpeed: 1.0,
+          effects: [{ kind: "aura_atkspeed", radius: 3.0, pct: 0.4 }],
+          blurb: "+40% atk speed aura. Wider radius.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "opal",
   },
   {
@@ -86,7 +100,25 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Burn dmg to nearby enemies. High splash radius.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Ancient Bloodstone",
+        cost: 310,
+        stats: {
+          dmgMin: 400,
+          dmgMax: 620,
+          range: 4.0,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "splash", radius: 2.5, falloff: 0.5 },
+            { kind: "poison", dps: 150, duration: 4 },
+            { kind: "crit", chance: 0.15, multiplier: 3.0 },
+          ],
+          blurb: "Massive splash + burn. 15% crit x3.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "ruby",
   },
   {
@@ -106,7 +138,24 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "12.5% chance to stun for 1 sec.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Enchanted Emerald",
+        cost: 250,
+        stats: {
+          dmgMin: 280,
+          dmgMax: 450,
+          range: 4.75,
+          atkSpeed: 1.2,
+          effects: [
+            { kind: "stun", chance: 0.15, duration: 2.0 },
+            { kind: "crit", chance: 0.15, multiplier: 4.0 },
+          ],
+          blurb: "15% stun for 2s. 15% crit x4.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "emerald",
   },
   {
@@ -126,7 +175,21 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "25% crit chance.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Egyptian Gold",
+        cost: 210,
+        stats: {
+          dmgMin: 300,
+          dmgMax: 480,
+          range: 4.0,
+          atkSpeed: 1.1,
+          effects: [{ kind: "crit", chance: 0.3, multiplier: 3.5 }],
+          blurb: "30% crit for x3.5 damage.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "topaz",
   },
   {
@@ -149,7 +212,42 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Poison + 50% slow for 2s.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Asian Jade",
+        cost: 45,
+        stats: {
+          dmgMin: 80,
+          dmgMax: 120,
+          range: 4.0,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "poison", dps: 50, duration: 3 },
+            { kind: "slow", factor: 0.5, duration: 3.0 },
+          ],
+          blurb: "Poison 50 dps for 3s. 50% slow.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Lucky Asian Jade",
+        cost: 250,
+        stats: {
+          dmgMin: 110,
+          dmgMax: 150,
+          range: 4.25,
+          atkSpeed: 1.2,
+          effects: [
+            { kind: "poison", dps: 60, duration: 4 },
+            { kind: "slow", factor: 0.5, duration: 4.0 },
+            { kind: "crit", chance: 0.05, multiplier: 4.0 },
+            { kind: "stun", chance: 0.01, duration: 2.0 },
+          ],
+          blurb: "Poison 60 dps 4s. 50% slow. Lucky crits and stuns.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "emerald",
   },
   {
@@ -169,7 +267,34 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Attacks 3 enemies at once.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Vivid Malachite",
+        cost: 25,
+        stats: {
+          dmgMin: 30,
+          dmgMax: 46,
+          range: 3.75,
+          atkSpeed: 1.5,
+          effects: [{ kind: "chain", bounces: 3, falloff: 1.0 }],
+          blurb: "Attacks 4 enemies at once.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Mighty Malachite",
+        cost: 280,
+        stats: {
+          dmgMin: 100,
+          dmgMax: 150,
+          range: 4.0,
+          atkSpeed: 1.6,
+          effects: [{ kind: "chain", bounces: 9, falloff: 1.0 }],
+          blurb: "Attacks all enemies in range.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "emerald",
   },
   {
@@ -189,7 +314,21 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "10% chance for x5 crit. Ground only.",
       targeting: "ground",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Great Pink Diamond",
+        cost: 175,
+        stats: {
+          dmgMin: 440,
+          dmgMax: 680,
+          range: 4.75,
+          atkSpeed: 1.1,
+          effects: [{ kind: "crit", chance: 0.1, multiplier: 8.0 }],
+          blurb: "10% chance for x8 crit. Ground only.",
+          targeting: "ground",
+        },
+      },
+    ],
     visualGem: "ruby",
   },
   {
@@ -212,7 +351,40 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Splash slow 20%.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Sterling Silver",
+        cost: 25,
+        stats: {
+          dmgMin: 42,
+          dmgMax: 56,
+          range: 3.75,
+          atkSpeed: 1.1,
+          effects: [
+            { kind: "splash", radius: 1.5, falloff: 0.5 },
+            { kind: "slow", factor: 0.7, duration: 1.5 },
+          ],
+          blurb: "AoE splash slow 30%.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Silver Knight",
+        cost: 300,
+        stats: {
+          dmgMin: 130,
+          dmgMax: 170,
+          range: 4.0,
+          atkSpeed: 1.1,
+          effects: [
+            { kind: "splash", radius: 1.8, falloff: 0.5 },
+            { kind: "slow", factor: 0.6, duration: 2.0 },
+          ],
+          blurb: "Wide splash. 40% slow for 2s.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "diamond",
   },
   {
@@ -235,7 +407,40 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Burns nearby enemies.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Blood Star",
+        cost: 30,
+        stats: {
+          dmgMin: 36,
+          dmgMax: 52,
+          range: 3.75,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "splash", radius: 1.8, falloff: 0.5 },
+            { kind: "poison", dps: 20, duration: 3 },
+          ],
+          blurb: "Stronger burn. Wider splash.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Fire Star",
+        cost: 290,
+        stats: {
+          dmgMin: 110,
+          dmgMax: 160,
+          range: 4.0,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "splash", radius: 2.0, falloff: 0.5 },
+            { kind: "poison", dps: 40, duration: 4 },
+          ],
+          blurb: "Devastating burn. Large splash.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "ruby",
   },
   {
@@ -259,7 +464,25 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Slow + heavy burn nearby.",
       targeting: "all",
     },
-    upgrades: [],
+    upgrades: [
+      {
+        name: "Uranium 238",
+        cost: 190,
+        stats: {
+          dmgMin: 340,
+          dmgMax: 520,
+          range: 4.75,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "splash", radius: 2.5, falloff: 0.6 },
+            { kind: "slow", factor: 0.5, duration: 3.0 },
+            { kind: "poison", dps: 120, duration: 5 },
+          ],
+          blurb: "Intense slow + burn. Wider splash.",
+          targeting: "all",
+        },
+      },
+    ],
     visualGem: "topaz",
   },
 ];
