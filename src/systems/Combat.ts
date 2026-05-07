@@ -32,7 +32,7 @@ export class Combat {
         const effectiveAtkSpeed = stats.atkSpeed * (1 + mult);
         const cooldownTicks = Math.max(1, Math.round(SIM_HZ / effectiveAtkSpeed));
         if (tick - t.lastFireTick < cooldownTicks) continue;
-        const target = pickTarget(t, stats.range, state.creeps);
+        const target = pickTarget(t, stats.range, state.creeps, stats.targeting);
         if (!target) continue;
         t.lastFireTick = tick;
         this.fire(t, target, stats);
@@ -192,6 +192,7 @@ interface ResolvedStats {
   atkSpeed: number;
   effects: EffectKind[];
   visualGem: TowerState['gem'];
+  targeting: 'all' | 'ground' | 'air';
 }
 
 function effectiveStats(t: TowerState): ResolvedStats {
@@ -205,6 +206,7 @@ function effectiveStats(t: TowerState): ResolvedStats {
         atkSpeed: combo.stats.atkSpeed,
         effects: combo.stats.effects,
         visualGem: combo.visualGem,
+        targeting: combo.stats.targeting,
       };
     }
   }
@@ -216,6 +218,7 @@ function effectiveStats(t: TowerState): ResolvedStats {
     atkSpeed: s.atkSpeed,
     effects: s.effects,
     visualGem: t.gem,
+    targeting: s.targeting,
   };
 }
 
@@ -240,14 +243,20 @@ function computeAuraMults(towers: TowerState[]): Map<number, number> {
   return out;
 }
 
-function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[]): CreepState | null {
+function canTarget(targeting: 'all' | 'ground' | 'air', creep: CreepState): boolean {
+  if (targeting === 'all') return true;
+  const isAir = !!creep.flags?.air;
+  return targeting === 'air' ? isAir : !isAir;
+}
+
+function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], targeting: 'all' | 'ground' | 'air'): CreepState | null {
   const r2 = (rangeTiles * TILE) * (rangeTiles * TILE);
   const tx = (t.x + 1) * FINE_TILE;
   const ty = (t.y + 1) * FINE_TILE;
-  // Prefer the creep furthest along the path.
   let best: CreepState | null = null;
   for (const c of creeps) {
     if (!c.alive) continue;
+    if (!canTarget(targeting, c)) continue;
     const dx = c.px - tx;
     const dy = c.py - ty;
     if (dx * dx + dy * dy > r2) continue;

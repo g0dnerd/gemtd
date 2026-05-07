@@ -175,6 +175,20 @@ function render(refs: InspectorRefs, game: Game): void {
 
   body.appendChild(grid);
 
+  // Targeting chip
+  if (stats.targeting !== "all") {
+    const tChip = document.createElement("div");
+    tChip.className = "inspector-effect";
+    const tLbl = document.createElement("div");
+    tLbl.className = "inspector-effect-label";
+    tLbl.textContent = "TARGET";
+    const tTxt = document.createElement("div");
+    tTxt.className = "inspector-effect-text";
+    tTxt.textContent = stats.targeting === "air" ? "AIR ONLY" : "GROUND ONLY";
+    tChip.append(tLbl, tTxt);
+    body.appendChild(tChip);
+  }
+
   // Effect chip
   if (stats.effects.length > 0 && stats.effects[0].kind !== "none") {
     const chip = document.createElement("div");
@@ -457,6 +471,7 @@ interface ResolvedStats {
   range: number;
   atkSpeed: number;
   effects: ReturnType<typeof gemStats>["effects"];
+  targeting: "all" | "ground" | "air";
 }
 
 function effectiveStatsFor(t: TowerState): ResolvedStats {
@@ -469,6 +484,7 @@ function effectiveStatsFor(t: TowerState): ResolvedStats {
         range: combo.stats.range,
         atkSpeed: combo.stats.atkSpeed,
         effects: combo.stats.effects,
+        targeting: combo.stats.targeting,
       };
     }
   }

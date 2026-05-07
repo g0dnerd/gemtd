@@ -181,3 +181,21 @@ export function flattenRoute(segments: Point[][]): Point[] {
   }
   return out;
 }
+
+/** Straight-line route through waypoints for air creeps (Bresenham-style). */
+export function buildAirRoute(waypoints: readonly Waypoint[] = WAYPOINTS): Point[] {
+  const out: Point[] = [];
+  for (let i = 0; i < waypoints.length - 1; i++) {
+    const a = waypoints[i];
+    const b = waypoints[i + 1];
+    const steps = Math.max(Math.abs(b.x - a.x), Math.abs(b.y - a.y));
+    for (let s = (i === 0 ? 0 : 1); s <= steps; s++) {
+      const t = steps === 0 ? 0 : s / steps;
+      out.push({
+        x: Math.round(a.x + (b.x - a.x) * t),
+        y: Math.round(a.y + (b.y - a.y) * t),
+      });
+    }
+  }
+  return out;
+}

@@ -13,7 +13,7 @@ import { State, emptyState, allDrawsPlaced } from './State';
 import { EventBus } from '../events/EventBus';
 import { RNG } from './rng';
 import { BASE, Cell } from '../data/map';
-import { findRoute, flattenRoute } from '../systems/Pathfinding';
+import { findRoute, flattenRoute, buildAirRoute } from '../systems/Pathfinding';
 import { BoardLayers, makeBoardLayers, renderGround, renderPathTrace, renderCheckpoints } from '../render/BoardRenderer';
 import { FINE_TILE, START_GOLD, START_LIVES, SIM_DT } from './constants';
 import { BuildPhase } from '../controllers/BuildPhase';
@@ -171,11 +171,13 @@ export class Game {
   refreshRoute(): boolean {
     const route = findRoute(this.state.grid);
     if (!route) {
-      // Should not happen on a valid board; preserve last known good route.
       return false;
     }
     this.state.routeSegments = route;
     this.state.flatRoute = flattenRoute(route);
+    if (this.state.airRoute.length === 0) {
+      this.state.airRoute = buildAirRoute();
+    }
     renderPathTrace(this.layers.pathOverlay, route);
     return true;
   }

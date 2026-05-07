@@ -7,7 +7,7 @@
  */
 
 import { GemType, Quality } from "../render/theme";
-import type { EffectKind } from "./gems";
+import type { EffectKind, Targeting } from "./gems";
 
 export interface ComboInput {
   gem: GemType;
@@ -25,6 +25,7 @@ export interface ComboRecipe {
     atkSpeed: number;
     effects: EffectKind[];
     blurb: string;
+    targeting: Targeting;
   };
   visualGem: GemType;
 }
@@ -51,6 +52,7 @@ export const COMBOS: ComboRecipe[] = [
       atkSpeed: 1.0,
       effects: [{ kind: "aura_atkspeed", radius: 2.5, pct: 0.3 }],
       blurb: "+30% atk speed to nearby towers.",
+      targeting: "all",
     },
     visualGem: "opal",
   },
@@ -72,6 +74,7 @@ export const COMBOS: ComboRecipe[] = [
         { kind: "poison", dps: 100, duration: 4 },
       ],
       blurb: "Burn dmg to nearby enemies. High splash radius.",
+      targeting: "all",
     },
     visualGem: "ruby",
   },
@@ -90,6 +93,7 @@ export const COMBOS: ComboRecipe[] = [
       atkSpeed: 1.1,
       effects: [{ kind: "stun", chance: 0.125, duration: 1.0 }],
       blurb: "12.5% chance to stun for 1 sec.",
+      targeting: "all",
     },
     visualGem: "emerald",
   },
@@ -108,6 +112,7 @@ export const COMBOS: ComboRecipe[] = [
       atkSpeed: 1.0,
       effects: [{ kind: "crit", chance: 0.25, multiplier: 3.0 }],
       blurb: "25% crit chance.",
+      targeting: "all",
     },
     visualGem: "topaz",
   },
@@ -129,6 +134,7 @@ export const COMBOS: ComboRecipe[] = [
         { kind: "slow", factor: 0.5, duration: 2.0 },
       ],
       blurb: "Poison + 50% slow for 2s.",
+      targeting: "all",
     },
     visualGem: "emerald",
   },
@@ -147,6 +153,7 @@ export const COMBOS: ComboRecipe[] = [
       atkSpeed: 1.4,
       effects: [{ kind: "chain", bounces: 2, falloff: 1.0 }],
       blurb: "Attacks 3 enemies at once.",
+      targeting: "all",
     },
     visualGem: "emerald",
   },
@@ -159,12 +166,13 @@ export const COMBOS: ComboRecipe[] = [
       { gem: "diamond", quality: 3 },
     ],
     stats: {
-      dmgMin: 250,
-      dmgMax: 380,
+      dmgMin: 350,
+      dmgMax: 520,
       range: 4.5,
       atkSpeed: 1.0,
       effects: [{ kind: "crit", chance: 0.1, multiplier: 5.0 }],
-      blurb: "10% chance for x5 crit.",
+      blurb: "10% chance for x5 crit. Ground only.",
+      targeting: "ground",
     },
     visualGem: "ruby",
   },
@@ -186,6 +194,7 @@ export const COMBOS: ComboRecipe[] = [
         { kind: "slow", factor: 0.8, duration: 1.5 },
       ],
       blurb: "Splash slow 20%.",
+      targeting: "all",
     },
     visualGem: "diamond",
   },
@@ -207,6 +216,7 @@ export const COMBOS: ComboRecipe[] = [
         { kind: "poison", dps: 12, duration: 3 },
       ],
       blurb: "Burns nearby enemies.",
+      targeting: "all",
     },
     visualGem: "ruby",
   },
@@ -229,6 +239,7 @@ export const COMBOS: ComboRecipe[] = [
         { kind: "poison", dps: 80, duration: 4 },
       ],
       blurb: "Slow + heavy burn nearby.",
+      targeting: "all",
     },
     visualGem: "topaz",
   },

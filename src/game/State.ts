@@ -116,6 +116,8 @@ export interface State {
   /** Cached creep route. Re-computed when grid changes. */
   routeSegments: Array<Array<{ x: number; y: number }>>;
   flatRoute: Array<{ x: number; y: number }>;
+  /** Straight-line waypoint-to-waypoint route for air creeps (ignores maze). */
+  airRoute: Array<{ x: number; y: number }>;
   /** 5-gem random draw for the current build phase (empty outside build). */
   draws: DrawSlot[];
   /** slotId currently selected for placement (defaults to lowest unplaced). */
@@ -178,6 +180,7 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     projectiles: [],
     routeSegments: [],
     flatRoute: [],
+    airRoute: [],
     draws: [],
     activeDrawSlot: null,
     designatedKeepTowerId: null,

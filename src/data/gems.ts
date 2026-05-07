@@ -21,6 +21,8 @@ export type EffectKind =
   | { kind: 'true'; chance: number }
   | { kind: 'aura_atkspeed'; radius: number; pct: number };
 
+export type Targeting = 'all' | 'ground' | 'air';
+
 export interface GemBase {
   /** Display name (without quality prefix). */
   name: string;
@@ -36,6 +38,8 @@ export interface GemBase {
   baseAtkSpeed: number;
   /** Effects on hit. */
   effects: EffectKind[];
+  /** Which creep types this gem can target. */
+  targeting: Targeting;
   /** Color hint for projectile (defaults to gem color). */
   projectileColor?: GemType;
 }
@@ -50,6 +54,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseRange: 3.5,
     baseAtkSpeed: 1.0,
     effects: [{ kind: 'splash', radius: 1.0, falloff: 0.5 }],
+    targeting: 'all',
   },
   sapphire: {
     name: 'Sapphire',
@@ -59,6 +64,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseRange: 4.0,
     baseAtkSpeed: 0.9,
     effects: [{ kind: 'slow', factor: 0.7, duration: 1.5 }],
+    targeting: 'all',
   },
   emerald: {
     name: 'Emerald',
@@ -68,6 +74,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseRange: 3.5,
     baseAtkSpeed: 1.0,
     effects: [{ kind: 'poison', dps: 8, duration: 4 }],
+    targeting: 'all',
   },
   topaz: {
     name: 'Topaz',
@@ -77,15 +84,17 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseRange: 3.0,
     baseAtkSpeed: 1.6,
     effects: [{ kind: 'chain', bounces: 2, falloff: 0.6 }],
+    targeting: 'all',
   },
   amethyst: {
     name: 'Amethyst',
-    blurb: 'Hexes — chance to stun.',
-    baseDmg: 18,
-    spread: 0.25,
-    baseRange: 3.5,
-    baseAtkSpeed: 0.7,
-    effects: [{ kind: 'stun', duration: 0.5, chance: 0.15 }],
+    blurb: 'Skyward lance — high damage, air only.',
+    baseDmg: 32,
+    spread: 0.2,
+    baseRange: 4.5,
+    baseAtkSpeed: 0.8,
+    effects: [{ kind: 'true', chance: 0.2 }],
+    targeting: 'air',
   },
   opal: {
     name: 'Opal',
@@ -95,15 +104,17 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseRange: 3.0,
     baseAtkSpeed: 0.7,
     effects: [{ kind: 'aura_atkspeed', radius: 2.0, pct: 0.10 }],
+    targeting: 'all',
   },
   diamond: {
     name: 'Diamond',
-    blurb: 'Crystalline edge — devastating crits.',
-    baseDmg: 22,
+    blurb: 'Crystalline edge — devastating crits. Ground only.',
+    baseDmg: 30,
     spread: 0.3,
     baseRange: 4.0,
     baseAtkSpeed: 0.8,
     effects: [{ kind: 'crit', chance: 0.25, multiplier: 2.5 }],
+    targeting: 'ground',
   },
   aquamarine: {
     name: 'Aquamarine',
@@ -113,6 +124,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseRange: 1.8,
     baseAtkSpeed: 3.0,
     effects: [],
+    targeting: 'all',
   },
 };
 
@@ -129,6 +141,7 @@ export interface GemStats {
   atkSpeed: number;
   cost: number;
   effects: EffectKind[];
+  targeting: Targeting;
 }
 
 const QUALITY_DMG_MULT: Record<Quality, number> = {
@@ -210,6 +223,7 @@ export function gemStats(gem: GemType, quality: Quality): GemStats {
     atkSpeed: +(base.baseAtkSpeed * QUALITY_SPEED_BONUS[quality]).toFixed(2),
     cost: QUALITY_BASE_COST[quality],
     effects: scaleEffects(base.effects, quality),
+    targeting: base.targeting,
   };
 }
 

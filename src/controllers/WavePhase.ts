@@ -72,10 +72,15 @@ export class WavePhase {
     return false;
   }
 
+  private routeFor(isAir: boolean): Array<{ x: number; y: number }> {
+    return isAir ? this.game.state.airRoute : this.game.state.flatRoute;
+  }
+
   private spawnCreep(): void {
     const def = WAVES[this.wave - 1];
     const arch = CREEP_ARCHETYPES[def.kind];
-    const route = this.game.state.flatRoute;
+    const isAir = !!arch.flags.air;
+    const route = this.routeFor(isAir);
     if (route.length === 0) return;
     const start = route[0];
     const id = this.game.nextId();
@@ -106,12 +111,11 @@ export class WavePhase {
     if (c.slow && c.slow.expiresAt > this.game.state.tick) {
       speed *= c.slow.factor;
     }
-    const route = this.game.state.flatRoute;
+    const isAir = !!c.flags?.air;
+    const route = this.routeFor(isAir);
     if (route.length === 0) return;
-    // speed is in coarse tiles/sec; the route is indexed in fine cells.
     c.pathPos += speed * GRID_SCALE * SIM_DT;
     if (c.pathPos >= route.length - 1) {
-      // Leaked
       c.alive = false;
       this.leak(c);
       return;
