@@ -29,6 +29,7 @@ interface TowerEntry {
   /** Cached comboKey so we can rebuild the sprite if a tower is upgraded. */
   comboKey: string | undefined;
   quality: number;
+  upgradeTier: number;
   /** FX layer (halo/aura/orbit/ground), only set for special towers. */
   fx?: TowerFx;
 }
@@ -52,23 +53,22 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
   const seen = new Set<number>();
   for (const t of towers) {
     seen.add(t.id);
+    const tier = t.upgradeTier ?? 0;
     let entry = towerObjs.get(t.id);
-    if (!entry || entry.comboKey !== t.comboKey || entry.quality !== t.quality) {
-      // First placement, or the tower's identity changed (combine).
+    if (!entry || entry.comboKey !== t.comboKey || entry.quality !== t.quality || entry.upgradeTier !== tier) {
       if (entry) {
         entry.obj.destroy({ children: true });
         towerObjs.delete(t.id);
       }
       const obj = new Container();
-      // FX layers go behind the tower sprite.
       let fx: TowerFx | undefined;
       if (t.comboKey && SPECIAL_FX[t.comboKey]) {
         fx = makeSpecialFx(obj, t.comboKey);
       }
-      const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey);
+      const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
       obj.addChild(towerSprite);
       layer.addChild(obj);
-      entry = { obj, comboKey: t.comboKey, quality: t.quality, fx };
+      entry = { obj, comboKey: t.comboKey, quality: t.quality, upgradeTier: tier, fx };
       towerObjs.set(t.id, entry);
     }
     // Tower anchor (t.x, t.y) is the top-left fine cell of its 2×2 footprint,
