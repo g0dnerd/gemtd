@@ -9,6 +9,7 @@
 
 import { TILE, FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ } from '../game/constants';
 import { Game } from '../game/Game';
+import { RNG } from '../game/rng';
 import { gemStats } from '../data/gems';
 import { COMBOS, comboStatsAtTier } from '../data/combos';
 import type { CreepState, ProjectileState, TowerState } from '../game/State';
@@ -60,10 +61,10 @@ export class Combat {
     // Towers are 2×2 on the fine grid; the firing point is the centre of that footprint.
     const fromX = (tower.x + 1) * FINE_TILE;
     const fromY = (tower.y + 1) * FINE_TILE;
-    const baseDmg = randInt(stats.dmgMin, stats.dmgMax);
+    const baseDmg = randInt(this.game.rng, stats.dmgMin, stats.dmgMax);
     let dmg = baseDmg;
     for (const e of stats.effects) {
-      if (e.kind === 'crit' && Math.random() < e.chance) {
+      if (e.kind === 'crit' && this.game.rng.next() < e.chance) {
         dmg = Math.round(dmg * e.multiplier);
       }
     }
@@ -153,7 +154,7 @@ export class Combat {
       switch (e.kind) {
         case 'slow': {
           const chance = e.chance ?? 1.0;
-          if (Math.random() > chance) break;
+          if (this.game.rng.next() > chance) break;
           const expires = tick + Math.round(e.duration * SIM_HZ);
           if (!c.slow || c.slow.expiresAt < expires || c.slow.factor > e.factor) {
             c.slow = { factor: e.factor, expiresAt: expires };
@@ -170,7 +171,7 @@ export class Combat {
           break;
         }
         case 'stun': {
-          if (Math.random() > e.chance) break;
+          if (this.game.rng.next() > e.chance) break;
           const expires = tick + Math.round(e.duration * SIM_HZ);
           if (!c.stun || c.stun.expiresAt < expires) {
             c.stun = { expiresAt: expires };
@@ -284,7 +285,7 @@ function nearest(creeps: CreepState[], x: number, y: number, exclude: Set<number
   return best;
 }
 
-function randInt(min: number, max: number): number {
+function randInt(rng: RNG, min: number, max: number): number {
   if (max <= min) return min;
-  return min + Math.floor(Math.random() * (max - min + 1));
+  return min + Math.floor(rng.next() * (max - min + 1));
 }
