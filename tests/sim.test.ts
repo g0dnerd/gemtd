@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HeadlessGame } from '../src/sim/HeadlessGame';
 import { GreedyAI } from '../src/sim/ai/GreedyAI';
+import { Metrics } from '../src/sim/Metrics';
 import { isBuildable } from '../src/data/map';
 
 function findOpenPositions(game: HeadlessGame, count: number): [number, number][] {
@@ -101,6 +102,92 @@ describe('HeadlessGame smoke', () => {
     const b = runOnce(99999);
     const same = a.lives === b.lives && a.gold === b.gold && a.kills === b.kills;
     expect(same).toBe(false);
+  });
+});
+
+describe('Metrics', () => {
+  it('collects wave summaries for a single wave', () => {
+    const game = new HeadlessGame(42);
+    const metrics = new Metrics(game.bus, game.state);
+    game.newGame();
+    placeAllAndKeep(game);
+    game.runWave();
+
+    const summaries = metrics.waveSummaries();
+    expect(summaries.length).toBe(1);
+    const w1 = summaries[0];
+    expect(w1.wave).toBe(1);
+    expect(w1.creepsSpawned).toBeGreaterThan(0);
+    expect(w1.killed + w1.leaked).toBe(w1.creepsSpawned);
+    expect(w1.durationTicks).toBeGreaterThan(0);
+    expect(w1.totalHpSpawned).toBeGreaterThan(0);
+    expect(w1.totalDamageDealt).toBeGreaterThanOrEqual(0);
+    metrics.detach();
+  });
+
+  it('collects tower summaries with gem and quality', () => {
+    const game = new HeadlessGame(42);
+    const metrics = new Metrics(game.bus, game.state);
+    game.newGame();
+    placeAllAndKeep(game);
+    game.runWave();
+
+    const towers = metrics.towerSummaries();
+    expect(towers.length).toBeGreaterThan(0);
+    for (const t of towers) {
+      expect(t.gem).toBeTruthy();
+      expect(t.quality).toBeGreaterThanOrEqual(1);
+      expect(t.quality).toBeLessThanOrEqual(5);
+    }
+    metrics.detach();
+  });
+
+  it('populates waveSummaries in GameResult via runGame', { timeout: 30_000 }, () => {
+    const game = new HeadlessGame(42);
+    const ai = new GreedyAI();
+    const result = game.runGame(ai);
+
+    expect(result.waveSummaries.length).toBeGreaterThan(0);
+    expect(result.waveSummaries.length).toBeLessThanOrEqual(result.waveReached);
+    for (const ws of result.waveSummaries) {
+      expect(ws.creepsSpawned).toBeGreaterThan(0);
+      expect(ws.totalHpSpawned).toBeGreaterThan(0);
+      expect(ws.killed + ws.leaked).toBe(ws.creepsSpawned);
+      expect(ws.durationTicks).toBeGreaterThan(0);
+    }
+    expect(result.towerSummaries.length).toBeGreaterThan(0);
+  });
+
+  it('tracks gem damage share', { timeout: 30_000 }, () => {
+    const game = new HeadlessGame(42);
+    const ai = new GreedyAI();
+    game.runGame(ai);
+
+    const share = game.metrics!.gemDamageShare();
+    const total = Object.values(share).reduce((s, v) => s + v, 0);
+    expect(total).toBeGreaterThan(0);
+    expect(Object.keys(share).length).toBeGreaterThan(0);
+  });
+
+  it('computes DPS-vs-HP ratio per wave', { timeout: 30_000 }, () => {
+    const game = new HeadlessGame(42);
+    const ai = new GreedyAI();
+    game.runGame(ai);
+
+    const ratios = game.metrics!.dpsVsHpPerWave();
+    expect(ratios.length).toBeGreaterThan(0);
+    for (const r of ratios) {
+      expect(r.totalHp).toBeGreaterThan(0);
+      expect(r.ratio).toBeGreaterThanOrEqual(0);
+    }
+  });
+
+  it('metrics are deterministic across same seed', { timeout: 30_000 }, () => {
+    const ai = new GreedyAI();
+    const a = new HeadlessGame(42).runGame(ai);
+    const b = new HeadlessGame(42).runGame(ai);
+    expect(a.waveSummaries).toEqual(b.waveSummaries);
+    expect(a.towerSummaries).toEqual(b.towerSummaries);
   });
 });
 

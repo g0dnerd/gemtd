@@ -9,6 +9,7 @@ import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
 import { COMBOS, nextUpgrade } from '../data/combos';
 import { Combat } from '../systems/Combat';
+import { Metrics } from './Metrics';
 import type { Game } from '../game/Game';
 import type { SimAI, GameResult } from './types';
 
@@ -22,6 +23,7 @@ export class HeadlessGame {
   private wavePhase: WavePhase;
   private combat: Combat;
   private nextEntityId = 1;
+  metrics?: Metrics;
 
   constructor(seed: number) {
     this.seed = seed;
@@ -221,6 +223,8 @@ export class HeadlessGame {
   }
 
   runGame(ai: SimAI): GameResult {
+    const metrics = new Metrics(this.bus, this.state);
+    this.metrics = metrics;
     this.newGame();
     for (;;) {
       const phase = this.state.phase;
@@ -238,8 +242,8 @@ export class HeadlessGame {
       waveReached: this.state.wave,
       finalGold: this.state.gold,
       finalLives: this.state.lives,
-      waveSummaries: [],
-      towerSummaries: [],
+      waveSummaries: metrics.waveSummaries(),
+      towerSummaries: metrics.towerSummaries(),
       outcome: this.state.phase === 'victory' ? 'victory' : 'gameover',
     };
   }

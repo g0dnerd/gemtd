@@ -14,6 +14,8 @@ export interface WaveSummary {
   goldAtEnd: number;
   towersCount: number;
   durationTicks: number;
+  totalDamageDealt: number;
+  totalHpSpawned: number;
 }
 
 export interface TowerSummary {
