@@ -8,7 +8,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { BuildPhase } from '../src/controllers/BuildPhase';
 import { emptyState, State, DRAW_COUNT, activeDraw } from '../src/game/State';
-import { BASE, Cell } from '../src/data/map';
+import { BASE, Cell, GRID_H } from '../src/data/map';
 import { findRoute, flattenRoute } from '../src/systems/Pathfinding';
 import { EventBus } from '../src/events/EventBus';
 import { RNG } from '../src/game/rng';
@@ -87,20 +87,20 @@ describe('BuildPhase: place', () => {
   });
 
   it('rejects placement that fully blocks the path', () => {
-    // Pre-block column 20 (between WP1 and WP2) leaving a single gap at y=15.
-    // That gap is the only way through; a 2×2 tower anchored at (19, 14) must
+    // Pre-block column 15 (between WP2 and WP3) leaving a single gap at y=22.
+    // That gap is the only way through; placing a tower at (15, 22) must
     // be rejected because it would close it.
-    for (let y = 2; y < 32; y++) {
-      if (y === 15) continue;
-      h.game.state.grid[y][20] = Cell.Tower;
+    for (let y = 2; y < GRID_H - 2; y++) {
+      if (y === 22) continue;
+      h.game.state.grid[y][15] = Cell.Tower;
     }
     h.game.refreshRoute();
     expect(findRoute(h.game.state.grid)).not.toBeNull();
 
     h.phase.rollDraws();
-    const ok = h.phase.place(19, 14);
+    const ok = h.phase.place(15, 22);
     expect(ok).toBe(false);
-    expect(h.game.state.grid[14][19]).toBe(Cell.Grass);
+    expect(h.game.state.grid[22][15]).toBe(Cell.Grass);
   });
 
   it('refuses to place when there is no active draw', () => {
