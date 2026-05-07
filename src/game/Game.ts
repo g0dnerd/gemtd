@@ -20,6 +20,7 @@ import { BuildPhase } from '../controllers/BuildPhase';
 import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
 import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from './constants';
+import { COMBOS, nextUpgrade } from '../data/combos';
 import { Combat } from '../systems/Combat';
 import { TowerSpriteCache } from '../render/TowerRenderer';
 import { renderTowers, renderRocks, renderCreeps, renderProjectiles, renderHover, renderRangePreview } from '../render/EntityRenderer';
@@ -355,5 +356,31 @@ export class Game {
   }
   cmdCombine(towerIds: number[]): boolean {
     return this.buildPhase.combine(towerIds);
+  }
+  cmdUpgradeTower(towerId: number): boolean {
+    const state = this.state;
+    const tower = state.towers.find((t) => t.id === towerId);
+    if (!tower || !tower.comboKey) {
+      this.bus.emit('toast', { kind: 'error', text: 'Not a special tower' });
+      return false;
+    }
+    const combo = COMBOS.find((c) => c.key === tower.comboKey);
+    if (!combo) return false;
+    const currentTier = tower.upgradeTier ?? 0;
+    const upgrade = nextUpgrade(combo, currentTier);
+    if (!upgrade) {
+      this.bus.emit('toast', { kind: 'info', text: 'Already max tier' });
+      return false;
+    }
+    if (state.gold < upgrade.cost) {
+      this.bus.emit('toast', { kind: 'error', text: `Need ${upgrade.cost}g` });
+      return false;
+    }
+    state.gold -= upgrade.cost;
+    tower.upgradeTier = currentTier + 1;
+    this.bus.emit('gold:change', { gold: state.gold });
+    this.bus.emit('tower:upgrade', { id: towerId, comboKey: tower.comboKey, tier: tower.upgradeTier });
+    this.bus.emit('toast', { kind: 'good', text: `Upgraded to ${upgrade.name}` });
+    return true;
   }
 }

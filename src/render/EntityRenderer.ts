@@ -14,7 +14,7 @@ import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
 import { GEM_PALETTE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite, makeRockSprite } from "./TowerRenderer";
 import { gemStats } from "../data/gems";
-import { COMBOS } from "../data/combos";
+import { COMBOS, comboStatsAtTier } from "../data/combos";
 import { SPRITE_BY_KIND } from "./sprites";
 import { drawPixelGrid } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
@@ -386,7 +386,7 @@ export function renderRangePreview(
 function towerRange(t: TowerState): number {
   if (t.comboKey) {
     const combo = COMBOS.find((c) => c.key === t.comboKey);
-    if (combo) return combo.stats.range;
+    if (combo) return comboStatsAtTier(combo, t.upgradeTier ?? 0).range;
   }
   return gemStats(t.gem, t.quality).range;
 }

@@ -7,7 +7,7 @@ import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
 import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
-import { COMBOS, ComboRecipe } from "../data/combos";
+import { COMBOS, ComboRecipe, comboStatsAtTier, nextUpgrade } from "../data/combos";
 import { TowerState } from "../game/State";
 
 export interface InspectorRefs {
@@ -70,16 +70,21 @@ function fingerprint(game: Game): string {
   );
   const combineCount = countCombinePairs(game, tower);
   const specialCount = countSpecialRecipes(game, tower);
+  const upgradeCost = getUpgradeCost(tower);
+  const canAfford = upgradeCost !== null && game.state.gold >= upgradeCost;
   return [
     tower.id,
     tower.gem,
     tower.quality,
     tower.comboKey ?? "",
+    tower.upgradeTier ?? 0,
     game.state.phase,
     game.state.designatedKeepTowerId ?? "",
     isCurrentDraw ? 1 : 0,
     combineCount,
     specialCount,
+    upgradeCost ?? "",
+    canAfford ? 1 : 0,
   ].join("|");
 }
 
@@ -126,8 +131,13 @@ function render(refs: InspectorRefs, game: Game): void {
   sub.className = "inspector-hero-sub";
   if (tower.comboKey) {
     const combo = COMBOS.find((c) => c.key === tower.comboKey);
-    name.textContent = combo ? combo.name.toUpperCase() : "COMBO";
-    sub.textContent = `LV. ${tower.quality} · ${combo?.stats.blurb ?? "COMBO"}`;
+    const tier = tower.upgradeTier ?? 0;
+    const tierName = combo && tier > 0 && combo.upgrades[tier - 1]
+      ? combo.upgrades[tier - 1].name
+      : combo?.name;
+    name.textContent = (tierName ?? "COMBO").toUpperCase();
+    const tierStats = combo ? comboStatsAtTier(combo, tier) : null;
+    sub.textContent = `LV. ${tower.quality} · ${tierStats?.blurb ?? combo?.stats.blurb ?? "COMBO"}`;
   } else {
     name.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
     sub.textContent = `LV. ${tower.quality} · ${QUALITY_NAMES[tower.quality].toUpperCase()}`;
@@ -223,6 +233,17 @@ function render(refs: InspectorRefs, game: Game): void {
     keep.disabled = !inBuild || isKeep;
     keep.addEventListener("click", () => game.cmdDesignateKeep(tower.id));
     actions.append(keep);
+  }
+
+  const upgInfo = getUpgradeInfo(tower);
+  if (upgInfo) {
+    const upgBtn = document.createElement("button");
+    upgBtn.className = "px-btn px-btn-good";
+    const affordable = game.state.gold >= upgInfo.cost;
+    upgBtn.disabled = !affordable;
+    upgBtn.textContent = `⬆ UPGRADE · ${upgInfo.cost}G`;
+    upgBtn.addEventListener("click", () => game.cmdUpgradeTower(tower.id));
+    actions.append(upgBtn);
   }
 
   const comboRow = document.createElement("div");
@@ -478,18 +499,36 @@ function effectiveStatsFor(t: TowerState): ResolvedStats {
   if (t.comboKey) {
     const combo = COMBOS.find((c) => c.key === t.comboKey);
     if (combo) {
+      const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
       return {
-        dmgMin: combo.stats.dmgMin,
-        dmgMax: combo.stats.dmgMax,
-        range: combo.stats.range,
-        atkSpeed: combo.stats.atkSpeed,
-        effects: combo.stats.effects,
-        targeting: combo.stats.targeting,
+        dmgMin: s.dmgMin,
+        dmgMax: s.dmgMax,
+        range: s.range,
+        atkSpeed: s.atkSpeed,
+        effects: s.effects,
+        targeting: s.targeting,
       };
     }
   }
   const s = gemStats(t.gem, t.quality);
   return s;
+}
+
+function getUpgradeCost(tower: TowerState): number | null {
+  if (!tower.comboKey) return null;
+  const combo = COMBOS.find((c) => c.key === tower.comboKey);
+  if (!combo) return null;
+  const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
+  return upgrade?.cost ?? null;
+}
+
+function getUpgradeInfo(tower: TowerState): { name: string; cost: number } | null {
+  if (!tower.comboKey) return null;
+  const combo = COMBOS.find((c) => c.key === tower.comboKey);
+  if (!combo) return null;
+  const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
+  if (!upgrade) return null;
+  return { name: upgrade.name, cost: upgrade.cost };
 }
 
 // Re-export for convenience

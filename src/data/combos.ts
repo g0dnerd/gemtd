@@ -14,19 +14,28 @@ export interface ComboInput {
   quality: Quality;
 }
 
+export interface ComboStats {
+  dmgMin: number;
+  dmgMax: number;
+  range: number;
+  atkSpeed: number;
+  effects: EffectKind[];
+  blurb: string;
+  targeting: Targeting;
+}
+
+export interface UpgradeTier {
+  name: string;
+  cost: number;
+  stats: ComboStats;
+}
+
 export interface ComboRecipe {
   key: string;
   name: string;
   inputs: ComboInput[];
-  stats: {
-    dmgMin: number;
-    dmgMax: number;
-    range: number;
-    atkSpeed: number;
-    effects: EffectKind[];
-    blurb: string;
-    targeting: Targeting;
-  };
+  stats: ComboStats;
+  upgrades: UpgradeTier[];
   visualGem: GemType;
 }
 
@@ -54,6 +63,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "+30% atk speed to nearby towers.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "opal",
   },
   {
@@ -76,6 +86,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Burn dmg to nearby enemies. High splash radius.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "ruby",
   },
   {
@@ -95,6 +106,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "12.5% chance to stun for 1 sec.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "emerald",
   },
   {
@@ -114,6 +126,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "25% crit chance.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "topaz",
   },
   {
@@ -136,6 +149,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Poison + 50% slow for 2s.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "emerald",
   },
   {
@@ -155,6 +169,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Attacks 3 enemies at once.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "emerald",
   },
   {
@@ -174,6 +189,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "10% chance for x5 crit. Ground only.",
       targeting: "ground",
     },
+    upgrades: [],
     visualGem: "ruby",
   },
   {
@@ -196,6 +212,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Splash slow 20%.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "diamond",
   },
   {
@@ -218,6 +235,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Burns nearby enemies.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "ruby",
   },
   {
@@ -241,6 +259,7 @@ export const COMBOS: ComboRecipe[] = [
       blurb: "Slow + heavy burn nearby.",
       targeting: "all",
     },
+    upgrades: [],
     visualGem: "topaz",
   },
 ];
@@ -250,4 +269,17 @@ const COMBO_BY_KEY = new Map(COMBOS.map((c) => [sortKey(c.inputs), c]));
 /** Find a recipe matching the given inputs (any order). Strict exact match on (gem, quality). */
 export function findCombo(inputs: ComboInput[]): ComboRecipe | null {
   return COMBO_BY_KEY.get(sortKey(inputs)) ?? null;
+}
+
+/** Resolve the effective stats for a combo at a given upgrade tier (0 = base). */
+export function comboStatsAtTier(combo: ComboRecipe, tier: number): ComboStats {
+  if (tier <= 0 || combo.upgrades.length === 0) return combo.stats;
+  const idx = Math.min(tier - 1, combo.upgrades.length - 1);
+  return combo.upgrades[idx].stats;
+}
+
+/** Return the next available upgrade for a combo at the given tier, or null if maxed. */
+export function nextUpgrade(combo: ComboRecipe, tier: number): UpgradeTier | null {
+  if (tier >= combo.upgrades.length) return null;
+  return combo.upgrades[tier];
 }

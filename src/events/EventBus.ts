@@ -25,6 +25,7 @@ export interface GameEvents {
     outputGem: GemType;
     outputQuality: Quality;
   };
+  'tower:upgrade': { id: number; comboKey: string; tier: number };
   'toast': { kind: 'info' | 'good' | 'error'; text: string };
 }
 

@@ -21,6 +21,8 @@ export interface TowerState {
   quality: Quality;
   /** When > 0, this is a multi-gem special tower keyed in combos.ts. */
   comboKey?: string;
+  /** Current upgrade tier for combo towers (0 = base, 1+ = upgraded). */
+  upgradeTier?: number;
   /** Last fire tick — used to gate attack speed. */
   lastFireTick: number;
   /** Count of kills for fun stats. */

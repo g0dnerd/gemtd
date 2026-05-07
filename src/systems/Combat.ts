@@ -10,7 +10,7 @@
 import { TILE, FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ } from '../game/constants';
 import { Game } from '../game/Game';
 import { gemStats } from '../data/gems';
-import { COMBOS } from '../data/combos';
+import { COMBOS, comboStatsAtTier } from '../data/combos';
 import type { CreepState, ProjectileState, TowerState } from '../game/State';
 import type { EffectKind } from '../data/gems';
 
@@ -199,14 +199,15 @@ function effectiveStats(t: TowerState): ResolvedStats {
   if (t.comboKey) {
     const combo = COMBOS.find((c) => c.key === t.comboKey);
     if (combo) {
+      const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
       return {
-        dmgMin: combo.stats.dmgMin,
-        dmgMax: combo.stats.dmgMax,
-        range: combo.stats.range,
-        atkSpeed: combo.stats.atkSpeed,
-        effects: combo.stats.effects,
+        dmgMin: s.dmgMin,
+        dmgMax: s.dmgMax,
+        range: s.range,
+        atkSpeed: s.atkSpeed,
+        effects: s.effects,
         visualGem: combo.visualGem,
-        targeting: combo.stats.targeting,
+        targeting: s.targeting,
       };
     }
   }
