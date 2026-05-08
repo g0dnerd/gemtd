@@ -139,6 +139,8 @@ export class BuildPhase {
     slot.placedTowerId = id;
     state.activeDrawSlot = nextUnplacedSlot(state);
     this.game.refreshRoute();
+    this.game.selectTower(null);
+    this.game.selectRock(null);
 
     // Push to undo stack.
     state.undoStack.push({

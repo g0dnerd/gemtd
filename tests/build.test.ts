@@ -20,6 +20,7 @@ interface FakeGame {
   nextId(): number;
   refreshRoute(): boolean;
   selectTower(id: number | null): void;
+  selectRock(id: number | null): void;
 }
 
 function makeFake(): { game: FakeGame; phase: BuildPhase } {
@@ -44,6 +45,7 @@ function makeFake(): { game: FakeGame; phase: BuildPhase } {
       return true;
     },
     selectTower: (id) => { state.selectedTowerId = id; },
+    selectRock: (id) => { state.selectedRockId = id; },
   };
   // BuildPhase is constructed with a Game; emulate enough surface here.
   const phase = new BuildPhase(game as unknown as import('../src/game/Game').Game);
