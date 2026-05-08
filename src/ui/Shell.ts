@@ -8,6 +8,7 @@ import { Game } from '../game/Game';
 import { mountTitle } from './Title';
 import { mountHud } from './Hud';
 import { mountToasts } from './Toasts';
+import { mountTweaks } from './Tweaks';
 
 export function mountUI(root: HTMLElement, app: Application, game: Game): void {
   const container = document.createElement('div');
@@ -33,6 +34,7 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
 
   // Toasts overlay sits above everything.
   mountToasts(root, game);
+  mountTweaks(root, game);
 
   game.bus.on('phase:enter', ({ phase }) => {
     if (phase === 'title') {

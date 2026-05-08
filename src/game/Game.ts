@@ -24,6 +24,7 @@ import { COMBOS, nextUpgrade } from '../data/combos';
 import { Combat } from '../systems/Combat';
 import { TowerSpriteCache } from '../render/TowerRenderer';
 import { renderTowers, renderRocks, renderCreeps, renderProjectiles, renderHover, renderRangePreview } from '../render/EntityRenderer';
+import { renderCursorGrid, renderUniformGrid } from '../render/CursorGrid';
 
 export class Game {
   readonly bus = new EventBus();
@@ -47,6 +48,22 @@ export class Game {
 
   /** Tile under the pointer (for build preview). null if outside the board. */
   hoverTile: { x: number; y: number } | null = null;
+
+  /** Raw pointer position in board-space pixels. null if outside the board. */
+  hoverPixel: { x: number; y: number } | null = null;
+
+  /** Whether the pointer is currently over the canvas. */
+  hoverPresent = false;
+
+  /** Animated halo opacity (0..1). Fades in on pointer-enter, out on pointer-leave. */
+  haloAlpha = 0;
+
+  /** Last known hover positions — kept alive during fade-out so the grid doesn't vanish instantly. */
+  private lastHoverPixel: { x: number; y: number } | null = null;
+  private lastHoverTile: { x: number; y: number } | null = null;
+
+  /** Whether the cursor-local grid feature is enabled (tweaks toggle). */
+  cursorGridEnabled = true;
 
   /** Currently selected tower (if any). null otherwise. */
   selectedTowerId: number | null = null;
@@ -298,12 +315,40 @@ export class Game {
   }
 
   private renderEntities(): void {
+    this.updateHaloAlpha();
     renderTowers(this.layers.towers, this.state.towers, this.towerSprites, this.state.tick);
     renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites);
     renderCreeps(this.layers.creeps, this.state.creeps);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
     renderRangePreview(this.layers.preview, this.state, this.hoverTile, this.selectedTowerId);
     renderHover(this.layers.preview, this.state, this.hoverTile);
+    if (this.hoverPixel) this.lastHoverPixel = this.hoverPixel;
+    if (this.hoverTile) this.lastHoverTile = this.hoverTile;
+    if (this.cursorGridEnabled) {
+      renderCursorGrid(
+        this.layers.cursorGrid,
+        this.layers.ghostCell,
+        this.hoverPixel ?? this.lastHoverPixel,
+        this.hoverTile ?? this.lastHoverTile,
+        this.haloAlpha,
+        this.state.phase,
+        this.state.grid,
+      );
+    } else {
+      renderUniformGrid(this.layers.cursorGrid, this.state.phase);
+    }
+  }
+
+  private updateHaloAlpha(): void {
+    // 120ms fade-in, 160ms fade-out, driven by real frame delta (render-only, not sim).
+    const fadeInRate = 1 / (0.120 * 60);   // per-frame at 60fps
+    const fadeOutRate = 1 / (0.160 * 60);
+    const dt = this.app.ticker.deltaTime; // frames elapsed (typically ~1)
+    if (this.hoverPresent && this.state.phase === 'build') {
+      this.haloAlpha = Math.min(1, this.haloAlpha + fadeInRate * dt);
+    } else {
+      this.haloAlpha = Math.max(0, this.haloAlpha - fadeOutRate * dt);
+    }
   }
 
   // Public command surface used by UI / input.

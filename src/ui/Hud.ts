@@ -408,11 +408,32 @@ export function mountHud(
     return { x: tx, y: ty };
   }
 
+  function pixelFromPointer(ev: PointerEvent): { x: number; y: number } | null {
+    const rect = canvasHost.getBoundingClientRect();
+    const lx = ev.clientX - rect.left;
+    const ly = ev.clientY - rect.top;
+    const bx = game.board.x;
+    const by = game.board.y;
+    const px = lx - bx;
+    const py = ly - by;
+    const boardW = GRID_W * FINE_TILE;
+    const boardH = GRID_H * FINE_TILE;
+    if (px < 0 || py < 0 || px >= boardW || py >= boardH) return null;
+    return { x: px, y: py };
+  }
+
   canvasHost.addEventListener("pointermove", (ev: PointerEvent) => {
     game.hoverTile = tileFromPointer(ev);
+    game.hoverPixel = pixelFromPointer(ev);
+    game.hoverPresent = true;
   });
   canvasHost.addEventListener("pointerleave", () => {
     game.hoverTile = null;
+    game.hoverPixel = null;
+    game.hoverPresent = false;
+  });
+  canvasHost.addEventListener("pointerenter", () => {
+    game.hoverPresent = true;
   });
   canvasHost.addEventListener("pointerdown", (ev: PointerEvent) => {
     if (ev.button !== 0) return;

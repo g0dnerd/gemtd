@@ -17,6 +17,8 @@ export interface BoardLayers {
   ground: Container;
   pathOverlay: Container;
   checkpoints: Container;
+  cursorGrid: Container;
+  ghostCell: Container;
   rocks: Container;
   towers: Container;
   preview: Container;
@@ -36,6 +38,10 @@ export function makeBoardLayers(): BoardLayers {
   pathOverlay.label = "pathOverlay";
   const checkpoints = new Container();
   checkpoints.label = "checkpoints";
+  const cursorGrid = new Container();
+  cursorGrid.label = "cursorGrid";
+  const ghostCell = new Container();
+  ghostCell.label = "ghostCell";
   const rocks = new Container();
   rocks.label = "rocks";
   const towers = new Container();
@@ -55,6 +61,8 @@ export function makeBoardLayers(): BoardLayers {
     ground,
     pathOverlay,
     checkpoints,
+    cursorGrid,
+    ghostCell,
     rocks,
     towers,
     preview,
@@ -68,6 +76,8 @@ export function makeBoardLayers(): BoardLayers {
     ground,
     pathOverlay,
     checkpoints,
+    cursorGrid,
+    ghostCell,
     rocks,
     towers,
     preview,
@@ -132,9 +142,9 @@ export function renderGround(layer: Container, grid: Cell[][]): void {
   drawCrystalShrine(layer, END.x * FINE_TILE, END.y * FINE_TILE);
 }
 
-/** Grass tile with deterministic per-cell decoration noise. */
+/** Grass tile — flat fill with sparse decoration noise (no bevel grid). */
 function drawGrassCell(g: Graphics, cx: number, cy: number, x: number, y: number): void {
-  drawCell(g, cx, cy, CELL.grass, CELL.grassHi, CELL.grassLo);
+  g.rect(cx, cy, FINE_TILE, FINE_TILE).fill(CELL.grass);
   const n = (x * 23 + y * 41) % 29;
   if (n === 0) {
     g.rect(cx + 5, cy + 5, 2, 2).fill(CELL.grassTuft);
