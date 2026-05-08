@@ -7,7 +7,7 @@
 
 import type { Application } from "pixi.js";
 import { Game } from "../game/Game";
-import { GEM_PALETTE, GemType, QUALITY_NAMES } from "../render/theme";
+import { GEM_PALETTE, GemType, QUALITY_NAMES, TIER_COLORS } from "../render/theme";
 import {
   htmlCoin,
   htmlGem,
@@ -38,7 +38,7 @@ const TIER_LABELS = [
   "FLAWLESS",
   "PERFECT",
 ] as const;
-const TIER_COLORS = [
+const CHANCE_TIER_COLORS = [
   "#8c7a5e",
   "var(--px-ink-dim)",
   "var(--px-ink)",
@@ -160,42 +160,62 @@ export function mountHud(
     recipesList.innerHTML = "";
     for (const c of COMBOS) {
       const card = document.createElement("div");
-      card.className = "px-panel-inset recipe-card";
+      card.className = "px-panel-inset recipe-card v2c";
 
-      const head = document.createElement("div");
-      head.className = "recipe-card-head";
-      head.appendChild(htmlSpecial(c.key, 28, true));
-      const info = document.createElement("div");
-      info.className = "recipe-info";
+      const banner = document.createElement("div");
+      banner.className = "recipe-banner";
+      banner.style.setProperty(
+        "--banner-tint",
+        GEM_PALETTE[c.visualGem].css.dark,
+      );
+
+      const spriteHost = document.createElement("div");
+      spriteHost.className = "recipe-banner-sprite";
+      spriteHost.appendChild(htmlSpecial(c.key, 36, true));
+      banner.appendChild(spriteHost);
+
       const name = document.createElement("div");
       name.className = "recipe-name";
       name.textContent = c.name.toUpperCase();
-      info.appendChild(name);
-      head.appendChild(info);
-      card.appendChild(head);
+      banner.appendChild(name);
 
-      const inputs = document.createElement("div");
-      inputs.className = "recipe-inputs";
-      for (let i = 0; i < c.inputs.length; i++) {
-        const inp = c.inputs[i];
-        const pill = document.createElement("div");
-        pill.className = "recipe-pill";
-        pill.appendChild(
-          htmlGemTier(inp.gem, inp.quality, 16, inp.quality > 2),
-        );
-        const q = document.createElement("span");
-        q.className = "recipe-pill-q";
-        q.textContent = `L${inp.quality}`;
-        pill.appendChild(q);
-        inputs.appendChild(pill);
-        if (i < c.inputs.length - 1) {
-          const plus = document.createElement("span");
-          plus.className = "recipe-plus";
-          plus.textContent = "+";
-          inputs.appendChild(plus);
-        }
+      if (c.stats.blurb) {
+        const blurb = document.createElement("div");
+        blurb.className = "recipe-blurb";
+        blurb.textContent = c.stats.blurb;
+        banner.appendChild(blurb);
       }
-      card.appendChild(inputs);
+
+      const dmg = document.createElement("div");
+      dmg.className = "recipe-dmg";
+      const dmgVal = document.createElement("span");
+      dmgVal.className = "recipe-dmg-value";
+      dmgVal.textContent = `${c.stats.dmgMin}–${c.stats.dmgMax}`;
+      const dmgLbl = document.createElement("span");
+      dmgLbl.className = "recipe-dmg-label";
+      dmgLbl.textContent = "DMG";
+      dmg.append(dmgVal, dmgLbl);
+      banner.appendChild(dmg);
+
+      card.appendChild(banner);
+
+      const ingredients = document.createElement("div");
+      ingredients.className = "recipe-ingredients";
+      for (const inp of c.inputs) {
+        const row = document.createElement("div");
+        row.className = "recipe-ingredient";
+        row.style.setProperty("--tier-color", TIER_COLORS[inp.quality]);
+        row.appendChild(htmlGemTier(inp.gem, inp.quality, 22, inp.quality > 2));
+        const gemName = document.createElement("span");
+        gemName.className = "recipe-ingredient-name";
+        gemName.textContent = GEM_PALETTE[inp.gem].name.toUpperCase();
+        const tierLabel = document.createElement("span");
+        tierLabel.className = "recipe-ingredient-tier";
+        tierLabel.textContent = QUALITY_NAMES[inp.quality].toUpperCase();
+        row.append(gemName, tierLabel);
+        ingredients.appendChild(row);
+      }
+      card.appendChild(ingredients);
       recipesList.appendChild(card);
     }
   }
@@ -588,7 +608,7 @@ export function mountHud(
         const headRow = document.createElement("div");
         headRow.className = "chance-row-head";
         const label = document.createElement("span");
-        label.style.color = TIER_COLORS[i];
+        label.style.color = CHANCE_TIER_COLORS[i];
         label.textContent = TIER_LABELS[i];
         const pctEl = document.createElement("span");
         pctEl.className = "chance-pct";
@@ -599,7 +619,7 @@ export function mountHud(
         bar.className = "px-bar chance-bar";
         const fill = document.createElement("div");
         fill.className = "px-bar-fill";
-        fill.style.background = TIER_COLORS[i];
+        fill.style.background = CHANCE_TIER_COLORS[i];
         fill.style.width = `${pct}%`;
         bar.appendChild(fill);
         wrap.appendChild(bar);

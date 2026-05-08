@@ -518,7 +518,7 @@
   padding: 12px 4px;
 }
 
-/* Recipes */
+/* Recipes — V2c compact hero-banner layout */
 .recipes-panel {
   flex: 1;
   display: flex;
@@ -533,52 +533,94 @@
   min-height: 0;
   padding-right: 4px;
 }
-.recipe-card {
-  padding: 10px;
+.recipe-card.v2c {
+  padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
-.recipe-card-head {
+
+.recipe-banner {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  column-gap: 10px;
+  row-gap: 4px;
+  align-items: center;
+  padding: 10px 12px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in oklab, var(--banner-tint, #222) 40%, transparent) 0%,
+    transparent 70%
+  );
+}
+.recipe-banner-sprite {
+  grid-row: 1 / span 2;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
 }
-.recipe-card-head .recipe-info {
-  flex: 1;
+.recipe-name {
+  grid-column: 2 / span 2;
+  font-family: "Press Start 2P", monospace;
+  font-size: 12px;
+  color: var(--px-accent);
+  letter-spacing: 1.5px;
+  line-height: 1.15;
   min-width: 0;
 }
-.recipe-card-head .recipe-name {
-  font-family: "Press Start 2P", monospace;
-  font-size: 10px;
-  color: var(--px-accent);
-  letter-spacing: 1px;
+.recipe-blurb {
+  font-family: "VT323", monospace;
+  font-size: 15px;
+  color: var(--px-ink-dim);
   line-height: 1.2;
+  min-width: 0;
 }
-.recipe-inputs {
+.recipe-dmg {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-shrink: 0;
+  justify-self: end;
 }
-.recipe-pill {
-  display: inline-flex;
+.recipe-dmg-value {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink-dim);
+  line-height: 1;
+}
+.recipe-dmg-label {
+  font-family: "Press Start 2P", monospace;
+  font-size: 6px;
+  color: var(--px-ink-dimmer);
+  letter-spacing: 1px;
+}
+
+.recipe-ingredients {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 14px 14px;
+  border-top: 1px solid var(--px-panel-2);
+}
+.recipe-ingredient {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  column-gap: 10px;
   align-items: center;
-  gap: 4px;
-  padding: 3px 6px;
+  padding: 4px 6px;
   background: var(--px-bg);
-  box-shadow: inset 1px 1px 0 0 var(--px-border-dark);
+  border-left: 3px solid var(--tier-color, var(--px-panel-2));
 }
-.recipe-pill-q {
+.recipe-ingredient-name {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink);
+  line-height: 1;
+}
+.recipe-ingredient-tier {
   font-family: "Press Start 2P", monospace;
   font-size: 8px;
-  color: var(--px-ink-dim);
+  color: var(--tier-color, var(--px-ink-dim));
   letter-spacing: 1px;
-}
-.recipe-plus {
-  font-family: "Press Start 2P", monospace;
-  font-size: 9px;
-  color: var(--px-ink-dimmer);
 }
 
 /* Action bar (right column bottom) */

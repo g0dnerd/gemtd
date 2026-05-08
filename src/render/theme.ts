@@ -112,6 +112,14 @@ export const QUALITY_NAMES: Record<Quality, string> = {
   5: 'Perfect',
 };
 
+export const TIER_COLORS: Record<Quality, string> = {
+  1: '#8c7a5e',
+  2: '#b8a584',
+  3: '#f4e4c1',
+  4: '#f0a040',
+  5: '#58c850',
+};
+
 /** Visual tweak: gem render size scales up with quality. */
 export const QUALITY_SCALE: Record<Quality, number> = {
   1: 1.0,
