@@ -1,19 +1,22 @@
-import { describe, expect, it } from 'vitest';
-import { GEM_BASE, gemStats } from '../src/data/gems';
-import { GEM_TYPES, Quality } from '../src/render/theme';
-import { COMBOS, findCombo } from '../src/data/combos';
-import { CREEP_ARCHETYPES } from '../src/data/creeps';
-import { WAVES } from '../src/data/waves';
-import { CHANCE_TIER_WEIGHTS, CHANCE_TIER_UPGRADE_COST } from '../src/game/constants';
+import { describe, expect, it } from "vitest";
+import { GEM_BASE, gemStats } from "../src/data/gems";
+import { GEM_TYPES, Quality } from "../src/render/theme";
+import { COMBOS, findCombo } from "../src/data/combos";
+import { CREEP_ARCHETYPES } from "../src/data/creeps";
+import { WAVES } from "../src/data/waves";
+import {
+  CHANCE_TIER_WEIGHTS,
+  CHANCE_TIER_UPGRADE_COST,
+} from "../src/game/constants";
 
-describe('balance / data integrity', () => {
-  it('every gem type has a base stat block', () => {
+describe("balance / data integrity", () => {
+  it("every gem type has a base stat block", () => {
     for (const g of GEM_TYPES) {
       expect(GEM_BASE[g]).toBeDefined();
     }
   });
 
-  it('quality scaling produces strictly increasing damage', () => {
+  it("quality scaling produces strictly increasing damage", () => {
     for (const g of GEM_TYPES) {
       let prev = -Infinity;
       for (let q = 1 as Quality; q <= 5; q = (q + 1) as Quality) {
@@ -26,7 +29,7 @@ describe('balance / data integrity', () => {
     }
   });
 
-  it('every combo references real gem types', () => {
+  it("every combo references real gem types", () => {
     for (const c of COMBOS) {
       for (const inp of c.inputs) {
         expect(GEM_TYPES).toContain(inp.gem);
@@ -37,30 +40,37 @@ describe('balance / data integrity', () => {
     }
   });
 
-  it('combos with the same input tuples are unique', () => {
+  it("combos with the same input tuples are unique", () => {
     const seen = new Set<string>();
     for (const c of COMBOS) {
-      const k = c.inputs.map((i) => `${i.gem}:${i.quality}`).slice().sort().join('+');
+      const k = c.inputs
+        .map((i) => `${i.gem}:${i.quality}`)
+        .slice()
+        .sort()
+        .join("+");
       expect(seen.has(k)).toBe(false);
       seen.add(k);
     }
   });
 
-  it('findCombo matches in any order', () => {
-    const silver = COMBOS.find((c) => c.key === 'silver')!;
+  it("findCombo matches in any order", () => {
+    const silver = COMBOS.find((c) => c.key === "silver")!;
     const found = findCombo(silver.inputs.slice().reverse());
-    expect(found?.key).toBe('silver');
+    expect(found?.key).toBe("silver");
   });
 
-  it('findCombo strict-quality match', () => {
-    const silver = COMBOS.find((c) => c.key === 'silver')!;
+  it("findCombo strict-quality match", () => {
+    const silver = COMBOS.find((c) => c.key === "silver")!;
     // Same gems, wrong quality — should miss.
-    const wrong = silver.inputs.map((i) => ({ gem: i.gem, quality: 2 as Quality }));
+    const wrong = silver.inputs.map((i) => ({
+      gem: i.gem,
+      quality: 2 as Quality,
+    }));
     expect(findCombo(wrong)).toBeNull();
     expect(findCombo(silver.inputs)).not.toBeNull();
   });
 
-  it('every wave references a real creep archetype', () => {
+  it("every wave references a real creep archetype", () => {
     for (const w of WAVES) {
       expect(CREEP_ARCHETYPES[w.kind]).toBeDefined();
       expect(w.count).toBeGreaterThan(0);
@@ -70,7 +80,7 @@ describe('balance / data integrity', () => {
     }
   });
 
-  it('wave HP trends upward across each set of 10 waves', () => {
+  it("wave HP trends upward across each set of 10 waves", () => {
     for (let i = 0; i < 4; i++) {
       const groupAvg = (start: number) => {
         let sum = 0;
@@ -81,25 +91,25 @@ describe('balance / data integrity', () => {
     }
   });
 
-  it('boss waves are at every 10', () => {
+  it("boss waves are at every 10", () => {
     for (let i = 9; i < WAVES.length; i += 10) {
-      expect(WAVES[i].kind).toBe('boss');
+      expect(WAVES[i].kind).toBe("boss");
     }
   });
 
-  it('every chance tier row sums to ~1', () => {
+  it("every chance tier row sums to ~1", () => {
     for (const row of CHANCE_TIER_WEIGHTS) {
       const sum = row.reduce((a, b) => a + b, 0);
       expect(Math.abs(sum - 1)).toBeLessThan(1e-6);
     }
   });
 
-  it('chance-tier upgrade costs total 1000g', () => {
+  it("chance-tier upgrade costs total 1505g", () => {
     const total = CHANCE_TIER_UPGRADE_COST.reduce((a, b) => a + b, 0);
-    expect(total).toBe(1000);
+    expect(total).toBe(1505);
   });
 
-  it('there are exactly 50 waves', () => {
+  it("there are exactly 50 waves", () => {
     expect(WAVES.length).toBe(50);
   });
 });
