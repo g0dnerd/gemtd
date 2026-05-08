@@ -5,9 +5,8 @@
  * silhouette + gem palette is used.
  */
 
-import { Container, Graphics, Renderer, Sprite, Texture } from "pixi.js";
+import { Container, Renderer, Sprite, Texture } from "pixi.js";
 import { GEM_PALETTE, GemType, Quality } from "./theme";
-import { TOWER_BASE } from "./sprites";
 import { rasterizeToTexture } from "./pixelTexture";
 import {
   TIER_GRIDS,
@@ -86,7 +85,7 @@ export class TowerSpriteCache {
   }
 }
 
-/** Build a tower sprite — gem centered on the tile, with an optional T4/T5 socket. */
+/** Build a tower sprite — gem centered on the tile. */
 export function makeTowerSprite(
   gem: GemType,
   quality: Quality,
@@ -102,18 +101,8 @@ export function makeTowerSprite(
   gemSprite.x = 0;
   gemSprite.y = 0;
 
-  // Socket (T4 / T5 base gems only): a 12×2 colored ring just under the gem.
   if (!comboKey && (quality === 4 || quality === 5)) {
-    const socketW = 12 * TOWER_SCALE;
-    const socketH = 2 * TOWER_SCALE;
-    const sx = -socketW / 2;
-    const sy = gemSprite.height / 2 - socketH;
-    const palette = GEM_PALETTE[gem];
-    const socket = new Graphics();
-    socket.rect(sx - 1, sy - 1, socketW + 2, socketH + 2).fill(TOWER_BASE.outline);
-    socket.rect(sx, sy, socketW, socketH).fill(palette.mid);
-    socket.rect(sx, sy, socketW, 1).fill(palette.light);
-    root.addChild(socket);
+    gemSprite.scale.set(1.2);
   }
 
   root.addChild(gemSprite);
