@@ -156,8 +156,9 @@ export class Combat {
           const chance = e.chance ?? 1.0;
           if (this.game.rng.next() > chance) break;
           const expires = tick + Math.round(e.duration * SIM_HZ);
-          if (!c.slow || c.slow.expiresAt < expires || c.slow.factor > e.factor) {
-            c.slow = { factor: e.factor, expiresAt: expires };
+          const factor = e.factor + (1 - e.factor) * c.slowResist;
+          if (!c.slow || c.slow.expiresAt < expires || c.slow.factor > factor) {
+            c.slow = { factor, expiresAt: expires };
           }
           break;
         }

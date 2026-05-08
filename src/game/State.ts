@@ -53,6 +53,8 @@ export interface CreepState {
   bounty: number;
   /** Visual color hint for non-gem creeps. */
   color: GemType;
+  /** 0–1. Fraction of slow effect negated (0 = full slow, 1 = immune). */
+  slowResist: number;
   /** Active status effects. */
   slow?: { factor: number; expiresAt: number };
   poison?: { dps: number; expiresAt: number; nextTick: number };
