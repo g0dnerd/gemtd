@@ -25,9 +25,17 @@ export class TowerSpriteCache {
   private rockTextures = new Map<RockKind, Texture>();
 
   // bus param kept for future audio/event hooks; not used yet.
-  constructor(private renderer: Renderer, _bus: EventBus) {}
+  constructor(
+    private renderer: Renderer,
+    _bus: EventBus,
+  ) {}
 
-  gemTexture(gem: GemType, quality: Quality, comboKey?: string, upgradeTier = 0): Texture {
+  gemTexture(
+    gem: GemType,
+    quality: Quality,
+    comboKey?: string,
+    upgradeTier = 0,
+  ): Texture {
     const key = `${gem}:${quality}:${comboKey ?? "base"}:${upgradeTier}`;
     let tex = this.gemTextures.get(key);
     if (tex) return tex;
@@ -36,7 +44,8 @@ export class TowerSpriteCache {
       const spec = SPECIAL_SPRITES[comboKey];
       const tierGrids = SPECIAL_TIER_GRIDS[comboKey];
       const effectiveTier = Math.min(upgradeTier + 1, 3) as 2 | 3;
-      const grid = (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
+      const grid =
+        (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
       tex = rasterizeToTexture(
         this.renderer,
         grid,
@@ -101,15 +110,14 @@ export function makeTowerSprite(
   gemSprite.x = 0;
   gemSprite.y = 0;
 
-  if (!comboKey && (quality === 4 || quality === 5)) {
-    gemSprite.scale.set(1.2);
-  }
-
   root.addChild(gemSprite);
   return root;
 }
 
-export function makeRockSprite(cache: TowerSpriteCache, kind: RockKind): Sprite {
+export function makeRockSprite(
+  cache: TowerSpriteCache,
+  kind: RockKind,
+): Sprite {
   const tex = cache.rock(kind);
   const s = new Sprite(tex);
   s.anchor.set(0, 0);
