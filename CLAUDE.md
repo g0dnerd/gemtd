@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run dev` — Vite dev server at http://localhost:5173
 - `npm run build` — `tsc -b && vite build` (typecheck-then-bundle; output in `dist/`)
 - `npm run typecheck` — `tsc --noEmit`
-- `npm test` — Vitest run-once (`vitest run`)
+- `npm test` — Vitest run-once (excludes heavy sim tests)
 - `npm run test:watch` — Vitest in watch mode
 - Single test file: `npx vitest run tests/combat.test.ts`
 - Single test by name: `npx vitest run -t "name fragment"`

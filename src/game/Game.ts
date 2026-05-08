@@ -41,6 +41,8 @@ export class Game {
 
   /** Accumulator for fixed-step sim. */
   private accum = 0;
+  private lastTickTime = performance.now();
+  private backgroundInterval: ReturnType<typeof setInterval> | null = null;
   private nextEntityId = 1;
 
   /** Tile under the pointer (for build preview). null if outside the board. */
@@ -76,6 +78,17 @@ export class Game {
     this.refreshRoute();
 
     this.app.ticker.add(this.tick, this);
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        this.backgroundInterval = setInterval(() => this.drainAccumulator(), 1000);
+      } else {
+        if (this.backgroundInterval !== null) {
+          clearInterval(this.backgroundInterval);
+          this.backgroundInterval = null;
+        }
+      }
+    });
   }
 
   start(): void {
@@ -256,17 +269,24 @@ export class Game {
   }
 
   /** Pixi ticker callback. */
-  private tick(ticker: Ticker): void {
-    const dtMs = ticker.deltaMS;
+  private tick(_ticker: Ticker): void {
+    this.drainAccumulator();
+    this.renderEntities();
+  }
+
+  /** Advance the sim to match elapsed wall-clock time. */
+  private drainAccumulator(): void {
+    const now = performance.now();
+    const dtMs = now - this.lastTickTime;
+    this.lastTickTime = now;
     const speed = this.state.speed;
-    const cap = 0.25; // safety: don't run more than 250ms of sim per frame
-    let toSimulate = Math.min(cap, (dtMs / 1000) * speed);
+    const maxCatchUp = 120;
+    const toSimulate = Math.min(maxCatchUp, (dtMs / 1000) * speed);
     this.accum += toSimulate;
     while (this.accum >= SIM_DT) {
       this.simStep();
       this.accum -= SIM_DT;
     }
-    this.renderEntities();
   }
 
   private simStep(): void {
