@@ -19,9 +19,22 @@ import { SPRITE_BY_KIND } from "./sprites";
 import { drawPixelGrid } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX, pickRock } from "./spriteData";
+import { APEX_STARGEM } from "./theme";
 
 interface PerEntity {
   obj: Container;
+}
+
+interface StargemFx {
+  ground: Graphics;
+  outerHalo: Graphics;
+  innerHalo: Graphics;
+  rayBurst: Container;
+  crownSparks: Graphics[];
+  orbitals: Container[];
+  pinpricks: Graphics[];
+  shootingStars: Graphics[];
+  spriteWrap: Container;
 }
 
 interface TowerEntry {
@@ -32,6 +45,8 @@ interface TowerEntry {
   upgradeTier: number;
   /** FX layer (halo/aura/orbit/ground), only set for special towers. */
   fx?: TowerFx;
+  /** Dedicated FX layer for the Stargem apex tower. */
+  stargemFx?: StargemFx;
 }
 
 interface TowerFx {
@@ -62,20 +77,28 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       const obj = new Container();
       let fx: TowerFx | undefined;
-      if (t.comboKey && SPECIAL_FX[t.comboKey]) {
-        fx = makeSpecialFx(obj, t.comboKey);
+      let sgfx: StargemFx | undefined;
+      if (t.comboKey === "stargem") {
+        sgfx = makeStargemFx(obj);
+        const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
+        sgfx.spriteWrap.addChild(towerSprite);
+      } else {
+        if (t.comboKey && SPECIAL_FX[t.comboKey]) {
+          fx = makeSpecialFx(obj, t.comboKey);
+        }
+        const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
+        obj.addChild(towerSprite);
       }
-      const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
-      obj.addChild(towerSprite);
       layer.addChild(obj);
-      entry = { obj, comboKey: t.comboKey, quality: t.quality, upgradeTier: tier, fx };
+      entry = { obj, comboKey: t.comboKey, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx };
       towerObjs.set(t.id, entry);
     }
     // Tower anchor (t.x, t.y) is the top-left fine cell of its 2×2 footprint,
     // so the visual centre sits on the corner shared by the 4 cells.
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
-    if (entry.fx) animateTowerFx(entry.fx, tick);
+    if (entry.stargemFx) animateStargemFx(entry.stargemFx, tick);
+    else if (entry.fx) animateTowerFx(entry.fx, tick);
   }
   for (const [id, entry] of towerObjs) {
     if (!seen.has(id)) {
@@ -164,6 +187,185 @@ function animateTowerFx(fx: TowerFx, tick: number): void {
     const r = TILE * 0.55;
     fx.orbit.x = Math.cos(ang) * r;
     fx.orbit.y = Math.sin(ang) * r * 0.9;
+  }
+}
+
+// ===== Stargem Supernova FX ================================================
+
+function makeStargemFx(parent: Container): StargemFx {
+  const half = TILE / 2;
+
+  // 1. Ground tint
+  const ground = new Graphics();
+  ground.rect(-half + 1, -half + 1, TILE - 2, TILE - 2).fill(APEX_STARGEM.aura);
+  ground.alpha = 0.28;
+  ground.blendMode = "screen";
+  parent.addChild(ground);
+
+  // 2. Constellation pinpricks (4 corner dots)
+  const inset = 0.12;
+  const corners = [
+    { x: -half * (1 - inset), y: -half * (1 - inset) },
+    { x: half * (1 - inset), y: -half * (1 - inset) },
+    { x: -half * (1 - inset), y: half * (1 - inset) },
+    { x: half * (1 - inset), y: half * (1 - inset) },
+  ];
+  const pinpricks: Graphics[] = [];
+  for (const pos of corners) {
+    const p = new Graphics();
+    p.circle(pos.x, pos.y, 1).fill(0xffffff);
+    parent.addChild(p);
+    pinpricks.push(p);
+  }
+
+  // 3. Ray burst (8 spokes)
+  const rayBurst = new Container();
+  const rayGfx = new Graphics();
+  const innerR = TILE * 0.22;
+  const outerR = TILE * 0.72;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    const hw = Math.PI * 2 * 0.02;
+    rayGfx.poly([
+      Math.cos(a) * innerR, Math.sin(a) * innerR,
+      Math.cos(a - hw) * outerR, Math.sin(a - hw) * outerR,
+      Math.cos(a + hw) * outerR, Math.sin(a + hw) * outerR,
+    ]).fill({ color: APEX_STARGEM.accent, alpha: 0.7 });
+  }
+  rayBurst.addChild(rayGfx);
+  parent.addChild(rayBurst);
+
+  // 4. Outer halo
+  const outerHalo = new Graphics();
+  const haloR = TILE * 0.9;
+  for (let i = 6; i > 0; i--) {
+    outerHalo.circle(0, 0, haloR * (i / 6)).fill({ color: APEX_STARGEM.aura, alpha: 0.14 });
+  }
+  parent.addChild(outerHalo);
+
+  // 5. Inner halo core
+  const innerHalo = new Graphics();
+  const coreR = TILE * 0.4;
+  for (let i = 4; i > 0; i--) {
+    const c = i > 2 ? APEX_STARGEM.c1 : APEX_STARGEM.aura;
+    innerHalo.circle(0, 0, coreR * (i / 4)).fill({ color: c, alpha: 0.18 });
+  }
+  parent.addChild(innerHalo);
+
+  // 6. Sprite wrap (bobs vertically)
+  const spriteWrap = new Container();
+  parent.addChild(spriteWrap);
+
+  // 7. Crown sparks (8 around sprite)
+  const crownSparks: Graphics[] = [];
+  const sparkR = TILE * 0.36;
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2;
+    const s = new Graphics();
+    s.circle(0, 0, 2.5).fill({ color: APEX_STARGEM.accent, alpha: 0.5 });
+    s.circle(0, 0, 1).fill(0xffffff);
+    s.x = Math.cos(angle) * sparkR;
+    s.y = Math.sin(angle) * sparkR;
+    parent.addChild(s);
+    crownSparks.push(s);
+  }
+
+  // 8. Orbitals (4 dots on rotating tracks)
+  const orbDefs = [
+    { color: 0xffffff, r: 1.05, size: 1.5 },
+    { color: APEX_STARGEM.accent, r: 1.20, size: 1.8 },
+    { color: APEX_STARGEM.c1, r: 1.35, size: 1.2 },
+    { color: 0xffffff, r: 1.50, size: 0.9 },
+  ];
+  const orbitals: Container[] = [];
+  for (const def of orbDefs) {
+    const orb = new Container();
+    const dot = new Graphics();
+    dot.circle(0, 0, def.size + 0.5).fill({ color: def.color, alpha: 0.35 });
+    dot.circle(0, 0, def.size).fill(def.color);
+    dot.y = -(half * 0.6 * def.r);
+    orb.addChild(dot);
+    parent.addChild(orb);
+    orbitals.push(orb);
+  }
+
+  // 9. Shooting stars (2 diagonal streaks)
+  const shootingStars: Graphics[] = [];
+  for (let i = 0; i < 2; i++) {
+    const ss = new Graphics();
+    ss.rect(0, 0, 16, 1.5).fill({ color: 0xffffff, alpha: 0.85 });
+    ss.rect(0, 0, 10, 1.5).fill({ color: APEX_STARGEM.accent, alpha: 0.6 });
+    ss.rotation = (20 * Math.PI) / 180;
+    ss.alpha = 0;
+    parent.addChild(ss);
+    shootingStars.push(ss);
+  }
+
+  return { ground, outerHalo, innerHalo, rayBurst, crownSparks, orbitals, pinpricks, shootingStars, spriteWrap };
+}
+
+const ORBITAL_PERIODS = [1.6, 2.4, 3.4, 5.0];
+const ORBITAL_DELAYS = [0, -0.4, -1.2, -2.0];
+const PIN_DELAYS = [0, 0.6, 1.2, 1.8];
+
+function animateStargemFx(fx: StargemFx, tick: number): void {
+  const t = tick / SIM_HZ;
+
+  // Sprite bob: 0 → -3 → 0 over 2.4s
+  fx.spriteWrap.y = -1.5 * (1 - Math.cos((2 * Math.PI * t) / 2.4));
+
+  // Outer halo: pulse 2.4s (opacity 0.55–1.0, scale 1.0–1.06)
+  const op = (Math.sin((t / 2.4) * Math.PI * 2) + 1) / 2;
+  fx.outerHalo.alpha = 0.85 * (0.55 + 0.45 * op);
+  fx.outerHalo.scale.set(1 + 0.06 * op);
+
+  // Inner halo: fast pulse 1.0s
+  const ip = (Math.sin((t / 1.0) * Math.PI * 2) + 1) / 2;
+  fx.innerHalo.alpha = 0.55 + 0.45 * ip;
+  fx.innerHalo.scale.set(1 + 0.06 * ip);
+
+  // Ray burst: spin 14s + pulse 2.2s
+  fx.rayBurst.rotation = (t / 14) * Math.PI * 2;
+  const rp = (Math.sin((t / 2.2) * Math.PI * 2) + 1) / 2;
+  fx.rayBurst.alpha = 0.7 * (0.55 + 0.45 * rp);
+
+  // Crown sparks (8): twinkle 1.6s, 0.18s stagger chase
+  for (let i = 0; i < 8; i++) {
+    const sp = (Math.sin(((t - i * 0.18) / 1.6) * Math.PI * 2) + 1) / 2;
+    fx.crownSparks[i].alpha = 0.2 + 0.8 * sp;
+    fx.crownSparks[i].scale.set(0.7 + 0.4 * sp);
+  }
+
+  // Orbitals (4): different speeds and phase delays
+  for (let i = 0; i < 4; i++) {
+    fx.orbitals[i].rotation = ((t - ORBITAL_DELAYS[i]) / ORBITAL_PERIODS[i]) * Math.PI * 2;
+  }
+
+  // Constellation pinpricks: twinkle 2.4s, staggered
+  for (let i = 0; i < 4; i++) {
+    const pp = (Math.sin(((t - PIN_DELAYS[i]) / 2.4) * Math.PI * 2) + 1) / 2;
+    fx.pinpricks[i].alpha = 0.2 + 0.8 * pp;
+    fx.pinpricks[i].scale.set(0.7 + 0.4 * pp);
+  }
+
+  // Shooting stars (2): 3.4s cycle, offset 1.7s
+  const half = TILE / 2;
+  for (let i = 0; i < 2; i++) {
+    const st = ((t - i * 1.7) % 3.4 + 3.4) % 3.4;
+    const p = st / 3.4;
+    if (p < 0.1) {
+      fx.shootingStars[i].alpha = p / 0.1;
+      fx.shootingStars[i].x = -half + (p / 0.4) * half * 3.2;
+      fx.shootingStars[i].y = -half + (p / 0.4) * half * 1.6;
+    } else if (p < 0.4) {
+      fx.shootingStars[i].alpha = 1;
+      fx.shootingStars[i].x = -half + (p / 0.4) * half * 3.2;
+      fx.shootingStars[i].y = -half + (p / 0.4) * half * 1.6;
+    } else if (p < 0.45) {
+      fx.shootingStars[i].alpha = 1 - (p - 0.4) / 0.05;
+    } else {
+      fx.shootingStars[i].alpha = 0;
+    }
   }
 }
 

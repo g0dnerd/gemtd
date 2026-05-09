@@ -444,6 +444,140 @@ export const COMBOS: ComboRecipe[] = [
     visualGem: "ruby",
   },
   {
+    key: "yellow_sapphire",
+    name: "Yellow Sapphire",
+    inputs: [
+      { gem: "sapphire", quality: 5 },
+      { gem: "sapphire", quality: 4 },
+      { gem: "opal", quality: 3 },
+    ],
+    stats: {
+      dmgMin: 80,
+      dmgMax: 120,
+      range: 4.0,
+      atkSpeed: 1.0,
+      effects: [
+        { kind: "splash", radius: 2.0, falloff: 0.5 },
+        { kind: "slow", factor: 0.8, duration: 2.0 },
+      ],
+      blurb: "Huge AoE slow.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Star Yellow Sapphire",
+        cost: 210,
+        stats: {
+          dmgMin: 150,
+          dmgMax: 210,
+          range: 4.25,
+          atkSpeed: 0.8,
+          effects: [
+            { kind: "splash", radius: 2.0, falloff: 0.5 },
+            { kind: "slow", factor: 0.8, duration: 2.0 },
+            { kind: "aura_dmg", radius: 3.0, pct: 0.05 },
+          ],
+          blurb: "Huge AoE slow. +5% damage to nearby towers.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "sapphire",
+  },
+  {
+    key: "red_crystal",
+    name: "Red Crystal",
+    inputs: [
+      { gem: "amethyst", quality: 5 },
+      { gem: "amethyst", quality: 4 },
+      { gem: "ruby", quality: 3 },
+    ],
+    stats: {
+      dmgMin: 80,
+      dmgMax: 150,
+      range: 5.0,
+      atkSpeed: 0.8,
+      effects: [
+        { kind: "prox_armor_reduce", radius: 3.5, value: 5, targets: "air" },
+      ],
+      blurb: "-5 armor to air in range. Air only.",
+      targeting: "air",
+    },
+    upgrades: [
+      {
+        name: "Red Crystal Facet",
+        cost: 100,
+        stats: {
+          dmgMin: 120,
+          dmgMax: 200,
+          range: 5.5,
+          atkSpeed: 0.8,
+          effects: [
+            { kind: "prox_armor_reduce", radius: 3.5, value: 6, targets: "air" },
+          ],
+          blurb: "-6 armor to air in range. Air only.",
+          targeting: "air",
+        },
+      },
+      {
+        name: "Rose Quartz Crystal",
+        cost: 100,
+        stats: {
+          dmgMin: 160,
+          dmgMax: 250,
+          range: 6.0,
+          atkSpeed: 0.8,
+          effects: [
+            { kind: "prox_armor_reduce", radius: 4.0, value: 7, targets: "air" },
+          ],
+          blurb: "-7 armor to air in range. Air only.",
+          targeting: "air",
+        },
+      },
+    ],
+    visualGem: "amethyst",
+  },
+  {
+    key: "paraiba_tourmaline",
+    name: "Paraiba Tourmaline",
+    inputs: [
+      { gem: "aquamarine", quality: 5 },
+      { gem: "emerald", quality: 4 },
+      { gem: "sapphire", quality: 3 },
+    ],
+    stats: {
+      dmgMin: 60,
+      dmgMax: 200,
+      range: 4.25,
+      atkSpeed: 0.75,
+      effects: [
+        { kind: "prox_armor_reduce", radius: 2.5, value: 4, targets: "ground" },
+        { kind: "splash", radius: 1.5, falloff: 0.5, chance: 0.33 },
+      ],
+      blurb: "-4 armor to ground in range. 33% frost nova.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Paraiba Tourmaline Facet",
+        cost: 350,
+        stats: {
+          dmgMin: 200,
+          dmgMax: 400,
+          range: 4.5,
+          atkSpeed: 0.6,
+          effects: [
+            { kind: "prox_armor_reduce", radius: 2.5, value: 6, targets: "ground" },
+            { kind: "splash", radius: 1.5, falloff: 0.5, chance: 0.33 },
+          ],
+          blurb: "-6 armor to ground in range. 33% frost nova.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "aquamarine",
+  },
+  {
     key: "uranium",
     name: "Uranium",
     inputs: [
@@ -485,13 +619,43 @@ export const COMBOS: ComboRecipe[] = [
     ],
     visualGem: "topaz",
   },
+  {
+    key: "stargem",
+    name: "Stargem",
+    inputs: [],
+    stats: {
+      dmgMin: 500,
+      dmgMax: 2500,
+      range: 5.5,
+      atkSpeed: 0.5,
+      effects: [{ kind: "crit", chance: 0.25, multiplier: 4.0 }],
+      blurb: "A stone of pure damage.",
+      targeting: "all",
+    },
+    upgrades: [],
+    visualGem: "diamond",
+  },
 ];
 
-const COMBO_BY_KEY = new Map(COMBOS.map((c) => [sortKey(c.inputs), c]));
+const COMBO_BY_KEY = new Map(
+  COMBOS.filter((c) => c.inputs.length > 0).map((c) => [sortKey(c.inputs), c]),
+);
 
 /** Find a recipe matching the given inputs (any order). Strict exact match on (gem, quality). */
 export function findCombo(inputs: ComboInput[]): ComboRecipe | null {
-  return COMBO_BY_KEY.get(sortKey(inputs)) ?? null;
+  const standard = COMBO_BY_KEY.get(sortKey(inputs));
+  if (standard) return standard;
+
+  // Stargem: 4× same gem at Perfect quality
+  if (
+    inputs.length === 4 &&
+    inputs.every((i) => i.quality === 5) &&
+    inputs.every((i) => i.gem === inputs[0].gem)
+  ) {
+    return COMBOS.find((c) => c.key === "stargem") ?? null;
+  }
+
+  return null;
 }
 
 /** Resolve the effective stats for a combo at a given upgrade tier (0 = base). */

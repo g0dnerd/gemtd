@@ -14,12 +14,14 @@ export type EffectKind =
   | { kind: 'none' }
   | { kind: 'slow'; factor: number; duration: number; chance?: number }
   | { kind: 'poison'; dps: number; duration: number }
-  | { kind: 'splash'; radius: number; falloff?: number }
+  | { kind: 'splash'; radius: number; falloff?: number; chance?: number }
   | { kind: 'chain'; bounces: number; falloff: number }
   | { kind: 'stun'; duration: number; chance: number }
   | { kind: 'crit'; chance: number; multiplier: number }
   | { kind: 'true'; chance: number }
-  | { kind: 'aura_atkspeed'; radius: number; pct: number };
+  | { kind: 'aura_atkspeed'; radius: number; pct: number }
+  | { kind: 'aura_dmg'; radius: number; pct: number }
+  | { kind: 'prox_armor_reduce'; radius: number; value: number; targets: 'ground' | 'air' | 'all' };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -245,6 +247,10 @@ export function effectSummary(e: EffectKind): string {
       return `${Math.round(e.chance * 100)}% true dmg`;
     case 'aura_atkspeed':
       return `Aura: +${Math.round(e.pct * 100)}% atk spd · ${e.radius.toFixed(1)} tiles`;
+    case 'aura_dmg':
+      return `Aura: +${Math.round(e.pct * 100)}% dmg · ${e.radius.toFixed(1)} tiles`;
+    case 'prox_armor_reduce':
+      return `-${e.value} armor to ${e.targets} · ${e.radius.toFixed(1)} tiles`;
     case 'none':
       return '';
   }

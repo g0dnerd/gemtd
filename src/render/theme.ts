@@ -120,6 +120,16 @@ export const TIER_COLORS: Record<Quality, string> = {
   5: '#58c850',
 };
 
+export const APEX_STARGEM = {
+  c1: 0xcfd8ff,
+  c2: 0x6478b8,
+  c3: 0x0d1132,
+  outline: 0x0a0510,
+  spark: 0xffffff,
+  accent: 0xffe066,
+  aura: 0x7c8cff,
+} as const;
+
 /** Visual tweak: gem render size scales up with quality. */
 export const QUALITY_SCALE: Record<Quality, number> = {
   1: 1.0,

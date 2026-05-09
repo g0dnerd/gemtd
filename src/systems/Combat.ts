@@ -24,19 +24,26 @@ export class Combat {
     const state = this.game.state;
     const tick = state.tick;
 
+    // Reset and recompute proximity armor debuffs each tick.
+    if (state.phase === 'wave') {
+      for (const c of state.creeps) if (c.alive) c.armorReduction = 0;
+      applyProximityAuras(state.towers, state.creeps);
+    }
+
     // Towers fire (only during waves).
     if (state.phase === 'wave') {
-      const auraMult = computeAuraMults(state.towers);
+      const auras = computeAuraMults(state.towers);
       for (const t of state.towers) {
         const stats = effectiveStats(t);
-        const mult = auraMult.get(t.id) ?? 0;
-        const effectiveAtkSpeed = stats.atkSpeed * (1 + mult);
+        const atkMult = auras.atkSpeed.get(t.id) ?? 0;
+        const effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
         const cooldownTicks = Math.max(1, Math.round(SIM_HZ / effectiveAtkSpeed));
         if (tick - t.lastFireTick < cooldownTicks) continue;
         const target = pickTarget(t, stats.range, state.creeps, stats.targeting);
         if (!target) continue;
         t.lastFireTick = tick;
-        this.fire(t, target, stats);
+        const dmgMult = auras.dmg.get(t.id) ?? 0;
+        this.fire(t, target, stats, dmgMult);
       }
     }
 
@@ -56,13 +63,12 @@ export class Combat {
     state.projectiles = state.projectiles.filter((p) => p.alive);
   }
 
-  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats): void {
+  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0): void {
     const state = this.game.state;
-    // Towers are 2×2 on the fine grid; the firing point is the centre of that footprint.
     const fromX = (tower.x + 1) * FINE_TILE;
     const fromY = (tower.y + 1) * FINE_TILE;
     const baseDmg = randInt(this.game.rng, stats.dmgMin, stats.dmgMax);
-    let dmg = baseDmg;
+    let dmg = Math.round(baseDmg * (1 + dmgAuraMult));
     for (const e of stats.effects) {
       if (e.kind === 'crit' && this.game.rng.next() < e.chance) {
         dmg = Math.round(dmg * e.multiplier);
@@ -100,6 +106,7 @@ export class Combat {
     // Splash
     for (const e of stats.effects) {
       if (e.kind === 'splash') {
+        if (e.chance != null && this.game.rng.next() >= e.chance) continue;
         for (const c of state.creeps) {
           if (!c.alive) continue;
           if (c === target) continue;
@@ -133,6 +140,7 @@ export class Combat {
   private applyDamage(c: CreepState, dmg: number, owner: TowerState): void {
     if (!c.alive) return;
     if (c.flags?.armored) dmg = Math.round(dmg * 0.7);
+    if (c.armorReduction > 0) dmg = Math.round(dmg * (1 + c.armorReduction * 0.05));
     c.hp -= dmg;
     this.game.bus.emit('tower:hit', { id: owner.id, targetId: c.id, damage: dmg });
     if (c.hp <= 0) {
@@ -225,25 +233,58 @@ function effectiveStats(t: TowerState): ResolvedStats {
   };
 }
 
-function computeAuraMults(towers: TowerState[]): Map<number, number> {
-  const out = new Map<number, number>();
+interface AuraMults {
+  atkSpeed: Map<number, number>;
+  dmg: Map<number, number>;
+}
+
+function computeAuraMults(towers: TowerState[]): AuraMults {
+  const atkSpeed = new Map<number, number>();
+  const dmg = new Map<number, number>();
   for (const src of towers) {
     const stats = effectiveStats(src);
     for (const e of stats.effects) {
-      if (e.kind !== 'aura_atkspeed') continue;
-      // Tower coords live on the fine grid; aura radius is in coarse tiles.
+      if (e.kind !== 'aura_atkspeed' && e.kind !== 'aura_dmg') continue;
       const radiusFine = e.radius * GRID_SCALE;
       const r2 = radiusFine * radiusFine;
+      const map = e.kind === 'aura_atkspeed' ? atkSpeed : dmg;
       for (const tgt of towers) {
         if (tgt.id === src.id) continue;
         const dx = tgt.x - src.x;
         const dy = tgt.y - src.y;
         if (dx * dx + dy * dy > r2) continue;
-        out.set(tgt.id, (out.get(tgt.id) ?? 0) + e.pct);
+        map.set(tgt.id, (map.get(tgt.id) ?? 0) + e.pct);
       }
     }
   }
-  return out;
+  return { atkSpeed, dmg };
+}
+
+function applyProximityAuras(towers: TowerState[], creeps: CreepState[]): void {
+  for (const src of towers) {
+    const stats = effectiveStats(src);
+    for (const e of stats.effects) {
+      if (e.kind !== 'prox_armor_reduce') continue;
+      const radiusPx = e.radius * TILE;
+      const r2 = radiusPx * radiusPx;
+      const tx = (src.x + 1) * FINE_TILE;
+      const ty = (src.y + 1) * FINE_TILE;
+      for (const c of creeps) {
+        if (!c.alive) continue;
+        if (!canTargetProx(e.targets, c)) continue;
+        const dx = c.px - tx;
+        const dy = c.py - ty;
+        if (dx * dx + dy * dy > r2) continue;
+        c.armorReduction = Math.max(c.armorReduction, e.value);
+      }
+    }
+  }
+}
+
+function canTargetProx(targets: 'ground' | 'air' | 'all', creep: CreepState): boolean {
+  if (targets === 'all') return true;
+  const isAir = !!creep.flags?.air;
+  return targets === 'air' ? isAir : !isAir;
 }
 
 function canTarget(targeting: 'all' | 'ground' | 'air', creep: CreepState): boolean {

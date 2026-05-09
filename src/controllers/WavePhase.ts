@@ -97,6 +97,7 @@ export class WavePhase {
       bounty: Math.round(def.bounty * arch.bountyMult),
       color: arch.color,
       alive: true,
+      armorReduction: 0,
       slowResist: def.slowResist,
       flags: arch.flags,
     };

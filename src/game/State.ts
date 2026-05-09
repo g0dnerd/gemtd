@@ -59,6 +59,8 @@ export interface CreepState {
   slow?: { factor: number; expiresAt: number };
   poison?: { dps: number; expiresAt: number; nextTick: number };
   stun?: { expiresAt: number };
+  /** Proximity-aura armor reduction applied this tick (reset each step). */
+  armorReduction: number;
   /** Boss / armored / air flags. */
   flags?: { boss?: boolean; armored?: boolean; air?: boolean };
   alive: boolean;

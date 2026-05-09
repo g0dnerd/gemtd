@@ -182,6 +182,49 @@ describe('combine: recipe path', () => {
       { gem: 'sapphire', quality: 1 },
     ])).toBeNull();
   });
+
+  it('findCombo matches Stargem for 4× Perfect same gem', () => {
+    expect(findCombo([
+      { gem: 'ruby', quality: 5 },
+      { gem: 'ruby', quality: 5 },
+      { gem: 'ruby', quality: 5 },
+      { gem: 'ruby', quality: 5 },
+    ])?.key).toBe('stargem');
+    expect(findCombo([
+      { gem: 'diamond', quality: 5 },
+      { gem: 'diamond', quality: 5 },
+      { gem: 'diamond', quality: 5 },
+      { gem: 'diamond', quality: 5 },
+    ])?.key).toBe('stargem');
+    // Mixed gems — no match.
+    expect(findCombo([
+      { gem: 'ruby', quality: 5 },
+      { gem: 'ruby', quality: 5 },
+      { gem: 'ruby', quality: 5 },
+      { gem: 'diamond', quality: 5 },
+    ])).toBeNull();
+    // Not Perfect quality — no match.
+    expect(findCombo([
+      { gem: 'ruby', quality: 4 },
+      { gem: 'ruby', quality: 4 },
+      { gem: 'ruby', quality: 4 },
+      { gem: 'ruby', quality: 4 },
+    ])).toBeNull();
+  });
+
+  it('4× Perfect same gem combine produces Stargem tower', () => {
+    const h = setup();
+    const ts = [
+      placeTower(h.game, 4, 4, 'ruby', 5),
+      placeTower(h.game, 4, 6, 'ruby', 5),
+      placeTower(h.game, 6, 4, 'ruby', 5),
+      placeTower(h.game, 6, 6, 'ruby', 5),
+    ];
+    h.game.state.draws = asDraws(ts);
+    expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers.length).toBe(1);
+    expect(h.game.state.towers[0].comboKey).toBe('stargem');
+  });
 });
 
 describe('combine: tile fate', () => {

@@ -517,10 +517,111 @@ const GOLD_APEX: PixelGrid = [
   [0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0],
 ];
 
+// ===== New specials: Red Crystal, Paraiba Tourmaline, Yellow Sapphire =====
+
+const RED_CRYSTAL_T1: PixelGrid = [
+  [0, 0, 0, 4, 4, 0, 0, 0],
+  [0, 0, 4, 1, 2, 4, 0, 0],
+  [0, 0, 4, 1, 2, 4, 0, 0],
+  [0, 4, 1, 5, 2, 3, 4, 0],
+  [0, 4, 1, 5, 2, 3, 4, 0],
+  [4, 1, 1, 5, 2, 2, 3, 4],
+  [4, 1, 2, 5, 2, 3, 3, 4],
+  [4, 2, 2, 2, 3, 3, 3, 4],
+  [0, 4, 2, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+];
+
+const RED_CRYSTAL_T2: PixelGrid = [
+  [0, 0, 0, 0, 4, 4, 0, 0, 0, 0],
+  [0, 0, 0, 4, 1, 2, 4, 0, 0, 0],
+  [0, 0, 4, 1, 5, 2, 3, 4, 0, 0],
+  [0, 4, 1, 5, 2, 2, 3, 3, 4, 0],
+  [4, 1, 1, 4, 4, 4, 4, 2, 3, 4],
+  [4, 1, 5, 1, 2, 5, 2, 2, 3, 4],
+  [4, 1, 5, 4, 4, 4, 4, 3, 3, 4],
+  [4, 2, 5, 1, 2, 2, 5, 3, 3, 4],
+  [4, 2, 2, 4, 4, 4, 4, 3, 3, 4],
+  [0, 4, 2, 2, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 2, 3, 3, 3, 4, 0, 0],
+  [0, 0, 0, 4, 4, 4, 4, 0, 0, 0],
+];
+
+const RED_CRYSTAL_T3: PixelGrid = [
+  [0, 0, 4, 4, 0, 0, 4, 4, 0, 4, 4, 0],
+  [0, 4, 1, 2, 4, 4, 1, 2, 4, 1, 2, 4],
+  [0, 4, 1, 2, 4, 4, 1, 2, 4, 5, 2, 4],
+  [4, 1, 5, 2, 3, 4, 5, 2, 3, 5, 2, 3],
+  [4, 1, 5, 2, 3, 4, 2, 2, 3, 2, 2, 3],
+  [4, 1, 5, 2, 2, 4, 2, 5, 3, 2, 3, 3],
+  [4, 1, 1, 5, 2, 2, 2, 2, 3, 2, 3, 3],
+  [4, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4],
+  [0, 4, 2, 2, 3, 3, 3, 3, 3, 3, 4, 0],
+  [0, 4, 2, 3, 3, 3, 3, 3, 3, 3, 4, 0],
+  [0, 4, 2, 3, 3, 3, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+const PARAIBA_T1: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+  [0, 4, 1, 1, 5, 5, 2, 2, 4, 0],
+  [4, 1, 5, 4, 4, 4, 4, 2, 3, 4],
+  [4, 1, 4, 1, 5, 5, 2, 4, 3, 4],
+  [4, 5, 4, 1, 2, 2, 3, 4, 3, 4],
+  [4, 2, 4, 5, 2, 2, 3, 4, 3, 4],
+  [4, 2, 4, 5, 2, 3, 3, 4, 3, 4],
+  [4, 2, 4, 4, 4, 4, 4, 4, 3, 4],
+  [0, 4, 2, 2, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+const PARAIBA_T2: PixelGrid = [
+  [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
+  [0, 4, 4, 1, 1, 5, 5, 2, 2, 4, 4, 0],
+  [0, 4, 1, 1, 5, 5, 2, 2, 2, 3, 3, 4],
+  [4, 1, 1, 4, 4, 4, 4, 4, 4, 2, 3, 4],
+  [4, 1, 5, 4, 1, 5, 5, 2, 4, 3, 3, 4],
+  [4, 1, 4, 5, 1, 2, 2, 2, 4, 3, 3, 4],
+  [4, 5, 4, 5, 2, 2, 3, 3, 4, 3, 3, 4],
+  [4, 5, 4, 1, 2, 3, 3, 3, 4, 3, 3, 4],
+  [4, 2, 4, 4, 4, 4, 4, 4, 4, 3, 3, 4],
+  [4, 2, 2, 5, 2, 3, 3, 3, 3, 3, 3, 4],
+  [0, 4, 2, 2, 3, 3, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+const YELLOW_SAPPH_T1: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+  [0, 4, 1, 1, 1, 2, 2, 2, 4, 0],
+  [4, 1, 1, 5, 5, 5, 2, 2, 3, 4],
+  [4, 1, 5, 5, 2, 2, 2, 3, 3, 4],
+  [4, 1, 5, 2, 2, 2, 3, 3, 3, 4],
+  [4, 2, 2, 2, 2, 3, 3, 3, 3, 4],
+  [4, 2, 2, 2, 3, 3, 3, 3, 3, 4],
+  [4, 2, 3, 3, 3, 3, 3, 3, 3, 4],
+  [0, 4, 3, 3, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+const YELLOW_SAPPH_T2: PixelGrid = [
+  [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
+  [0, 4, 4, 1, 1, 2, 2, 2, 2, 4, 4, 0],
+  [0, 4, 1, 1, 2, 5, 5, 2, 2, 3, 3, 4],
+  [4, 1, 5, 2, 2, 5, 5, 2, 2, 5, 3, 4],
+  [4, 1, 2, 5, 2, 5, 5, 2, 5, 2, 3, 4],
+  [4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 4],
+  [4, 2, 5, 5, 5, 5, 5, 5, 5, 5, 3, 4],
+  [4, 2, 5, 2, 5, 5, 5, 5, 2, 5, 3, 4],
+  [4, 2, 2, 5, 2, 5, 5, 2, 5, 2, 3, 4],
+  [0, 4, 2, 2, 5, 5, 5, 5, 3, 3, 4, 0],
+  [0, 4, 4, 2, 2, 3, 3, 3, 3, 4, 4, 0],
+  [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
+];
+
 export type SpecialTier = 1 | 2 | 3;
 
 /** Per-tier grids for all specials. T1 is the base grid in SPECIAL_SPRITES. */
-export const SPECIAL_TIER_GRIDS: Partial<Record<string, Record<2 | 3, PixelGrid>>> = {
+export const SPECIAL_TIER_GRIDS: Partial<Record<string, Partial<Record<2 | 3, PixelGrid>>>> = {
   pink_diamond: { 2: PINK_HEART_WINGED, 3: PINK_HEART_APEX },
   bloodstone:   { 2: BLOOD_CRACKED,     3: BLOOD_APEX },
   uranium:      { 2: URANIUM_LEAKING,   3: URANIUM_APEX },
@@ -531,7 +632,25 @@ export const SPECIAL_TIER_GRIDS: Partial<Record<string, Record<2 | 3, PixelGrid>
   malachite:    { 2: MALACHITE_REFINED,  3: MALACHITE_APEX },
   jade:         { 2: JADE_REFINED,       3: JADE_APEX },
   gold:         { 2: GOLD_REFINED,       3: GOLD_APEX },
+  red_crystal:        { 2: RED_CRYSTAL_T2,    3: RED_CRYSTAL_T3 },
+  paraiba_tourmaline: { 2: PARAIBA_T2 },
+  yellow_sapphire:    { 2: YELLOW_SAPPH_T2 },
 };
+
+const STARGEM: PixelGrid = [
+  [0, 0, 0, 0, 4, 4, 4, 4, 0, 0, 0, 0],
+  [0, 0, 4, 4, 1, 1, 1, 1, 4, 4, 0, 0],
+  [0, 4, 1, 1, 3, 3, 5, 3, 3, 2, 4, 0],
+  [4, 1, 1, 3, 3, 5, 3, 3, 3, 3, 2, 4],
+  [4, 1, 3, 5, 3, 3, 3, 3, 5, 3, 2, 4],
+  [4, 1, 3, 3, 3, 3, 3, 5, 3, 3, 2, 4],
+  [4, 2, 3, 3, 5, 3, 3, 3, 3, 3, 2, 4],
+  [4, 2, 3, 3, 3, 3, 3, 3, 3, 5, 3, 4],
+  [4, 2, 3, 5, 3, 3, 5, 3, 3, 3, 3, 4],
+  [0, 4, 2, 3, 3, 3, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 2, 2, 3, 3, 3, 4, 0, 0],
+  [0, 0, 0, 0, 4, 4, 4, 4, 4, 0, 0, 0],
+];
 
 export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
   star_ruby: {
@@ -584,6 +703,33 @@ export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
     palette: { light: hex("#ff8068"), mid: hex("#c8202c"), dark: hex("#380808"), sparkle: hex("#ffe060") },
     visualGem: "ruby",
   },
+  stargem: {
+    grid: STARGEM,
+    palette: { light: hex("#cfd8ff"), mid: hex("#6478b8"), dark: hex("#0d1132"), sparkle: hex("#ffffff") },
+    visualGem: "diamond",
+  },
+  red_crystal: {
+    grid: RED_CRYSTAL_T1,
+    palette: { light: hex("#ff8898"), mid: hex("#e02858"), dark: hex("#601830"), sparkle: hex("#ffd0e0") },
+    visualGem: "amethyst",
+  },
+  paraiba_tourmaline: {
+    grid: PARAIBA_T1,
+    palette: { light: hex("#a8ffe8"), mid: hex("#00d8c8"), dark: hex("#0a4858"), sparkle: hex("#ffffff") },
+    visualGem: "aquamarine",
+  },
+  yellow_sapphire: {
+    grid: YELLOW_SAPPH_T1,
+    palette: { light: hex("#ffe890"), mid: hex("#f0b830"), dark: hex("#805018"), sparkle: hex("#ffffff") },
+    visualGem: "sapphire",
+  },
+};
+
+/** Per-tier palette overrides (only needed when a tier changes palette). */
+export const SPECIAL_TIER_PALETTES: Partial<Record<string, Partial<Record<2 | 3, SpecialPalette>>>> = {
+  red_crystal: {
+    3: { light: hex("#ffd8e8"), mid: hex("#f078a8"), dark: hex("#883858"), sparkle: hex("#ffffff") },
+  },
 };
 
 // ===== Special FX descriptors ============================================
@@ -613,7 +759,10 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
   star_ruby:    { glow: hex("#ffa040"), halo: 0.55, pulse: 2.0, orbit: false, aura: false, ground: hex("#5c1010") },
   gold:         { glow: hex("#ffd840"), halo: 0.6,  pulse: 2.4, orbit: false, aura: false, ground: null },
   silver:       { glow: hex("#e0e8f0"), halo: 0.4,  pulse: 2.4, orbit: false, aura: false, ground: null },
-  dark_emerald: { glow: hex("#28e0a0"), halo: 0.5,  pulse: 1.6, orbit: false, aura: false, ground: hex("#082018") },
+  dark_emerald:       { glow: hex("#28e0a0"), halo: 0.5,  pulse: 1.6, orbit: false, aura: false, ground: hex("#082018") },
+  red_crystal:        { glow: hex("#ff5478"), halo: 0.55, pulse: 2.2, orbit: true,  aura: false, ground: null },
+  paraiba_tourmaline: { glow: hex("#3cf0e0"), halo: 0.7,  pulse: 1.8, orbit: false, aura: false, ground: hex("#0a4858") },
+  yellow_sapphire:    { glow: hex("#ffd048"), halo: 0.7,  pulse: 1.9, orbit: false, aura: false, ground: null },
 };
 
 // ===== Rocks (16×16, tile-filling) =======================================

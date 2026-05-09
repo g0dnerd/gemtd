@@ -55,13 +55,64 @@ export const START = WAYPOINTS[0];
 export const END = WAYPOINTS[WAYPOINTS.length - 1];
 
 /** Extra cells around each checkpoint (index 1–6) that are blocked for building. */
-export const CHECKPOINT_ZONES: ReadonlyMap<number, ReadonlyArray<{ x: number; y: number }>> = new Map([
-  [1, [{ x: 7, y: 6 }, { x: 8, y: 6 }, { x: 9, y: 6 }, { x: 8, y: 7 }]],
-  [2, [{ x: 8, y: 21 }, { x: 8, y: 22 }, { x: 8, y: 23 }, { x: 9, y: 22 }]],
-  [3, [{ x: 31, y: 22 }, { x: 32, y: 22 }, { x: 32, y: 23 }, { x: 32, y: 21 }]],
-  [4, [{ x: 32, y: 7 }, { x: 32, y: 6 }, { x: 32, y: 5 }, { x: 31, y: 6 }]],
-  [5, [{ x: 21, y: 6 }, { x: 20, y: 6 }, { x: 19, y: 6 }, { x: 20, y: 7 }]],
-  [6, [{ x: 20, y: 33 }, { x: 20, y: 34 }, { x: 19, y: 34 }, { x: 21, y: 34 }]],
+export const CHECKPOINT_ZONES: ReadonlyMap<
+  number,
+  ReadonlyArray<{ x: number; y: number }>
+> = new Map([
+  [
+    1,
+    [
+      { x: 7, y: 6 },
+      { x: 8, y: 6 },
+      { x: 9, y: 6 },
+      { x: 8, y: 7 },
+    ],
+  ],
+  [
+    2,
+    [
+      { x: 8, y: 21 },
+      { x: 8, y: 22 },
+      { x: 8, y: 23 },
+      { x: 9, y: 22 },
+    ],
+  ],
+  [
+    3,
+    [
+      { x: 31, y: 22 },
+      { x: 32, y: 22 },
+      { x: 32, y: 23 },
+      { x: 32, y: 21 },
+    ],
+  ],
+  [
+    4,
+    [
+      { x: 32, y: 7 },
+      { x: 32, y: 6 },
+      { x: 32, y: 5 },
+      { x: 31, y: 6 },
+    ],
+  ],
+  [
+    5,
+    [
+      { x: 21, y: 6 },
+      { x: 20, y: 6 },
+      { x: 19, y: 6 },
+      { x: 20, y: 7 },
+    ],
+  ],
+  [
+    6,
+    [
+      { x: 20, y: 33 },
+      { x: 20, y: 34 },
+      { x: 19, y: 34 },
+      { x: 21, y: 34 },
+    ],
+  ],
 ]);
 
 /**

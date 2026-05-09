@@ -12,6 +12,7 @@ import {
   TIER_GRIDS,
   SPECIAL_SPRITES,
   SPECIAL_TIER_GRIDS,
+  SPECIAL_TIER_PALETTES,
   ROCK_GRIDS,
   ROCK_PALETTES,
   RockKind,
@@ -46,14 +47,19 @@ export class TowerSpriteCache {
       const effectiveTier = Math.min(upgradeTier + 1, 3) as 2 | 3;
       const grid =
         (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
+      const tierPalette =
+        effectiveTier > 1
+          ? SPECIAL_TIER_PALETTES[comboKey]?.[effectiveTier]
+          : undefined;
+      const pal = tierPalette ?? spec.palette;
       tex = rasterizeToTexture(
         this.renderer,
         grid,
         {
-          light: spec.palette.light,
-          mid: spec.palette.mid,
-          dark: spec.palette.dark,
-          sparkle: spec.palette.sparkle,
+          light: pal.light,
+          mid: pal.mid,
+          dark: pal.dark,
+          sparkle: pal.sparkle,
         },
         TOWER_SCALE,
       );
