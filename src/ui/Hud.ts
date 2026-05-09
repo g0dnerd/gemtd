@@ -7,7 +7,12 @@
 
 import type { Application } from "pixi.js";
 import { Game } from "../game/Game";
-import { GEM_PALETTE, GemType, QUALITY_NAMES, TIER_COLORS } from "../render/theme";
+import {
+  GEM_PALETTE,
+  GemType,
+  QUALITY_NAMES,
+  TIER_COLORS,
+} from "../render/theme";
 import {
   htmlCoin,
   htmlGem,
@@ -189,13 +194,13 @@ export function mountHud(
   });
   keepChip.addEventListener("pointerleave", () => {
     keepChipHovered = false;
-    keepChipHideTimer = setTimeout(hideKeepChip, 300);
+    keepChipHideTimer = setTimeout(hideKeepChip, 50);
   });
 
   function scheduleHideKeepChip(): void {
     if (keepChipHovered) return;
     if (keepChipHideTimer === null) {
-      keepChipHideTimer = setTimeout(hideKeepChip, 300);
+      keepChipHideTimer = setTimeout(hideKeepChip, 50);
     }
   }
 
