@@ -51,3 +51,5 @@ game.js
 .dev.vars*
 !.dev.vars.example
 !.env.example
+
+__pycache__/
