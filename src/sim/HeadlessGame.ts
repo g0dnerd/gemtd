@@ -135,6 +135,10 @@ export class HeadlessGame {
     this.state.selectedTowerId = id;
   }
 
+  selectRock(id: number | null): void {
+    this.state.selectedRockId = id;
+  }
+
   simStep(): void {
     this.state.tick += 1;
     if (this.state.phase === 'wave') {

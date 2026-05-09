@@ -38,7 +38,7 @@ export class GreedyAI implements SimAI {
     }
   }
 
-  private upgradeChanceTier(game: HeadlessGame): void {
+  protected upgradeChanceTier(game: HeadlessGame): void {
     const state = game.state;
     const wave = state.wave;
     while (state.chanceTier < MAX_CHANCE_TIER) {
@@ -57,7 +57,7 @@ export class GreedyAI implements SimAI {
     }
   }
 
-  private upgradeComboTowers(game: HeadlessGame): void {
+  protected upgradeComboTowers(game: HeadlessGame): void {
     const state = game.state;
     const upgradeable: Array<{ towerId: number; cost: number }> = [];
 
@@ -78,7 +78,7 @@ export class GreedyAI implements SimAI {
     }
   }
 
-  private placeGems(game: HeadlessGame): void {
+  protected placeGems(game: HeadlessGame): void {
     const state = game.state;
 
     for (let i = 0; i < 5; i++) {
@@ -134,7 +134,7 @@ export class GreedyAI implements SimAI {
     }
   }
 
-  private getCandidates(grid: Cell[][]): Array<[number, number]> {
+  protected getCandidates(grid: Cell[][]): Array<[number, number]> {
     const out: Array<[number, number]> = [];
 
     for (let y = 2; y <= GRID_H - 4; y++) {
@@ -156,7 +156,7 @@ export class GreedyAI implements SimAI {
     return out;
   }
 
-  private isAdjacentToMaze(grid: Cell[][], ax: number, ay: number): boolean {
+  protected isAdjacentToMaze(grid: Cell[][], ax: number, ay: number): boolean {
     for (let dx = -1; dx <= 2; dx++) {
       for (let dy = -1; dy <= 2; dy++) {
         if (dx >= 0 && dx <= 1 && dy >= 0 && dy <= 1) continue;
@@ -170,7 +170,7 @@ export class GreedyAI implements SimAI {
     return false;
   }
 
-  private findAnyOpen(grid: Cell[][]): [number, number] | null {
+  protected findAnyOpen(grid: Cell[][]): [number, number] | null {
     for (let y = 2; y <= GRID_H - 4; y++) {
       for (let x = 2; x <= GRID_W - 4; x++) {
         if (
@@ -186,7 +186,7 @@ export class GreedyAI implements SimAI {
     return null;
   }
 
-  private tryCombos(game: HeadlessGame): void {
+  protected tryCombos(game: HeadlessGame): void {
     if (game.state.phase !== 'build') return;
 
     const ranked = [...COMBOS].sort((a, b) => comboInputCost(b) - comboInputCost(a));
@@ -226,7 +226,7 @@ export class GreedyAI implements SimAI {
     }
   }
 
-  private matchComboInputs(
+  protected matchComboInputs(
     combo: ComboRecipe,
     towers: TowerState[],
   ): TowerState[] | null {
@@ -249,7 +249,7 @@ export class GreedyAI implements SimAI {
     return result;
   }
 
-  private designateKeeper(game: HeadlessGame): void {
+  protected designateKeeper(game: HeadlessGame): void {
     const state = game.state;
     const currentRoundIds = new Set(
       state.draws

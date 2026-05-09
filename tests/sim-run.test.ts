@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { HeadlessGame } from '../src/sim/HeadlessGame';
 import { GreedyAI } from '../src/sim/ai/GreedyAI';
-import type { GameResult } from '../src/sim/types';
+import { BlueprintAI } from '../src/sim/ai/BlueprintAI';
+import type { SimAI, GameResult } from '../src/sim/types';
 
 const SEED_COUNT = 50;
 
@@ -10,12 +11,12 @@ interface RunData {
   gemDamageShare: Record<string, number>;
 }
 
-function runBatch(count: number): RunData[] {
-  const ai = new GreedyAI();
+function runBatch(count: number, ai?: SimAI): RunData[] {
+  const player = ai ?? new GreedyAI();
   const runs: RunData[] = [];
   for (let seed = 1; seed <= count; seed++) {
     const game = new HeadlessGame(seed);
-    const result = game.runGame(ai);
+    const result = game.runGame(player);
     runs.push({
       result,
       gemDamageShare: game.metrics!.gemDamageShare(),
@@ -154,6 +155,12 @@ function getRuns(): RunData[] {
   return cachedRuns;
 }
 
+let cachedBlueprintRuns: RunData[] | null = null;
+function getBlueprintRuns(): RunData[] {
+  if (!cachedBlueprintRuns) cachedBlueprintRuns = runBatch(SEED_COUNT, new BlueprintAI());
+  return cachedBlueprintRuns;
+}
+
 describe('Sim batch run', { timeout: 600_000 }, () => {
   it('runs batch and prints summary', () => {
     const runs = getRuns();
@@ -206,5 +213,44 @@ describe('Sim batch run', { timeout: 600_000 }, () => {
         `${gem} has ${Math.round((dmg / total) * 100)}% damage share`,
       ).toBeLessThan(0.5);
     }
+  });
+});
+
+describe('BlueprintAI batch run', { timeout: 600_000 }, () => {
+  it('runs batch and prints summary', () => {
+    const runs = getBlueprintRuns();
+
+    printPerSeed(runs);
+    printAggregate(runs);
+    printGemKillShare(runs);
+    printGemDamageShare(runs);
+    printDpsVsHp(runs);
+
+    expect(runs.length).toBe(SEED_COUNT);
+  });
+
+  it('deterministic: same seed produces same result', () => {
+    const ai = new BlueprintAI();
+    const a = new HeadlessGame(42).runGame(ai);
+    const b = new HeadlessGame(42).runGame(ai);
+    expect(a.waveReached).toBe(b.waveReached);
+    expect(a.finalGold).toBe(b.finalGold);
+    expect(a.finalLives).toBe(b.finalLives);
+    expect(a.waveSummaries).toEqual(b.waveSummaries);
+  });
+
+  it('prints blueprint vs greedy comparison', () => {
+    const greedy = getRuns();
+    const blueprint = getBlueprintRuns();
+    const greedyMedian = median(greedy.map((r) => r.result.waveReached));
+    const blueprintMedian = median(blueprint.map((r) => r.result.waveReached));
+    console.log(`GreedyAI median: ${greedyMedian}, BlueprintAI median: ${blueprintMedian}`);
+    console.log(`Delta: ${blueprintMedian - greedyMedian} waves`);
+  });
+
+  it('at least 90% of runs reach wave 10', () => {
+    const runs = getBlueprintRuns();
+    const waves = runs.map((r) => r.result.waveReached);
+    expect(percentile(waves, 10)).toBeGreaterThanOrEqual(10);
   });
 });

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { HeadlessGame } from '../src/sim/HeadlessGame';
 import { GreedyAI } from '../src/sim/ai/GreedyAI';
+import { BlueprintAI } from '../src/sim/ai/BlueprintAI';
 import { Metrics } from '../src/sim/Metrics';
 import { isBuildable } from '../src/data/map';
 
@@ -211,6 +212,33 @@ describe('GreedyAI', () => {
 
   it('different seeds produce different results', { timeout: 30_000 }, () => {
     const ai = new GreedyAI();
+    const a = new HeadlessGame(1).runGame(ai);
+    const b = new HeadlessGame(99999).runGame(ai);
+    const same = a.waveReached === b.waveReached && a.finalGold === b.finalGold;
+    expect(same).toBe(false);
+  });
+});
+
+describe('BlueprintAI', () => {
+  it('completes a full game and reaches at least wave 3', { timeout: 30_000 }, () => {
+    const game = new HeadlessGame(42);
+    const ai = new BlueprintAI();
+    const result = game.runGame(ai);
+    expect(result.waveReached).toBeGreaterThanOrEqual(3);
+    expect(['gameover', 'victory']).toContain(result.outcome);
+  });
+
+  it('is deterministic: same seed produces same result', { timeout: 30_000 }, () => {
+    const ai = new BlueprintAI();
+    const a = new HeadlessGame(42).runGame(ai);
+    const b = new HeadlessGame(42).runGame(ai);
+    expect(a.waveReached).toBe(b.waveReached);
+    expect(a.finalGold).toBe(b.finalGold);
+    expect(a.finalLives).toBe(b.finalLives);
+  });
+
+  it('different seeds produce different results', { timeout: 30_000 }, () => {
+    const ai = new BlueprintAI();
     const a = new HeadlessGame(1).runGame(ai);
     const b = new HeadlessGame(99999).runGame(ai);
     const same = a.waveReached === b.waveReached && a.finalGold === b.finalGold;
