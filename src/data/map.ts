@@ -84,24 +84,12 @@ function buildBaseLayout(): { grid: Cell[][]; pathTiles: Set<string> } {
   }
 
   const pathTiles = new Set<string>();
-  // Carve a 2×2 start "tile" plus a 2×2 entry corridor on the left edge.
-  for (let dy = 0; dy < 2; dy++) {
-    for (let dx = 0; dx < 4; dx++) {
-      const x = dx;
-      const y = START.y + dy;
-      grid[y][x] = Cell.Path;
-      pathTiles.add(`${x},${y}`);
-    }
-  }
-  // Same on the right edge for the end tile + exit corridor.
-  for (let dy = 0; dy < 2; dy++) {
-    for (let dx = 0; dx < 4; dx++) {
-      const x = GRID_W - 4 + dx;
-      const y = END.y + dy;
-      grid[y][x] = Cell.Path;
-      pathTiles.add(`${x},${y}`);
-    }
-  }
+
+  // Exclude the tiles directly next to start and end from building
+  grid[START.y][2] = Cell.Path;
+  grid[END.y][GRID_W - 3] = Cell.Path;
+  pathTiles.add(`${2},${START.y}`);
+  pathTiles.add(`${GRID_W - 3},${END.y}`);
 
   // Mark checkpoint zone cells as Path so they can't be built on.
   for (const cells of CHECKPOINT_ZONES.values()) {
