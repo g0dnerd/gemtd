@@ -7,7 +7,7 @@ import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
 import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
-import { COMBOS, ComboRecipe, comboStatsAtTier, nextUpgrade } from "../data/combos";
+import { COMBOS, ComboRecipe, comboStatsAtTier, findComboFor, nextUpgrade } from "../data/combos";
 import { TowerState } from "../game/State";
 
 export interface InspectorRefs {
@@ -214,6 +214,35 @@ function render(refs: InspectorRefs, game: Game): void {
       .join(" · ");
     chip.append(lbl, txt);
     body.appendChild(chip);
+  }
+
+  // Forges-into chip
+  if (!tower.comboKey) {
+    const recipe = findComboFor(tower.gem, tower.quality);
+    if (recipe) {
+      const chip = document.createElement("div");
+      chip.className = "inspector-combo";
+      const cFrame = document.createElement("div");
+      cFrame.className = "inspector-combo-frame";
+      cFrame.appendChild(htmlSpecial(recipe.key, 22));
+      const cText = document.createElement("div");
+      cText.className = "inspector-combo-text";
+      const cLabel = document.createElement("div");
+      cLabel.className = "inspector-combo-label";
+      cLabel.textContent = "FORGES INTO";
+      const cName = document.createElement("div");
+      cName.className = "inspector-combo-name";
+      cName.textContent = recipe.name.toUpperCase();
+      cText.append(cLabel, cName);
+      const cArrow = document.createElement("div");
+      cArrow.className = "inspector-combo-arrow";
+      cArrow.textContent = "›";
+      chip.append(cFrame, cText, cArrow);
+      chip.addEventListener("click", () => {
+        game.bus.emit("focusRecipe", { key: recipe.key });
+      });
+      body.appendChild(chip);
+    }
   }
 
   // Actions

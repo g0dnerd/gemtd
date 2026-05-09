@@ -27,6 +27,7 @@ export interface GameEvents {
   };
   'tower:upgrade': { id: number; comboKey: string; tier: number };
   'toast': { kind: 'info' | 'good' | 'error'; text: string };
+  'focusRecipe': { key: string };
 }
 
 type Handler<T> = (payload: T) => void;

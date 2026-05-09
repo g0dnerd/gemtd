@@ -288,6 +288,7 @@ export function mountHud(
     for (const c of COMBOS) {
       const card = document.createElement("div");
       card.className = "px-panel-inset recipe-card v2c";
+      card.dataset.recipeKey = c.key;
 
       const banner = document.createElement("div");
       banner.className = "recipe-banner";
@@ -561,6 +562,18 @@ export function mountHud(
       mountGameOver(root, game, phase, onExit);
     }
     game.refreshRoute();
+  });
+
+  game.bus.on("focusRecipe", ({ key }) => {
+    const card = recipesList.querySelector<HTMLElement>(
+      `.recipe-card[data-recipe-key="${key}"]`,
+    );
+    if (!card) return;
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    card.style.outline = "2px solid var(--px-accent)";
+    setTimeout(() => {
+      card.style.outline = "";
+    }, 600);
   });
 
   // Periodic refresh for in-wave HUD.

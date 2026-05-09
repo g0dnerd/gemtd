@@ -641,6 +641,19 @@ const COMBO_BY_KEY = new Map(
   COMBOS.filter((c) => c.inputs.length > 0).map((c) => [sortKey(c.inputs), c]),
 );
 
+/** Return the recipe that consumes this exact (gem, quality), if any. */
+export function findComboFor(
+  gem: GemType,
+  quality: Quality,
+): ComboRecipe | null {
+  for (const c of COMBOS) {
+    if (c.inputs.some((i) => i.gem === gem && i.quality === quality)) {
+      return c;
+    }
+  }
+  return null;
+}
+
 /** Find a recipe matching the given inputs (any order). Strict exact match on (gem, quality). */
 export function findCombo(inputs: ComboInput[]): ComboRecipe | null {
   const standard = COMBO_BY_KEY.get(sortKey(inputs));
