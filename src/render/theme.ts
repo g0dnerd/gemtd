@@ -147,3 +147,12 @@ export const QUALITY_GLOW: Record<Quality, number> = {
   4: 0.6,
   5: 0.9,
 };
+
+export const ROCK_PAL = {
+  stone:     { light: 0xa8988a, mid: 0x7a6a5a, dark: 0x3a2a20, outline: 0x0a0510 },
+  warmStone: { light: 0xb8a088, mid: 0x88705c, dark: 0x3e2a1c, outline: 0x0a0510 },
+  coolStone: { light: 0x9098a0, mid: 0x606870, dark: 0x22282e, outline: 0x0a0510 },
+  paleStone: { light: 0xc8b8a8, mid: 0x90806c, dark: 0x48382a, outline: 0x0a0510 },
+  moss:      { sparkle: 0x84c068, extra: 0x3c6a30 },
+  crystal:   { sparkle: 0xb8e8f4, extra: 0x3878d8 },
+};

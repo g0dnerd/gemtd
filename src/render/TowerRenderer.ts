@@ -17,6 +17,7 @@ import {
   ROCK_PALETTES,
   RockKind,
 } from "./spriteData";
+import { buildRockVariant, type RockVariantId } from "./RockSprites";
 import type { EventBus } from "../events/EventBus";
 
 const TOWER_SCALE = 3; // pixels per sprite-pixel
@@ -24,6 +25,7 @@ const TOWER_SCALE = 3; // pixels per sprite-pixel
 export class TowerSpriteCache {
   private gemTextures = new Map<string, Texture>();
   private rockTextures = new Map<RockKind, Texture>();
+  private combinedRockTextures = new Map<RockVariantId, Texture>();
 
   // bus param kept for future audio/event hooks; not used yet.
   constructor(
@@ -96,6 +98,15 @@ export class TowerSpriteCache {
       1,
     );
     this.rockTextures.set(kind, tex);
+    return tex;
+  }
+
+  combinedRock(variantId: RockVariantId): Texture {
+    let tex = this.combinedRockTextures.get(variantId);
+    if (tex) return tex;
+    const { grid, palette } = buildRockVariant(variantId);
+    tex = rasterizeToTexture(this.renderer, grid, palette, 1);
+    this.combinedRockTextures.set(variantId, tex);
     return tex;
   }
 }

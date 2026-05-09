@@ -7,18 +7,19 @@
  * source entity has been removed.
  */
 
-import { Container, Graphics } from "pixi.js";
+import { Container, Graphics, Sprite } from "pixi.js";
 import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
 import { activeDraw } from "../game/State";
 import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
 import { GEM_PALETTE, THEME } from "./theme";
-import { TowerSpriteCache, makeTowerSprite, makeRockSprite } from "./TowerRenderer";
+import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
 import { gemStats } from "../data/gems";
 import { COMBOS, comboStatsAtTier } from "../data/combos";
 import { SPRITE_BY_KIND } from "./sprites";
 import { drawPixelGrid } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
-import { SPECIAL_FX, pickRock } from "./spriteData";
+import { SPECIAL_FX } from "./spriteData";
+import { pickRockVariant } from "./RockSprites";
 import { APEX_STARGEM } from "./theme";
 
 interface PerEntity {
@@ -60,7 +61,7 @@ interface TowerFx {
 }
 
 const towerObjs = new Map<number, TowerEntry>();
-const rockObjs = new Map<string, PerEntity>();
+const rockObjs = new Map<number, PerEntity>();
 const creepObjs = new Map<number, PerEntity>();
 const projectileObjs = new Map<number, PerEntity>();
 
@@ -370,41 +371,40 @@ function animateStargemFx(fx: StargemFx, tick: number): void {
 }
 
 export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSpriteCache): void {
-  const seen = new Set<string>();
+  const groups = new Map<number, { x: number; y: number }>();
   for (const r of rocks) {
-    const key = `${r.x},${r.y}`;
-    seen.add(key);
-    let entry = rockObjs.get(key);
-    if (!entry) {
-      const kind = pickRock(r.x, r.y);
-      const obj = new Container();
-      const sprite = makeRockSprite(cache, kind);
-      sprite.width = FINE_TILE;
-      sprite.height = FINE_TILE;
-      obj.addChild(sprite);
-      // Crystal rocks get a soft inner glow on top.
-      if (kind === "crystal") {
-        const glow = new Graphics();
-        const cx = (8 / 16) * FINE_TILE;
-        const cy = (5 / 16) * FINE_TILE;
-        const gr = (3 / 16) * FINE_TILE;
-        for (let i = 4; i > 0; i--) {
-          glow.circle(cx, cy, gr * (i / 4)).fill({ color: 0xa8e8f0, alpha: 0.12 });
-        }
-        glow.blendMode = "screen";
-        obj.addChild(glow);
-      }
-      obj.x = r.x * FINE_TILE;
-      obj.y = r.y * FINE_TILE;
-      layer.addChild(obj);
-      entry = { obj };
-      rockObjs.set(key, entry);
+    const g = groups.get(r.id);
+    if (!g) {
+      groups.set(r.id, { x: r.x, y: r.y });
+    } else {
+      g.x = Math.min(g.x, r.x);
+      g.y = Math.min(g.y, r.y);
     }
   }
-  for (const [key, entry] of rockObjs) {
-    if (!seen.has(key)) {
+  const seen = new Set<number>();
+  for (const [id, pos] of groups) {
+    seen.add(id);
+    let entry = rockObjs.get(id);
+    if (!entry) {
+      const variantId = pickRockVariant(id);
+      const tex = cache.combinedRock(variantId);
+      const sprite = new Sprite(tex);
+      sprite.anchor.set(0, 0);
+      sprite.width = 2 * FINE_TILE;
+      sprite.height = 2 * FINE_TILE;
+      const obj = new Container();
+      obj.addChild(sprite);
+      obj.x = pos.x * FINE_TILE;
+      obj.y = pos.y * FINE_TILE;
+      layer.addChild(obj);
+      entry = { obj };
+      rockObjs.set(id, entry);
+    }
+  }
+  for (const [id, entry] of rockObjs) {
+    if (!seen.has(id)) {
       entry.obj.destroy({ children: true });
-      rockObjs.delete(key);
+      rockObjs.delete(id);
     }
   }
 }
