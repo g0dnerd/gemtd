@@ -411,6 +411,6 @@ export function renderPathTrace(
       }
     }
   }
-  g.stroke({ width: 3, color: THEME.info, alpha: 0.85, pixelLine: false });
+  g.stroke({ width: FINE_TILE, color: THEME.info, alpha: 0.85, pixelLine: false, cap: 'round', join: 'round' });
   layer.addChild(g);
 }
