@@ -632,10 +632,9 @@ export function mountHud(
         upBtn.classList.remove("is-affordable");
       } else {
         upBtn.textContent = `UPGRADE · ${cost}G`;
-        const inBuild = g.state.phase === "build";
         const affordable = g.state.gold >= (cost ?? 0);
-        upBtn.disabled = !inBuild || !affordable;
-        upBtn.classList.toggle("is-affordable", inBuild && affordable);
+        upBtn.disabled = !affordable;
+        upBtn.classList.toggle("is-affordable", affordable);
       }
     }
 

@@ -8,23 +8,36 @@
  * Main loop is fixed-step at SIM_HZ; render runs each Pixi tick.
  */
 
-import { Application, Container, Ticker } from 'pixi.js';
-import { State, emptyState, allDrawsPlaced } from './State';
-import { EventBus } from '../events/EventBus';
-import { RNG } from './rng';
-import { BASE, Cell } from '../data/map';
-import { findRoute, flattenRoute, buildAirRoute } from '../systems/Pathfinding';
-import { BoardLayers, makeBoardLayers, renderGround, renderPathTrace, renderCheckpoints } from '../render/BoardRenderer';
-import { FINE_TILE, START_GOLD, START_LIVES, SIM_DT } from './constants';
-import { BuildPhase } from '../controllers/BuildPhase';
-import { WavePhase } from '../controllers/WavePhase';
-import { WAVES } from '../data/waves';
-import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from './constants';
-import { COMBOS, nextUpgrade } from '../data/combos';
-import { Combat } from '../systems/Combat';
-import { TowerSpriteCache } from '../render/TowerRenderer';
-import { renderTowers, renderRocks, renderCreeps, renderProjectiles, renderHover, renderRangePreview } from '../render/EntityRenderer';
-import { renderCursorGrid, renderUniformGrid } from '../render/CursorGrid';
+import { Application, Container, Ticker } from "pixi.js";
+import { State, emptyState, allDrawsPlaced } from "./State";
+import { EventBus } from "../events/EventBus";
+import { RNG } from "./rng";
+import { BASE, Cell } from "../data/map";
+import { findRoute, flattenRoute, buildAirRoute } from "../systems/Pathfinding";
+import {
+  BoardLayers,
+  makeBoardLayers,
+  renderGround,
+  renderPathTrace,
+  renderCheckpoints,
+} from "../render/BoardRenderer";
+import { FINE_TILE, START_GOLD, START_LIVES, SIM_DT } from "./constants";
+import { BuildPhase } from "../controllers/BuildPhase";
+import { WavePhase } from "../controllers/WavePhase";
+import { WAVES } from "../data/waves";
+import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from "./constants";
+import { COMBOS, nextUpgrade } from "../data/combos";
+import { Combat } from "../systems/Combat";
+import { TowerSpriteCache } from "../render/TowerRenderer";
+import {
+  renderTowers,
+  renderRocks,
+  renderCreeps,
+  renderProjectiles,
+  renderHover,
+  renderRangePreview,
+} from "../render/EntityRenderer";
+import { renderCursorGrid, renderUniformGrid } from "../render/CursorGrid";
 
 export class Game {
   readonly bus = new EventBus();
@@ -73,13 +86,15 @@ export class Game {
 
   constructor(app: Application) {
     this.app = app;
-    this.rng = new RNG((Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0);
+    this.rng = new RNG(
+      (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0,
+    );
 
     const grid: Cell[][] = BASE.grid.map((row) => row.slice());
     this.state = emptyState(grid, WAVES.length);
 
     this.board = new Container();
-    this.board.label = 'board';
+    this.board.label = "board";
     this.layers = makeBoardLayers();
     this.board.addChild(this.layers.root);
     this.app.stage.addChild(this.board);
@@ -96,9 +111,12 @@ export class Game {
 
     this.app.ticker.add(this.tick, this);
 
-    document.addEventListener('visibilitychange', () => {
+    document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
-        this.backgroundInterval = setInterval(() => this.drainAccumulator(), 1000);
+        this.backgroundInterval = setInterval(
+          () => this.drainAccumulator(),
+          1000,
+        );
       } else {
         if (this.backgroundInterval !== null) {
           clearInterval(this.backgroundInterval);
@@ -109,13 +127,13 @@ export class Game {
   }
 
   start(): void {
-    this.state.phase = 'title';
+    this.state.phase = "title";
     this.state.lives = START_LIVES;
     this.state.gold = START_GOLD;
     this.state.wave = 0;
-    this.bus.emit('phase:enter', { phase: 'title' });
-    this.bus.emit('gold:change', { gold: this.state.gold });
-    this.bus.emit('lives:change', { lives: this.state.lives });
+    this.bus.emit("phase:enter", { phase: "title" });
+    this.bus.emit("gold:change", { gold: this.state.gold });
+    this.bus.emit("lives:change", { lives: this.state.lives });
   }
 
   /** Kick off a new run from the title screen. */
@@ -149,50 +167,63 @@ export class Game {
   }
 
   enterBuild(): void {
-    this.state.phase = 'build';
+    this.state.phase = "build";
     this.state.wave += 1;
     this.state.undoStack = [];
     this.state.designatedKeepTowerId = null;
-    this.state.waveStats = { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 };
+    this.state.waveStats = {
+      spawnedThisWave: 0,
+      killedThisWave: 0,
+      leakedThisWave: 0,
+      totalToSpawn: 0,
+    };
     this.buildPhase.onEnter();
-    this.bus.emit('phase:enter', { phase: 'build' });
+    this.bus.emit("phase:enter", { phase: "build" });
   }
 
   enterWave(): void {
-    if (this.state.phase !== 'build') return;
+    if (this.state.phase !== "build") return;
     // A recipe combine during the round can auto-conclude (clears draws, sets keep).
-    const roundConcluded = this.state.draws.length === 0 && this.state.designatedKeepTowerId !== null;
+    const roundConcluded =
+      this.state.draws.length === 0 &&
+      this.state.designatedKeepTowerId !== null;
     if (!roundConcluded) {
       if (!this.buildPhase.ready()) {
-        this.bus.emit('toast', { kind: 'error', text: 'Place all 5 gems first' });
+        this.bus.emit("toast", {
+          kind: "error",
+          text: "Place all 5 gems first",
+        });
         return;
       }
       if (this.state.designatedKeepTowerId === null) {
-        this.bus.emit('toast', { kind: 'error', text: 'Mark one gem to keep first' });
+        this.bus.emit("toast", {
+          kind: "error",
+          text: "Mark one gem to keep first",
+        });
         return;
       }
       this.buildPhase.applyKeepAndRock();
     }
     this.state.draws = [];
     this.state.designatedKeepTowerId = null;
-    this.state.phase = 'wave';
+    this.state.phase = "wave";
     this.state.undoStack = [];
     this.state.activeDrawSlot = null;
     this.wavePhase.onEnter(this.state.wave);
-    this.bus.emit('phase:enter', { phase: 'wave' });
-    this.bus.emit('wave:start', { wave: this.state.wave });
+    this.bus.emit("phase:enter", { phase: "wave" });
+    this.bus.emit("wave:start", { wave: this.state.wave });
   }
 
   endWave(lifeLost: number, goldEarned: number): void {
-    this.bus.emit('wave:end', { wave: this.state.wave, lifeLost, goldEarned });
+    this.bus.emit("wave:end", { wave: this.state.wave, lifeLost, goldEarned });
     if (this.state.lives <= 0) {
-      this.state.phase = 'gameover';
-      this.bus.emit('phase:enter', { phase: 'gameover' });
+      this.state.phase = "gameover";
+      this.bus.emit("phase:enter", { phase: "gameover" });
       return;
     }
     if (this.state.wave >= this.state.totalWaves) {
-      this.state.phase = 'victory';
-      this.bus.emit('phase:enter', { phase: 'victory' });
+      this.state.phase = "victory";
+      this.bus.emit("phase:enter", { phase: "victory" });
       return;
     }
     this.enterBuild();
@@ -244,7 +275,10 @@ export class Game {
   canRemoveRock(rockId: number): boolean {
     const rock = this.state.rocks.find((r) => r.id === rockId);
     if (!rock) return false;
-    return !(this.state.phase === 'build' && this.state.wave === rock.placedAtBuildOfWave);
+    return !(
+      this.state.phase === "build" &&
+      this.state.wave === rock.placedAtBuildOfWave
+    );
   }
 
   cmdRemoveRock(rockId: number): boolean {
@@ -252,12 +286,15 @@ export class Game {
     const cells = state.rocks.filter((r) => r.id === rockId);
     if (cells.length === 0) return false;
     if (!this.canRemoveRock(rockId)) {
-      this.bus.emit('toast', { kind: 'error', text: 'Wait until this round ends' });
+      this.bus.emit("toast", {
+        kind: "error",
+        text: "Wait until this round ends",
+      });
       return false;
     }
     const cost = this.rockRemovalCost();
     if (state.gold < cost) {
-      this.bus.emit('toast', { kind: 'error', text: `Need ${cost}g` });
+      this.bus.emit("toast", { kind: "error", text: `Need ${cost}g` });
       return false;
     }
     for (const c of cells) {
@@ -268,8 +305,8 @@ export class Game {
     state.rocksRemoved += 1;
     if (state.selectedRockId === rockId) this.selectRock(null);
     this.refreshRoute();
-    this.bus.emit('gold:change', { gold: state.gold });
-    this.bus.emit('toast', { kind: 'good', text: `Rock cleared · −${cost}g` });
+    this.bus.emit("gold:change", { gold: state.gold });
+    this.bus.emit("toast", { kind: "good", text: `Rock cleared · −${cost}g` });
     return true;
   }
 
@@ -308,7 +345,7 @@ export class Game {
 
   private simStep(): void {
     this.state.tick += 1;
-    if (this.state.phase === 'wave') {
+    if (this.state.phase === "wave") {
       this.wavePhase.step();
     }
     this.combat.step();
@@ -316,11 +353,21 @@ export class Game {
 
   private renderEntities(): void {
     this.updateHaloAlpha();
-    renderTowers(this.layers.towers, this.state.towers, this.towerSprites, this.state.tick);
+    renderTowers(
+      this.layers.towers,
+      this.state.towers,
+      this.towerSprites,
+      this.state.tick,
+    );
     renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites);
     renderCreeps(this.layers.creeps, this.state.creeps);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
-    renderRangePreview(this.layers.preview, this.state, this.hoverTile, this.selectedTowerId);
+    renderRangePreview(
+      this.layers.preview,
+      this.state,
+      this.hoverTile,
+      this.selectedTowerId,
+    );
     renderHover(this.layers.preview, this.state, this.hoverTile);
     if (this.hoverPixel) this.lastHoverPixel = this.hoverPixel;
     if (this.hoverTile) this.lastHoverTile = this.hoverTile;
@@ -341,10 +388,10 @@ export class Game {
 
   private updateHaloAlpha(): void {
     // 120ms fade-in, 160ms fade-out, driven by real frame delta (render-only, not sim).
-    const fadeInRate = 1 / (0.120 * 60);   // per-frame at 60fps
-    const fadeOutRate = 1 / (0.160 * 60);
+    const fadeInRate = 1 / (0.12 * 60); // per-frame at 60fps
+    const fadeOutRate = 1 / (0.16 * 60);
     const dt = this.app.ticker.deltaTime; // frames elapsed (typically ~1)
-    if (this.hoverPresent && this.state.phase === 'build') {
+    if (this.hoverPresent && this.state.phase === "build") {
       this.haloAlpha = Math.min(1, this.haloAlpha + fadeInRate * dt);
     } else {
       this.haloAlpha = Math.max(0, this.haloAlpha - fadeOutRate * dt);
@@ -364,8 +411,9 @@ export class Game {
   /** Roll the round's draws. Only valid in build phase before placement begins. */
   cmdStartPlacement(): boolean {
     const state = this.state;
-    if (state.phase !== 'build') return false;
-    if (state.draws.length > 0 || state.designatedKeepTowerId !== null) return false;
+    if (state.phase !== "build") return false;
+    if (state.draws.length > 0 || state.designatedKeepTowerId !== null)
+      return false;
     this.buildPhase.rollDraws();
     return true;
   }
@@ -380,19 +428,23 @@ export class Game {
     const sorted = unplaced.map((d) => d.slotId).sort((a, b) => a - b);
     const cur = state.activeDrawSlot ?? sorted[0];
     const idx = sorted.indexOf(cur);
-    const nextIdx = idx < 0 ? 0 : (idx + direction + sorted.length) % sorted.length;
+    const nextIdx =
+      idx < 0 ? 0 : (idx + direction + sorted.length) % sorted.length;
     this.buildPhase.setActiveSlot(sorted[nextIdx]);
   }
   cmdDesignateKeep(towerId: number): boolean {
     const state = this.state;
-    if (state.phase !== 'build') return false;
+    if (state.phase !== "build") return false;
     const isCurrentDraw = state.draws.some((d) => d.placedTowerId === towerId);
     if (!isCurrentDraw) {
-      this.bus.emit('toast', { kind: 'error', text: 'Mark a gem from this round only' });
+      this.bus.emit("toast", {
+        kind: "error",
+        text: "Mark a gem from this round only",
+      });
       return false;
     }
     state.designatedKeepTowerId = towerId;
-    this.bus.emit('draws:change', {});
+    this.bus.emit("draws:change", {});
     if (allDrawsPlaced(state)) {
       this.enterWave();
     }
@@ -400,23 +452,22 @@ export class Game {
   }
   cmdUpgradeChanceTier(): boolean {
     const state = this.state;
-    if (state.phase !== 'build') {
-      this.bus.emit('toast', { kind: 'error', text: 'Upgrade only in build phase' });
-      return false;
-    }
     if (state.chanceTier >= MAX_CHANCE_TIER) {
-      this.bus.emit('toast', { kind: 'info', text: 'Chance tier maxed' });
+      this.bus.emit("toast", { kind: "info", text: "Chance tier maxed" });
       return false;
     }
     const cost = CHANCE_TIER_UPGRADE_COST[state.chanceTier];
     if (state.gold < cost) {
-      this.bus.emit('toast', { kind: 'error', text: `Need ${cost}g` });
+      this.bus.emit("toast", { kind: "error", text: `Need ${cost}g` });
       return false;
     }
     state.gold -= cost;
     state.chanceTier += 1;
-    this.bus.emit('gold:change', { gold: state.gold });
-    this.bus.emit('toast', { kind: 'good', text: `Chance tier → L${state.chanceTier}` });
+    this.bus.emit("gold:change", { gold: state.gold });
+    this.bus.emit("toast", {
+      kind: "good",
+      text: `Chance tier → L${state.chanceTier}`,
+    });
     return true;
   }
   cmdCombine(towerIds: number[]): boolean {
@@ -426,7 +477,7 @@ export class Game {
     const state = this.state;
     const tower = state.towers.find((t) => t.id === towerId);
     if (!tower || !tower.comboKey) {
-      this.bus.emit('toast', { kind: 'error', text: 'Not a special tower' });
+      this.bus.emit("toast", { kind: "error", text: "Not a special tower" });
       return false;
     }
     const combo = COMBOS.find((c) => c.key === tower.comboKey);
@@ -434,18 +485,25 @@ export class Game {
     const currentTier = tower.upgradeTier ?? 0;
     const upgrade = nextUpgrade(combo, currentTier);
     if (!upgrade) {
-      this.bus.emit('toast', { kind: 'info', text: 'Already max tier' });
+      this.bus.emit("toast", { kind: "info", text: "Already max tier" });
       return false;
     }
     if (state.gold < upgrade.cost) {
-      this.bus.emit('toast', { kind: 'error', text: `Need ${upgrade.cost}g` });
+      this.bus.emit("toast", { kind: "error", text: `Need ${upgrade.cost}g` });
       return false;
     }
     state.gold -= upgrade.cost;
     tower.upgradeTier = currentTier + 1;
-    this.bus.emit('gold:change', { gold: state.gold });
-    this.bus.emit('tower:upgrade', { id: towerId, comboKey: tower.comboKey, tier: tower.upgradeTier });
-    this.bus.emit('toast', { kind: 'good', text: `Upgraded to ${upgrade.name}` });
+    this.bus.emit("gold:change", { gold: state.gold });
+    this.bus.emit("tower:upgrade", {
+      id: towerId,
+      comboKey: tower.comboKey,
+      tier: tower.upgradeTier,
+    });
+    this.bus.emit("toast", {
+      kind: "good",
+      text: `Upgraded to ${upgrade.name}`,
+    });
     return true;
   }
 }
