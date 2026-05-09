@@ -136,11 +136,37 @@ function buildBaseLayout(): { grid: Cell[][]; pathTiles: Set<string> } {
 
   const pathTiles = new Set<string>();
 
-  // Exclude the tiles directly next to start and end from building
-  grid[START.y][2] = Cell.Path;
-  grid[END.y][GRID_W - 3] = Cell.Path;
-  pathTiles.add(`${2},${START.y}`);
-  pathTiles.add(`${GRID_W - 3},${END.y}`);
+  // Carve a 2×2 start "tile"
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 2; dx++) {
+      const x = dx;
+      const y = START.y + dy;
+      grid[y][x] = Cell.Path;
+      pathTiles.add(`${x},${y}`);
+    }
+  }
+
+  // Block a 1x1 tile from building
+  const startBlockedX = 2;
+  const startBlockedY = START.y;
+  grid[startBlockedY][startBlockedX] = Cell.Path;
+  pathTiles.add(`${startBlockedX},${startBlockedY}`);
+
+  // Same on the right edge for the end tile + exit corridor.
+  for (let dy = 0; dy < 2; dy++) {
+    for (let dx = 0; dx < 2; dx++) {
+      const x = GRID_W - 2 + dx;
+      const y = END.y + dy;
+      grid[y][x] = Cell.Path;
+      pathTiles.add(`${x},${y}`);
+    }
+  }
+
+  // Block a 1x1 tile from building
+  const endBlockedX = GRID_W - 3;
+  const endBlockedY = END.y;
+  grid[endBlockedY][endBlockedX] = Cell.Path;
+  pathTiles.add(`${endBlockedX},${endBlockedY}`);
 
   // Mark checkpoint zone cells as Path so they can't be built on.
   for (const cells of CHECKPOINT_ZONES.values()) {
