@@ -373,44 +373,81 @@ export function renderCheckpoints(layer: Container): void {
 }
 
 /**
- * Re-render the path overlay: a faint dashed cool-blue polyline tracing the
- * current creep route. Pixi's Graphics has no built-in dash, so we emit short
- * sub-segments along each edge.
+ * V5 path overlay: quiet corridor wash + directional chevron breadcrumbs.
+ * During wave phase, alphas are halved so the overlay doesn't compete with creeps.
  */
 export function renderPathTrace(
   layer: Container,
   segments: Array<Array<{ x: number; y: number }>>,
+  phase?: string,
 ): void {
   layer.removeChildren();
-  const g = new Graphics();
-  const dash = 6;
-  const gap = 4;
-  const period = dash + gap;
+
+  const isWave = phase === "wave";
+  const washAlpha = isWave ? 0.14 : 0.28;
+  const chevronAlpha = isWave ? 0.42 : 0.85;
+
+  // Build flat list of pixel-center waypoints from all segments.
+  const pts: { x: number; y: number }[] = [];
   for (const seg of segments) {
-    for (let i = 0; i < seg.length - 1; i++) {
-      const a = seg[i];
-      const b = seg[i + 1];
-      const ax = a.x * FINE_TILE + FINE_TILE / 2;
-      const ay = a.y * FINE_TILE + FINE_TILE / 2;
-      const bx = b.x * FINE_TILE + FINE_TILE / 2;
-      const by = b.y * FINE_TILE + FINE_TILE / 2;
-      const dx = bx - ax;
-      const dy = by - ay;
-      const len = Math.hypot(dx, dy);
-      if (len <= 0) continue;
-      const ux = dx / len;
-      const uy = dy / len;
-      let t = 0;
-      while (t < len) {
-        const t2 = Math.min(t + dash, len);
-        g.moveTo(ax + ux * t, ay + uy * t).lineTo(
-          ax + ux * t2,
-          ay + uy * t2,
-        );
-        t += period;
-      }
+    for (let i = 0; i < seg.length; i++) {
+      const px = seg[i].x * FINE_TILE + FINE_TILE / 2;
+      const py = seg[i].y * FINE_TILE + FINE_TILE / 2;
+      if (pts.length > 0 && pts[pts.length - 1].x === px && pts[pts.length - 1].y === py) continue;
+      pts.push({ x: px, y: py });
     }
   }
-  g.stroke({ width: FINE_TILE, color: THEME.info, alpha: 0.85, pixelLine: false, cap: 'round', join: 'round' });
-  layer.addChild(g);
+  if (pts.length < 2) return;
+
+  // Layer A: corridor wash
+  const wash = new Graphics();
+  wash.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) wash.lineTo(pts[i].x, pts[i].y);
+  wash.stroke({ width: FINE_TILE, color: THEME.info, alpha: washAlpha, cap: "butt", join: "miter" });
+  layer.addChild(wash);
+
+  // Precompute cumulative arc-length + segment info for chevron placement.
+  const cumLen: number[] = [0];
+  for (let i = 1; i < pts.length; i++) {
+    cumLen.push(cumLen[i - 1] + Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y));
+  }
+  const totalLen = cumLen[cumLen.length - 1];
+
+  // Layer B: directional chevrons every 30 px along the route.
+  const SPACING = 30;
+  const SKIP_EDGE = 12;
+  const chevG = new Graphics();
+  let segIdx = 0;
+
+  for (let d = SPACING; d < totalLen; d += SPACING) {
+    if (d < SKIP_EDGE || d > totalLen - SKIP_EDGE) continue;
+
+    while (segIdx < pts.length - 2 && cumLen[segIdx + 1] < d) segIdx++;
+    const segStart = cumLen[segIdx];
+    const segEnd = cumLen[segIdx + 1];
+    const frac = (d - segStart) / (segEnd - segStart);
+    const cx = pts[segIdx].x + (pts[segIdx + 1].x - pts[segIdx].x) * frac;
+    const cy = pts[segIdx].y + (pts[segIdx + 1].y - pts[segIdx].y) * frac;
+    const angle = Math.atan2(pts[segIdx + 1].y - pts[segIdx].y, pts[segIdx + 1].x - pts[segIdx].x);
+
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    // Chevron local coords: (0,0), (7,4), (0,8) centered at tip → subtract (0,4)
+    const triLocal = [
+      { x: 0, y: -4 },
+      { x: 7, y: 0 },
+      { x: 0, y: 4 },
+    ];
+
+    // Drop-shadow: same polygon offset +1,+1
+    const shadowPts: number[] = [];
+    const litPts: number[] = [];
+    for (const p of triLocal) {
+      shadowPts.push(cx + p.x * cos - p.y * sin + 1, cy + p.x * sin + p.y * cos + 1);
+      litPts.push(cx + p.x * cos - p.y * sin, cy + p.x * sin + p.y * cos);
+    }
+    chevG.poly(shadowPts).fill({ color: THEME.borderDark, alpha: 1 });
+    chevG.poly(litPts).fill({ color: THEME.info, alpha: chevronAlpha });
+  }
+  layer.addChild(chevG);
 }

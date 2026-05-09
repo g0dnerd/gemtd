@@ -78,6 +78,9 @@ export class Game {
   /** Whether the cursor-local grid feature is enabled (tweaks toggle). */
   cursorGridEnabled = true;
 
+  /** Whether the path overlay is visible. Persisted to localStorage. */
+  pathVizEnabled = true;
+
   /** Currently selected tower (if any). null otherwise. */
   selectedTowerId: number | null = null;
 
@@ -100,6 +103,9 @@ export class Game {
     this.app.stage.addChild(this.board);
 
     this.towerSprites = new TowerSpriteCache(this.app.renderer, this.bus);
+
+    const storedPathViz = localStorage.getItem("gemtd:pathViz");
+    if (storedPathViz !== null) this.pathVizEnabled = storedPathViz === "1";
 
     this.buildPhase = new BuildPhase(this);
     this.wavePhase = new WavePhase(this);
@@ -240,8 +246,19 @@ export class Game {
     if (this.state.airRoute.length === 0) {
       this.state.airRoute = buildAirRoute();
     }
-    renderPathTrace(this.layers.pathOverlay, route);
+    if (this.pathVizEnabled) {
+      renderPathTrace(this.layers.pathOverlay, route, this.state.phase);
+    } else {
+      this.layers.pathOverlay.removeChildren();
+    }
     return true;
+  }
+
+  togglePathViz(): void {
+    this.pathVizEnabled = !this.pathVizEnabled;
+    try { localStorage.setItem("gemtd:pathViz", this.pathVizEnabled ? "1" : "0"); }
+    catch { /* private mode */ }
+    this.refreshRoute();
   }
 
   nextId(): number {

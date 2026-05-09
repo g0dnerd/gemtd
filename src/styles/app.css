@@ -479,6 +479,52 @@
   color: var(--px-ink);
   line-height: 1.1;
 }
+.inspector-combo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  background: var(--px-bg);
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-border-dark);
+  border-left: 2px solid var(--px-accent);
+  cursor: pointer;
+}
+.inspector-combo-frame {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.inspector-combo-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.inspector-combo-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  color: var(--px-ink-dimmer);
+  letter-spacing: 1px;
+}
+.inspector-combo-name {
+  font-family: 'VT323', monospace;
+  font-size: 18px;
+  color: var(--px-accent);
+  line-height: 1;
+}
+.inspector-combo-arrow {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  color: var(--px-ink-dimmer);
+}
 .inspector-actions {
   display: flex;
   flex-direction: column;
@@ -637,12 +683,33 @@
 }
 .action-bar-utils {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
 }
 .action-bar-utils .px-btn {
   font-size: 9px;
   padding: 8px 10px;
+}
+.btn-path-viz {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 8px;
+  font-size: 10px;
+}
+.btn-path-viz svg {
+  width: 12px;
+  height: 12px;
+  flex: none;
+}
+.btn-path-viz.is-on {
+  background: var(--px-info);
+  color: var(--px-border-dark);
+  box-shadow:
+    inset 2px 2px 0 0 #b8d4ff,
+    inset -2px -2px 0 0 #345d99,
+    0 0 0 2px var(--px-border-dark);
 }
 .action-bar-system {
   display: flex;

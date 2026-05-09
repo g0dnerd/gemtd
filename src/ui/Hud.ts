@@ -382,7 +382,26 @@ export function mountHud(
     game.setSpeed(nextSpeed);
     speedBtn.textContent = `${nextSpeed}×`;
   });
-  utilsRow.append(undoBtn, speedBtn);
+
+  const pathBtn = document.createElement("button");
+  pathBtn.className = "px-btn btn-path-viz";
+  pathBtn.type = "button";
+  function refreshPathBtn(): void {
+    const on = game.pathVizEnabled;
+    pathBtn.classList.toggle("is-on", on);
+    pathBtn.setAttribute("aria-pressed", String(on));
+    pathBtn.setAttribute("aria-label", on ? "Hide path" : "Show path");
+    pathBtn.innerHTML = on
+      ? '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 8 C 4 4, 12 4, 14 8 C 12 12, 4 12, 2 8 Z" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg> PATH'
+      : '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 8 C 4 4, 12 4, 14 8 C 12 12, 4 12, 2 8 Z" stroke="currentColor" stroke-width="1.5"/><circle cx="8" cy="8" r="2" fill="currentColor"/><path d="M2 14 L 14 2" stroke="currentColor" stroke-width="1.5"/></svg> PATH';
+  }
+  refreshPathBtn();
+  pathBtn.addEventListener("click", () => {
+    game.togglePathViz();
+    refreshPathBtn();
+  });
+
+  utilsRow.append(undoBtn, speedBtn, pathBtn);
   actionBar.appendChild(utilsRow);
 
   const systemRow = document.createElement("div");
@@ -541,6 +560,7 @@ export function mountHud(
     } else if (phase === "gameover" || phase === "victory") {
       mountGameOver(root, game, phase, onExit);
     }
+    game.refreshRoute();
   });
 
   // Periodic refresh for in-wave HUD.
@@ -702,6 +722,9 @@ export function mountHud(
         kind: "info",
         text: "Hover a placed gem to mark it keeper",
       });
+    } else if (ev.key === "p" || ev.key === "P") {
+      game.togglePathViz();
+      refreshPathBtn();
     } else if (ev.key === "?" || ev.key === "h" || ev.key === "H") {
       mountTutorialModal(root);
     }
