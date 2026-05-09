@@ -129,7 +129,7 @@ describe('BuildPhase: setActiveSlot + ready', () => {
     h.phase.rollDraws();
     expect(h.phase.ready()).toBe(false);
     const tiles: Array<[number, number]> = [
-      [4, 4], [4, 6], [6, 4], [6, 6], [8, 4],
+      [4, 4], [4, 6], [6, 4], [6, 8], [8, 4],
     ];
     for (const [x, y] of tiles) {
       h.phase.place(x, y);

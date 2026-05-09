@@ -47,12 +47,22 @@ export const WAYPOINTS: readonly Waypoint[] = [
   { x: 32, y: 22, label: "WP3" },
   { x: 32, y: 6, label: "WP4" },
   { x: 20, y: 6, label: "WP5" },
-  { x: 20, y: 34, label: "WP7" },
+  { x: 20, y: 34, label: "WP6" },
   { x: 40, y: 34, label: "End" },
 ];
 
 export const START = WAYPOINTS[0];
 export const END = WAYPOINTS[WAYPOINTS.length - 1];
+
+/** Extra cells around each checkpoint (index 1–6) that are blocked for building. */
+export const CHECKPOINT_ZONES: ReadonlyMap<number, ReadonlyArray<{ x: number; y: number }>> = new Map([
+  [1, [{ x: 7, y: 6 }, { x: 8, y: 6 }, { x: 9, y: 6 }, { x: 8, y: 7 }]],
+  [2, [{ x: 8, y: 21 }, { x: 8, y: 22 }, { x: 8, y: 23 }, { x: 9, y: 22 }]],
+  [3, [{ x: 31, y: 22 }, { x: 32, y: 22 }, { x: 32, y: 23 }, { x: 32, y: 21 }]],
+  [4, [{ x: 32, y: 7 }, { x: 32, y: 6 }, { x: 32, y: 5 }, { x: 31, y: 6 }]],
+  [5, [{ x: 21, y: 6 }, { x: 20, y: 6 }, { x: 19, y: 6 }, { x: 20, y: 7 }]],
+  [6, [{ x: 20, y: 33 }, { x: 20, y: 34 }, { x: 19, y: 34 }, { x: 21, y: 34 }]],
+]);
 
 /**
  * Permanent path tiles — these are pre-painted onto the board so the player
@@ -88,6 +98,14 @@ function buildBaseLayout(): { grid: Cell[][]; pathTiles: Set<string> } {
     for (let dx = 0; dx < 4; dx++) {
       const x = GRID_W - 4 + dx;
       const y = END.y + dy;
+      grid[y][x] = Cell.Path;
+      pathTiles.add(`${x},${y}`);
+    }
+  }
+
+  // Mark checkpoint zone cells as Path so they can't be built on.
+  for (const cells of CHECKPOINT_ZONES.values()) {
+    for (const { x, y } of cells) {
       grid[y][x] = Cell.Path;
       pathTiles.add(`${x},${y}`);
     }

@@ -9,7 +9,7 @@
 
 import { Container, Graphics, Text } from "pixi.js";
 import { CELL, THEME } from "./theme";
-import { GRID_H, GRID_W, Cell, START, END, WAYPOINTS } from "../data/map";
+import { GRID_H, GRID_W, Cell, START, END, WAYPOINTS, CHECKPOINT_ZONES } from "../data/map";
 import { FINE_TILE } from "../game/constants";
 
 export interface BoardLayers {
@@ -312,9 +312,25 @@ export function renderCheckpoints(layer: Container): void {
   layer.removeChildren();
   const wps = WAYPOINTS.slice(1, WAYPOINTS.length - 1);
   wps.forEach((wp, idx) => {
+    const cpIdx = idx + 1;
     const ox = wp.x * FINE_TILE;
     const oy = wp.y * FINE_TILE;
     const g = new Graphics();
+
+    // Draw blocked-zone overlay on surrounding cells.
+    const zone = CHECKPOINT_ZONES.get(cpIdx);
+    if (zone) {
+      for (const cell of zone) {
+        if (cell.x === wp.x && cell.y === wp.y) continue;
+        const zx = cell.x * FINE_TILE;
+        const zy = cell.y * FINE_TILE;
+        g.rect(zx, zy, FINE_TILE, FINE_TILE).fill({ color: 0xd04848, alpha: 0.18 });
+        g.rect(zx, zy, FINE_TILE, 1).fill({ color: 0xd04848, alpha: 0.25 });
+        g.rect(zx, zy, 1, FINE_TILE).fill({ color: 0xd04848, alpha: 0.25 });
+        g.rect(zx, zy + FINE_TILE - 1, FINE_TILE, 1).fill({ color: 0x802020, alpha: 0.3 });
+        g.rect(zx + FINE_TILE - 1, zy, 1, FINE_TILE).fill({ color: 0x802020, alpha: 0.3 });
+      }
+    }
 
     // Soft warm glow under the banner.
     for (let i = 3; i >= 1; i--) {
