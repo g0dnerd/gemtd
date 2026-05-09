@@ -72,10 +72,33 @@ export class BuildPhase {
   rollDraws(): void {
     const state = this.game.state;
     state.draws = [];
+
+    const gems: Array<{ gem: GemType; quality: Quality }> = [];
+
+    if (state.wave === 1) {
+      // Guarantee ingredients for a random early-game special (Silver or Malachite).
+      const recipes: GemType[][] = [
+        ['topaz', 'diamond', 'sapphire'],
+        ['opal', 'emerald', 'aquamarine'],
+      ];
+      for (const g of this.game.rng.pick(recipes)) {
+        gems.push({ gem: g, quality: 1 });
+      }
+      for (let i = gems.length; i < DRAW_COUNT; i++) {
+        gems.push({ gem: this.game.rng.pick(GEM_TYPES), quality: pickQuality(this.game.rng.next(), state.chanceTier) });
+      }
+      for (let i = gems.length - 1; i > 0; i--) {
+        const j = this.game.rng.int(i + 1);
+        [gems[i], gems[j]] = [gems[j], gems[i]];
+      }
+    } else {
+      for (let i = 0; i < DRAW_COUNT; i++) {
+        gems.push({ gem: this.game.rng.pick(GEM_TYPES), quality: pickQuality(this.game.rng.next(), state.chanceTier) });
+      }
+    }
+
     for (let i = 0; i < DRAW_COUNT; i++) {
-      const gem = this.game.rng.pick(GEM_TYPES);
-      const quality = pickQuality(this.game.rng.next(), state.chanceTier);
-      state.draws.push({ slotId: i, gem, quality, placedTowerId: null });
+      state.draws.push({ slotId: i, gem: gems[i].gem, quality: gems[i].quality, placedTowerId: null });
     }
     state.activeDrawSlot = 0;
     this.game.bus.emit('draws:roll', { count: state.draws.length });
@@ -246,21 +269,19 @@ export class BuildPhase {
     const sameGem = towers.every((t) => t.gem === towers[0].gem);
     const sameQuality = towers.every((t) => t.quality === towers[0].quality);
     if (sameGem && sameQuality && (towers.length === 2 || towers.length === 4)) {
-      if (!allCurrentRound) {
-        this.game.bus.emit('toast', { kind: 'error', text: 'Level-up requires current-round towers only' });
-        return false;
-      }
       const q = towers[0].quality;
       const bump = towers.length === 2 ? 1 : 2;
       const newQ = Math.min(5, q + bump) as Quality;
-      if (newQ === q) {
-        this.game.bus.emit('toast', { kind: 'error', text: 'Already perfect' });
-        return false;
+      if (newQ !== q) {
+        if (!allCurrentRound) {
+          this.game.bus.emit('toast', { kind: 'error', text: 'Level-up requires current-round towers only' });
+          return false;
+        }
+        const newTowerId = this.commitTransform(towers, towers[0].gem, newQ, undefined);
+        this.autoConcludeRound(newTowerId);
+        this.game.enterWave();
+        return true;
       }
-      const newTowerId = this.commitTransform(towers, towers[0].gem, newQ, undefined);
-      this.autoConcludeRound(newTowerId);
-      this.game.enterWave();
-      return true;
     }
 
     // Recipe path: strict (gem, quality) tuple match.
