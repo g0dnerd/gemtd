@@ -1298,3 +1298,146 @@
 .combo-active.special .badge-count {
   background: var(--px-info);
 }
+
+/* ===== Pattern #1: Floating keep chip above hovered gem ===== */
+.keep-chip {
+  position: absolute;
+  z-index: 20;
+  transform: translate(-50%, -100%);
+  margin-top: -6px;
+  background: var(--px-panel-2);
+  box-shadow:
+    inset 2px 2px 0 0 #7c66a4,
+    inset -2px -2px 0 0 var(--px-border-dark),
+    0 4px 0 0 var(--px-border-dark);
+  padding: 5px 8px 6px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  pointer-events: auto;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.keep-chip::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: var(--px-panel-2);
+  box-shadow: 2px 2px 0 var(--px-border-dark);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+.keep-chip.flipped {
+  transform: translate(-50%, 0);
+  margin-top: 0;
+  margin-bottom: 0;
+  top: auto;
+}
+.keep-chip.flipped::after {
+  bottom: auto;
+  top: -8px;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  box-shadow: -2px -2px 0 var(--px-border-dark);
+}
+.keep-chip-btn {
+  padding: 4px 7px;
+  color: var(--px-good);
+  background: rgba(88, 200, 80, 0.12);
+  cursor: pointer;
+  user-select: none;
+}
+.keep-chip-btn:hover {
+  background: rgba(88, 200, 80, 0.25);
+}
+.keep-chip-btn .kbd {
+  color: var(--px-ink-dimmer);
+  margin-left: 6px;
+  font-size: 7px;
+}
+.keep-chip.is-keeping .keep-chip-btn {
+  color: var(--px-ink-dim);
+  background: transparent;
+  cursor: default;
+}
+
+/* ===== Pattern #3: Draw panel hover-to-keep ===== */
+.draw-cell.placed-non-keep:hover {
+  opacity: 1;
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-border-dark),
+    inset -2px -2px 0 0 var(--px-panel-2),
+    0 0 0 2px var(--px-good);
+}
+.draw-cell.placed-non-keep .draw-keep-hover {
+  position: absolute;
+  inset: 2px;
+  background: rgba(88, 200, 80, 0.12);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 4;
+}
+.draw-cell.placed-non-keep .draw-keep-hover .star {
+  font-family: "Press Start 2P", monospace;
+  font-size: 14px;
+  color: var(--px-good);
+  text-shadow: 0 0 6px rgba(88, 200, 80, 0.7);
+}
+.draw-cell.placed-non-keep:hover .draw-keep-hover {
+  display: flex;
+}
+.draw-cell.placed-non-keep .draw-keep-tip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translate(-50%, -4px);
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  background: var(--px-panel-2);
+  padding: 4px 6px;
+  color: var(--px-good);
+  letter-spacing: 1px;
+  box-shadow:
+    inset 2px 2px 0 0 #7c66a4,
+    inset -2px -2px 0 0 var(--px-border-dark);
+  white-space: nowrap;
+  display: none;
+  z-index: 5;
+  pointer-events: none;
+}
+.draw-cell.placed-non-keep:hover .draw-keep-tip {
+  display: block;
+}
+
+/* ===== Pattern #5: Shift+click place-and-keep ===== */
+.shift-keep-hint {
+  position: absolute;
+  z-index: 20;
+  transform: translate(-50%, -100%);
+  margin-top: -6px;
+  background: var(--px-panel-2);
+  padding: 6px 8px 7px;
+  box-shadow:
+    inset 2px 2px 0 0 #7c66a4,
+    inset -2px -2px 0 0 var(--px-border-dark);
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink);
+  letter-spacing: 1px;
+  line-height: 1.7;
+  text-align: center;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.shift-keep-hint .keepline {
+  color: var(--px-good);
+  margin-top: 2px;
+}
+

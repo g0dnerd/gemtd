@@ -129,6 +129,133 @@ export function mountHud(
 
   game.layoutBoard(boardPxW, boardPxH);
 
+  // === Pattern #1: Floating keep chip over hovered gem ===
+  const keepChip = document.createElement("div");
+  keepChip.className = "keep-chip";
+  keepChip.style.display = "none";
+  const keepChipBtn = document.createElement("span");
+  keepChipBtn.className = "keep-chip-btn";
+  keepChipBtn.innerHTML = '★ KEEP <span class="kbd">K</span>';
+  keepChip.appendChild(keepChipBtn);
+  canvasHost.appendChild(keepChip);
+
+  let keepChipTowerId: number | null = null;
+  let keepChipHideTimer: ReturnType<typeof setTimeout> | null = null;
+  let keepChipHovered = false;
+
+  function showKeepChip(towerId: number, tileX: number, tileY: number): void {
+    const tower = game.state.towers.find((t) => t.id === towerId);
+    if (!tower) return;
+    const bx = game.board.x;
+    const by = game.board.y;
+    const cx = bx + (tileX + 1) * FINE_TILE;
+    const cy = by + tileY * FINE_TILE;
+    keepChip.style.left = `${cx}px`;
+    const flipped = tileY <= 0;
+    if (flipped) {
+      keepChip.style.top = `${by + (tileY + 2) * FINE_TILE + 6}px`;
+      keepChip.classList.add("flipped");
+    } else {
+      keepChip.style.top = `${cy}px`;
+      keepChip.classList.remove("flipped");
+    }
+    const isKeep = game.state.designatedKeepTowerId === towerId;
+    keepChip.classList.toggle("is-keeping", isKeep);
+    keepChipBtn.innerHTML = isKeep
+      ? "★ KEEPING"
+      : '★ KEEP <span class="kbd">K</span>';
+    keepChip.style.display = "flex";
+    keepChipTowerId = towerId;
+  }
+
+  function hideKeepChip(): void {
+    keepChip.style.display = "none";
+    keepChipTowerId = null;
+  }
+
+  keepChipBtn.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    if (keepChipTowerId !== null) {
+      game.cmdDesignateKeep(keepChipTowerId);
+    }
+  });
+
+  keepChip.addEventListener("pointerenter", () => {
+    keepChipHovered = true;
+    if (keepChipHideTimer) {
+      clearTimeout(keepChipHideTimer);
+      keepChipHideTimer = null;
+    }
+  });
+  keepChip.addEventListener("pointerleave", () => {
+    keepChipHovered = false;
+    keepChipHideTimer = setTimeout(hideKeepChip, 300);
+  });
+
+  function scheduleHideKeepChip(): void {
+    if (keepChipHovered) return;
+    if (keepChipHideTimer === null) {
+      keepChipHideTimer = setTimeout(hideKeepChip, 300);
+    }
+  }
+
+  function updateKeepChipFromHover(): void {
+    if (game.state.phase !== "build") {
+      if (!keepChipHovered) hideKeepChip();
+      return;
+    }
+    const t = game.hoverTile;
+    if (!t) {
+      scheduleHideKeepChip();
+      return;
+    }
+    const tower = game.state.towers.find((tt) => tt.x === t.x && tt.y === t.y);
+    if (!tower) {
+      scheduleHideKeepChip();
+      return;
+    }
+    const isCurrentDraw = game.state.draws.some(
+      (d) => d.placedTowerId === tower.id,
+    );
+    if (!isCurrentDraw) {
+      scheduleHideKeepChip();
+      return;
+    }
+    if (keepChipHideTimer) {
+      clearTimeout(keepChipHideTimer);
+      keepChipHideTimer = null;
+    }
+    showKeepChip(tower.id, tower.x, tower.y);
+  }
+
+  // === Pattern #5: Shift+click hint ===
+  const shiftHint = document.createElement("div");
+  shiftHint.className = "shift-keep-hint";
+  shiftHint.style.display = "none";
+  shiftHint.innerHTML =
+    '<div>SHIFT + CLICK</div><div class="keepline">★ PLACE &amp; KEEP</div>';
+  canvasHost.appendChild(shiftHint);
+
+  let shiftDown = false;
+
+  function updateShiftHint(): void {
+    if (
+      !shiftDown ||
+      game.state.phase !== "build" ||
+      !activeDraw(game.state) ||
+      !game.hoverTile
+    ) {
+      shiftHint.style.display = "none";
+      return;
+    }
+    const t = game.hoverTile;
+    const bx = game.board.x;
+    const by = game.board.y;
+    shiftHint.style.left = `${bx + (t.x + 1) * FINE_TILE}px`;
+    shiftHint.style.top = `${by + t.y * FINE_TILE}px`;
+    shiftHint.style.display = "block";
+  }
+
   // === Right column ===
   const threats = document.createElement("div");
   threats.className = "px-panel threat-panel";
@@ -403,10 +530,14 @@ export function mountHud(
   });
   game.bus.on("draws:change", () => {
     refreshDraw();
+    if (keepChipTowerId !== null) {
+      updateKeepChipFromHover();
+    }
   });
   game.bus.on("phase:enter", ({ phase }) => {
     if (phase === "wave") {
       startBtn.disabled = true;
+      hideKeepChip();
     } else if (phase === "gameover" || phase === "victory") {
       mountGameOver(root, game, phase, onExit);
     }
@@ -446,11 +577,17 @@ export function mountHud(
     game.hoverTile = tileFromPointer(ev);
     game.hoverPixel = pixelFromPointer(ev);
     game.hoverPresent = true;
+    shiftDown = ev.shiftKey;
+    updateKeepChipFromHover();
+    updateShiftHint();
   });
   canvasHost.addEventListener("pointerleave", () => {
     game.hoverTile = null;
     game.hoverPixel = null;
     game.hoverPresent = false;
+    shiftDown = false;
+    updateShiftHint();
+    scheduleHideKeepChip();
   });
   canvasHost.addEventListener("pointerenter", () => {
     game.hoverPresent = true;
@@ -473,7 +610,31 @@ export function mountHud(
     }
     // Otherwise: try to place if there's an active draw.
     if (activeDraw(game.state)) {
-      game.cmdPlace(t.x, t.y);
+      const placed = game.cmdPlace(t.x, t.y);
+      // Pattern #5: Shift+click = place AND keep
+      if (placed && ev.shiftKey) {
+        const justPlaced = game.state.towers.find(
+          (tt) => tt.x === t.x && tt.y === t.y,
+        );
+        if (justPlaced) {
+          const isCurrentDraw = game.state.draws.some(
+            (d) => d.placedTowerId === justPlaced.id,
+          );
+          if (isCurrentDraw) {
+            const prev = game.state.designatedKeepTowerId;
+            game.cmdDesignateKeep(justPlaced.id);
+            if (prev !== null && prev !== justPlaced.id) {
+              const prevTower = game.state.towers.find((tt) => tt.id === prev);
+              if (prevTower) {
+                game.bus.emit("toast", {
+                  kind: "good",
+                  text: `Keeper changed to ${GEM_PALETTE[justPlaced.gem].name}`,
+                });
+              }
+            }
+          }
+        }
+      }
     } else {
       game.selectTower(null);
       game.selectRock(null);
@@ -510,11 +671,56 @@ export function mountHud(
       // Cycle active draw slot (forward; Shift+Tab for backward).
       ev.preventDefault();
       game.cmdCycleActiveSlot(ev.shiftKey ? -1 : 1);
+    } else if (ev.key === "k" || ev.key === "K") {
+      // Pattern #4: K hotkey to keep hovered or selected gem
+      if (game.state.phase !== "build") return;
+      const ht = game.hoverTile;
+      if (ht) {
+        const tower = game.state.towers.find(
+          (tt) => tt.x === ht.x && tt.y === ht.y,
+        );
+        if (tower) {
+          const isCurrentDraw = game.state.draws.some(
+            (d) => d.placedTowerId === tower.id,
+          );
+          if (isCurrentDraw) {
+            game.cmdDesignateKeep(tower.id);
+            return;
+          }
+        }
+      }
+      if (game.selectedTowerId !== null) {
+        const isCurrentDraw = game.state.draws.some(
+          (d) => d.placedTowerId === game.selectedTowerId,
+        );
+        if (isCurrentDraw) {
+          game.cmdDesignateKeep(game.selectedTowerId);
+          return;
+        }
+      }
+      game.bus.emit("toast", {
+        kind: "info",
+        text: "Hover a placed gem to mark it keeper",
+      });
     } else if (ev.key === "?" || ev.key === "h" || ev.key === "H") {
       mountTutorialModal(root);
     }
   };
   window.addEventListener("keydown", onKey);
+
+  const onKeyUp = (ev: KeyboardEvent) => {
+    if (ev.key === "Shift") {
+      shiftDown = false;
+      updateShiftHint();
+    }
+  };
+  window.addEventListener("keyup", onKeyUp);
+  window.addEventListener("keydown", (ev: KeyboardEvent) => {
+    if (ev.key === "Shift") {
+      shiftDown = true;
+      updateShiftHint();
+    }
+  });
 
   // Initial paint.
   rebuildRecipes();
@@ -523,6 +729,7 @@ export function mountHud(
   return () => {
     window.clearInterval(tickHandle);
     window.removeEventListener("keydown", onKey);
+    window.removeEventListener("keyup", onKeyUp);
     hud.remove();
   };
 
@@ -720,6 +927,17 @@ export function mountHud(
           star.className = "draw-keep-badge";
           star.textContent = "★";
           cell.appendChild(star);
+        }
+        // Pattern #3: hover overlay for placed non-keep cells
+        if (isPlaced && !isKeep) {
+          const hoverOverlay = document.createElement("div");
+          hoverOverlay.className = "draw-keep-hover";
+          hoverOverlay.innerHTML = '<span class="star">★</span>';
+          cell.appendChild(hoverOverlay);
+          const tip = document.createElement("div");
+          tip.className = "draw-keep-tip";
+          tip.textContent = "CLICK · KEEP";
+          cell.appendChild(tip);
         }
         cell.title = isPlaced
           ? "Click to mark as keep"
