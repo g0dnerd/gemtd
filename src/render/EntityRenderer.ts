@@ -100,6 +100,8 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         }
         const sprite = new Sprite(tex);
         sprite.anchor.set(0.5, 0.5);
+        const runeScale = 24 / 14;
+        sprite.scale.set(runeScale);
         obj.addChild(sprite);
         // Idle glow halo
         const palette = RUNE[runeEffect];

@@ -681,7 +681,7 @@ export const COMBOS: ComboRecipe[] = [
     inputs: [
       { gem: "diamond", quality: 3 },
       { gem: "opal", quality: 2 },
-      { gem: "sapphire", quality: 2 },
+      { gem: "ruby", quality: 2 },
     ],
     stats: {
       dmgMin: 150,
