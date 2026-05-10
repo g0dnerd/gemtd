@@ -448,7 +448,7 @@ export const COMBOS: ComboRecipe[] = [
     name: "Yellow Sapphire",
     inputs: [
       { gem: "sapphire", quality: 5 },
-      { gem: "sapphire", quality: 4 },
+      { gem: "topaz", quality: 4 },
       { gem: "opal", quality: 3 },
     ],
     stats: {
@@ -488,8 +488,8 @@ export const COMBOS: ComboRecipe[] = [
     key: "red_crystal",
     name: "Red Crystal",
     inputs: [
-      { gem: "amethyst", quality: 5 },
-      { gem: "amethyst", quality: 4 },
+      { gem: "emerald", quality: 4 },
+      { gem: "amethyst", quality: 2 },
       { gem: "ruby", quality: 3 },
     ],
     stats: {
@@ -513,7 +513,12 @@ export const COMBOS: ComboRecipe[] = [
           range: 5.5,
           atkSpeed: 0.8,
           effects: [
-            { kind: "prox_armor_reduce", radius: 3.5, value: 6, targets: "air" },
+            {
+              kind: "prox_armor_reduce",
+              radius: 3.5,
+              value: 6,
+              targets: "air",
+            },
           ],
           blurb: "-6 armor to air in range. Air only.",
           targeting: "air",
@@ -528,7 +533,12 @@ export const COMBOS: ComboRecipe[] = [
           range: 6.0,
           atkSpeed: 0.8,
           effects: [
-            { kind: "prox_armor_reduce", radius: 4.0, value: 7, targets: "air" },
+            {
+              kind: "prox_armor_reduce",
+              radius: 4.0,
+              value: 7,
+              targets: "air",
+            },
           ],
           blurb: "-7 armor to air in range. Air only.",
           targeting: "air",
@@ -542,8 +552,9 @@ export const COMBOS: ComboRecipe[] = [
     name: "Paraiba Tourmaline",
     inputs: [
       { gem: "aquamarine", quality: 5 },
-      { gem: "emerald", quality: 4 },
-      { gem: "sapphire", quality: 3 },
+      { gem: "opal", quality: 4 },
+      { gem: "emerald", quality: 2 },
+      { gem: "aquamarine", quality: 2 },
     ],
     stats: {
       dmgMin: 60,
@@ -567,7 +578,12 @@ export const COMBOS: ComboRecipe[] = [
           range: 4.5,
           atkSpeed: 0.6,
           effects: [
-            { kind: "prox_armor_reduce", radius: 2.5, value: 6, targets: "ground" },
+            {
+              kind: "prox_armor_reduce",
+              radius: 2.5,
+              value: 6,
+              targets: "ground",
+            },
             { kind: "splash", radius: 1.5, falloff: 0.5, chance: 0.33 },
           ],
           blurb: "-6 armor to ground in range. 33% frost nova.",
@@ -679,7 +695,10 @@ export function comboStatsAtTier(combo: ComboRecipe, tier: number): ComboStats {
 }
 
 /** Return the next available upgrade for a combo at the given tier, or null if maxed. */
-export function nextUpgrade(combo: ComboRecipe, tier: number): UpgradeTier | null {
+export function nextUpgrade(
+  combo: ComboRecipe,
+  tier: number,
+): UpgradeTier | null {
   if (tier >= combo.upgrades.length) return null;
   return combo.upgrades[tier];
 }
