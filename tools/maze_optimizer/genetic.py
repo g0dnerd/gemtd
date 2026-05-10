@@ -215,7 +215,7 @@ def create_random_individual(
 def init_population(
     base_grid: np.ndarray, pop_size: int, rng: random.Random
 ) -> list[Chromosome]:
-    greedy_count = max(1, pop_size // 5)
+    greedy_count = max(1, pop_size * 2 // 5)
     random_count = pop_size - greedy_count
 
     population: list[Chromosome] = []
@@ -309,7 +309,7 @@ def _greedy_round(
     flat_route: list[tuple[int, int]],
     route_set: set[tuple[int, int]],
     rng: random.Random,
-    max_candidates: int = 50,
+    max_candidates: int = 200,
 ) -> list[tuple[int, int]]:
     """Generate one round of greedy placements on the given grid state."""
     grid = copy_grid(grid)
@@ -554,7 +554,7 @@ def run_ga(
     )
 
     elite_count = max(1, int(population_size * elite_pct))
-    ls_count = min(3, elite_count)
+    ls_count = min(5, elite_count)
 
     for gen in range(1, generations + 1):
         ranked = sorted(range(len(population)), key=lambda i: -fitness_scores[i])
@@ -613,11 +613,11 @@ def run_ga(
             stagnation += 1
 
         # Local search on elites every 10 generations
-        if gen % 10 == 0:
+        if gen % 5 == 0:
             for li in range(ls_count):
                 idx = ranked[li] if li < len(ranked) else 0
                 ls_chrom, ls_fit = local_search(
-                    population[idx], base_grid, rng, iterations=30, exposure_weight=exposure_weight
+                    population[idx], base_grid, rng, iterations=100, exposure_weight=exposure_weight
                 )
                 if ls_fit > fitness_scores[idx]:
                     population[idx] = ls_chrom
@@ -635,8 +635,8 @@ def run_ga(
                 f"pen={ri['validity_penalty']} stag={stagnation} mut={effective_mutation:.2f} ({eval_time:.1f}s)"
             )
 
-        if stagnation >= 50:
-            print(f"Converged after {gen} generations (50 without improvement)")
+        if stagnation >= 150:
+            print(f"Converged after {gen} generations (150 without improvement)")
             break
 
     return best_result
