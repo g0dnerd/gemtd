@@ -143,7 +143,8 @@ export class WavePhase {
 
   private leak(c: CreepState): void {
     const state = this.game.state;
-    state.lives = Math.max(0, state.lives - 1);
+    const cost = c.flags?.boss ? 8 : 1;
+    state.lives = Math.max(0, state.lives - cost);
     state.waveStats.leakedThisWave++;
     this.game.bus.emit('creep:leak', { id: c.id });
     this.game.bus.emit('lives:change', { lives: state.lives });

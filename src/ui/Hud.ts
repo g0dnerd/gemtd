@@ -32,6 +32,8 @@ import {
   CHANCE_TIER_UPGRADE_COST,
   MAX_CHANCE_TIER,
   CHANCE_TIER_WEIGHTS,
+  SPEEDS,
+  type SpeedMultiplier,
 } from "../game/constants";
 import { WAVES, WaveDef } from "../data/waves";
 import type { CreepKind } from "../data/creeps";
@@ -704,9 +706,8 @@ export function mountHud(
   utilsRow.className = "action-bar-utils";
   const undoBtn = makeBtn("↶ UNDO", () => game.cmdUndo());
   const speedBtn = makeBtn("1×", () => {
-    const nextSpeed = (
-      game.state.speed === 1 ? 2 : game.state.speed === 2 ? 4 : 1
-    ) as 1 | 2 | 4;
+    const idx = SPEEDS.indexOf(game.state.speed as SpeedMultiplier);
+    const nextSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
     game.setSpeed(nextSpeed);
     speedBtn.textContent = `${nextSpeed}×`;
   });
@@ -1034,6 +1035,9 @@ export function mountHud(
     } else if (ev.key === "4") {
       game.setSpeed(4);
       speedBtn.textContent = "4×";
+    } else if (ev.key === "8") {
+      game.setSpeed(8);
+      speedBtn.textContent = "8×";
     } else if (ev.key === "c" || ev.key === "C") {
       openCombine();
     } else if (ev.key === "Escape") {

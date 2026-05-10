@@ -27,7 +27,7 @@ export const START_LIVES = 50;
 export const START_GOLD = 10;
 
 /** Speed multipliers exposed in the HUD. */
-export const SPEEDS = [1, 2, 4] as const;
+export const SPEEDS = [1, 2, 4, 8] as const;
 export type SpeedMultiplier = (typeof SPEEDS)[number];
 
 /**
