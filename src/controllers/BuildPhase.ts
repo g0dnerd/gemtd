@@ -285,6 +285,11 @@ export class BuildPhase {
     }
 
     // Recipe path: strict (gem, quality) tuple match.
+    // During placement (not all draws placed yet), only current-round towers allowed.
+    if (!allDrawsPlaced(state) && !allCurrentRound) {
+      this.game.bus.emit('toast', { kind: 'error', text: 'Place all draws first, or use only current-round towers' });
+      return false;
+    }
     const inputs = towers.map((t) => ({ gem: t.gem, quality: t.quality }));
     const combo = findCombo(inputs);
     if (!combo) {

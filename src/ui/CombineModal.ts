@@ -328,6 +328,9 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
     if (activeTab === 'level') {
       // Only this-round towers are eligible for level-up.
       towers = towers.filter((t) => drawTowerIds.has(t.id));
+    } else if (!game.state.draws.every((d) => d.placedTowerId !== null)) {
+      // Recipe tab during placement: only current-round towers.
+      towers = towers.filter((t) => drawTowerIds.has(t.id));
     }
 
     for (const t of towers) {

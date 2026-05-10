@@ -16,6 +16,9 @@ import {
   ROCK_GRIDS,
   ROCK_PALETTES,
   RockKind,
+  applyOpalFlecks,
+  opalFleckHue,
+  OPAL_FRAME_COUNT,
 } from "./spriteData";
 import { buildRockVariant, type RockVariantId } from "./RockSprites";
 import type { EventBus } from "../events/EventBus";
@@ -38,8 +41,9 @@ export class TowerSpriteCache {
     quality: Quality,
     comboKey?: string,
     upgradeTier = 0,
+    opalFrame = 0,
   ): Texture {
-    const key = `${gem}:${quality}:${comboKey ?? "base"}:${upgradeTier}`;
+    const key = `${gem}:${quality}:${comboKey ?? "base"}:${upgradeTier}${gem === "opal" && !comboKey ? `:f${opalFrame}` : ""}`;
     let tex = this.gemTextures.get(key);
     if (tex) return tex;
 
@@ -65,6 +69,15 @@ export class TowerSpriteCache {
         },
         TOWER_SCALE,
       );
+    } else if (gem === "opal") {
+      const palette = GEM_PALETTE.opal;
+      const grid = applyOpalFlecks(TIER_GRIDS[quality], quality);
+      tex = rasterizeToTexture(
+        this.renderer,
+        grid,
+        { light: palette.light, mid: palette.mid, dark: palette.dark, sparkle: opalFleckHue(opalFrame) },
+        TOWER_SCALE,
+      );
     } else {
       const palette = GEM_PALETTE[gem];
       const grid = TIER_GRIDS[quality];
@@ -78,6 +91,14 @@ export class TowerSpriteCache {
 
     this.gemTextures.set(key, tex);
     return tex;
+  }
+
+  opalFrameTextures(quality: Quality): Texture[] {
+    const textures: Texture[] = [];
+    for (let i = 0; i < OPAL_FRAME_COUNT; i++) {
+      textures.push(this.gemTexture("opal", quality, undefined, 0, i));
+    }
+    return textures;
   }
 
   rock(kind: RockKind): Texture {

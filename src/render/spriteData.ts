@@ -14,7 +14,42 @@
  */
 
 import type { PixelGrid } from "./sprites";
-import type { GemType } from "./theme";
+import type { GemType, Quality } from "./theme";
+
+// ===== Opal iridescent fleck overlay =====================================
+
+const OPAL_FLECKS: Record<Quality, [number, number][]> = {
+  1: [[4, 8], [4, 4]],
+  2: [[3, 3], [5, 4], [6, 2]],
+  3: [[2, 2], [4, 4], [5, 3], [3, 5]],
+  4: [[3, 1], [4, 2], [2, 4], [5, 4]],
+  5: [[4, 1], [3, 3], [5, 5], [2, 6], [6, 3]],
+};
+
+export function applyOpalFlecks(grid: PixelGrid, q: Quality): number[][] {
+  const next = grid.map(row => row.slice());
+  for (const [x, y] of OPAL_FLECKS[q]) {
+    const cell = next[y]?.[x];
+    if (cell !== undefined && cell !== 0 && cell !== 4) next[y][x] = 5;
+  }
+  return next;
+}
+
+export const OPAL_FLECK_COLOR = 0x7cf0c8;
+export const OPAL_FLECK_CSS = '#7cf0c8';
+export const OPAL_FRAME_COUNT = 8;
+
+export function opalFleckHue(frame: number): number {
+  const h = ((165 + frame * 45) % 360) / 360;
+  const s = 0.8;
+  const l = 0.7;
+  const a = s * Math.min(l, 1 - l);
+  const f = (n: number) => {
+    const k = (n + h * 12) % 12;
+    return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
+  };
+  return (Math.round(f(0) * 255) << 16) | (Math.round(f(8) * 255) << 8) | Math.round(f(4) * 255);
+}
 
 // ===== Tier silhouettes (10×10) =========================================
 

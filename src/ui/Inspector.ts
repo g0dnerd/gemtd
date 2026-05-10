@@ -337,7 +337,18 @@ function countCombinePairs(game: Game, sel: TowerState): number {
 
 function countSpecialRecipes(game: Game, sel: TowerState): number {
   if (sel.comboKey) return 0;
-  const placed = game.state.towers.filter((t) => !t.comboKey);
+  const state = game.state;
+  const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
+  let placed: TowerState[];
+  if (allPlaced) {
+    placed = state.towers.filter((t) => !t.comboKey);
+  } else {
+    const drawIds = new Set(
+      state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
+    );
+    if (!drawIds.has(sel.id)) return 0;
+    placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
+  }
   let n = 0;
   for (const c of COMBOS) {
     if (matchRecipeWithMust(c, placed, sel)) n++;
@@ -440,7 +451,17 @@ function tryAutoCombineSpecial(game: Game): void {
     });
     return;
   }
-  const placed = game.state.towers.filter((t) => !t.comboKey);
+  const state = game.state;
+  const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
+  let placed: TowerState[];
+  if (allPlaced) {
+    placed = state.towers.filter((t) => !t.comboKey);
+  } else {
+    const drawIds = new Set(
+      state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
+    );
+    placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
+  }
   for (const c of COMBOS) {
     const ids = matchRecipeWithMust(c, placed, sel);
     if (ids) {

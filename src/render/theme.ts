@@ -86,8 +86,8 @@ export const GEM_PALETTE: Record<GemType, GemPaletteEntry> = {
   },
   opal: {
     name: 'Opal',
-    light: 0xfff8f8, mid: 0xf0d8d8, dark: 0xa07878,
-    css: { name: 'Opal', light: '#fff8f8', mid: '#f0d8d8', dark: '#a07878' },
+    light: 0x5a6878, mid: 0x1e2632, dark: 0x06080e,
+    css: { name: 'Opal', light: '#5a6878', mid: '#1e2632', dark: '#06080e' },
   },
   diamond: {
     name: 'Diamond',

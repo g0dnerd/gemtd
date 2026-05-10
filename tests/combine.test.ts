@@ -130,6 +130,7 @@ describe('combine: recipe path', () => {
       placeTower(h.game, 4, 6, 'diamond', 1),
       placeTower(h.game, 4, 8, 'sapphire', 1),
     ];
+    h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers.length).toBe(1);
     expect(h.game.state.towers[0].comboKey).toBe('silver');
@@ -143,6 +144,7 @@ describe('combine: recipe path', () => {
       placeTower(h.game, 4, 6, 'aquamarine', 4),
       placeTower(h.game, 4, 8, 'amethyst', 3),
     ];
+    h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers[0].comboKey).toBe('bloodstone');
   });
@@ -154,6 +156,7 @@ describe('combine: recipe path', () => {
       placeTower(h.game, 4, 6, 'amethyst', 4),
       placeTower(h.game, 4, 8, 'diamond', 2),
     ];
+    h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers[0].comboKey).toBe('gold');
   });
@@ -166,7 +169,41 @@ describe('combine: recipe path', () => {
       placeTower(h.game, 4, 6, 'diamond', 2),
       placeTower(h.game, 4, 8, 'sapphire', 2),
     ];
+    h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(false);
+  });
+
+  it('refuses recipe using non-current-round tower when draws not all placed', () => {
+    const h = setup();
+    const kept = placeTower(h.game, 4, 4, 'topaz', 1);
+    const current = [
+      placeTower(h.game, 4, 6, 'diamond', 1),
+      placeTower(h.game, 4, 8, 'sapphire', 1),
+    ];
+    // Simulate mid-placement: 2 placed + 3 unplaced draw slots.
+    h.game.state.draws = [
+      ...asDraws(current),
+      { slotId: 2, gem: 'ruby', quality: 1 as any, placedTowerId: null },
+      { slotId: 3, gem: 'ruby', quality: 1 as any, placedTowerId: null },
+      { slotId: 4, gem: 'ruby', quality: 1 as any, placedTowerId: null },
+    ];
+    expect(h.phase.combine([kept.id, ...current.map((t) => t.id)])).toBe(false);
+  });
+
+  it('allows recipe using any tower after all draws placed', () => {
+    const h = setup();
+    const kept = placeTower(h.game, 4, 4, 'topaz', 1);
+    const current = [
+      placeTower(h.game, 4, 6, 'diamond', 1),
+      placeTower(h.game, 4, 8, 'sapphire', 1),
+      placeTower(h.game, 6, 4, 'ruby', 1),
+      placeTower(h.game, 6, 6, 'ruby', 1),
+      placeTower(h.game, 6, 8, 'ruby', 1),
+    ];
+    // All 5 draws placed — recipe can use kept tower from prior round.
+    h.game.state.draws = asDraws(current);
+    expect(h.phase.combine([kept.id, current[0].id, current[1].id])).toBe(true);
+    expect(h.game.state.towers.find((t) => t.comboKey === 'silver')).toBeTruthy();
   });
 
   it('findCombo strict tuple matching', () => {

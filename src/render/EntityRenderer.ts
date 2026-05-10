@@ -7,12 +7,13 @@
  * source entity has been removed.
  */
 
-import { Container, Graphics, Sprite } from "pixi.js";
+import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
 import { activeDraw } from "../game/State";
 import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
 import { GEM_PALETTE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
+import { OPAL_FRAME_COUNT } from "./spriteData";
 import { gemStats } from "../data/gems";
 import { COMBOS, comboStatsAtTier } from "../data/combos";
 import { SPRITE_BY_KIND } from "./sprites";
@@ -42,12 +43,17 @@ interface TowerEntry {
   obj: Container;
   /** Cached comboKey so we can rebuild the sprite if a tower is upgraded. */
   comboKey: string | undefined;
+  gem: string;
   quality: number;
   upgradeTier: number;
   /** FX layer (halo/aura/orbit/ground), only set for special towers. */
   fx?: TowerFx;
   /** Dedicated FX layer for the Stargem apex tower. */
   stargemFx?: StargemFx;
+  /** Pre-cached 8-frame textures for opal shimmer animation. */
+  opalFrames?: Texture[];
+  /** Last rendered opal frame index. */
+  opalFrame?: number;
 }
 
 interface TowerFx {
@@ -79,6 +85,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       const obj = new Container();
       let fx: TowerFx | undefined;
       let sgfx: StargemFx | undefined;
+      let opalFrames: Texture[] | undefined;
       if (t.comboKey === "stargem") {
         sgfx = makeStargemFx(obj);
         const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
@@ -89,9 +96,12 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         }
         const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
         obj.addChild(towerSprite);
+        if (t.gem === "opal" && !t.comboKey) {
+          opalFrames = cache.opalFrameTextures(t.quality);
+        }
       }
       layer.addChild(obj);
-      entry = { obj, comboKey: t.comboKey, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames };
       towerObjs.set(t.id, entry);
     }
     // Tower anchor (t.x, t.y) is the top-left fine cell of its 2×2 footprint,
@@ -100,6 +110,15 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     entry.obj.y = (t.y + 1) * FINE_TILE;
     if (entry.stargemFx) animateStargemFx(entry.stargemFx, tick);
     else if (entry.fx) animateTowerFx(entry.fx, tick);
+    if (entry.opalFrames) {
+      const frame = Math.floor(tick / 27) % OPAL_FRAME_COUNT;
+      if (frame !== entry.opalFrame) {
+        entry.opalFrame = frame;
+        const towerContainer = entry.obj.children[entry.obj.children.length - 1] as Container;
+        const sprite = towerContainer.children[0] as Sprite;
+        sprite.texture = entry.opalFrames[frame];
+      }
+    }
   }
   for (const [id, entry] of towerObjs) {
     if (!seen.has(id)) {

@@ -5,7 +5,7 @@
 
 import { GEM_PALETTE, GemType, Quality } from './theme';
 import { GEM_SPRITE, COIN_SPRITE, HEART_SPRITE, OUTLINE_COLOR, PixelGrid } from './sprites';
-import { TIER_GRIDS, SPECIAL_SPRITES } from './spriteData';
+import { TIER_GRIDS, SPECIAL_SPRITES, applyOpalFlecks, OPAL_FLECK_CSS } from './spriteData';
 
 export interface PaletteCss {
   light: string;
@@ -57,7 +57,56 @@ export function htmlGem(type: GemType, size = 24, glow = false): HTMLDivElement 
 
 /** Tier-aware gem icon: T1 chipped → T5 marquise, with the gem's palette. */
 export function htmlGemTier(type: GemType, quality: Quality, size = 24, glow = false): HTMLDivElement {
-  return htmlSprite(TIER_GRIDS[quality], GEM_PALETTE[type].css, size, glow);
+  if (type !== 'opal') {
+    return htmlSprite(TIER_GRIDS[quality], GEM_PALETTE[type].css, size, glow);
+  }
+  const grid = applyOpalFlecks(TIER_GRIDS[quality], quality);
+  const palette = GEM_PALETTE[type].css;
+  const px = Math.max(1, Math.floor(size / grid.length));
+  const root = document.createElement('div');
+  root.className = 'px-sprite';
+  root.style.width = `${grid[0].length * px}px`;
+  root.style.height = `${grid.length * px}px`;
+  root.style.position = 'relative';
+  root.style.setProperty('--px-sprite-px', `${px}px`);
+  if (glow) {
+    root.style.filter = `drop-shadow(0 0 ${px * 2}px ${palette.mid})`;
+  }
+  const colors: Record<number, string | undefined> = {
+    1: palette.light,
+    2: palette.mid,
+    3: palette.dark,
+    4: OUTLINE_COLOR,
+  };
+  const shadows: string[] = [];
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[y].length; x++) {
+      const c = grid[y][x];
+      if (!c || c === 5) continue;
+      const color = colors[c];
+      if (!color) continue;
+      shadows.push(`${x * px}px ${y * px}px 0 0 ${color}`);
+    }
+  }
+  const inner = document.createElement('div');
+  inner.style.boxShadow = shadows.join(',');
+  root.appendChild(inner);
+  for (let y = 0; y < grid.length; y++) {
+    for (let x = 0; x < grid[y].length; x++) {
+      if (grid[y][x] !== 5) continue;
+      const span = document.createElement('span');
+      span.className = 'opal-fleck';
+      span.style.position = 'absolute';
+      span.style.left = `${x * px}px`;
+      span.style.top = `${y * px}px`;
+      span.style.width = `${px}px`;
+      span.style.height = `${px}px`;
+      span.style.background = OPAL_FLECK_CSS;
+      span.style.animationDelay = `${(x + y) * 0.12}s`;
+      root.appendChild(span);
+    }
+  }
+  return root;
 }
 
 const hex6 = (n: number): string => `#${n.toString(16).padStart(6, '0')}`;

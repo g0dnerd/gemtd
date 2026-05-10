@@ -44,8 +44,8 @@
   --gem-topaz-d: #886820;
   --gem-amethyst: #a050e0;
   --gem-amethyst-d: #582878;
-  --gem-opal: #f0d8d8;
-  --gem-opal-d: #a07878;
+  --gem-opal: #1e2632;
+  --gem-opal-d: #06080e;
   --gem-diamond: #d8f0f8;
   --gem-diamond-d: #6890a8;
 
@@ -207,4 +207,15 @@ html, body {
   --px-ink-dim: #b8a584;
   --px-border-dark: #1a1428;
   --px-accent: #f0a040;
+}
+
+@keyframes opal-shimmer {
+  0%   { filter: hue-rotate(0deg)   brightness(1.05); }
+  25%  { filter: hue-rotate(80deg)  brightness(1.15); }
+  50%  { filter: hue-rotate(160deg) brightness(1.05); }
+  75%  { filter: hue-rotate(240deg) brightness(1.10); }
+  100% { filter: hue-rotate(360deg) brightness(1.05); }
+}
+.opal-fleck {
+  animation: opal-shimmer 3.6s linear infinite;
 }
