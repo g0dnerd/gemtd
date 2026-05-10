@@ -44,7 +44,7 @@ import {
   computeKeeperIndices,
   renderBlueprintOverlay,
 } from "../render/BlueprintOverlay";
-import blueprintData from "../../tools/maze_optimizer/blueprint_v2.json";
+import blueprintData from "../../tools/maze_optimizer/blueprint_v3.json";
 
 export class Game {
   readonly bus = new EventBus();

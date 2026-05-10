@@ -525,6 +525,16 @@ export function mountHud(
   function doRadialSpecial(tower: TowerState): void {
     const placed = game.state.towers.filter((t) => !t.comboKey);
     for (const c of COMBOS) {
+      if (c.key === 'stargem') {
+        if (tower.quality === 5) {
+          const same = placed.filter(t => t.id !== tower.id && t.gem === tower.gem && t.quality === 5);
+          if (same.length >= 3) {
+            game.cmdCombine([tower.id, ...same.slice(0, 3).map(t => t.id)]);
+            return;
+          }
+        }
+        continue;
+      }
       const used = new Set<number>([tower.id]);
       const ids: number[] = [];
       let consumed = false;

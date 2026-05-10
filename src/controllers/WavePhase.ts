@@ -58,6 +58,7 @@ export class WavePhase {
     for (const c of state.creeps) {
       if (!c.alive) continue;
       this.advanceCreep(c);
+      if (state.phase !== 'wave') return;
     }
 
     // Prune dead creeps; if all dead AND all spawned, end the wave.
@@ -143,11 +144,14 @@ export class WavePhase {
 
   private leak(c: CreepState): void {
     const state = this.game.state;
-    const cost = c.flags?.boss ? 8 : 1;
+    const cost = c.flags?.boss ? 6 : 1;
     state.lives = Math.max(0, state.lives - cost);
     state.waveStats.leakedThisWave++;
     this.game.bus.emit('creep:leak', { id: c.id });
     this.game.bus.emit('lives:change', { lives: state.lives });
+    if (state.lives <= 0) {
+      this.endWave();
+    }
   }
 
   private kill(c: CreepState): void {

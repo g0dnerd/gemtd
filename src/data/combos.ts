@@ -451,7 +451,7 @@ export const COMBOS: ComboRecipe[] = [
     inputs: [
       { gem: "sapphire", quality: 5 },
       { gem: "topaz", quality: 4 },
-      { gem: "opal", quality: 3 },
+      { gem: "ruby", quality: 4 },
     ],
     stats: {
       dmgMin: 80,
@@ -667,7 +667,7 @@ export const COMBOS: ComboRecipe[] = [
       dmgMax: 0,
       range: 1.0,
       atkSpeed: 0.5,
-      effects: [{ kind: "trap_root", duration: 2.0 }],
+      effects: [{ kind: "trap_root", duration: 1.5 }],
       blurb: "Stuns creeps that walk over it.",
       targeting: "ground",
     },
@@ -687,7 +687,7 @@ export const COMBOS: ComboRecipe[] = [
       dmgMin: 150,
       dmgMax: 250,
       range: 1.0,
-      atkSpeed: 0.8,
+      atkSpeed: 1.8,
       effects: [],
       blurb: "Deals heavy damage to creeps walking over it.",
       targeting: "ground",

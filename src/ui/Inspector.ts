@@ -373,6 +373,12 @@ function matchRecipeWithMust(
   towers: TowerState[],
   must: TowerState,
 ): number[] | null {
+  if (c.key === 'stargem') {
+    if (must.quality !== 5) return null;
+    const same = towers.filter(t => t.id !== must.id && t.gem === must.gem && t.quality === 5);
+    if (same.length < 3) return null;
+    return [must.id, ...same.slice(0, 3).map(t => t.id)];
+  }
   const used = new Set<number>([must.id]);
   const ids: number[] = [];
   let consumed = false;

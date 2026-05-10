@@ -53,3 +53,6 @@ game.js
 !.env.example
 
 __pycache__/
+*.egg-info
+*.so
+blueprint*.json
