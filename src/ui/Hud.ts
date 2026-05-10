@@ -25,7 +25,7 @@ import { mountInspector, refreshInspector } from "./Inspector";
 import { mountCombineModal } from "./CombineModal";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
-import { activeDraw, allDrawsPlaced } from "../game/State";
+import { activeDraw, allDrawsPlaced, type TowerState } from "../game/State";
 import { GRID_H, GRID_W } from "../data/map";
 import {
   FINE_TILE,
@@ -134,104 +134,426 @@ export function mountHud(
 
   game.layoutBoard(boardPxW, boardPxH);
 
-  // === Pattern #1: Floating keep chip over hovered gem ===
-  const keepChip = document.createElement("div");
-  keepChip.className = "keep-chip";
-  keepChip.style.display = "none";
-  const keepChipBtn = document.createElement("span");
-  keepChipBtn.className = "keep-chip-btn";
-  keepChipBtn.innerHTML = '★ KEEP <span class="kbd">K</span>';
-  keepChip.appendChild(keepChipBtn);
-  canvasHost.appendChild(keepChip);
+  // === Right-click radial menu (Keep / Combine / Special) ===
+  const SVG_NS = "http://www.w3.org/2000/svg";
+  const KEEP_WEDGE =
+    "M -77.94 -45 A 90 90 0 0 1 77.94 -45 L 17.32 -10 A 20 20 0 0 0 -17.32 -10 Z";
+  const COMBINE_WEDGE =
+    "M -77.94 -45 L -17.32 -10 A 20 20 0 0 0 0 20 L 0 90 A 90 90 0 0 1 -77.94 -45 Z";
+  const SPECIAL_WEDGE =
+    "M 0 90 A 90 90 0 0 0 77.94 -45 L 17.32 -10 A 20 20 0 0 1 0 20 Z";
+  const BEVEL_ARC = "M -77.94 -45 A 90 90 0 0 1 77.94 -45";
+  type RadialSlice = "keep" | "combine" | "special";
 
-  let keepChipTowerId: number | null = null;
-  let keepChipHideTimer: ReturnType<typeof setTimeout> | null = null;
-  let keepChipHovered = false;
+  const WEDGE_PATHS: Record<RadialSlice, string> = {
+    keep: KEEP_WEDGE,
+    combine: COMBINE_WEDGE,
+    special: SPECIAL_WEDGE,
+  };
+  const SLICE_HIGHLIGHT: Record<
+    RadialSlice,
+    { fill: string; stroke: string }
+  > = {
+    keep: { fill: "rgba(88,200,80,0.22)", stroke: "#58c850" },
+    combine: { fill: "rgba(240,160,64,0.22)", stroke: "#f0a040" },
+    special: { fill: "rgba(120,168,248,0.22)", stroke: "#78a8f8" },
+  };
 
-  function showKeepChip(towerId: number, tileX: number, tileY: number): void {
+  function svgEl<K extends keyof SVGElementTagNameMap>(
+    tag: K,
+  ): SVGElementTagNameMap[K] {
+    return document.createElementNS(SVG_NS, tag);
+  }
+  function svgPath(d: string): SVGPathElement {
+    const p = svgEl("path");
+    p.setAttribute("d", d);
+    return p;
+  }
+
+  const radialWrap = document.createElement("div");
+  radialWrap.className = "radial-wrap";
+  radialWrap.style.display = "none";
+  canvasHost.appendChild(radialWrap);
+
+  const rSvg = svgEl("svg");
+  rSvg.setAttribute("viewBox", "-100 -100 200 200");
+  rSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+  radialWrap.appendChild(rSvg);
+
+  const rDefs = svgEl("defs");
+  const rFilter = svgEl("filter");
+  rFilter.id = "radial-shadow";
+  rFilter.setAttribute("x", "-20%");
+  rFilter.setAttribute("y", "-20%");
+  rFilter.setAttribute("width", "140%");
+  rFilter.setAttribute("height", "140%");
+  const rDrop = svgEl("feDropShadow");
+  rDrop.setAttribute("dx", "0");
+  rDrop.setAttribute("dy", "3");
+  rDrop.setAttribute("stdDeviation", "0");
+  rDrop.setAttribute("flood-color", "#1a1428");
+  rDrop.setAttribute("flood-opacity", "1");
+  rFilter.appendChild(rDrop);
+  rDefs.appendChild(rFilter);
+  const rHatchPat = svgEl("pattern");
+  rHatchPat.id = "radial-hatch";
+  rHatchPat.setAttribute("patternUnits", "userSpaceOnUse");
+  rHatchPat.setAttribute("width", "6");
+  rHatchPat.setAttribute("height", "6");
+  rHatchPat.setAttribute("patternTransform", "rotate(45)");
+  const rHatchLine = svgEl("line");
+  rHatchLine.setAttribute("x1", "0");
+  rHatchLine.setAttribute("y1", "0");
+  rHatchLine.setAttribute("x2", "0");
+  rHatchLine.setAttribute("y2", "6");
+  rHatchLine.setAttribute("stroke", "#1a1428");
+  rHatchLine.setAttribute("stroke-width", "2");
+  rHatchPat.appendChild(rHatchLine);
+  rDefs.appendChild(rHatchPat);
+  const rGlowFilter = svgEl("filter");
+  rGlowFilter.id = "radial-glow";
+  rGlowFilter.setAttribute("x", "-30%");
+  rGlowFilter.setAttribute("y", "-30%");
+  rGlowFilter.setAttribute("width", "160%");
+  rGlowFilter.setAttribute("height", "160%");
+  const rGlowBlur = svgEl("feGaussianBlur");
+  rGlowBlur.setAttribute("stdDeviation", "4");
+  rGlowBlur.setAttribute("in", "SourceGraphic");
+  rGlowFilter.appendChild(rGlowBlur);
+  rDefs.appendChild(rGlowFilter);
+  rSvg.appendChild(rDefs);
+
+  const rShadowG = svgEl("g");
+  rShadowG.setAttribute("filter", "url(#radial-shadow)");
+  rSvg.appendChild(rShadowG);
+
+  const keepW = svgPath(KEEP_WEDGE);
+  const combineW = svgPath(COMBINE_WEDGE);
+  const specialW = svgPath(SPECIAL_WEDGE);
+  for (const w of [keepW, combineW, specialW]) {
+    w.setAttribute("fill", "#3d3252");
+    w.setAttribute("stroke", "#1a1428");
+    w.setAttribute("stroke-width", "2");
+    rShadowG.appendChild(w);
+  }
+  const rBevel = svgPath(BEVEL_ARC);
+  rBevel.setAttribute("stroke", "#524470");
+  rBevel.setAttribute("stroke-width", "3");
+  rBevel.setAttribute("fill", "none");
+  rShadowG.appendChild(rBevel);
+
+  const combineHatchEl = svgPath(COMBINE_WEDGE);
+  combineHatchEl.setAttribute("fill", "url(#radial-hatch)");
+  combineHatchEl.setAttribute("opacity", "0.5");
+  combineHatchEl.style.display = "none";
+  rShadowG.appendChild(combineHatchEl);
+  const specialHatchEl = svgPath(SPECIAL_WEDGE);
+  specialHatchEl.setAttribute("fill", "url(#radial-hatch)");
+  specialHatchEl.setAttribute("opacity", "0.5");
+  specialHatchEl.style.display = "none";
+  rShadowG.appendChild(specialHatchEl);
+
+  const combineGlow = svgPath(COMBINE_WEDGE);
+  combineGlow.setAttribute("fill", "none");
+  combineGlow.setAttribute("stroke", "#f0a040");
+  combineGlow.setAttribute("stroke-width", "3");
+  combineGlow.setAttribute("filter", "url(#radial-glow)");
+  combineGlow.classList.add("radial-glow-ring");
+  combineGlow.style.display = "none";
+  rSvg.appendChild(combineGlow);
+  const specialGlow = svgPath(SPECIAL_WEDGE);
+  specialGlow.setAttribute("fill", "none");
+  specialGlow.setAttribute("stroke", "#78a8f8");
+  specialGlow.setAttribute("stroke-width", "3");
+  specialGlow.setAttribute("filter", "url(#radial-glow)");
+  specialGlow.classList.add("radial-glow-ring");
+  specialGlow.style.display = "none";
+  rSvg.appendChild(specialGlow);
+
+  const rHover = svgPath("");
+  rHover.style.display = "none";
+  rSvg.appendChild(rHover);
+
+  function makeRadialLabel(
+    cls: string,
+    ico: string,
+    txt: string,
+  ): HTMLDivElement {
+    const el = document.createElement("div");
+    el.className = `radial-label ${cls}`;
+    const icoEl = document.createElement("span");
+    icoEl.className = "ico";
+    icoEl.textContent = ico;
+    el.append(icoEl, document.createTextNode(txt));
+    return el;
+  }
+  const keepLbl = makeRadialLabel("keep", "★", "KEEP");
+  keepLbl.style.left = "50%";
+  keepLbl.style.top = "calc(50% - 60px)";
+  const combineLbl = makeRadialLabel("combine", "⊕", "COMBINE");
+  combineLbl.style.left = "calc(50% - 52px)";
+  combineLbl.style.top = "calc(50% + 30px)";
+  const specialLbl = makeRadialLabel("special", "✦", "SPECIAL");
+  specialLbl.style.left = "calc(50% + 52px)";
+  specialLbl.style.top = "calc(50% + 30px)";
+  radialWrap.append(keepLbl, combineLbl, specialLbl);
+
+  const rCenter = document.createElement("div");
+  rCenter.className = "radial-center";
+  radialWrap.appendChild(rCenter);
+
+  const reasonChips = document.createElement("div");
+  reasonChips.className = "radial-reason-chips";
+  reasonChips.style.display = "none";
+  canvasHost.appendChild(reasonChips);
+  const combineChip = document.createElement("div");
+  combineChip.className = "reason-chip";
+  combineChip.textContent = "⊕ NO PAIR THIS ROUND";
+  const specialChip = document.createElement("div");
+  specialChip.className = "reason-chip";
+  specialChip.textContent = "✦ NO RECIPE MATCH";
+  reasonChips.append(combineChip, specialChip);
+
+  let radialOpen = false;
+  let radialTowerId: number | null = null;
+  let radialCenterX = 0;
+  let radialCenterY = 0;
+  let radialCombineOk = false;
+  let radialSpecialOk = false;
+  let radialAlreadyKeeping = false;
+  let curSlice: RadialSlice | null = null;
+
+  function sliceFromXY(px: number, py: number): RadialSlice | null {
+    const dx = px - radialCenterX;
+    const dy = py - radialCenterY;
+    if (Math.sqrt(dx * dx + dy * dy) < 20) return null;
+    let a = Math.atan2(dy, dx) * (180 / Math.PI);
+    if (a < 0) a += 360;
+    if (a >= 210 && a < 330) return "keep";
+    if (a >= 90 && a < 210) return "combine";
+    return "special";
+  }
+
+  function isSliceActive(s: RadialSlice): boolean {
+    if (s === "keep") return !radialAlreadyKeeping;
+    if (s === "combine") return radialCombineOk;
+    return radialSpecialOk;
+  }
+
+  function openRadial(towerId: number, tx: number, ty: number): void {
     const tower = game.state.towers.find((t) => t.id === towerId);
     if (!tower) return;
+    radialTowerId = towerId;
     const bx = game.board.x;
     const by = game.board.y;
-    const cx = bx + (tileX + 1) * FINE_TILE;
-    const cy = by + tileY * FINE_TILE;
-    keepChip.style.left = `${cx}px`;
-    const flipped = tileY <= 0;
-    if (flipped) {
-      keepChip.style.top = `${by + (tileY + 2) * FINE_TILE + 6}px`;
-      keepChip.classList.add("flipped");
-    } else {
-      keepChip.style.top = `${cy}px`;
-      keepChip.classList.remove("flipped");
-    }
-    const isKeep = game.state.designatedKeepTowerId === towerId;
-    keepChip.classList.toggle("is-keeping", isKeep);
-    keepChipBtn.innerHTML = isKeep
-      ? "★ KEEPING"
-      : '★ KEEP <span class="kbd">K</span>';
-    keepChip.style.display = "flex";
-    keepChipTowerId = towerId;
-  }
+    radialCenterX = bx + (tx + 0.5) * FINE_TILE;
+    radialCenterY = by + (ty + 0.5) * FINE_TILE;
+    radialWrap.style.setProperty("--x", `${radialCenterX}px`);
+    radialWrap.style.setProperty("--y", `${radialCenterY}px`);
 
-  function hideKeepChip(): void {
-    keepChip.style.display = "none";
-    keepChipTowerId = null;
-  }
+    radialAlreadyKeeping = game.state.designatedKeepTowerId === towerId;
+    radialCombineOk = checkCombineOk(tower);
+    radialSpecialOk = checkSpecialOk(tower);
 
-  keepChipBtn.addEventListener("click", (ev) => {
-    ev.stopPropagation();
-    if (keepChipTowerId !== null) {
-      game.cmdDesignateKeep(keepChipTowerId);
-    }
-  });
+    combineW.setAttribute("fill", radialCombineOk ? "#3d3252" : "#2a2238");
+    specialW.setAttribute("fill", radialSpecialOk ? "#3d3252" : "#2a2238");
+    combineHatchEl.style.display = radialCombineOk ? "none" : "";
+    specialHatchEl.style.display = radialSpecialOk ? "none" : "";
+    combineGlow.style.display = radialCombineOk ? "" : "none";
+    specialGlow.style.display = radialSpecialOk ? "" : "none";
 
-  keepChip.addEventListener("pointerenter", () => {
-    keepChipHovered = true;
-    if (keepChipHideTimer) {
-      clearTimeout(keepChipHideTimer);
-      keepChipHideTimer = null;
-    }
-  });
-  keepChip.addEventListener("pointerleave", () => {
-    keepChipHovered = false;
-    keepChipHideTimer = setTimeout(hideKeepChip, 50);
-  });
-
-  function scheduleHideKeepChip(): void {
-    if (keepChipHovered) return;
-    if (keepChipHideTimer === null) {
-      keepChipHideTimer = setTimeout(hideKeepChip, 50);
-    }
-  }
-
-  function updateKeepChipFromHover(): void {
-    if (game.state.phase !== "build") {
-      if (!keepChipHovered) hideKeepChip();
-      return;
-    }
-    const t = game.hoverTile;
-    if (!t) {
-      scheduleHideKeepChip();
-      return;
-    }
-    const tower = game.state.towers.find((tt) => tt.x === t.x && tt.y === t.y);
-    if (!tower) {
-      scheduleHideKeepChip();
-      return;
-    }
-    const isCurrentDraw = game.state.draws.some(
-      (d) => d.placedTowerId === tower.id,
+    keepLbl.classList.toggle("disabled", radialAlreadyKeeping);
+    keepLbl.textContent = "";
+    const kIco = document.createElement("span");
+    kIco.className = "ico";
+    kIco.textContent = "★";
+    keepLbl.append(
+      kIco,
+      document.createTextNode(radialAlreadyKeeping ? "KEEPING" : "KEEP"),
     );
-    if (!isCurrentDraw) {
-      scheduleHideKeepChip();
+    combineLbl.classList.toggle("disabled", !radialCombineOk);
+    specialLbl.classList.toggle("disabled", !radialSpecialOk);
+
+    combineChip.style.display = radialCombineOk ? "none" : "";
+    specialChip.style.display = radialSpecialOk ? "none" : "";
+    reasonChips.style.display =
+      !radialCombineOk || !radialSpecialOk ? "" : "none";
+
+    rCenter.innerHTML = "";
+    rCenter.appendChild(htmlGem(tower.gem, 24, tower.quality > 2));
+
+    rHover.style.display = "none";
+    curSlice = null;
+    radialWrap.style.display = "";
+    radialOpen = true;
+    window.addEventListener("pointermove", onRadialMove);
+    window.addEventListener("pointerup", onRadialUp);
+  }
+
+  function closeRadial(): void {
+    if (!radialOpen) return;
+    radialOpen = false;
+    radialTowerId = null;
+    curSlice = null;
+    radialWrap.style.display = "none";
+    reasonChips.style.display = "none";
+    rHover.style.display = "none";
+    window.removeEventListener("pointermove", onRadialMove);
+    window.removeEventListener("pointerup", onRadialUp);
+  }
+
+  function onRadialMove(ev: PointerEvent): void {
+    const rect = canvasHost.getBoundingClientRect();
+    const px = ev.clientX - rect.left;
+    const py = ev.clientY - rect.top;
+    const dx = px - radialCenterX;
+    const dy = py - radialCenterY;
+    if (Math.sqrt(dx * dx + dy * dy) > 150) {
+      closeRadial();
       return;
     }
-    if (keepChipHideTimer) {
-      clearTimeout(keepChipHideTimer);
-      keepChipHideTimer = null;
+    const s = sliceFromXY(px, py);
+    if (s === curSlice) return;
+    curSlice = s;
+    if (!s || !isSliceActive(s)) {
+      rHover.style.display = "none";
+      return;
     }
-    showKeepChip(tower.id, tower.x, tower.y);
+    const h = SLICE_HIGHLIGHT[s];
+    rHover.setAttribute("d", WEDGE_PATHS[s]);
+    rHover.setAttribute("fill", h.fill);
+    rHover.setAttribute("stroke", h.stroke);
+    rHover.setAttribute("stroke-width", "2");
+    rHover.style.display = "";
   }
+
+  function onRadialUp(ev: PointerEvent): void {
+    if (!radialOpen || radialTowerId === null) {
+      closeRadial();
+      return;
+    }
+    const rect = canvasHost.getBoundingClientRect();
+    const s = sliceFromXY(
+      ev.clientX - rect.left,
+      ev.clientY - rect.top,
+    );
+    const tower = game.state.towers.find((t) => t.id === radialTowerId);
+    if (s && tower && isSliceActive(s)) {
+      if (s === "keep") {
+        game.cmdDesignateKeep(radialTowerId);
+      } else {
+        game.selectTower(radialTowerId);
+        if (s === "combine") doRadialCombine(tower);
+        else doRadialSpecial(tower);
+      }
+    }
+    closeRadial();
+  }
+
+  function checkCombineOk(tower: TowerState): boolean {
+    if (tower.comboKey) return false;
+    const drawIds = new Set(
+      game.state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
+    );
+    if (!drawIds.has(tower.id)) return false;
+    return (
+      game.state.towers.filter(
+        (t) =>
+          drawIds.has(t.id) &&
+          !t.comboKey &&
+          t.gem === tower.gem &&
+          t.quality === tower.quality,
+      ).length >= 2
+    );
+  }
+
+  function checkSpecialOk(tower: TowerState): boolean {
+    if (tower.comboKey) return false;
+    const placed = game.state.towers.filter((t) => !t.comboKey);
+    for (const c of COMBOS) {
+      const used = new Set<number>([tower.id]);
+      let consumed = false;
+      let valid = true;
+      for (const inp of c.inputs) {
+        if (!consumed && inp.gem === tower.gem && inp.quality === tower.quality) {
+          consumed = true;
+          continue;
+        }
+        const t = placed.find(
+          (tt) =>
+            !used.has(tt.id) &&
+            tt.gem === inp.gem &&
+            tt.quality === inp.quality,
+        );
+        if (!t) {
+          valid = false;
+          break;
+        }
+        used.add(t.id);
+      }
+      if (valid && consumed) return true;
+    }
+    return false;
+  }
+
+  function doRadialCombine(tower: TowerState): void {
+    const drawIds = new Set(
+      game.state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
+    );
+    const matches = game.state.towers.filter(
+      (t) =>
+        drawIds.has(t.id) &&
+        !t.comboKey &&
+        t.gem === tower.gem &&
+        t.quality === tower.quality,
+    );
+    if (matches.length < 2) return;
+    const others = matches.filter((t) => t.id !== tower.id);
+    const take = matches.length >= 4 ? 4 : 2;
+    game.cmdCombine([
+      tower.id,
+      ...others.slice(0, take - 1).map((t) => t.id),
+    ]);
+  }
+
+  function doRadialSpecial(tower: TowerState): void {
+    const placed = game.state.towers.filter((t) => !t.comboKey);
+    for (const c of COMBOS) {
+      const used = new Set<number>([tower.id]);
+      const ids: number[] = [];
+      let consumed = false;
+      let valid = true;
+      for (const inp of c.inputs) {
+        if (!consumed && inp.gem === tower.gem && inp.quality === tower.quality) {
+          ids.push(tower.id);
+          consumed = true;
+          continue;
+        }
+        const t = placed.find(
+          (tt) =>
+            !used.has(tt.id) &&
+            tt.gem === inp.gem &&
+            tt.quality === inp.quality,
+        );
+        if (!t) {
+          valid = false;
+          break;
+        }
+        used.add(t.id);
+        ids.push(t.id);
+      }
+      if (valid && consumed) {
+        game.cmdCombine(ids);
+        return;
+      }
+    }
+  }
+
+  canvasHost.addEventListener("contextmenu", (ev) => ev.preventDefault());
 
   // === Pattern #5: Shift+click hint ===
   const shiftHint = document.createElement("div");
@@ -555,14 +877,11 @@ export function mountHud(
   });
   game.bus.on("draws:change", () => {
     refreshDraw();
-    if (keepChipTowerId !== null) {
-      updateKeepChipFromHover();
-    }
   });
   game.bus.on("phase:enter", ({ phase }) => {
     if (phase === "wave") {
       startBtn.disabled = true;
-      hideKeepChip();
+      closeRadial();
     } else if (phase === "gameover" || phase === "victory") {
       mountGameOver(root, game, phase, onExit);
     }
@@ -616,7 +935,6 @@ export function mountHud(
     game.hoverPixel = pixelFromPointer(ev);
     game.hoverPresent = true;
     shiftDown = ev.shiftKey;
-    updateKeepChipFromHover();
     updateShiftHint();
   });
   canvasHost.addEventListener("pointerleave", () => {
@@ -625,12 +943,30 @@ export function mountHud(
     game.hoverPresent = false;
     shiftDown = false;
     updateShiftHint();
-    scheduleHideKeepChip();
   });
   canvasHost.addEventListener("pointerenter", () => {
     game.hoverPresent = true;
   });
   canvasHost.addEventListener("pointerdown", (ev: PointerEvent) => {
+    if (ev.button === 2) {
+      if (radialOpen) {
+        closeRadial();
+        return;
+      }
+      if (game.state.phase !== "build") return;
+      const rt = tileFromPointer(ev);
+      if (!rt) return;
+      const rTower = game.state.towers.find(
+        (tt) => tt.x === rt.x && tt.y === rt.y,
+      );
+      if (!rTower) return;
+      const isRoundTower = game.state.draws.some(
+        (d) => d.placedTowerId === rTower.id,
+      );
+      if (!isRoundTower) return;
+      openRadial(rTower.id, rt.x, rt.y);
+      return;
+    }
     if (ev.button !== 0) return;
     const t = tileFromPointer(ev);
     if (!t) return;
@@ -701,6 +1037,10 @@ export function mountHud(
     } else if (ev.key === "c" || ev.key === "C") {
       openCombine();
     } else if (ev.key === "Escape") {
+      if (radialOpen) {
+        closeRadial();
+        return;
+      }
       game.selectTower(null);
       game.selectRock(null);
     } else if (ev.key === "r" || ev.key === "R") {
@@ -768,6 +1108,7 @@ export function mountHud(
   tick();
 
   return () => {
+    closeRadial();
     window.clearInterval(tickHandle);
     window.removeEventListener("keydown", onKey);
     window.removeEventListener("keyup", onKeyUp);
