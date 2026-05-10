@@ -687,6 +687,86 @@ const STARGEM: PixelGrid = [
   [0, 0, 0, 0, 4, 4, 4, 4, 4, 0, 0, 0],
 ];
 
+// ===== Rune (trap) tablet sprites ============================================
+// 14x14 stone tablet with 8x8 glyphs. Palette: 1=stoneLight 2=stoneMid 3=stoneDark 4=outline 5=glyph
+const RUNE_TABLET: PixelGrid = [
+  [0,4,4,4,4,4,4,4,4,4,4,4,4,0],
+  [4,3,1,1,2,2,2,2,2,2,1,1,3,4],
+  [4,1,2,2,2,2,2,2,2,2,2,2,1,4],
+  [4,1,2,3,3,3,3,3,3,3,3,2,1,4],
+  [4,2,2,3,2,2,2,2,2,2,3,2,2,4],
+  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
+  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
+  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
+  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
+  [4,2,2,3,2,2,2,2,2,2,3,2,2,4],
+  [4,1,2,3,3,3,3,3,3,3,3,2,1,4],
+  [4,1,2,2,2,2,2,2,2,2,2,2,1,4],
+  [4,3,1,1,2,2,2,2,2,2,1,1,3,4],
+  [0,4,4,4,4,4,4,4,4,4,4,4,4,0],
+];
+
+const RUNE_GLYPHS: Record<string, readonly (readonly number[])[]> = {
+  holding: [
+    [0,0,0,1,1,0,0,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,1,1,0,0,0],
+    [0,0,0,1,1,0,0,0],
+    [0,0,0,1,1,0,0,0],
+    [0,0,0,1,1,0,0,0],
+    [0,1,1,1,1,1,1,0],
+    [0,0,0,1,1,0,0,0],
+  ],
+  damage: [
+    [0,0,0,0,1,1,1,0],
+    [0,0,0,1,1,1,0,0],
+    [0,0,1,1,1,0,0,0],
+    [0,1,1,1,1,1,0,0],
+    [0,0,1,1,1,1,1,0],
+    [0,0,0,1,1,1,0,0],
+    [0,0,1,1,1,0,0,0],
+    [0,1,1,0,0,0,0,0],
+  ],
+  teleport: [
+    [0,0,1,1,1,1,0,0],
+    [0,1,0,0,0,0,1,0],
+    [1,0,0,1,1,1,0,1],
+    [1,0,1,0,0,1,0,1],
+    [1,0,1,1,0,1,0,1],
+    [1,0,0,0,0,1,0,0],
+    [0,1,0,0,0,0,0,0],
+    [0,0,1,1,1,1,1,0],
+  ],
+  slow: [
+    [0,0,0,1,1,0,0,0],
+    [1,0,1,1,1,1,0,1],
+    [0,1,0,1,1,0,1,0],
+    [1,1,1,1,1,1,1,1],
+    [1,1,1,1,1,1,1,1],
+    [0,1,0,1,1,0,1,0],
+    [1,0,1,1,1,1,0,1],
+    [0,0,0,1,1,0,0,0],
+  ],
+};
+
+function buildRuneGrid(glyphKey: string): PixelGrid {
+  const base = RUNE_TABLET.map(row => [...row]);
+  const glyph = RUNE_GLYPHS[glyphKey];
+  for (let y = 0; y < 8; y++) {
+    for (let x = 0; x < 8; x++) {
+      if (glyph[y][x]) {
+        base[3 + y][3 + x] = 5;
+      }
+    }
+  }
+  return base;
+}
+
+const RUNE_HOLDING_GRID = buildRuneGrid('holding');
+const RUNE_DAMAGE_GRID = buildRuneGrid('damage');
+const RUNE_TELEPORT_GRID = buildRuneGrid('teleport');
+const RUNE_SLOW_GRID = buildRuneGrid('slow');
+
 export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
   star_ruby: {
     grid: STAR_RUBY,
@@ -756,6 +836,26 @@ export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
   yellow_sapphire: {
     grid: YELLOW_SAPPH_T1,
     palette: { light: hex("#ffe890"), mid: hex("#f0b830"), dark: hex("#805018"), sparkle: hex("#ffffff") },
+    visualGem: "sapphire",
+  },
+  rune_holding: {
+    grid: RUNE_HOLDING_GRID,
+    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#fff0a8") },
+    visualGem: "topaz",
+  },
+  rune_damage: {
+    grid: RUNE_DAMAGE_GRID,
+    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#ffd0a8") },
+    visualGem: "diamond",
+  },
+  rune_teleport: {
+    grid: RUNE_TELEPORT_GRID,
+    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#e8b8ff") },
+    visualGem: "aquamarine",
+  },
+  rune_slow: {
+    grid: RUNE_SLOW_GRID,
+    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#d0f4ff") },
     visualGem: "sapphire",
   },
 };

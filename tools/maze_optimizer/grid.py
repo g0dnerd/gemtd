@@ -18,6 +18,7 @@ class Cell(IntEnum):
     Wall = 2
     Tower = 3
     Rock = 4
+    Trap = 5
 
 
 class Waypoint(NamedTuple):
@@ -114,3 +115,16 @@ def is_adjacent_to_maze(grid: np.ndarray, ax: int, ay: int) -> bool:
 
 def place_tower(grid: np.ndarray, x: int, y: int, cell_type: int = Cell.Tower) -> None:
     grid[y:y + 2, x:x + 2] = cell_type
+
+
+def place_trap(grid: np.ndarray, x: int, y: int) -> None:
+    """Place a trap (walkable, non-buildable) at a 2x2 footprint."""
+    grid[y:y + 2, x:x + 2] = Cell.Trap
+
+
+def can_place_trap_2x2(grid: np.ndarray, x: int, y: int) -> bool:
+    """Check if a trap can be placed — requires Grass or Path cells (traps are walkable)."""
+    if x < PLACE_MIN or x > PLACE_MAX_X or y < PLACE_MIN or y > PLACE_MAX_Y:
+        return False
+    block = grid[y:y + 2, x:x + 2]
+    return bool(((block == Cell.Grass) | (block == Cell.Path)).all())

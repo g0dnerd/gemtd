@@ -758,6 +758,15 @@ export function findComboFor(
   return null;
 }
 
+export function findAllCombosFor(
+  gem: GemType,
+  quality: Quality,
+): ComboRecipe[] {
+  return COMBOS.filter((c) =>
+    c.inputs.some((i) => i.gem === gem && i.quality === quality),
+  );
+}
+
 /** Find a recipe matching the given inputs (any order). Strict exact match on (gem, quality). */
 export function findCombo(inputs: ComboInput[]): ComboRecipe | null {
   const standard = COMBO_BY_KEY.get(sortKey(inputs));

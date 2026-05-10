@@ -9,6 +9,7 @@ from grid import (
     can_place_2x2,
     is_adjacent_to_maze,
     place_tower,
+    place_trap,
 )
 
 try:
@@ -170,3 +171,59 @@ def evaluate(
         "validity_penalty": validity_penalty,
         "chromosome": repaired,
     }
+
+
+def evaluate_with_traps(
+    chromosome: list[list[tuple[int, int]]],
+    trap_positions: list[tuple[int, int]],
+    base_grid: np.ndarray,
+    exposure_weight: float = 0.1,
+    trap_weight: float = 5.0,
+) -> dict:
+    """Evaluate a maze layout that includes trap placements on the path.
+
+    Traps are walkable and don't block pathing, so they can be placed directly
+    on the route. Their fitness contribution is based on how many route tiles
+    pass through their 2x2 footprint (more exposure = better trap placement).
+    """
+    grid = copy_grid(base_grid)
+
+    # Place traps first (they don't affect routing)
+    placed_traps: list[tuple[int, int]] = []
+    for tx, ty in trap_positions:
+        if can_place_trap_on_route(grid, tx, ty):
+            place_trap(grid, tx, ty)
+            placed_traps.append((tx, ty))
+
+    # Run normal tower evaluation on the grid (traps are walkable, so routing works)
+    result = evaluate(chromosome, grid, exposure_weight)
+
+    # Score trap placements by route overlap
+    if result["fitness"] <= -999999:
+        return result
+
+    final_segments = find_route(grid)
+    if final_segments is None:
+        return result
+
+    flat_route = flatten_route(final_segments)
+    route_set = set(flat_route)
+
+    trap_exposure = 0
+    for tx, ty in placed_traps:
+        fc = footprint_cells(tx, ty)
+        trap_exposure += len(fc & route_set)
+
+    result["fitness"] += trap_weight * trap_exposure
+    result["trap_exposure"] = trap_exposure
+    result["trap_positions"] = placed_traps
+
+    return result
+
+
+def can_place_trap_on_route(grid: np.ndarray, x: int, y: int) -> bool:
+    """Check if a trap can be placed at (x, y) — allows Grass, Path, or existing Trap cells."""
+    if x < PLACE_MIN or x > PLACE_MAX_X or y < PLACE_MIN or y > PLACE_MAX_Y:
+        return False
+    block = grid[y:y + 2, x:x + 2]
+    return bool(((block == Cell.Grass) | (block == Cell.Path) | (block == Cell.Trap)).all())

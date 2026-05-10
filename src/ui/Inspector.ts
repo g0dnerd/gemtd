@@ -7,7 +7,7 @@ import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
 import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
-import { COMBOS, ComboRecipe, comboStatsAtTier, findComboFor, nextUpgrade } from "../data/combos";
+import { COMBOS, ComboRecipe, comboStatsAtTier, findAllCombosFor, nextUpgrade } from "../data/combos";
 import { TowerState } from "../game/State";
 
 export interface InspectorRefs {
@@ -216,10 +216,10 @@ function render(refs: InspectorRefs, game: Game): void {
     body.appendChild(chip);
   }
 
-  // Forges-into chip
+  // Forges-into chips
   if (!tower.comboKey) {
-    const recipe = findComboFor(tower.gem, tower.quality);
-    if (recipe) {
+    const recipes = findAllCombosFor(tower.gem, tower.quality as Quality);
+    for (const recipe of recipes) {
       const chip = document.createElement("div");
       chip.className = "inspector-combo";
       const cFrame = document.createElement("div");

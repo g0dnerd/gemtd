@@ -9,6 +9,7 @@ import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
 import { COMBOS, nextUpgrade } from '../data/combos';
 import { Combat } from '../systems/Combat';
+import { Traps } from '../systems/Traps';
 import { Metrics } from './Metrics';
 import type { Game } from '../game/Game';
 import type { SimAI, GameResult } from './types';
@@ -22,6 +23,7 @@ export class HeadlessGame {
   private buildPhase: BuildPhase;
   private wavePhase: WavePhase;
   private combat: Combat;
+  private traps: Traps;
   private nextEntityId = 1;
   metrics?: Metrics;
 
@@ -35,6 +37,7 @@ export class HeadlessGame {
     this.buildPhase = new BuildPhase(self);
     this.wavePhase = new WavePhase(self);
     this.combat = new Combat(self);
+    this.traps = new Traps(self);
 
     this.refreshRoute();
   }
@@ -145,6 +148,7 @@ export class HeadlessGame {
       this.wavePhase.step();
     }
     this.combat.step();
+    this.traps.step();
   }
 
   runWave(maxTicks = 60 * 60 * 5): void {
