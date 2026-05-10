@@ -1085,6 +1085,13 @@ export function mountHud(
       refreshPathBtn();
     } else if (ev.key === "?" || ev.key === "h" || ev.key === "H") {
       mountTutorialModal(root);
+    } else if (ev.key === "b" && ev.ctrlKey) {
+      ev.preventDefault();
+      game.toggleBlueprint();
+      game.bus.emit("toast", {
+        kind: "info",
+        text: game.blueprintMode ? "Blueprint ON" : "Blueprint OFF",
+      });
     }
   };
   window.addEventListener("keydown", onKey);

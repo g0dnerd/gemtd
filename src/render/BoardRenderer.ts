@@ -17,6 +17,7 @@ export interface BoardLayers {
   ground: Container;
   pathOverlay: Container;
   checkpoints: Container;
+  blueprint: Container;
   cursorGrid: Container;
   ghostCell: Container;
   rocks: Container;
@@ -38,6 +39,8 @@ export function makeBoardLayers(): BoardLayers {
   pathOverlay.label = "pathOverlay";
   const checkpoints = new Container();
   checkpoints.label = "checkpoints";
+  const blueprint = new Container();
+  blueprint.label = "blueprint";
   const cursorGrid = new Container();
   cursorGrid.label = "cursorGrid";
   const ghostCell = new Container();
@@ -61,6 +64,7 @@ export function makeBoardLayers(): BoardLayers {
     ground,
     pathOverlay,
     checkpoints,
+    blueprint,
     cursorGrid,
     ghostCell,
     rocks,
@@ -76,6 +80,7 @@ export function makeBoardLayers(): BoardLayers {
     ground,
     pathOverlay,
     checkpoints,
+    blueprint,
     cursorGrid,
     ghostCell,
     rocks,

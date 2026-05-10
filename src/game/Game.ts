@@ -38,6 +38,12 @@ import {
   renderRangePreview,
 } from "../render/EntityRenderer";
 import { renderCursorGrid, renderUniformGrid } from "../render/CursorGrid";
+import {
+  type Blueprint,
+  computeKeeperIndices,
+  renderBlueprintOverlay,
+} from "../render/BlueprintOverlay";
+import blueprintData from "../../tools/maze_optimizer/blueprint_v2.json";
 
 export class Game {
   readonly bus = new EventBus();
@@ -80,6 +86,10 @@ export class Game {
 
   /** Whether the path overlay is visible. Persisted to localStorage. */
   pathVizEnabled = true;
+
+  /** Blueprint overlay mode — hidden cheat activated by Ctrl+B. */
+  blueprintMode = false;
+  private blueprint: Blueprint | null = null;
 
   /** Currently selected tower (if any). null otherwise. */
   selectedTowerId: number | null = null;
@@ -261,6 +271,15 @@ export class Game {
     this.refreshRoute();
   }
 
+  toggleBlueprint(): void {
+    this.blueprintMode = !this.blueprintMode;
+    if (this.blueprintMode && !this.blueprint) {
+      const bp = blueprintData as unknown as Blueprint;
+      bp.keeperIndices = computeKeeperIndices(bp);
+      this.blueprint = bp;
+    }
+  }
+
   nextId(): number {
     return this.nextEntityId++;
   }
@@ -379,6 +398,20 @@ export class Game {
     renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites);
     renderCreeps(this.layers.creeps, this.state.creeps);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
+    if (this.blueprintMode) {
+      const placedCount = this.state.draws.filter(
+        (d) => d.placedTowerId !== null,
+      ).length;
+      renderBlueprintOverlay(
+        this.layers.blueprint,
+        this.blueprint,
+        this.state.wave,
+        this.state.phase,
+        placedCount,
+      );
+    } else {
+      renderBlueprintOverlay(this.layers.blueprint, null, 0, "", 0);
+    }
     renderRangePreview(
       this.layers.preview,
       this.state,
