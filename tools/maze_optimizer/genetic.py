@@ -190,6 +190,15 @@ def create_random_individual(
 
         chromosome.append(positions)
 
+        if positions:
+            best_keeper = max(
+                range(len(positions)),
+                key=lambda i: exposure_at(positions[i][0], positions[i][1], flat_route),
+            )
+            for i, (px, py) in enumerate(positions):
+                if i != best_keeper:
+                    place_tower(grid, px, py, Cell.Rock)
+
     return chromosome
 
 

@@ -39,6 +39,15 @@ END = WAYPOINTS[-1]
 
 FOOTPRINT = ((0, 0), (1, 0), (0, 1), (1, 1))
 
+CHECKPOINT_ZONES: list[list[tuple[int, int]]] = [
+    [(7, 6), (8, 6), (9, 6), (8, 7)],
+    [(8, 21), (8, 22), (8, 23), (9, 22)],
+    [(31, 22), (32, 22), (32, 23), (32, 21)],
+    [(32, 7), (32, 6), (32, 5), (31, 6)],
+    [(21, 6), (20, 6), (19, 6), (20, 7)],
+    [(20, 33), (20, 34), (19, 34), (21, 34)],
+]
+
 
 def build_base_layout() -> list[list[int]]:
     grid: list[list[int]] = []
@@ -49,16 +58,21 @@ def build_base_layout() -> list[list[int]]:
             row.append(Cell.Wall if on_border else Cell.Grass)
         grid.append(row)
 
+    # Start: 2×2 path + 1 blocker (matches game map.ts)
     for dy in range(2):
-        for dx in range(4):
-            x = dx
-            y = START.y + dy
-            grid[y][x] = Cell.Path
+        for dx in range(2):
+            grid[START.y + dy][dx] = Cell.Path
+    grid[START.y][2] = Cell.Path
 
+    # End: 2×2 path + 1 blocker (matches game map.ts)
     for dy in range(2):
-        for dx in range(4):
-            x = GRID_W - 4 + dx
-            y = END.y + dy
+        for dx in range(2):
+            grid[END.y + dy][GRID_W - 2 + dx] = Cell.Path
+    grid[END.y][GRID_W - 3] = Cell.Path
+
+    # Checkpoint zones around waypoints 1-6
+    for zone in CHECKPOINT_ZONES:
+        for x, y in zone:
             grid[y][x] = Cell.Path
 
     return grid
