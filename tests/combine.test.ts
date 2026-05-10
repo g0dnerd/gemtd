@@ -206,6 +206,35 @@ describe('combine: recipe path', () => {
     expect(h.game.state.towers.find((t) => t.comboKey === 'silver')).toBeTruthy();
   });
 
+  it('allows recipe combining kept towers during wave phase', () => {
+    const h = setup();
+    const ts = [
+      placeTower(h.game, 4, 4, 'topaz', 1),
+      placeTower(h.game, 4, 6, 'diamond', 1),
+      placeTower(h.game, 4, 8, 'sapphire', 1),
+    ];
+    h.game.state.phase = 'wave' as any;
+    h.game.state.draws = [];
+    expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers.find((t) => t.comboKey === 'silver')).toBeTruthy();
+  });
+
+  it('allows all-kept recipe during placement without waiting for draws', () => {
+    const h = setup();
+    const kept = [
+      placeTower(h.game, 4, 4, 'topaz', 1),
+      placeTower(h.game, 4, 6, 'diamond', 1),
+      placeTower(h.game, 4, 8, 'sapphire', 1),
+    ];
+    // Simulate mid-placement: draws don't include kept towers.
+    h.game.state.draws = [
+      { slotId: 0, gem: 'ruby', quality: 1 as any, placedTowerId: null },
+      { slotId: 1, gem: 'ruby', quality: 1 as any, placedTowerId: null },
+    ];
+    expect(h.phase.combine(kept.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers.find((t) => t.comboKey === 'silver')).toBeTruthy();
+  });
+
   it('findCombo strict tuple matching', () => {
     expect(findCombo([
       { gem: 'topaz', quality: 1 },

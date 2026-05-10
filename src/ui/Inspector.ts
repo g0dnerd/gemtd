@@ -289,7 +289,7 @@ function render(refs: InspectorRefs, game: Game): void {
 
   const specialBtn = document.createElement("button");
   specialBtn.className = "px-btn";
-  specialBtn.disabled = !inBuild || !!tower.comboKey;
+  specialBtn.disabled = !!tower.comboKey;
   setComboButton(specialBtn, "★ SPECIAL", specialCount, true);
   specialBtn.addEventListener("click", () => tryAutoCombineSpecial(game));
 
@@ -338,16 +338,28 @@ function countCombinePairs(game: Game, sel: TowerState): number {
 function countSpecialRecipes(game: Game, sel: TowerState): number {
   if (sel.comboKey) return 0;
   const state = game.state;
-  const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
   let placed: TowerState[];
-  if (allPlaced) {
+  if (state.phase !== 'build') {
+    // Outside build phase: any non-combo tower is eligible.
     placed = state.towers.filter((t) => !t.comboKey);
   } else {
-    const drawIds = new Set(
-      state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
-    );
-    if (!drawIds.has(sel.id)) return 0;
-    placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
+    const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
+    if (allPlaced) {
+      placed = state.towers.filter((t) => !t.comboKey);
+    } else {
+      // Mid-placement: current-round towers OR all-kept towers can form recipes.
+      const drawIds = new Set(
+        state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
+      );
+      placed = state.towers.filter((t) => !t.comboKey && (drawIds.has(t.id) || !drawIds.has(sel.id)));
+      if (drawIds.has(sel.id)) {
+        // Selected is current-round: only match with other current-round towers.
+        placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
+      } else {
+        // Selected is kept: only match with other kept towers.
+        placed = state.towers.filter((t) => !t.comboKey && !drawIds.has(t.id));
+      }
+    }
   }
   let n = 0;
   for (const c of COMBOS) {
@@ -435,7 +447,6 @@ function tryAutoCombine(game: Game): void {
 }
 
 function tryAutoCombineSpecial(game: Game): void {
-  if (game.state.phase !== "build") return;
   const sel = selectedTower(game);
   if (!sel) {
     game.bus.emit("toast", {
@@ -452,15 +463,23 @@ function tryAutoCombineSpecial(game: Game): void {
     return;
   }
   const state = game.state;
-  const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
   let placed: TowerState[];
-  if (allPlaced) {
+  if (state.phase !== 'build') {
     placed = state.towers.filter((t) => !t.comboKey);
   } else {
-    const drawIds = new Set(
-      state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
-    );
-    placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
+    const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
+    if (allPlaced) {
+      placed = state.towers.filter((t) => !t.comboKey);
+    } else {
+      const drawIds = new Set(
+        state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
+      );
+      if (drawIds.has(sel.id)) {
+        placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
+      } else {
+        placed = state.towers.filter((t) => !t.comboKey && !drawIds.has(t.id));
+      }
+    }
   }
   for (const c of COMBOS) {
     const ids = matchRecipeWithMust(c, placed, sel);

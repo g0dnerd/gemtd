@@ -240,10 +240,6 @@ export class BuildPhase {
    */
   combine(towerIds: number[]): boolean {
     const state = this.game.state;
-    if (state.phase !== 'build') {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Combine outside of build phase' });
-      return false;
-    }
     if (towerIds.length < 2) return false;
 
     const towers = towerIds.map((id) => state.towers.find((t) => t.id === id)).filter(Boolean) as TowerState[];
@@ -264,8 +260,10 @@ export class BuildPhase {
       state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
     );
     const allCurrentRound = towers.every((t) => currentRoundIds.has(t.id));
+    const noneCurrentRound = towers.every((t) => !currentRoundIds.has(t.id));
 
     // Level-up path: all same gem, same quality, length 2 or 4, all current-round.
+    // Only allowed during build phase.
     const sameGem = towers.every((t) => t.gem === towers[0].gem);
     const sameQuality = towers.every((t) => t.quality === towers[0].quality);
     if (sameGem && sameQuality && (towers.length === 2 || towers.length === 4)) {
@@ -273,6 +271,10 @@ export class BuildPhase {
       const bump = towers.length === 2 ? 1 : 2;
       const newQ = Math.min(5, q + bump) as Quality;
       if (newQ !== q) {
+        if (state.phase !== 'build') {
+          this.game.bus.emit('toast', { kind: 'error', text: 'Level-up only during build phase' });
+          return false;
+        }
         if (!allCurrentRound) {
           this.game.bus.emit('toast', { kind: 'error', text: 'Level-up requires current-round towers only' });
           return false;
@@ -285,8 +287,8 @@ export class BuildPhase {
     }
 
     // Recipe path: strict (gem, quality) tuple match.
-    // During placement (not all draws placed yet), only current-round towers allowed.
-    if (!allDrawsPlaced(state) && !allCurrentRound) {
+    // During build with unplaced draws: only all-current-round or all-kept allowed (no mixing).
+    if (state.phase === 'build' && !allDrawsPlaced(state) && !allCurrentRound && !noneCurrentRound) {
       this.game.bus.emit('toast', { kind: 'error', text: 'Place all draws first, or use only current-round towers' });
       return false;
     }
@@ -297,7 +299,7 @@ export class BuildPhase {
       return false;
     }
     const outputQ = (Math.max(...towers.map((t) => t.quality))) as Quality;
-    const inputTouchedRound = towers.some((t) => currentRoundIds.has(t.id));
+    const inputTouchedRound = state.phase === 'build' && towers.some((t) => currentRoundIds.has(t.id));
     const newTowerId = this.commitTransform(towers, combo.visualGem, outputQ, combo.key);
     if (inputTouchedRound) {
       this.autoConcludeRound(newTowerId);

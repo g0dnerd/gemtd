@@ -16,8 +16,8 @@ import { TowerState } from '../game/State';
 type Tab = 'level' | 'recipe';
 
 export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Tab): () => void {
-  if (game.state.phase !== 'build') {
-    game.bus.emit('toast', { kind: 'error', text: 'Combine outside of build phase' });
+  if (game.state.phase !== 'build' && initialTab === 'level') {
+    game.bus.emit('toast', { kind: 'error', text: 'Level-up only during build phase' });
     return () => {};
   }
 
@@ -327,9 +327,6 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
     let towers = game.state.towers.filter((t) => !t.comboKey);
     if (activeTab === 'level') {
       // Only this-round towers are eligible for level-up.
-      towers = towers.filter((t) => drawTowerIds.has(t.id));
-    } else if (!game.state.draws.every((d) => d.placedTowerId !== null)) {
-      // Recipe tab during placement: only current-round towers.
       towers = towers.filter((t) => drawTowerIds.has(t.id));
     }
 
