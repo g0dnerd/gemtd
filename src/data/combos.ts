@@ -38,7 +38,7 @@ export interface ComboRecipe {
   upgrades: UpgradeTier[];
   visualGem: GemType;
   /** 'trap' combos don't block pathing and trigger when creeps walk over them. */
-  type?: 'trap';
+  type?: "trap";
 }
 
 const sortKey = (xs: ComboInput[]): string =>
@@ -667,7 +667,7 @@ export const COMBOS: ComboRecipe[] = [
       dmgMax: 0,
       range: 1.0,
       atkSpeed: 0.5,
-      effects: [{ kind: "trap_root", duration: 1.0 }],
+      effects: [{ kind: "trap_root", duration: 2.0 }],
       blurb: "Stuns creeps that walk over it.",
       targeting: "ground",
     },
