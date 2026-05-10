@@ -21,13 +21,14 @@ import {
   renderPathTrace,
   renderCheckpoints,
 } from "../render/BoardRenderer";
-import { FINE_TILE, START_GOLD, START_LIVES, SIM_DT } from "./constants";
+import { FINE_TILE, START_GOLD, START_LIVES, SIM_DT, type SpeedMultiplier } from "./constants";
 import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES } from "../data/waves";
 import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from "./constants";
 import { COMBOS, nextUpgrade } from "../data/combos";
 import { Combat } from "../systems/Combat";
+import { Traps } from "../systems/Traps";
 import { TowerSpriteCache } from "../render/TowerRenderer";
 import {
   renderTowers,
@@ -58,6 +59,7 @@ export class Game {
   private buildPhase: BuildPhase;
   private wavePhase: WavePhase;
   private combat: Combat;
+  private traps: Traps;
 
   /** Accumulator for fixed-step sim. */
   private accum = 0;
@@ -120,6 +122,7 @@ export class Game {
     this.buildPhase = new BuildPhase(this);
     this.wavePhase = new WavePhase(this);
     this.combat = new Combat(this);
+    this.traps = new Traps(this);
 
     renderGround(this.layers.ground, this.state.grid);
     renderCheckpoints(this.layers.checkpoints);
@@ -346,7 +349,7 @@ export class Game {
     return true;
   }
 
-  setSpeed(s: 1 | 2 | 4): void {
+  setSpeed(s: SpeedMultiplier): void {
     this.state.speed = s;
   }
 
@@ -385,6 +388,7 @@ export class Game {
       this.wavePhase.step();
     }
     this.combat.step();
+    this.traps.step();
   }
 
   private renderEntities(): void {

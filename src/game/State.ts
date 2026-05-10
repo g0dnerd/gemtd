@@ -27,6 +27,10 @@ export interface TowerState {
   lastFireTick: number;
   /** Count of kills for fun stats. */
   kills: number;
+  /** Trap towers don't block pathing and trigger on creep proximity instead of firing projectiles. */
+  isTrap?: boolean;
+  /** Tick when the trap last triggered — gates re-arm cooldown. */
+  lastTriggerTick?: number;
 }
 
 export interface RockState {

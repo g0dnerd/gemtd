@@ -150,6 +150,7 @@ export function blockedFromGrid(grid: Cell[][], extra?: Set<string>): Blocked {
     if (extra?.has(`${x},${y}`)) return true;
     const c = grid[y][x];
     return c === Cell.Wall || c === Cell.Tower || c === Cell.Rock;
+    // Cell.Trap is intentionally NOT blocked — creeps walk over traps.
   };
 }
 

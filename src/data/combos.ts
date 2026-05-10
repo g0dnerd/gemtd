@@ -37,6 +37,8 @@ export interface ComboRecipe {
   stats: ComboStats;
   upgrades: UpgradeTier[];
   visualGem: GemType;
+  /** 'trap' combos don't block pathing and trigger when creeps walk over them. */
+  type?: 'trap';
 }
 
 const sortKey = (xs: ComboInput[]): string =>
@@ -650,6 +652,92 @@ export const COMBOS: ComboRecipe[] = [
     },
     upgrades: [],
     visualGem: "diamond",
+  },
+  // ─── Runes (traps) ───────────────────────────────────────────────────────
+  {
+    key: "rune_holding",
+    name: "Rune of Holding",
+    inputs: [
+      { gem: "topaz", quality: 3 },
+      { gem: "amethyst", quality: 2 },
+      { gem: "sapphire", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 0,
+      dmgMax: 0,
+      range: 1.0,
+      atkSpeed: 0.5,
+      effects: [{ kind: "trap_root", duration: 1.0 }],
+      blurb: "Stuns creeps that walk over it.",
+      targeting: "ground",
+    },
+    upgrades: [],
+    visualGem: "topaz",
+    type: "trap",
+  },
+  {
+    key: "rune_damage",
+    name: "Rune of Damage",
+    inputs: [
+      { gem: "diamond", quality: 3 },
+      { gem: "opal", quality: 2 },
+      { gem: "sapphire", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 150,
+      dmgMax: 250,
+      range: 1.0,
+      atkSpeed: 0.8,
+      effects: [],
+      blurb: "Deals heavy damage to creeps walking over it.",
+      targeting: "ground",
+    },
+    upgrades: [],
+    visualGem: "diamond",
+    type: "trap",
+  },
+  {
+    key: "rune_teleport",
+    name: "Rune of Teleportation",
+    inputs: [
+      { gem: "aquamarine", quality: 3 },
+      { gem: "amethyst", quality: 2 },
+      { gem: "diamond", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 0,
+      dmgMax: 0,
+      range: 1.0,
+      atkSpeed: 0.1,
+      effects: [{ kind: "trap_knockback", distance: 4 }],
+      blurb: "Knocks creeps back along their path.",
+      targeting: "ground",
+    },
+    upgrades: [],
+    visualGem: "aquamarine",
+    type: "trap",
+  },
+  {
+    key: "rune_slow",
+    name: "Rune of Slow",
+    inputs: [
+      { gem: "sapphire", quality: 3 },
+      { gem: "aquamarine", quality: 2 },
+      { gem: "diamond", quality: 2 },
+      { gem: "emerald", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 0,
+      dmgMax: 0,
+      range: 1.0,
+      atkSpeed: 60,
+      effects: [{ kind: "trap_slow", factor: 0.4, duration: 2.0 }],
+      blurb: "Slows all creeps that walk over it.",
+      targeting: "ground",
+    },
+    upgrades: [],
+    visualGem: "sapphire",
+    type: "trap",
   },
 ];
 

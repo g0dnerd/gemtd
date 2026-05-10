@@ -21,7 +21,12 @@ export type EffectKind =
   | { kind: 'true'; chance: number }
   | { kind: 'aura_atkspeed'; radius: number; pct: number }
   | { kind: 'aura_dmg'; radius: number; pct: number }
-  | { kind: 'prox_armor_reduce'; radius: number; value: number; targets: 'ground' | 'air' | 'all' };
+  | { kind: 'prox_armor_reduce'; radius: number; value: number; targets: 'ground' | 'air' | 'all' }
+  | { kind: 'trap_slow'; factor: number; duration: number }
+  | { kind: 'trap_dot'; dps: number; duration: number }
+  | { kind: 'trap_explode'; radius: number; falloff: number }
+  | { kind: 'trap_root'; duration: number }
+  | { kind: 'trap_knockback'; distance: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -251,6 +256,16 @@ export function effectSummary(e: EffectKind): string {
       return `Aura: +${Math.round(e.pct * 100)}% dmg · ${e.radius.toFixed(1)} tiles`;
     case 'prox_armor_reduce':
       return `-${e.value} armor to ${e.targets} · ${e.radius.toFixed(1)} tiles`;
+    case 'trap_slow':
+      return `Trap: Slow ×${e.factor.toFixed(2)} for ${e.duration}s`;
+    case 'trap_dot':
+      return `Trap: ${Math.round(e.dps)}/s for ${e.duration}s`;
+    case 'trap_explode':
+      return `Trap: Explode r=${e.radius.toFixed(1)}`;
+    case 'trap_root':
+      return `Trap: Root ${e.duration}s`;
+    case 'trap_knockback':
+      return `Trap: Knockback ${e.distance} tiles`;
     case 'none':
       return '';
   }

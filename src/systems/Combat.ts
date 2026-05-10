@@ -30,10 +30,11 @@ export class Combat {
       applyProximityAuras(state.towers, state.creeps);
     }
 
-    // Towers fire (only during waves).
+    // Towers fire (only during waves). Traps are handled by the Traps system.
     if (state.phase === 'wave') {
       const auras = computeAuraMults(state.towers);
       for (const t of state.towers) {
+        if (t.isTrap) continue;
         const stats = effectiveStats(t);
         const atkMult = auras.atkSpeed.get(t.id) ?? 0;
         const effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
@@ -242,6 +243,7 @@ function computeAuraMults(towers: TowerState[]): AuraMults {
   const atkSpeed = new Map<number, number>();
   const dmg = new Map<number, number>();
   for (const src of towers) {
+    if (src.isTrap) continue;
     const stats = effectiveStats(src);
     for (const e of stats.effects) {
       if (e.kind !== 'aura_atkspeed' && e.kind !== 'aura_dmg') continue;
@@ -249,7 +251,7 @@ function computeAuraMults(towers: TowerState[]): AuraMults {
       const r2 = radiusFine * radiusFine;
       const map = e.kind === 'aura_atkspeed' ? atkSpeed : dmg;
       for (const tgt of towers) {
-        if (tgt.id === src.id) continue;
+        if (tgt.id === src.id || tgt.isTrap) continue;
         const dx = tgt.x - src.x;
         const dy = tgt.y - src.y;
         if (dx * dx + dy * dy > r2) continue;

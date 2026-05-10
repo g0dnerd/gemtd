@@ -26,6 +26,8 @@ export const enum Cell {
   Tower = 3,
   /** Sold-tower remnant — blocks movement; still counts as occupied. */
   Rock = 4,
+  /** Trap — occupied (can't build over) but walkable by creeps. */
+  Trap = 5,
 }
 
 export interface Waypoint {
@@ -190,5 +192,5 @@ export function isBuildable(cell: Cell): boolean {
 }
 
 export function isWalkable(cell: Cell): boolean {
-  return cell === Cell.Grass || cell === Cell.Path;
+  return cell === Cell.Grass || cell === Cell.Path || cell === Cell.Trap;
 }

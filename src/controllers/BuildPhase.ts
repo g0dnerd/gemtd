@@ -13,7 +13,7 @@
 
 import { Cell, GRID_H, GRID_W, isBuildable } from '../data/map';
 import { Game } from '../game/Game';
-import { findCombo } from '../data/combos';
+import { findCombo, COMBOS } from '../data/combos';
 import type { GemType, Quality } from '../render/theme';
 import { GEM_TYPES } from '../render/theme';
 import { findRoute } from '../systems/Pathfinding';
@@ -358,6 +358,8 @@ export class BuildPhase {
     }
 
     // Place the new tower at the first input's anchor.
+    const comboRecipe = comboKey ? COMBOS.find((c) => c.key === comboKey) : undefined;
+    const isTrap = comboRecipe?.type === 'trap';
     const newTower: TowerState = {
       id: this.game.nextId(),
       x: baseTower.x,
@@ -367,9 +369,10 @@ export class BuildPhase {
       comboKey,
       lastFireTick: 0,
       kills: 0,
+      isTrap: isTrap || undefined,
     };
     state.towers.push(newTower);
-    setFootprint(state, baseTower.x, baseTower.y, Cell.Tower);
+    setFootprint(state, baseTower.x, baseTower.y, isTrap ? Cell.Trap : Cell.Tower);
 
     // Non-result anchors become 2×2 rock footprints (mirrors keeper-rock).
     const rockedAnchors: Array<{ x: number; y: number }> = [];

@@ -32,7 +32,7 @@ export class TowerSpriteCache {
 
   // bus param kept for future audio/event hooks; not used yet.
   constructor(
-    private renderer: Renderer,
+    readonly renderer: Renderer,
     _bus: EventBus,
   ) {}
 

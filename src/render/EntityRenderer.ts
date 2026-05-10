@@ -11,7 +11,7 @@ import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
 import { activeDraw } from "../game/State";
 import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
-import { GEM_PALETTE, THEME } from "./theme";
+import { GEM_PALETTE, RUNE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
 import { OPAL_FRAME_COUNT } from "./spriteData";
 import { gemStats } from "../data/gems";
@@ -22,6 +22,7 @@ import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX } from "./spriteData";
 import { pickRockVariant } from "./RockSprites";
 import { APEX_STARGEM } from "./theme";
+import { generateRuneTexture, runeEffectFromComboKey } from "./RuneSprites";
 
 interface PerEntity {
   obj: Container;
@@ -71,6 +72,8 @@ const rockObjs = new Map<number, PerEntity>();
 const creepObjs = new Map<number, PerEntity>();
 const projectileObjs = new Map<number, PerEntity>();
 
+const runeTextureCache = new Map<string, Texture>();
+
 export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number): void {
   const seen = new Set<number>();
   for (const t of towers) {
@@ -86,7 +89,28 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let fx: TowerFx | undefined;
       let sgfx: StargemFx | undefined;
       let opalFrames: Texture[] | undefined;
-      if (t.comboKey === "stargem") {
+
+      // Rune (trap) rendering — flat stone tablet with glyph + glow halo
+      const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
+      if (runeEffect) {
+        let tex = runeTextureCache.get(runeEffect);
+        if (!tex) {
+          tex = generateRuneTexture(cache.renderer, runeEffect);
+          runeTextureCache.set(runeEffect, tex);
+        }
+        const sprite = new Sprite(tex);
+        sprite.anchor.set(0.5, 0.5);
+        obj.addChild(sprite);
+        // Idle glow halo
+        const palette = RUNE[runeEffect];
+        const halo = new Graphics();
+        const r = FINE_TILE * 0.9;
+        for (let i = 5; i > 0; i--) {
+          halo.circle(0, 0, r * (i / 5)).fill({ color: palette.glow, alpha: 0.08 });
+        }
+        obj.addChild(halo);
+        fx = { halo, haloPeak: 0.7, haloPulse: 2.4, glow: palette.glow };
+      } else if (t.comboKey === "stargem") {
         sgfx = makeStargemFx(obj);
         const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
         sgfx.spriteWrap.addChild(towerSprite);
@@ -570,10 +594,10 @@ export function renderRangePreview(
   }
   rangeGfx.clear();
 
-  // Selected tower range
+  // Selected tower range (skip for traps — they trigger on their footprint)
   if (selectedTowerId !== null) {
     const t = state.towers.find((tt) => tt.id === selectedTowerId);
-    if (t) {
+    if (t && !t.isTrap) {
       const range = towerRange(t);
       drawDashedCircle(
         rangeGfx,

@@ -156,3 +156,17 @@ export const ROCK_PAL = {
   moss:      { sparkle: 0x84c068, extra: 0x3c6a30 },
   crystal:   { sparkle: 0xb8e8f4, extra: 0x3878d8 },
 };
+
+export type RuneEffect = 'holding' | 'damage' | 'teleport' | 'slow';
+
+export const RUNE = {
+  outline: 0x0a0510,
+  stoneLight: 0xcdb78a,
+  stoneMid: 0x8a6e44,
+  stoneDark: 0x3a2a1a,
+
+  holding:  { glow: 0xffc54a, glyph: 0xfff0a8, glyphDeep: 0xa06818, trigger: 0xffe890 },
+  damage:   { glow: 0xff4838, glyph: 0xffd0a8, glyphDeep: 0x7a1010, trigger: 0xffb070 },
+  teleport: { glow: 0xb048f0, glyph: 0xe8b8ff, glyphDeep: 0x48107a, trigger: 0xd890ff },
+  slow:     { glow: 0x48d0f0, glyph: 0xd0f4ff, glyphDeep: 0x104878, trigger: 0xa8eaff },
+} as const;
