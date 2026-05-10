@@ -74,8 +74,8 @@ def create_greedy_individual(
     flat_route = flatten_route(segments)
     route_set = set(flat_route)
 
-    w_exp = 2.0 + rng.uniform(-noise, noise)
-    w_maze = 1.0 + rng.uniform(-noise, noise)
+    w_exp = 0.5 + rng.uniform(-noise, noise)
+    w_maze = 3.0 + rng.uniform(-noise, noise)
 
     for _ in range(NUM_ROUNDS):
         positions: list[tuple[int, int]] = []
@@ -314,8 +314,8 @@ def _greedy_round(
     """Generate one round of greedy placements on the given grid state."""
     grid = copy_grid(grid)
     positions: list[tuple[int, int]] = []
-    w_exp = 2.0 + rng.uniform(-0.5, 0.5)
-    w_maze = 1.0 + rng.uniform(-0.5, 0.5)
+    w_exp = 0.5 + rng.uniform(-0.3, 0.3)
+    w_maze = 3.0 + rng.uniform(-0.5, 0.5)
 
     for _ in range(GEMS_PER_ROUND):
         candidates = get_candidates(grid, adjacent_only=True)
@@ -550,7 +550,7 @@ def run_ga(
     r0 = results[best_idx]
     print(
         f"Gen 0: best={best_fitness:.1f} avg={sum(fitness_scores) / len(fitness_scores):.1f} "
-        f"path={r0['path_length']} exp={r0['exposure_total']}"
+        f"path={r0['path_length']} cum={r0['cumulative_path']} exp={r0['exposure_total']}"
     )
 
     elite_count = max(1, int(population_size * elite_pct))
@@ -631,7 +631,7 @@ def run_ga(
             ri = results[gen_best_idx]
             print(
                 f"Gen {gen}: best={gen_best:.1f} avg={gen_avg:.1f} "
-                f"path={ri['path_length']} exp={ri['exposure_total']} "
+                f"path={ri['path_length']} cum={ri['cumulative_path']} exp={ri['exposure_total']} "
                 f"pen={ri['validity_penalty']} stag={stagnation} mut={effective_mutation:.2f} ({eval_time:.1f}s)"
             )
 

@@ -103,6 +103,8 @@ def evaluate(
     flat_route = flatten_route(segments)
     route_set = set(flat_route)
 
+    cumulative_path = 0
+
     for positions in chromosome:
         placed: list[tuple[int, int]] = []
         repaired_round: list[tuple[int, int]] = []
@@ -156,17 +158,23 @@ def evaluate(
                 if i != best_idx:
                     place_tower(grid, px, py, Cell.Rock)
 
+        round_seg = find_route(grid)
+        round_path = len(flatten_route(round_seg)) if round_seg else 0
+        cumulative_path += round_path
+
     final_segments = find_route(grid)
     path_length = len(flatten_route(final_segments)) if final_segments else 0
 
     # Softer validity penalty: quadratic
     validity_penalty = -(100 * invalid_count + 10 * invalid_count * invalid_count) if invalid_count else 0
 
-    fitness = path_length + exposure_weight * total_exposure + validity_penalty
+    # Cumulative path rewards early maze quality; final path still matters via the sum
+    fitness = cumulative_path + exposure_weight * total_exposure + validity_penalty
 
     return {
         "fitness": fitness,
         "path_length": path_length,
+        "cumulative_path": cumulative_path,
         "exposure_total": total_exposure,
         "validity_penalty": validity_penalty,
         "chromosome": repaired,

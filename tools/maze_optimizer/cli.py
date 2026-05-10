@@ -54,6 +54,7 @@ def main() -> None:
     output = {
         "fitness": result["fitness"],
         "path_length": result["path_length"],
+        "cumulative_path": result["cumulative_path"],
         "exposure_total": result["exposure_total"],
         "rounds": result["chromosome"],
     }
@@ -62,9 +63,10 @@ def main() -> None:
         json.dump(output, f, indent=2)
 
     print(f"\nBlueprint saved to {args.output}")
-    print(f"  Fitness:    {result['fitness']:.1f}")
-    print(f"  Path length: {result['path_length']}")
-    print(f"  Exposure:    {result['exposure_total']}")
+    print(f"  Fitness:        {result['fitness']:.1f}")
+    print(f"  Path length:    {result['path_length']}")
+    print(f"  Cumulative path: {result['cumulative_path']}")
+    print(f"  Exposure:       {result['exposure_total']}")
 
 
 if __name__ == "__main__":
