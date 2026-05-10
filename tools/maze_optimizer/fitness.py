@@ -1,3 +1,5 @@
+import numpy as np
+
 from grid import (
     Cell,
     PLACE_MIN,
@@ -8,17 +10,37 @@ from grid import (
     is_adjacent_to_maze,
     place_tower,
 )
-from pathfinding import find_route, flatten_route, footprint_cells
+
+try:
+    from pathfinding_cy import find_route, flatten_route, footprint_cells
+except ImportError:
+    from pathfinding import find_route, flatten_route, footprint_cells
 
 NUM_ROUNDS = 50
 GEMS_PER_ROUND = 5
 
-# Average tower range: 3.5 coarse tiles * GRID_SCALE(2) = 7.0 fine tiles
 KEEPER_RANGE = 7.0
 KEEPER_R2 = KEEPER_RANGE * KEEPER_RANGE
 
+# Precomputed range offsets for set-based exposure
+RANGE_OFFSETS = [
+    (dx, dy)
+    for dx in range(-7, 8)
+    for dy in range(-7, 8)
+    if dx * dx + dy * dy <= KEEPER_R2
+]
 
-def exposure_at(x: int, y: int, flat_route: list[tuple[int, int]]) -> int:
+
+def exposure_at(x: int, y: int, route_set: set[tuple[int, int]]) -> int:
+    cx, cy = x + 1, y + 1
+    count = 0
+    for dx, dy in RANGE_OFFSETS:
+        if (cx + dx, cy + dy) in route_set:
+            count += 1
+    return count
+
+
+def exposure_at_flat(x: int, y: int, flat_route: list[tuple[int, int]]) -> int:
     cx, cy = x + 1, y + 1
     count = 0
     for fx, fy in flat_route:
@@ -29,41 +51,44 @@ def exposure_at(x: int, y: int, flat_route: list[tuple[int, int]]) -> int:
     return count
 
 
+# Spiral offsets for repair_position, sorted by Manhattan distance
+_SPIRAL: list[tuple[int, int, int]] = []
+for _dy in range(-(PLACE_MAX_Y - PLACE_MIN), PLACE_MAX_Y - PLACE_MIN + 1):
+    for _dx in range(-(PLACE_MAX_X - PLACE_MIN), PLACE_MAX_X - PLACE_MIN + 1):
+        _SPIRAL.append((abs(_dx) + abs(_dy), _dx, _dy))
+_SPIRAL.sort()
+
+
 def repair_position(
-    grid: list[list[int]],
+    grid: np.ndarray,
     tx: int,
     ty: int,
     route_set: set[tuple[int, int]],
 ) -> tuple[int, int] | None:
-    candidates: list[tuple[int, int, int, int]] = []
-    for y in range(PLACE_MIN, PLACE_MAX_Y + 1):
-        for x in range(PLACE_MIN, PLACE_MAX_X + 1):
-            if not can_place_2x2(grid, x, y):
-                continue
-            dist = abs(x - tx) + abs(y - ty)
-            adj = 0 if is_adjacent_to_maze(grid, x, y) else 1
-            candidates.append((dist, adj, x, y))
-
-    candidates.sort()
-
-    for _, _, x, y in candidates:
+    for _, dx, dy in _SPIRAL:
+        x = tx + dx
+        y = ty + dy
+        if x < PLACE_MIN or x > PLACE_MAX_X or y < PLACE_MIN or y > PLACE_MAX_Y:
+            continue
+        if not can_place_2x2(grid, x, y):
+            continue
         fc = footprint_cells(x, y)
         if fc & route_set:
             if find_route(grid, fc) is None:
                 continue
         return (x, y)
-
     return None
 
 
 def evaluate(
     chromosome: list[list[tuple[int, int]]],
-    base_grid: list[list[int]],
+    base_grid: np.ndarray,
+    exposure_weight: float = 0.1,
 ) -> dict:
     grid = copy_grid(base_grid)
     repaired: list[list[tuple[int, int]]] = []
     total_exposure = 0
-    validity_penalty = 0
+    invalid_count = 0
 
     segments = find_route(grid)
     if segments is None:
@@ -97,7 +122,7 @@ def evaluate(
             if not valid:
                 result = repair_position(grid, x, y, route_set)
                 if result is None:
-                    validity_penalty -= 1000
+                    invalid_count += 1
                     repaired_round.append((orig_x, orig_y))
                     continue
                 x, y = result
@@ -120,7 +145,7 @@ def evaluate(
             best_idx = 0
             best_exp = -1
             for i, (px, py) in enumerate(placed):
-                exp = exposure_at(px, py, flat_route)
+                exp = exposure_at(px, py, route_set)
                 if exp > best_exp:
                     best_exp = exp
                     best_idx = i
@@ -133,7 +158,10 @@ def evaluate(
     final_segments = find_route(grid)
     path_length = len(flatten_route(final_segments)) if final_segments else 0
 
-    fitness = path_length + 0.5 * total_exposure + validity_penalty
+    # Softer validity penalty: quadratic
+    validity_penalty = -(100 * invalid_count + 10 * invalid_count * invalid_count) if invalid_count else 0
+
+    fitness = path_length + exposure_weight * total_exposure + validity_penalty
 
     return {
         "fitness": fitness,

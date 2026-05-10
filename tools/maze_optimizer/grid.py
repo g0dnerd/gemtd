@@ -1,6 +1,8 @@
 from enum import IntEnum
 from typing import NamedTuple
 
+import numpy as np
+
 GRID_W = 42
 GRID_H = 42
 
@@ -49,31 +51,27 @@ CHECKPOINT_ZONES: list[list[tuple[int, int]]] = [
 ]
 
 
-def build_base_layout() -> list[list[int]]:
-    grid: list[list[int]] = []
-    for y in range(GRID_H):
-        row: list[int] = []
-        for x in range(GRID_W):
-            on_border = x < 2 or x >= GRID_W - 2 or y < 2 or y >= GRID_H - 2
-            row.append(Cell.Wall if on_border else Cell.Grass)
-        grid.append(row)
+def build_base_layout() -> np.ndarray:
+    grid = np.full((GRID_H, GRID_W), Cell.Grass, dtype=np.int8)
+
+    # 2-cell-thick wall border
+    grid[:2, :] = Cell.Wall
+    grid[-2:, :] = Cell.Wall
+    grid[:, :2] = Cell.Wall
+    grid[:, -2:] = Cell.Wall
 
     # Start: 2×2 path + 1 blocker (matches game map.ts)
-    for dy in range(2):
-        for dx in range(2):
-            grid[START.y + dy][dx] = Cell.Path
-    grid[START.y][2] = Cell.Path
+    grid[START.y:START.y + 2, 0:2] = Cell.Path
+    grid[START.y, 2] = Cell.Path
 
     # End: 2×2 path + 1 blocker (matches game map.ts)
-    for dy in range(2):
-        for dx in range(2):
-            grid[END.y + dy][GRID_W - 2 + dx] = Cell.Path
-    grid[END.y][GRID_W - 3] = Cell.Path
+    grid[END.y:END.y + 2, GRID_W - 2:GRID_W] = Cell.Path
+    grid[END.y, GRID_W - 3] = Cell.Path
 
     # Checkpoint zones around waypoints 1-6
     for zone in CHECKPOINT_ZONES:
         for x, y in zone:
-            grid[y][x] = Cell.Path
+            grid[y, x] = Cell.Path
 
     return grid
 
@@ -81,8 +79,8 @@ def build_base_layout() -> list[list[int]]:
 BASE_GRID = build_base_layout()
 
 
-def copy_grid(grid: list[list[int]]) -> list[list[int]]:
-    return [row[:] for row in grid]
+def copy_grid(grid: np.ndarray) -> np.ndarray:
+    return grid.copy()
 
 
 def in_bounds(x: int, y: int) -> bool:
@@ -93,18 +91,13 @@ def is_buildable(cell: int) -> bool:
     return cell == Cell.Grass
 
 
-def can_place_2x2(grid: list[list[int]], x: int, y: int) -> bool:
+def can_place_2x2(grid: np.ndarray, x: int, y: int) -> bool:
     if x < PLACE_MIN or x > PLACE_MAX_X or y < PLACE_MIN or y > PLACE_MAX_Y:
         return False
-    return (
-        grid[y][x] == Cell.Grass
-        and grid[y][x + 1] == Cell.Grass
-        and grid[y + 1][x] == Cell.Grass
-        and grid[y + 1][x + 1] == Cell.Grass
-    )
+    return bool((grid[y:y + 2, x:x + 2] == Cell.Grass).all())
 
 
-def is_adjacent_to_maze(grid: list[list[int]], ax: int, ay: int) -> bool:
+def is_adjacent_to_maze(grid: np.ndarray, ax: int, ay: int) -> bool:
     for dx in range(-1, 3):
         for dy in range(-1, 3):
             if 0 <= dx <= 1 and 0 <= dy <= 1:
@@ -113,12 +106,11 @@ def is_adjacent_to_maze(grid: list[list[int]], ax: int, ay: int) -> bool:
             ny = ay + dy
             if nx < 0 or ny < 0 or nx >= GRID_W or ny >= GRID_H:
                 continue
-            cell = grid[ny][nx]
+            cell = grid[ny, nx]
             if cell == Cell.Tower or cell == Cell.Rock or cell == Cell.Path:
                 return True
     return False
 
 
-def place_tower(grid: list[list[int]], x: int, y: int, cell_type: int = Cell.Tower) -> None:
-    for dx, dy in FOOTPRINT:
-        grid[y + dy][x + dx] = cell_type
+def place_tower(grid: np.ndarray, x: int, y: int, cell_type: int = Cell.Tower) -> None:
+    grid[y:y + 2, x:x + 2] = cell_type

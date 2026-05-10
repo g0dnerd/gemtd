@@ -1,4 +1,7 @@
 import heapq
+
+import numpy as np
+
 from grid import GRID_W, GRID_H, Cell, WAYPOINTS, FOOTPRINT
 
 DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
@@ -11,17 +14,16 @@ def _manhattan(ax: int, ay: int, bx: int, by: int) -> int:
 def a_star(
     start: tuple[int, int],
     goal: tuple[int, int],
-    blocked,
-    w: int = GRID_W,
-    h: int = GRID_H,
+    grid: np.ndarray,
+    extra: set[tuple[int, int]] | None = None,
 ) -> list[tuple[int, int]] | None:
     sx, sy = start
     gx, gy = goal
     if sx == gx and sy == gy:
         return [(sx, sy)]
 
-    goal_idx = gy * w + gx
-    start_idx = sy * w + sx
+    goal_idx = gy * GRID_W + gx
+    start_idx = sy * GRID_W + sx
 
     g_score: dict[int, int] = {start_idx: 0}
     came_from: dict[int, int] = {}
@@ -30,13 +32,15 @@ def a_star(
     heap: list[tuple[int, int, int]] = []
     heapq.heappush(heap, (_manhattan(sx, sy, gx, gy), counter, start_idx))
 
+    has_extra = extra is not None and len(extra) > 0
+
     while heap:
         f, _, idx = heapq.heappop(heap)
         if idx == goal_idx:
-            return _reconstruct(came_from, idx, w)
+            return _reconstruct(came_from, idx)
 
-        cx = idx % w
-        cy = idx // w
+        cx = idx % GRID_W
+        cy = idx // GRID_W
         cg = g_score.get(idx)
         if cg is None or f - _manhattan(cx, cy, gx, gy) > cg:
             continue
@@ -44,69 +48,51 @@ def a_star(
         for dx, dy in DIRS:
             nx = cx + dx
             ny = cy + dy
-            if nx < 0 or ny < 0 or nx >= w or ny >= h:
+            if nx < 0 or ny < 0 or nx >= GRID_W or ny >= GRID_H:
                 continue
-            if blocked(nx, ny):
+            if has_extra and (nx, ny) in extra:
                 continue
-            n_idx = ny * w + nx
+            c = grid[ny, nx]
+            if c == Cell.Wall or c == Cell.Tower or c == Cell.Rock:
+                continue
+            n_idx = ny * GRID_W + nx
             tentative = cg + 1
             prev = g_score.get(n_idx)
-            if prev is None or tentative < prev:
-                came_from[n_idx] = idx
-                g_score[n_idx] = tentative
-                counter += 1
-                heapq.heappush(
-                    heap,
-                    (tentative + _manhattan(nx, ny, gx, gy), counter, n_idx),
-                )
+            if prev is not None and tentative >= prev:
+                continue
+            came_from[n_idx] = idx
+            g_score[n_idx] = tentative
+            counter += 1
+            heapq.heappush(
+                heap,
+                (tentative + _manhattan(nx, ny, gx, gy), counter, n_idx),
+            )
 
     return None
 
 
-def _reconstruct(
-    came_from: dict[int, int], end_idx: int, w: int
-) -> list[tuple[int, int]]:
+def _reconstruct(came_from: dict[int, int], end_idx: int) -> list[tuple[int, int]]:
     path: list[tuple[int, int]] = []
     curr: int | None = end_idx
     while curr is not None:
-        x = curr % w
-        y = curr // w
-        path.append((x, y))
+        path.append((curr % GRID_W, curr // GRID_W))
         curr = came_from.get(curr)
     path.reverse()
     return path
 
 
-def blocked_from_grid(grid: list[list[int]], extra: set[tuple[int, int]] | None = None):
-    if extra:
-
-        def _blocked(x: int, y: int) -> bool:
-            if (x, y) in extra:
-                return True
-            c = grid[y][x]
-            return c == Cell.Wall or c == Cell.Tower or c == Cell.Rock
-    else:
-
-        def _blocked(x: int, y: int) -> bool:
-            c = grid[y][x]
-            return c == Cell.Wall or c == Cell.Tower or c == Cell.Rock
-
-    return _blocked
-
-
 def find_route(
-    grid: list[list[int]],
+    grid: np.ndarray,
     extra: set[tuple[int, int]] | None = None,
     waypoints=None,
 ) -> list[list[tuple[int, int]]] | None:
     if waypoints is None:
         waypoints = WAYPOINTS
-    blocked = blocked_from_grid(grid, extra)
     segments: list[list[tuple[int, int]]] = []
     for i in range(len(waypoints) - 1):
         a = waypoints[i]
         b = waypoints[i + 1]
-        seg = a_star((a.x, a.y), (b.x, b.y), blocked)
+        seg = a_star((a.x, a.y), (b.x, b.y), grid, extra)
         if seg is None:
             return None
         segments.append(seg)

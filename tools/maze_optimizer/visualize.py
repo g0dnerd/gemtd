@@ -1,6 +1,8 @@
 import json
 import sys
 
+import numpy as np
+
 from grid import (
     GRID_W,
     GRID_H,
@@ -10,10 +12,14 @@ from grid import (
     build_base_layout,
     place_tower,
 )
-from pathfinding import find_route, flatten_route, footprint_cells
-from fitness import exposure_at
 
-# Color indices used in snapshots
+try:
+    from pathfinding_cy import find_route, flatten_route, footprint_cells
+except ImportError:
+    from pathfinding import find_route, flatten_route, footprint_cells
+
+from fitness import exposure_at_flat
+
 C_WALL = 0
 C_GRASS = 1
 C_PATH_TILE = 2
@@ -23,13 +29,13 @@ C_TOWER = 5
 C_WAYPOINT = 6
 
 COLORS_CSS = [
-    "#1a1a2e",  # wall
-    "#2d5a1e",  # grass
-    "#3a7a3a",  # path tile
-    "#44bbcc",  # route
-    "#5a5a6e",  # rock
-    "#22cc55",  # tower
-    "#ffcc00",  # waypoint
+    "#1a1a2e",
+    "#2d5a1e",
+    "#3a7a3a",
+    "#44bbcc",
+    "#5a5a6e",
+    "#22cc55",
+    "#ffcc00",
 ]
 
 
@@ -37,7 +43,7 @@ def snapshot_grid(grid, keepers, route_set, wp_set):
     cells = []
     for y in range(GRID_H):
         for x in range(GRID_W):
-            cell = grid[y][x]
+            cell = grid[y, x]
             is_keeper_cell = any((x - dx, y - dy) in keepers for dx, dy in FOOTPRINT)
             is_route = (x, y) in route_set
             is_wp = (x, y) in wp_set
@@ -72,7 +78,6 @@ def build_all_snapshots(data):
     flat_route = flatten_route(segments) if segments else []
     route_set = set(flat_route)
 
-    # Round 0: empty grid
     snapshots.append(
         {
             "cells": snapshot_grid(grid, keepers, route_set, wp_set),
@@ -88,7 +93,7 @@ def build_all_snapshots(data):
             ok = all(
                 0 <= y + dy < GRID_H
                 and 0 <= x + dx < GRID_W
-                and grid[y + dy][x + dx] == Cell.Grass
+                and grid[y + dy, x + dx] == Cell.Grass
                 for dx, dy in FOOTPRINT
             )
             if not ok:
@@ -106,7 +111,7 @@ def build_all_snapshots(data):
         if placed:
             best_idx = max(
                 range(len(placed)),
-                key=lambda i: exposure_at(placed[i][0], placed[i][1], flat_route),
+                key=lambda i: exposure_at_flat(placed[i][0], placed[i][1], flat_route),
             )
             for i, (px, py) in enumerate(placed):
                 if i == best_idx:
@@ -137,7 +142,6 @@ def generate_html(blueprint_path: str) -> str:
     snapshots = build_all_snapshots(data)
     total_rounds = len(data["rounds"])
 
-    # Compact serialization: cells as joined string of digits, route as flat [x,y,x,y,...]
     snap_json = []
     for s in snapshots:
         route_flat = []
@@ -247,7 +251,6 @@ function draw(round) {{
   const cells = snap.c;
   const routeFlat = snap.r;
 
-  // Draw cells
   for (let y = 0; y < GH; y++) {{
     for (let x = 0; x < GW; x++) {{
       ctx.fillStyle = PALETTE[+cells[y * GW + x]];
@@ -255,7 +258,6 @@ function draw(round) {{
     }}
   }}
 
-  // Grid lines
   ctx.strokeStyle = 'rgba(255,255,255,0.07)';
   ctx.lineWidth = 0.5;
   ctx.beginPath();
@@ -269,7 +271,6 @@ function draw(round) {{
   }}
   ctx.stroke();
 
-  // Major grid lines every 2 cells (coarse tile boundary)
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth = 0.5;
   ctx.beginPath();
@@ -283,7 +284,6 @@ function draw(round) {{
   }}
   ctx.stroke();
 
-  // Axis labels every 4 cells
   ctx.fillStyle = 'rgba(255,255,255,0.45)';
   ctx.font = '9px monospace';
   ctx.textAlign = 'center';
@@ -297,7 +297,6 @@ function draw(round) {{
     ctx.fillText(y, 2, y * CS + CS / 2);
   }}
 
-  // Draw route line
   if (routeFlat.length >= 4) {{
     const half = CS / 2;
     ctx.beginPath();
@@ -312,7 +311,6 @@ function draw(round) {{
     ctx.stroke();
   }}
 
-  // Waypoint markers
   for (const [wx, wy] of WAYPOINTS) {{
     const cx = wx * CS + CS / 2;
     const cy = wy * CS + CS / 2;

@@ -11,7 +11,7 @@ def main() -> None:
     )
     parser.add_argument("--population", type=int, default=200, help="Population size")
     parser.add_argument("--generations", type=int, default=500, help="Max generations")
-    parser.add_argument("--tournament", type=int, default=5, help="Tournament size")
+    parser.add_argument("--tournament", type=int, default=3, help="Tournament size")
     parser.add_argument(
         "--mutation-rate", type=float, default=0.3, help="Mutation probability"
     )
@@ -20,6 +20,9 @@ def main() -> None:
     )
     parser.add_argument(
         "--elite-pct", type=float, default=0.05, help="Elite percentage"
+    )
+    parser.add_argument(
+        "--exposure-weight", type=float, default=0.05, help="Exposure weight in fitness"
     )
     parser.add_argument(
         "--cores", type=int, default=None, help="CPU cores (default: all)"
@@ -45,6 +48,7 @@ def main() -> None:
         elite_pct=args.elite_pct,
         cores=args.cores,
         seed=args.seed,
+        exposure_weight=args.exposure_weight,
     )
 
     output = {
