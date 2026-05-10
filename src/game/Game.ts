@@ -454,7 +454,27 @@ export class Game {
 
   // Public command surface used by UI / input.
   cmdPlace(x: number, y: number): boolean {
-    return this.buildPhase.place(x, y);
+    const ok = this.buildPhase.place(x, y);
+    if (ok && this.blueprintMode && this.blueprint) {
+      const roundIdx = this.state.wave - 1;
+      const bp = this.blueprint;
+      if (roundIdx >= 0 && roundIdx < bp.rounds.length) {
+        const positions = bp.rounds[roundIdx];
+        const keeperIdx = bp.keeperIndices?.[roundIdx] ?? 0;
+        const [kx, ky] = positions[keeperIdx];
+        if (x === kx && y === ky) {
+          const rest = positions.filter((_p, i) => i !== keeperIdx);
+          for (let i = rest.length - 1; i > 0; i--) {
+            const j = this.rng.int(i + 1);
+            [rest[i], rest[j]] = [rest[j], rest[i]];
+          }
+          for (const [px, py] of rest) {
+            this.buildPhase.place(px, py);
+          }
+        }
+      }
+    }
+    return ok;
   }
   cmdUndo(): boolean {
     return this.buildPhase.undo();

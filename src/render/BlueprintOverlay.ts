@@ -112,6 +112,8 @@ export function renderBlueprintOverlay(
     const isKeeper = i === keeperIdx;
     const placed = i < placedCount;
 
+    if (!isKeeper && !placed) continue;
+
     if (placed) {
       const doneColor = isKeeper ? 0xf0c038 : THEME.good;
       gfx.rect(px + 1, py + 1, sz - 2, sz - 2).fill({ color: doneColor, alpha: 0.12 });
