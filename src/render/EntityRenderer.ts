@@ -386,7 +386,7 @@ export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSp
     seen.add(id);
     let entry = rockObjs.get(id);
     if (!entry) {
-      const variantId = pickRockVariant(id);
+      const variantId = pickRockVariant(id, pos.x, pos.y);
       const tex = cache.combinedRock(variantId);
       const sprite = new Sprite(tex);
       sprite.anchor.set(0, 0);

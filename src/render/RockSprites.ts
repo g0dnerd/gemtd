@@ -91,42 +91,48 @@ function leftHighlight(grid: number[][], sil: Sil, depth = 1): void {
 function vMegalith(): { grid: PixelGrid; palette: SpriteColors } {
   const rows: ([number, number] | null)[] = [];
   for (let y = 0; y < SIZE; y++) {
-    let xL = 0,
-      xR = 31;
+    let xL = 1,
+      xR = 30;
     if (y === 0) {
+      xL = 6;
+      xR = 25;
+    } else if (y === 1) {
       xL = 4;
       xR = 27;
-    } else if (y === 1) {
+    } else if (y === 2) {
       xL = 2;
       xR = 29;
-    } else if (y === 2) {
-      xL = 1;
-      xR = 30;
     } else if (y === 3) {
-      xL = 0;
-      xR = 31;
-    } else if (y === 31) {
       xL = 1;
       xR = 30;
+    } else if (y === 31) {
+      xL = 3;
+      xR = 28;
     } else if (y === 30) {
-      xL = 0;
-      xR = 31;
+      xL = 2;
+      xR = 29;
     }
     rows.push([xL, xR]);
   }
   const sil = silFromRows(rows);
   chip(sil, [
+    ["L", 7, 1],
     ["L", 8, 1],
     ["L", 9, 2],
-    ["L", 10, 1],
+    ["L", 10, 2],
+    ["L", 11, 1],
     ["R", 5, 1],
-    ["R", 14, 1],
-    ["R", 15, 1],
+    ["R", 6, 1],
+    ["R", 13, 1],
+    ["R", 14, 2],
+    ["R", 15, 2],
     ["R", 16, 2],
     ["R", 17, 1],
-    ["L", 22, 1],
+    ["L", 21, 1],
+    ["L", 22, 2],
     ["L", 23, 2],
     ["L", 24, 1],
+    ["R", 25, 1],
     ["R", 26, 1],
     ["R", 27, 2],
     ["R", 28, 1],
@@ -150,8 +156,10 @@ function vMegalith(): { grid: PixelGrid; palette: SpriteColors } {
 
 function vJaggedOutcrop(): { grid: PixelGrid; palette: SpriteColors } {
   const topY = [
-    7, 5, 3, 2, 4, 5, 6, 7, 5, 3, 1, 0, 2, 4, 6, 7, 6, 5, 3, 2, 4, 5, 5, 6,
-    7, 6, 4, 3, 2, 4, 6, 8,
+    99, 99, 6, 4, 3, 5, 6, 7,
+    5, 3, 2, 1, 3, 4, 6, 7,
+    6, 5, 3, 2, 4, 5, 5, 6,
+    7, 6, 4, 3, 4, 6, 99, 99,
   ];
   const sil: Sil = new Array<[number, number] | null>(SIZE).fill(null);
   for (let y = 0; y < SIZE; y++) {
@@ -164,17 +172,24 @@ function vJaggedOutcrop(): { grid: PixelGrid; palette: SpriteColors } {
       }
     }
     if (xL >= 0) {
-      if (y >= 26) sil[y] = [0, 31];
+      if (y >= 27) sil[y] = [2, 29];
+      else if (y >= 25) sil[y] = [1, 30];
       else sil[y] = [xL, xR];
     }
   }
-  if (sil[31]) sil[31] = [1, 30];
+  if (sil[31]) sil[31] = [3, 28];
+  if (sil[30]) sil[30] = [2, 29];
   chip(sil, [
     ["L", 14, 1],
     ["L", 15, 1],
     ["L", 22, 2],
+    ["L", 23, 1],
+    ["R", 17, 1],
     ["R", 18, 1],
     ["R", 19, 2],
+    ["R", 20, 1],
+    ["L", 9, 1],
+    ["R", 11, 1],
   ]);
   const g = make();
   shadeDiagonal(g, sil, { tHi: 0.28, tLo: 0.6 });
@@ -188,22 +203,27 @@ function vJaggedOutcrop(): { grid: PixelGrid; palette: SpriteColors } {
 function vStepped(): { grid: PixelGrid; palette: SpriteColors } {
   const rows: ([number, number] | null)[] = [];
   for (let y = 0; y < SIZE; y++) {
-    if (y < 2) rows.push(null);
-    else if (y < 9) rows.push([9, 22]);
-    else if (y < 17) rows.push([4, 27]);
-    else if (y < 24) rows.push([1, 30]);
-    else rows.push([0, 31]);
+    if (y < 3) rows.push(null);
+    else if (y < 10) rows.push([10, 21]);
+    else if (y < 18) rows.push([5, 26]);
+    else if (y < 25) rows.push([2, 29]);
+    else if (y < 31) rows.push([1, 30]);
+    else rows.push([2, 29]);
   }
   const sil = silFromRows(rows);
   chip(sil, [
-    ["L", 2, 1],
-    ["R", 2, 1],
-    ["R", 8, 1],
+    ["L", 3, 1],
+    ["R", 3, 1],
     ["L", 9, 1],
-    ["R", 16, 1],
-    ["L", 17, 1],
-    ["R", 23, 2],
-    ["R", 31, 1],
+    ["R", 9, 1],
+    ["L", 10, 1],
+    ["R", 17, 1],
+    ["L", 18, 1],
+    ["R", 24, 1],
+    ["L", 13, 1],
+    ["R", 14, 1],
+    ["L", 21, 1],
+    ["R", 22, 1],
   ]);
   const g = make();
   shadeDiagonal(g, sil, { tHi: 0.3, tLo: 0.58 });
@@ -228,20 +248,23 @@ function vStepped(): { grid: PixelGrid; palette: SpriteColors } {
 function vFractured(): { grid: PixelGrid; palette: SpriteColors } {
   const rows: ([number, number] | null)[] = [];
   for (let y = 0; y < SIZE; y++) {
-    let xL = 0,
-      xR = 31;
+    let xL = 1,
+      xR = 30;
     if (y === 0) {
+      xL = 5;
+      xR = 26;
+    } else if (y === 1) {
       xL = 3;
       xR = 28;
-    } else if (y === 1) {
-      xL = 1;
-      xR = 30;
-    } else if (y === 31) {
+    } else if (y === 2) {
       xL = 2;
       xR = 29;
+    } else if (y === 31) {
+      xL = 4;
+      xR = 27;
     } else if (y === 30) {
-      xL = 0;
-      xR = 31;
+      xL = 2;
+      xR = 29;
     }
     rows.push([xL, xR]);
   }
@@ -249,9 +272,13 @@ function vFractured(): { grid: PixelGrid; palette: SpriteColors } {
   chip(sil, [
     ["L", 4, 1],
     ["L", 11, 1],
+    ["L", 12, 1],
     ["R", 7, 1],
+    ["R", 8, 1],
     ["R", 22, 2],
+    ["R", 23, 1],
     ["L", 26, 1],
+    ["L", 27, 1],
   ]);
   const g = make();
   shadeDiagonal(g, sil, { tHi: 0.3, tLo: 0.62 });
@@ -284,35 +311,43 @@ function vFractured(): { grid: PixelGrid; palette: SpriteColors } {
 function vStackedBlocks(): { grid: PixelGrid; palette: SpriteColors } {
   const rows: ([number, number] | null)[] = [];
   for (let y = 0; y < SIZE; y++) {
-    if (y < 10) rows.push([5, 30]);
-    else if (y < 20) rows.push([1, 28]);
-    else rows.push([0, 31]);
+    if (y < 1) rows.push(null);
+    else if (y < 11) rows.push([6, 28]);
+    else if (y < 21) rows.push([3, 27]);
+    else if (y < 31) rows.push([1, 30]);
+    else rows.push(null);
   }
   const sil = silFromRows(rows);
   chip(sil, [
-    ["L", 0, 2],
-    ["R", 0, 2],
-    ["L", 9, 1],
-    ["R", 9, 1],
+    ["L", 1, 2],
+    ["R", 1, 2],
     ["L", 10, 1],
-    ["R", 19, 1],
+    ["R", 10, 1],
+    ["L", 11, 1],
+    ["R", 11, 1],
+    ["L", 20, 1],
     ["R", 20, 1],
-    ["L", 31, 1],
-    ["R", 31, 1],
+    ["L", 21, 1],
+    ["R", 21, 1],
+    ["L", 30, 1],
+    ["R", 30, 1],
+    ["L", 6, 1],
+    ["R", 16, 1],
+    ["L", 26, 1],
   ]);
   const g = make();
   shadeDiagonal(g, sil, { tHi: 0.32, tLo: 0.55 });
   const blockSils = [
-    silFromRows(rows.map((r, y) => (y < 10 ? r : null))),
-    silFromRows(rows.map((r, y) => (y >= 10 && y < 20 ? r : null))),
-    silFromRows(rows.map((r, y) => (y >= 20 ? r : null))),
+    silFromRows(rows.map((r, y) => (y < 11 ? r : null))),
+    silFromRows(rows.map((r, y) => (y >= 11 && y < 21 ? r : null))),
+    silFromRows(rows.map((r, y) => (y >= 21 ? r : null))),
   ];
   for (const s of blockSils) {
     topHighlight(g, s, 1);
     leftHighlight(g, s, 1);
     bottomShadow(g, s, 1);
   }
-  for (const seamY of [9, 19]) {
+  for (const seamY of [10, 20]) {
     const above = sil[seamY],
       below = sil[seamY + 1];
     if (above && below) {
@@ -388,33 +423,42 @@ function vCrystalMegalith(): { grid: PixelGrid; palette: SpriteColors } {
 function vMossyBlock(): { grid: PixelGrid; palette: SpriteColors } {
   const rows: ([number, number] | null)[] = [];
   for (let y = 0; y < SIZE; y++) {
-    let xL = 0,
-      xR = 31;
+    let xL = 1,
+      xR = 30;
     if (y === 0) {
-      xL = 5;
-      xR = 26;
+      xL = 7;
+      xR = 24;
     } else if (y === 1) {
+      xL = 4;
+      xR = 27;
+    } else if (y === 2) {
       xL = 2;
       xR = 29;
-    } else if (y === 2) {
+    } else if (y === 3) {
       xL = 1;
       xR = 30;
     } else if (y === 31) {
+      xL = 3;
+      xR = 28;
+    } else if (y === 30) {
       xL = 2;
       xR = 29;
-    } else if (y === 30) {
-      xL = 0;
-      xR = 31;
     }
     rows.push([xL, xR]);
   }
   const sil = silFromRows(rows);
   chip(sil, [
     ["L", 6, 1],
-    ["L", 14, 1],
+    ["L", 7, 1],
+    ["L", 14, 2],
+    ["L", 15, 1],
     ["R", 9, 1],
+    ["R", 10, 1],
     ["R", 18, 2],
+    ["R", 19, 1],
+    ["L", 24, 1],
     ["L", 25, 1],
+    ["R", 27, 1],
   ]);
   const g = make();
   shadeDiagonal(g, sil, { tHi: 0.32, tLo: 0.55 });
@@ -544,9 +588,9 @@ const MIX: readonly { id: RockVariantId; weight: number }[] = [
 ];
 const TOTAL = 13;
 
-export function pickRockVariant(towerId: number): RockVariantId {
-  let h = (towerId * 73856093) ^ ((towerId >> 5) * 19349663);
-  h = ((h % TOTAL) + TOTAL) % TOTAL;
+export function pickRockVariant(id: number, ax: number, ay: number): RockVariantId {
+  const seed = (id * 73856093) ^ ((ax * 19349663) ^ (ay * 83492791));
+  const h = ((seed % TOTAL) + TOTAL) % TOTAL;
   let acc = 0;
   for (const m of MIX) {
     acc += m.weight;
