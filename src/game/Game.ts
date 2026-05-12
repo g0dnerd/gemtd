@@ -41,6 +41,7 @@ import {
   renderRocks,
   renderCreeps,
   renderProjectiles,
+  renderBeams,
   renderHover,
   renderRangePreview,
 } from "../render/EntityRenderer";
@@ -431,6 +432,7 @@ export class Game {
     renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites, this.selectedRockId);
     renderCreeps(this.layers.creeps, this.state.creeps);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
+    renderBeams(this.layers.projectiles, this.state.towers, this.state.creeps);
     if (this.blueprintMode) {
       const placedCount = this.state.draws.filter(
         (d) => d.placedTowerId !== null,

@@ -40,11 +40,19 @@ export class Combat {
         const effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
         const cooldownTicks = Math.max(1, Math.round(SIM_HZ / effectiveAtkSpeed));
         if (tick - t.lastFireTick < cooldownTicks) continue;
+        const beamEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'beam_ramp' }> => e.kind === 'beam_ramp');
         const target = pickTarget(t, stats.range, state.creeps, stats.targeting, tick);
-        if (!target) continue;
+        if (!target) {
+          if (beamEffect) t.beam = undefined;
+          continue;
+        }
         t.lastFireTick = tick;
         const dmgMult = auras.dmg.get(t.id) ?? 0;
-        this.fire(t, target, stats, dmgMult);
+        if (beamEffect) {
+          this.beamHit(t, target, stats, beamEffect, dmgMult);
+        } else {
+          this.fire(t, target, stats, dmgMult);
+        }
       }
     }
 
@@ -66,6 +74,25 @@ export class Combat {
       if (state.projectiles[i].alive) state.projectiles[write++] = state.projectiles[i];
     }
     state.projectiles.length = write;
+  }
+
+  private beamHit(
+    tower: TowerState,
+    target: CreepState,
+    stats: ResolvedStats,
+    beam: Extract<EffectKind, { kind: 'beam_ramp' }>,
+    dmgAuraMult: number,
+  ): void {
+    if (tower.beam && tower.beam.targetId === target.id) {
+      tower.beam.stacks = Math.min(tower.beam.stacks + 1, beam.maxStacks);
+    } else {
+      tower.beam = { targetId: target.id, stacks: 0 };
+    }
+    const baseDmg = randInt(this.game.rng, stats.dmgMin, stats.dmgMax);
+    const rampMult = 1 + tower.beam.stacks * beam.rampPerHit;
+    const dmg = Math.round(baseDmg * rampMult * (1 + dmgAuraMult));
+    this.applyDamage(target, dmg, tower);
+    this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
   }
 
   private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0): void {

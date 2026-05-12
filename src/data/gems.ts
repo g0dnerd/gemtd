@@ -27,7 +27,8 @@ export type EffectKind =
   | { kind: 'trap_explode'; radius: number; falloff: number }
   | { kind: 'trap_root'; duration: number }
   | { kind: 'trap_knockback'; distance: number }
-  | { kind: 'air_bonus'; multiplier: number };
+  | { kind: 'air_bonus'; multiplier: number }
+  | { kind: 'beam_ramp'; rampPerHit: number; maxStacks: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -126,12 +127,12 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   aquamarine: {
     name: 'Aquamarine',
-    blurb: 'Rapid frost — short range, blistering attack speed.',
-    baseDmg: 6,
-    spread: 0.2,
-    baseRange: 2.2,
+    blurb: 'Focusing beam — damage ramps on the same target.',
+    baseDmg: 2,
+    spread: 0.15,
+    baseRange: 2.5,
     baseAtkSpeed: 3.0,
-    effects: [],
+    effects: [{ kind: 'beam_ramp', rampPerHit: 0.12, maxStacks: 25 }],
     targeting: 'all',
   },
 };
@@ -202,6 +203,8 @@ function scaleEffects(effects: EffectKind[], quality: Quality): EffectKind[] {
         const radius = e.radius + QUALITY_RANGE_BONUS[quality];
         return { ...e, pct, radius };
       }
+      case 'beam_ramp':
+        return { ...e, rampPerHit: +(e.rampPerHit + (quality - 1) * 0.01).toFixed(2) };
       default:
         return e;
     }
@@ -270,6 +273,8 @@ export function effectSummary(e: EffectKind): string {
       return `Trap: Knockback ${e.distance} tiles`;
     case 'air_bonus':
       return `×${e.multiplier.toFixed(1)} vs air`;
+    case 'beam_ramp':
+      return `Beam: +${Math.round(e.rampPerHit * 100)}%/hit, max ×${(1 + e.maxStacks * e.rampPerHit).toFixed(1)}`;
     case 'none':
       return '';
   }

@@ -563,6 +563,32 @@ export function renderProjectiles(layer: Container, projectiles: ProjectileState
   }
 }
 
+let beamGfx: Graphics | null = null;
+export function renderBeams(layer: Container, towers: TowerState[], creeps: CreepState[]): void {
+  if (!beamGfx) {
+    beamGfx = new Graphics();
+    layer.addChild(beamGfx);
+  }
+  beamGfx.clear();
+  for (const t of towers) {
+    if (!t.beam) continue;
+    const target = creeps.find((c) => c.id === t.beam!.targetId && c.alive);
+    if (!target) continue;
+    const fromX = (t.x + 1) * FINE_TILE;
+    const fromY = (t.y + 1) * FINE_TILE;
+    const palette = GEM_PALETTE[t.gem];
+    const stacks = t.beam.stacks;
+    const core = 2.5 + stacks * 0.14;
+    const alpha = 0.55 + Math.min(stacks * 0.018, 0.4);
+    beamGfx.moveTo(fromX, fromY).lineTo(target.px, target.py)
+      .stroke({ width: core + 4, color: palette.dark, alpha: alpha * 0.25 });
+    beamGfx.moveTo(fromX, fromY).lineTo(target.px, target.py)
+      .stroke({ width: core + 1.5, color: palette.mid, alpha: alpha * 0.6 });
+    beamGfx.moveTo(fromX, fromY).lineTo(target.px, target.py)
+      .stroke({ width: core, color: palette.light, alpha });
+  }
+}
+
 let hoverGfx: Graphics | null = null;
 let lastHoverKey = "";
 export function renderHover(

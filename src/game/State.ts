@@ -27,6 +27,8 @@ export interface TowerState {
   lastFireTick: number;
   /** Count of kills for fun stats. */
   kills: number;
+  /** Beam state — tracks current beam target and ramp stacks. */
+  beam?: { targetId: number; stacks: number };
   /** Trap towers don't block pathing and trigger on creep proximity instead of firing projectiles. */
   isTrap?: boolean;
   /** Tick when the trap last triggered — gates re-arm cooldown. */
