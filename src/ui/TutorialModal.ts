@@ -189,6 +189,15 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '0.8.0',
+      notes: [
+        '<b>Balance</b> — Diamond nerfed: base damage 30→25, crit multiplier 2.5→2.0.',
+        '<b>Balance</b> — Sapphire buffed: base damage 12→15.',
+        '<b>Balance</b> — Emerald buffed: base damage 10→13, poison DPS 8→11.',
+        '<b>Balance</b> — Aquamarine buffed: base range 2.5→3.0.',
+      ],
+    },
+    {
       ver: '0.7.2',
       notes: [
         '<b>Fix</b> — special combine with 1 current-round gem now works correctly.',

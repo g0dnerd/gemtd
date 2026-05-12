@@ -68,7 +68,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   sapphire: {
     name: 'Sapphire',
     blurb: 'Frostbite — slows on hit.',
-    baseDmg: 12,
+    baseDmg: 15,
     spread: 0.15,
     baseRange: 4.0,
     baseAtkSpeed: 0.9,
@@ -78,11 +78,11 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   emerald: {
     name: 'Emerald',
     blurb: 'Lingering venom over time.',
-    baseDmg: 10,
+    baseDmg: 13,
     spread: 0.15,
     baseRange: 3.5,
     baseAtkSpeed: 1.0,
-    effects: [{ kind: 'poison', dps: 8, duration: 4 }],
+    effects: [{ kind: 'poison', dps: 11, duration: 4 }],
     targeting: 'all',
   },
   topaz: {
@@ -118,11 +118,11 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   diamond: {
     name: 'Diamond',
     blurb: 'Crystalline edge — devastating crits. Ground only.',
-    baseDmg: 30,
+    baseDmg: 25,
     spread: 0.3,
     baseRange: 4.0,
     baseAtkSpeed: 0.8,
-    effects: [{ kind: 'crit', chance: 0.25, multiplier: 2.5 }],
+    effects: [{ kind: 'crit', chance: 0.25, multiplier: 2.0 }],
     targeting: 'ground',
   },
   aquamarine: {
@@ -130,9 +130,9 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     blurb: 'Focusing beam — damage ramps on the same target.',
     baseDmg: 2,
     spread: 0.15,
-    baseRange: 2.5,
+    baseRange: 3.0,
     baseAtkSpeed: 3.0,
-    effects: [{ kind: 'beam_ramp', rampPerHit: 0.12, maxStacks: 25 }],
+    effects: [{ kind: 'beam_ramp', rampPerHit: 0.18, maxStacks: 30 }],
     targeting: 'all',
   },
 };
