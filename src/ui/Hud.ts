@@ -145,14 +145,14 @@ export function mountHud(
   // === Right-click radial menu (Keep / Combine / Special / Downgrade) ===
   const SVG_NS = "http://www.w3.org/2000/svg";
   const KEEP_WEDGE =
-    "M -63.64 -63.64 A 90 90 0 0 1 63.64 -63.64 L 14.14 -14.14 A 20 20 0 0 0 -14.14 -14.14 Z";
+    "M -76.37 -76.37 A 108 108 0 0 1 76.37 -76.37 L 14.14 -14.14 A 20 20 0 0 0 -14.14 -14.14 Z";
   const COMBINE_WEDGE =
-    "M -63.64 63.64 A 90 90 0 0 1 -63.64 -63.64 L -14.14 -14.14 A 20 20 0 0 0 -14.14 14.14 Z";
+    "M -76.37 76.37 A 108 108 0 0 1 -76.37 -76.37 L -14.14 -14.14 A 20 20 0 0 0 -14.14 14.14 Z";
   const SPECIAL_WEDGE =
-    "M 63.64 63.64 A 90 90 0 0 1 -63.64 63.64 L -14.14 14.14 A 20 20 0 0 0 14.14 14.14 Z";
+    "M 76.37 76.37 A 108 108 0 0 1 -76.37 76.37 L -14.14 14.14 A 20 20 0 0 0 14.14 14.14 Z";
   const DOWNGRADE_WEDGE =
-    "M 63.64 -63.64 A 90 90 0 0 1 63.64 63.64 L 14.14 14.14 A 20 20 0 0 0 14.14 -14.14 Z";
-  const BEVEL_ARC = "M -63.64 -63.64 A 90 90 0 0 1 63.64 -63.64";
+    "M 76.37 -76.37 A 108 108 0 0 1 76.37 76.37 L 14.14 14.14 A 20 20 0 0 0 14.14 -14.14 Z";
+  const BEVEL_ARC = "M -76.37 -76.37 A 108 108 0 0 1 76.37 -76.37";
   type RadialSlice = "keep" | "combine" | "special" | "downgrade";
 
   const WEDGE_PATHS: Record<RadialSlice, string> = {
@@ -188,7 +188,7 @@ export function mountHud(
   canvasHost.appendChild(radialWrap);
 
   const rSvg = svgEl("svg");
-  rSvg.setAttribute("viewBox", "-100 -100 200 200");
+  rSvg.setAttribute("viewBox", "-120 -120 240 240");
   rSvg.setAttribute("preserveAspectRatio", "xMidYMid meet");
   radialWrap.appendChild(rSvg);
 
@@ -314,15 +314,15 @@ export function mountHud(
   }
   const keepLbl = makeRadialLabel("keep", "★", "KEEP");
   keepLbl.style.left = "50%";
-  keepLbl.style.top = "calc(50% - 60px)";
+  keepLbl.style.top = "calc(50% - 72px)";
   const combineLbl = makeRadialLabel("combine", "⊕", "COMBINE");
-  combineLbl.style.left = "calc(50% - 60px)";
+  combineLbl.style.left = "calc(50% - 62px)";
   combineLbl.style.top = "50%";
   const specialLbl = makeRadialLabel("special", "✦", "SPECIAL");
   specialLbl.style.left = "50%";
-  specialLbl.style.top = "calc(50% + 48px)";
+  specialLbl.style.top = "calc(50% + 60px)";
   const downgradeLbl = makeRadialLabel("downgrade", "▼", "DEMOTE");
-  downgradeLbl.style.left = "calc(50% + 60px)";
+  downgradeLbl.style.left = "calc(50% + 72px)";
   downgradeLbl.style.top = "50%";
   radialWrap.append(keepLbl, combineLbl, specialLbl, downgradeLbl);
 
@@ -430,7 +430,7 @@ export function mountHud(
     const py = ev.clientY - rect.top;
     const dx = px - radialCenterX;
     const dy = py - radialCenterY;
-    if (Math.sqrt(dx * dx + dy * dy) > 150) {
+    if (Math.sqrt(dx * dx + dy * dy) > 180) {
       closeRadial();
       return;
     }

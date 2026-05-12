@@ -1392,8 +1392,8 @@
 /* ===== Right-click radial menu ===== */
 .radial-wrap {
   position: absolute;
-  width: 200px;
-  height: 200px;
+  width: 240px;
+  height: 240px;
   left: var(--x);
   top: var(--y);
   transform: translate(-50%, -50%);
