@@ -26,7 +26,8 @@ export type EffectKind =
   | { kind: 'trap_dot'; dps: number; duration: number }
   | { kind: 'trap_explode'; radius: number; falloff: number }
   | { kind: 'trap_root'; duration: number }
-  | { kind: 'trap_knockback'; distance: number };
+  | { kind: 'trap_knockback'; distance: number }
+  | { kind: 'air_bonus'; multiplier: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -95,13 +96,13 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   amethyst: {
     name: 'Amethyst',
-    blurb: 'Skyward lance — devastating damage, air only.',
-    baseDmg: 50,
+    blurb: 'Arcane lance — true damage, devastating vs air.',
+    baseDmg: 18,
     spread: 0.2,
     baseRange: 4.5,
     baseAtkSpeed: 0.9,
-    effects: [{ kind: 'true', chance: 0.3 }],
-    targeting: 'air',
+    effects: [{ kind: 'true', chance: 0.3 }, { kind: 'air_bonus', multiplier: 2.5 }],
+    targeting: 'all',
   },
   opal: {
     name: 'Opal',
@@ -194,6 +195,8 @@ function scaleEffects(effects: EffectKind[], quality: Quality): EffectKind[] {
         return { ...e, factor: Math.max(0.4, e.factor - (quality - 1) * 0.04) };
       case 'true':
         return { ...e, chance: Math.min(0.5, e.chance + (quality - 1) * 0.04) };
+      case 'air_bonus':
+        return { ...e, multiplier: e.multiplier + (quality - 1) * 0.25 };
       case 'aura_atkspeed': {
         const pct = e.pct + (quality - 1) * 0.03;
         const radius = e.radius + QUALITY_RANGE_BONUS[quality];
@@ -265,6 +268,8 @@ export function effectSummary(e: EffectKind): string {
       return `Trap: Root ${e.duration}s`;
     case 'trap_knockback':
       return `Trap: Knockback ${e.distance} tiles`;
+    case 'air_bonus':
+      return `×${e.multiplier.toFixed(1)} vs air`;
     case 'none':
       return '';
   }

@@ -78,6 +78,9 @@ export class Combat {
       if (e.kind === 'crit' && this.game.rng.next() < e.chance) {
         dmg = Math.round(dmg * e.multiplier);
       }
+      if (e.kind === 'air_bonus' && target.flags?.air) {
+        dmg = Math.round(dmg * e.multiplier);
+      }
     }
     const proj: ProjectileState = {
       id: this.game.nextId(),
@@ -341,7 +344,6 @@ function nearest(creeps: CreepState[], x: number, y: number, exclude: Set<number
     if (d2 > bestD2) continue;
     bestD2 = d2;
     best = c;
-    }
   }
   return best;
 }

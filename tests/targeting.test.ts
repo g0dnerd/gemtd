@@ -7,9 +7,10 @@ import { buildAirRoute, findRoute, flattenRoute } from '../src/systems/Pathfindi
 import { WAYPOINTS, BASE } from '../src/data/map';
 
 describe('gem targeting', () => {
-  it('amethyst targets air only', () => {
-    expect(GEM_BASE.amethyst.targeting).toBe('air');
-    expect(gemStats('amethyst', 3).targeting).toBe('air');
+  it('amethyst targets all with air bonus', () => {
+    expect(GEM_BASE.amethyst.targeting).toBe('all');
+    expect(gemStats('amethyst', 3).targeting).toBe('all');
+    expect(GEM_BASE.amethyst.effects.some((e) => e.kind === 'air_bonus')).toBe(true);
   });
 
   it('diamond targets ground only', () => {
@@ -18,7 +19,7 @@ describe('gem targeting', () => {
   });
 
   it('all other base gems target all', () => {
-    const restricted = new Set(['amethyst', 'diamond']);
+    const restricted = new Set(['diamond']);
     for (const g of GEM_TYPES) {
       if (restricted.has(g)) continue;
       expect(GEM_BASE[g].targeting).toBe('all');
@@ -58,14 +59,22 @@ describe('combo targeting', () => {
 });
 
 describe('amethyst rework stats', () => {
-  it('has higher base damage than old value', () => {
-    expect(GEM_BASE.amethyst.baseDmg).toBeGreaterThanOrEqual(30);
+  it('has nerfed base damage for all-targeting', () => {
+    expect(GEM_BASE.amethyst.baseDmg).toBeLessThan(30);
   });
 
-  it('has true damage effect instead of stun', () => {
+  it('has true damage and air bonus effects', () => {
     const s = gemStats('amethyst', 3);
     expect(s.effects.some((e) => e.kind === 'true')).toBe(true);
-    expect(s.effects.some((e) => e.kind === 'stun')).toBe(false);
+    expect(s.effects.some((e) => e.kind === 'air_bonus')).toBe(true);
+  });
+
+  it('air bonus multiplier scales with quality', () => {
+    const q1 = gemStats('amethyst', 1).effects.find((e) => e.kind === 'air_bonus');
+    const q5 = gemStats('amethyst', 5).effects.find((e) => e.kind === 'air_bonus');
+    expect(q1!.kind === 'air_bonus' && q5!.kind === 'air_bonus' && q5.multiplier).toBeGreaterThan(
+      q1!.kind === 'air_bonus' ? q1.multiplier : 0,
+    );
   });
 });
 
