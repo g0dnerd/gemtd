@@ -180,6 +180,7 @@ export class Game {
     this.selectedTowerId = null;
     this.selectedRockId = null;
     this.state.rocksRemoved = 0;
+    this.state.downgradeUsedThisRound = false;
     this.state.tick = 0;
     this.state.wave = 0;
     this.state.lives = startLives;
@@ -204,6 +205,7 @@ export class Game {
     this.state.wave += 1;
     this.state.undoStack = [];
     this.state.designatedKeepTowerId = null;
+    this.state.downgradeUsedThisRound = false;
     this.state.waveStats = {
       spawnedThisWave: 0,
       killedThisWave: 0,
@@ -620,6 +622,9 @@ export class Game {
   }
   cmdCombine(towerIds: number[]): boolean {
     return this.buildPhase.combine(towerIds);
+  }
+  cmdDowngrade(towerId: number): boolean {
+    return this.buildPhase.downgrade(towerId);
   }
   cmdUpgradeTower(towerId: number): boolean {
     const state = this.state;

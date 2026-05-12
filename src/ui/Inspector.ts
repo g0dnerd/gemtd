@@ -94,6 +94,7 @@ function fingerprint(game: Game): string {
     specialCount,
     upgradeCost ?? "",
     canAfford ? 1 : 0,
+    game.state.downgradeUsedThisRound ? 1 : 0,
   ].join("|");
 }
 
@@ -291,6 +292,26 @@ function render(refs: InspectorRefs, game: Game): void {
     keep.disabled = !inBuild || isKeep;
     keep.addEventListener("click", () => game.cmdDesignateKeep(tower.id));
     actions.append(keep);
+  }
+
+  if (!tower.comboKey) {
+    const dg = document.createElement("button");
+    dg.className = "px-btn px-btn-bad";
+    const canDowngrade =
+      isCurrentDraw &&
+      tower.quality > 1 &&
+      !game.state.downgradeUsedThisRound;
+    dg.disabled = !canDowngrade;
+    dg.textContent = "▼ DOWNGRADE";
+    if (tower.quality <= 1) {
+      dg.title = "Already lowest tier";
+    } else if (game.state.downgradeUsedThisRound) {
+      dg.title = "Already downgraded this round";
+    } else if (!isCurrentDraw) {
+      dg.title = "Only current-round gems";
+    }
+    dg.addEventListener("click", () => game.cmdDowngrade(tower.id));
+    actions.append(dg);
   }
 
   const upgInfo = getUpgradeInfo(tower);

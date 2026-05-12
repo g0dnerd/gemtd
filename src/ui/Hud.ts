@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v0.8.2";
+  wmVer.textContent = "v0.9.0";
   wm.append(wmName, wmVer);
   headerBar.appendChild(wm);
 
@@ -142,21 +142,24 @@ export function mountHud(
 
   game.layoutBoard(boardPxW, boardPxH);
 
-  // === Right-click radial menu (Keep / Combine / Special) ===
+  // === Right-click radial menu (Keep / Combine / Special / Downgrade) ===
   const SVG_NS = "http://www.w3.org/2000/svg";
   const KEEP_WEDGE =
-    "M -77.94 -45 A 90 90 0 0 1 77.94 -45 L 17.32 -10 A 20 20 0 0 0 -17.32 -10 Z";
+    "M -63.64 -63.64 A 90 90 0 0 1 63.64 -63.64 L 14.14 -14.14 A 20 20 0 0 0 -14.14 -14.14 Z";
   const COMBINE_WEDGE =
-    "M -77.94 -45 L -17.32 -10 A 20 20 0 0 0 0 20 L 0 90 A 90 90 0 0 1 -77.94 -45 Z";
+    "M -63.64 63.64 A 90 90 0 0 1 -63.64 -63.64 L -14.14 -14.14 A 20 20 0 0 0 -14.14 14.14 Z";
   const SPECIAL_WEDGE =
-    "M 0 90 A 90 90 0 0 0 77.94 -45 L 17.32 -10 A 20 20 0 0 1 0 20 Z";
-  const BEVEL_ARC = "M -77.94 -45 A 90 90 0 0 1 77.94 -45";
-  type RadialSlice = "keep" | "combine" | "special";
+    "M 63.64 63.64 A 90 90 0 0 1 -63.64 63.64 L -14.14 14.14 A 20 20 0 0 0 14.14 14.14 Z";
+  const DOWNGRADE_WEDGE =
+    "M 63.64 -63.64 A 90 90 0 0 1 63.64 63.64 L 14.14 14.14 A 20 20 0 0 0 14.14 -14.14 Z";
+  const BEVEL_ARC = "M -63.64 -63.64 A 90 90 0 0 1 63.64 -63.64";
+  type RadialSlice = "keep" | "combine" | "special" | "downgrade";
 
   const WEDGE_PATHS: Record<RadialSlice, string> = {
     keep: KEEP_WEDGE,
     combine: COMBINE_WEDGE,
     special: SPECIAL_WEDGE,
+    downgrade: DOWNGRADE_WEDGE,
   };
   const SLICE_HIGHLIGHT: Record<
     RadialSlice,
@@ -165,6 +168,7 @@ export function mountHud(
     keep: { fill: "rgba(88,200,80,0.22)", stroke: "#58c850" },
     combine: { fill: "rgba(240,160,64,0.22)", stroke: "#f0a040" },
     special: { fill: "rgba(120,168,248,0.22)", stroke: "#78a8f8" },
+    downgrade: { fill: "rgba(208,72,72,0.22)", stroke: "#d04848" },
   };
 
   function svgEl<K extends keyof SVGElementTagNameMap>(
@@ -238,7 +242,8 @@ export function mountHud(
   const keepW = svgPath(KEEP_WEDGE);
   const combineW = svgPath(COMBINE_WEDGE);
   const specialW = svgPath(SPECIAL_WEDGE);
-  for (const w of [keepW, combineW, specialW]) {
+  const downgradeW = svgPath(DOWNGRADE_WEDGE);
+  for (const w of [keepW, combineW, specialW, downgradeW]) {
     w.setAttribute("fill", "#3d3252");
     w.setAttribute("stroke", "#1a1428");
     w.setAttribute("stroke-width", "2");
@@ -260,6 +265,11 @@ export function mountHud(
   specialHatchEl.setAttribute("opacity", "0.5");
   specialHatchEl.style.display = "none";
   rShadowG.appendChild(specialHatchEl);
+  const downgradeHatchEl = svgPath(DOWNGRADE_WEDGE);
+  downgradeHatchEl.setAttribute("fill", "url(#radial-hatch)");
+  downgradeHatchEl.setAttribute("opacity", "0.5");
+  downgradeHatchEl.style.display = "none";
+  rShadowG.appendChild(downgradeHatchEl);
 
   const combineGlow = svgPath(COMBINE_WEDGE);
   combineGlow.setAttribute("fill", "none");
@@ -277,6 +287,14 @@ export function mountHud(
   specialGlow.classList.add("radial-glow-ring");
   specialGlow.style.display = "none";
   rSvg.appendChild(specialGlow);
+  const downgradeGlow = svgPath(DOWNGRADE_WEDGE);
+  downgradeGlow.setAttribute("fill", "none");
+  downgradeGlow.setAttribute("stroke", "#d04848");
+  downgradeGlow.setAttribute("stroke-width", "3");
+  downgradeGlow.setAttribute("filter", "url(#radial-glow)");
+  downgradeGlow.classList.add("radial-glow-ring");
+  downgradeGlow.style.display = "none";
+  rSvg.appendChild(downgradeGlow);
 
   const rHover = svgPath("");
   rHover.style.display = "none";
@@ -299,12 +317,15 @@ export function mountHud(
   keepLbl.style.left = "50%";
   keepLbl.style.top = "calc(50% - 60px)";
   const combineLbl = makeRadialLabel("combine", "⊕", "COMBINE");
-  combineLbl.style.left = "calc(50% - 52px)";
-  combineLbl.style.top = "calc(50% + 30px)";
+  combineLbl.style.left = "calc(50% - 60px)";
+  combineLbl.style.top = "50%";
   const specialLbl = makeRadialLabel("special", "✦", "SPECIAL");
-  specialLbl.style.left = "calc(50% + 52px)";
-  specialLbl.style.top = "calc(50% + 30px)";
-  radialWrap.append(keepLbl, combineLbl, specialLbl);
+  specialLbl.style.left = "50%";
+  specialLbl.style.top = "calc(50% + 48px)";
+  const downgradeLbl = makeRadialLabel("downgrade", "▼", "DEMOTE");
+  downgradeLbl.style.left = "calc(50% + 60px)";
+  downgradeLbl.style.top = "50%";
+  radialWrap.append(keepLbl, combineLbl, specialLbl, downgradeLbl);
 
   const rCenter = document.createElement("div");
   rCenter.className = "radial-center";
@@ -317,6 +338,7 @@ export function mountHud(
   let radialCenterY = 0;
   let radialCombineOk = false;
   let radialSpecialOk = false;
+  let radialDowngradeOk = false;
   let radialAlreadyKeeping = false;
   let curSlice: RadialSlice | null = null;
 
@@ -326,14 +348,18 @@ export function mountHud(
     if (Math.sqrt(dx * dx + dy * dy) < 20) return null;
     let a = Math.atan2(dy, dx) * (180 / Math.PI);
     if (a < 0) a += 360;
-    if (a >= 210 && a < 330) return "keep";
-    if (a >= 90 && a < 210) return "combine";
-    return "special";
+    // 4 quadrants: keep=225-315 (top), downgrade=315-45 (right),
+    // special=45-135 (bottom), combine=135-225 (left)
+    if (a >= 225 && a < 315) return "keep";
+    if (a >= 315 || a < 45) return "downgrade";
+    if (a >= 45 && a < 135) return "special";
+    return "combine";
   }
 
   function isSliceActive(s: RadialSlice): boolean {
     if (s === "keep") return !radialAlreadyKeeping;
     if (s === "combine") return radialCombineOk;
+    if (s === "downgrade") return radialDowngradeOk;
     return radialSpecialOk;
   }
 
@@ -351,13 +377,17 @@ export function mountHud(
     radialAlreadyKeeping = game.state.designatedKeepTowerId === towerId;
     radialCombineOk = checkCombineOk(tower);
     radialSpecialOk = checkSpecialOk(tower);
+    radialDowngradeOk = checkDowngradeOk(tower);
 
     combineW.setAttribute("fill", radialCombineOk ? "#3d3252" : "#2a2238");
     specialW.setAttribute("fill", radialSpecialOk ? "#3d3252" : "#2a2238");
+    downgradeW.setAttribute("fill", radialDowngradeOk ? "#3d3252" : "#2a2238");
     combineHatchEl.style.display = radialCombineOk ? "none" : "";
     specialHatchEl.style.display = radialSpecialOk ? "none" : "";
+    downgradeHatchEl.style.display = radialDowngradeOk ? "none" : "";
     combineGlow.style.display = radialCombineOk ? "" : "none";
     specialGlow.style.display = radialSpecialOk ? "" : "none";
+    downgradeGlow.style.display = radialDowngradeOk ? "" : "none";
 
     keepLbl.classList.toggle("disabled", radialAlreadyKeeping);
     keepLbl.textContent = "";
@@ -370,6 +400,7 @@ export function mountHud(
     );
     combineLbl.classList.toggle("disabled", !radialCombineOk);
     specialLbl.classList.toggle("disabled", !radialSpecialOk);
+    downgradeLbl.classList.toggle("disabled", !radialDowngradeOk);
 
 
     rCenter.innerHTML = "";
@@ -433,6 +464,8 @@ export function mountHud(
     if (s && tower && isSliceActive(s)) {
       if (s === "keep") {
         game.cmdDesignateKeep(radialTowerId);
+      } else if (s === "downgrade") {
+        game.cmdDowngrade(radialTowerId);
       } else {
         game.selectTower(radialTowerId);
         if (s === "combine") doRadialCombine(tower);
@@ -460,6 +493,18 @@ export function mountHud(
           t.quality === tower.quality,
       ).length >= 2
     );
+  }
+
+  function checkDowngradeOk(tower: TowerState): boolean {
+    if (tower.comboKey) return false;
+    if (tower.quality <= 1) return false;
+    if (game.state.downgradeUsedThisRound) return false;
+    const drawIds = new Set(
+      game.state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
+    );
+    return drawIds.has(tower.id);
   }
 
   function checkSpecialOk(tower: TowerState): boolean {

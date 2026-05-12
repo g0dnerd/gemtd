@@ -189,6 +189,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '0.9.0',
+      notes: [
+        '<b>Downgrade</b> — new action: reduce a gem\'s tier by 1 to keep it. One use per round; auto-starts the wave.',
+      ],
+    },
+    {
       ver: '0.8.2',
       notes: [
         '<b>Balance</b> — Nerfed healer buff: duration 3 s → 2 s, heal rate 0.1 %/tick → 0.075 %/tick.',

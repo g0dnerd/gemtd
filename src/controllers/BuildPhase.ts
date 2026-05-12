@@ -435,6 +435,48 @@ export class BuildPhase {
     this.game.bus.emit('draws:change', {});
     return newTower.id;
   }
+
+  /**
+   * Downgrade a current-draw tower by 1 quality tier. This auto-keeps the tower,
+   * concludes the round, and starts the wave.
+   */
+  downgrade(towerId: number): boolean {
+    const state = this.game.state;
+    const tower = state.towers.find((t) => t.id === towerId);
+    if (!tower) return false;
+    if (tower.comboKey) {
+      this.game.bus.emit('toast', { kind: 'error', text: 'Cannot downgrade specials' });
+      return false;
+    }
+    if (tower.quality <= 1) {
+      this.game.bus.emit('toast', { kind: 'error', text: 'Already lowest tier' });
+      return false;
+    }
+    if (state.downgradeUsedThisRound) {
+      this.game.bus.emit('toast', { kind: 'error', text: 'Already downgraded this round' });
+      return false;
+    }
+    const isCurrentDraw = state.draws.some((d) => d.placedTowerId === towerId);
+    if (!isCurrentDraw) {
+      this.game.bus.emit('toast', { kind: 'error', text: 'Only current-round gems can be downgraded' });
+      return false;
+    }
+
+    const oldQuality = tower.quality;
+    tower.quality = (tower.quality - 1) as Quality;
+    state.downgradeUsedThisRound = true;
+
+    this.game.bus.emit('tower:downgrade', {
+      id: towerId,
+      gem: tower.gem,
+      oldQuality: oldQuality as Quality,
+      newQuality: tower.quality as Quality,
+    });
+
+    this.autoConcludeRound(towerId);
+    this.game.enterWave();
+    return true;
+  }
 }
 
 function pickQuality(r: number, tier: number): Quality {
