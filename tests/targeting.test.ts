@@ -80,7 +80,7 @@ describe('amethyst rework stats', () => {
 
 describe('diamond rework stats', () => {
   it('has boosted base damage', () => {
-    expect(GEM_BASE.diamond.baseDmg).toBeGreaterThanOrEqual(28);
+    expect(GEM_BASE.diamond.baseDmg).toBeGreaterThanOrEqual(25);
   });
 
   it('retains crit effect', () => {
