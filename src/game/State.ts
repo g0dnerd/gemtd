@@ -68,6 +68,12 @@ export interface CreepState {
   /** Boss / armored / air flags. */
   flags?: { boss?: boolean; armored?: boolean; air?: boolean };
   alive: boolean;
+  /** Heal-over-time buff from a nearby healer creep. */
+  healBuff?: { hpPerTick: number; expiresAt: number };
+  /** Tunneler burrow state — untargetable while active. */
+  burrowed?: { expiresAt: number };
+  /** Tick when this creep's special ability can next fire. */
+  abilityCooldown?: number;
 }
 
 export interface ProjectileState {

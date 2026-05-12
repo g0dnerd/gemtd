@@ -27,6 +27,7 @@ import { generateRuneTexture, runeEffectFromComboKey } from "./RuneSprites";
 interface PerEntity {
   obj: Container;
   lastHpRatio?: number;
+  rockBorder?: Graphics;
 }
 
 interface StargemFx {
@@ -416,7 +417,7 @@ function animateStargemFx(fx: StargemFx, tick: number): void {
   }
 }
 
-export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSpriteCache): void {
+export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSpriteCache, selectedRockId: number | null = null): void {
   const groups = new Map<number, { x: number; y: number }>();
   for (const r of rocks) {
     const g = groups.get(r.id);
@@ -443,8 +444,19 @@ export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSp
       obj.x = pos.x * FINE_TILE;
       obj.y = pos.y * FINE_TILE;
       layer.addChild(obj);
-      entry = { obj };
+      const border = new Graphics();
+      obj.addChild(border);
+      entry = { obj, rockBorder: border };
       rockObjs.set(id, entry);
+    }
+    const selected = id === selectedRockId;
+    const border = entry.rockBorder;
+    if (border) {
+      border.clear();
+      if (selected) {
+        border.rect(0, 0, 2 * FINE_TILE, 2 * FINE_TILE)
+          .stroke({ color: 0xd8f0f8, width: 2, alignment: 0.5 });
+      }
     }
   }
   for (const [id, entry] of rockObjs) {
@@ -500,6 +512,7 @@ export function renderCreeps(layer: Container, creeps: CreepState[]): void {
     }
     entry.obj.x = c.px;
     entry.obj.y = c.py;
+    entry.obj.alpha = c.burrowed ? 0.3 : 1;
     // Update HP bar only when ratio changes
     const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
     if (ratio !== entry.lastHpRatio) {

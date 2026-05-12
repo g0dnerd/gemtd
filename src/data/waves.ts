@@ -1,24 +1,47 @@
 /**
- * Full wave list. 50 waves, mixing normal / fast / armored / air / boss.
- * Boss waves are at 10 / 20 / 30 / 40 / 50.
+ * Full wave list. 70 waves. Waves 1-9 are single-type introductions.
+ * Wave 11 introduces healers, wave 21 introduces tunnelers.
+ * From wave 21 on, both specials mix in with increasing prominence.
+ * Some waves throughout remain single-type for variety.
+ * Boss waves are at 10 / 20 / 30 / 40 / 50 / 60 / 70.
+ * Starting at wave 30, bosses are accompanied by auxiliary healers.
  */
 
 import type { CreepKind } from "./creeps";
 
-export interface WaveDef {
-  number: number;
+export interface WaveGroup {
   kind: CreepKind;
   count: number;
   /** Base HP per creep, before archetype multiplier. */
   hp: number;
   /** Bounty per kill. */
   bounty: number;
+  /** 0–1. Fraction of slow effect negated (0 = full slow, 1 = immune). */
+  slowResist: number;
+}
+
+export interface WaveDef {
+  number: number;
+  groups: WaveGroup[];
   /** Seconds between spawns. */
   interval: number;
   /** End-of-wave bonus gold. */
   bonus: number;
-  /** 0–1. Fraction of slow effect negated (0 = full slow, 1 = immune). */
-  slowResist: number;
+}
+
+export function waveTotalCount(def: WaveDef): number {
+  let n = 0;
+  for (const g of def.groups) n += g.count;
+  return n;
+}
+
+export function groupForSpawn(def: WaveDef, spawnIndex: number): WaveGroup {
+  let cumulative = 0;
+  for (const g of def.groups) {
+    cumulative += g.count;
+    if (spawnIndex < cumulative) return g;
+  }
+  return def.groups[def.groups.length - 1];
 }
 
 function w(
@@ -31,62 +54,376 @@ function w(
   bonus = 5,
   slowResist = 0,
 ): WaveDef {
-  return { number, kind, count, hp, bounty, interval, bonus, slowResist };
+  return {
+    number,
+    groups: [{ kind, count, hp, bounty, slowResist }],
+    interval,
+    bonus,
+  };
+}
+
+type G = [CreepKind, number, number, number, number?];
+
+function wm(
+  number: number,
+  interval: number,
+  bonus: number,
+  ...groups: G[]
+): WaveDef {
+  return {
+    number,
+    groups: groups.map(([kind, count, hp, bounty, slowResist]) => ({
+      kind,
+      count,
+      hp,
+      bounty,
+      slowResist: slowResist ?? 0,
+    })),
+    interval,
+    bonus,
+  };
 }
 
 export const WAVES: WaveDef[] = [
-  w(1, "normal", 12, 60, 2, 0.7, 5),
-  w(2, "normal", 14, 90, 2, 0.7, 5),
-  w(3, "fast", 16, 102, 2, 0.5, 6),
-  w(4, "normal", 14, 162, 2, 0.7, 7),
-  w(5, "armored", 10, 286, 4, 0.9, 12),
-  w(6, "normal", 16, 258, 3, 0.6, 12),
-  w(7, "fast", 18, 288, 3, 0.5, 12),
-  w(8, "air", 12, 372, 4, 0.6, 14),
-  w(9, "armored", 12, 497, 5, 0.9, 17),
-  w(10, "boss", 4, 3500, 16, 1.2, 30),
+  w(1, "normal", 13, 70, 1, 0.65, 5),
+  w(2, "normal", 15, 105, 1, 0.65, 5),
+  w(3, "fast", 17, 120, 1, 0.45, 6),
+  w(4, "normal", 15, 190, 1, 0.65, 7),
+  w(5, "armored", 11, 335, 2, 0.85, 12),
+  w(6, "normal", 17, 300, 2, 0.55, 12),
+  w(7, "fast", 19, 336, 2, 0.45, 12),
+  w(8, "air", 12, 330, 2, 0.6, 14),
+  w(9, "armored", 13, 580, 3, 0.85, 17),
+  w(10, "boss", 4, 3500, 8, 1.2, 30),
 
-  w(11, "normal", 18, 1242, 2, 0.6, 9),
-  w(12, "fast", 20, 1380, 2, 0.45, 9),
-  w(13, "armored", 14, 1922, 4, 0.8, 12),
-  w(14, "normal", 18, 1824, 2, 0.6, 10),
-  w(15, "air", 14, 1932, 3, 0.55, 12),
-  w(16, "fast", 22, 2412, 3, 0.45, 12),
-  w(17, "normal", 20, 2760, 3, 0.6, 14),
-  w(18, "armored", 16, 3974, 5, 0.8, 17),
-  w(19, "air", 14, 3180, 4, 0.55, 17),
-  w(20, "boss", 4, 14000, 40, 1.2, 60),
+  // --- Waves 11-19: healers introduced, light mixing ---
+  wm(11, 0.55, 9, ["healer", 3, 1000, 3], ["normal", 10, 1450, 2], ["fast", 5, 1450, 2]),
+  w(12, "fast", 20, 1610, 2, 0.4, 9),
+  wm(13, 0.75, 12, ["armored", 9, 2250, 4], ["fast", 4, 2250, 4], ["healer", 2, 1500, 5]),
+  w(14, "normal", 18, 2130, 2, 0.55, 10),
+  wm(15, 0.55, 12, ["air", 11, 1710, 3], ["healer", 2, 1200, 4]),
+  w(16, "fast", 22, 2820, 3, 0.4, 12),
+  wm(17, 0.55, 14, ["normal", 13, 3220, 3], ["fast", 6, 3220, 3], ["healer", 2, 2200, 5]),
+  w(18, "armored", 15, 4650, 5, 0.75, 17),
+  wm(19, 0.55, 17, ["air", 8, 2820, 4], ["fast", 4, 2820, 4], ["healer", 2, 2000, 5]),
+  w(20, "boss", 6, 14000, 20, 1.2, 60),
 
-  w(21, "normal", 22, 6336, 3, 0.55, 16, 0.02),
-  w(22, "fast", 24, 6732, 3, 0.4, 17, 0.04),
-  w(23, "armored", 18, 9266, 4, 0.8, 18, 0.06),
-  w(24, "air", 16, 6336, 3, 0.5, 18, 0.08),
-  w(25, "normal", 22, 9900, 3, 0.55, 19, 0.10),
-  w(26, "fast", 26, 10560, 3, 0.4, 21, 0.12),
-  w(27, "armored", 18, 13662, 4, 0.8, 23, 0.14),
-  w(28, "air", 16, 10824, 4, 0.5, 24, 0.16),
-  w(29, "normal", 24, 15840, 3, 0.55, 25, 0.18),
-  w(30, "boss", 5, 32000, 60, 1.0, 100),
+  // --- Waves 21-29: tunnelers introduced, both specials mix in ---
+  wm(
+    21,
+    0.5,
+    16,
+    ["tunneler", 3, 5000, 5, 0.02],
+    ["normal", 13, 7400, 3, 0.02],
+    ["fast", 6, 7400, 3, 0.02],
+  ),
+  wm(
+    22,
+    0.35,
+    17,
+    ["fast", 18, 7870, 3, 0.14],
+    ["armored", 5, 7870, 3, 0.14],
+    ["healer", 2, 5500, 5, 0.14],
+  ),
+  wm(
+    23,
+    0.75,
+    18,
+    ["armored", 14, 10830, 4],
+    ["normal", 3, 10830, 4],
+    ["tunneler", 2, 7500, 6],
+  ),
+  w(24, "air", 14, 6336, 3, 0.5, 18, 0.08),
+  wm(
+    25,
+    0.5,
+    19,
+    ["normal", 13, 11580, 3, 0.1],
+    ["air", 3, 11580, 3, 0.1],
+    ["fast", 5, 11580, 3, 0.1],
+    ["tunneler", 2, 8000, 5, 0.1],
+  ),
+  wm(
+    26,
+    0.35,
+    21,
+    ["fast", 19, 12350, 3, 0.22],
+    ["normal", 4, 12350, 3, 0.22],
+    ["healer", 2, 8600, 5, 0.22],
+    ["tunneler", 2, 8600, 5, 0.22],
+  ),
+  wm(
+    27,
+    0.75,
+    23,
+    ["armored", 13, 15980, 4, 0.04],
+    ["fast", 4, 15980, 4, 0.04],
+    ["healer", 2, 11000, 6, 0.04],
+  ),
+  w(28, "normal", 18, 10824, 4, 0.5, 24, 0.16),
+  wm(
+    29,
+    0.5,
+    25,
+    ["normal", 14, 18530, 3, 0.18],
+    ["armored", 3, 18530, 3, 0.18],
+    ["fast", 6, 18530, 3, 0.18],
+    ["healer", 2, 13000, 5, 0.18],
+  ),
+  wm(30, 1.0, 100, ["boss", 8, 32000, 30], ["healer", 3, 22000, 20]),
 
-  w(31, "normal", 24, 15120, 5, 0.55, 23, 0.22),
-  w(32, "fast", 28, 15660, 5, 0.4, 24, 0.24),
-  w(33, "armored", 20, 18468, 5, 0.8, 27, 0.26),
-  w(34, "air", 18, 16200, 5, 0.5, 27, 0.28),
-  w(35, "normal", 26, 21600, 5, 0.55, 29, 0.30),
-  w(36, "fast", 30, 24300, 5, 0.4, 30, 0.32),
-  w(37, "armored", 22, 27216, 6, 0.8, 32, 0.34),
-  w(38, "air", 18, 23760, 6, 0.5, 34, 0.36),
-  w(39, "normal", 26, 31320, 5, 0.55, 37, 0.38),
-  w(40, "boss", 5, 90000, 110, 1.0, 140),
+  // --- Waves 31-39: specials become regular fixtures ---
+  wm(
+    31,
+    0.5,
+    23,
+    ["normal", 14, 17690, 5, 0.22],
+    ["fast", 7, 17690, 5, 0.22],
+    ["healer", 2, 12400, 7, 0.22],
+    ["tunneler", 2, 12400, 7, 0.22],
+  ),
+  wm(
+    32,
+    0.35,
+    24,
+    ["fast", 20, 18320, 5, 0.34],
+    ["air", 4, 18320, 5, 0.34],
+    ["healer", 3, 12800, 7, 0.34],
+  ),
+  w(33, "armored", 18, 21600, 5, 0.75, 27, 0.06),
+  wm(
+    34,
+    0.5,
+    27,
+    ["air", 12, 16200, 5, 0.28],
+    ["fast", 4, 16200, 5, 0.28],
+    ["healer", 3, 11300, 7, 0.28],
+  ),
+  wm(
+    35,
+    0.5,
+    29,
+    ["normal", 13, 25270, 5, 0.3],
+    ["armored", 4, 25270, 5, 0.3],
+    ["fast", 6, 25270, 5, 0.3],
+    ["healer", 3, 17700, 7, 0.3],
+  ),
+  w(36, "fast", 25, 28430, 5, 0.35, 30, 0.42),
+  wm(
+    37,
+    0.75,
+    32,
+    ["armored", 13, 31840, 6, 0.24],
+    ["fast", 6, 31840, 6, 0.24],
+    ["tunneler", 3, 22300, 9, 0.24],
+    ["healer", 2, 22300, 9, 0.24],
+  ),
+  wm(
+    38,
+    0.5,
+    34,
+    ["air", 10, 23760, 6, 0.36],
+    ["fast", 5, 23760, 6, 0.36],
+    ["healer", 3, 16600, 9, 0.36],
+  ),
+  wm(
+    39,
+    0.5,
+    37,
+    ["normal", 13, 36640, 5, 0.38],
+    ["fast", 7, 36640, 5, 0.38],
+    ["armored", 3, 36640, 5, 0.38],
+    ["tunneler", 3, 25600, 7, 0.38],
+  ),
+  wm(40, 1.0, 140, ["boss", 9, 90000, 55], ["healer", 4, 50000, 40]),
 
-  w(41, "normal", 26, 25920, 8, 0.55, 46, 0.42),
-  w(42, "fast", 30, 28620, 8, 0.4, 48, 0.44),
-  w(43, "armored", 22, 36936, 10, 0.8, 50, 0.46),
-  w(44, "air", 20, 33480, 9, 0.5, 52, 0.48),
-  w(45, "normal", 26, 40500, 9, 0.55, 53, 0.50),
-  w(46, "fast", 30, 45360, 9, 0.4, 56, 0.52),
-  w(47, "armored", 24, 58320, 11, 0.8, 58, 0.54),
-  w(48, "air", 20, 56160, 10, 0.5, 61, 0.56),
-  w(49, "normal", 28, 64800, 10, 0.55, 64, 0.58),
-  w(50, "boss", 6, 200000, 240, 0.8, 300),
+  // --- Waves 41-49: specials prominent ---
+  wm(
+    41,
+    0.5,
+    46,
+    ["normal", 21, 30330, 8, 0.42],
+    ["healer", 4, 21000, 12, 0.42],
+    ["tunneler", 2, 21000, 12, 0.42],
+  ),
+  wm(
+    42,
+    0.35,
+    48,
+    ["fast", 25, 33490, 8, 0.54],
+    ["tunneler", 4, 23000, 12, 0.54],
+    ["healer", 2, 23000, 12, 0.54],
+  ),
+  wm(
+    43,
+    0.75,
+    50,
+    ["armored", 18, 43220, 10, 0.36],
+    ["healer", 3, 30000, 15, 0.36],
+    ["tunneler", 2, 30000, 15, 0.36],
+  ),
+  w(44, "air", 18, 33480, 9, 0.5, 52, 0.48),
+  wm(
+    45,
+    0.5,
+    53,
+    ["normal", 22, 47390, 9, 0.5],
+    ["healer", 3, 33000, 14, 0.5],
+    ["tunneler", 2, 33000, 14, 0.5],
+  ),
+  wm(
+    46,
+    0.35,
+    56,
+    ["fast", 26, 53070, 9, 0.62],
+    ["tunneler", 2, 37000, 14, 0.62],
+    ["healer", 2, 37000, 14, 0.62],
+  ),
+  wm(
+    47,
+    0.75,
+    58,
+    ["armored", 20, 68230, 11, 0.44],
+    ["healer", 3, 48000, 16, 0.44],
+    ["tunneler", 2, 48000, 16, 0.44],
+  ),
+  wm(
+    48,
+    0.5,
+    61,
+    ["air", 16, 56160, 10, 0.56],
+    ["tunneler", 2, 39000, 15, 0.56],
+    ["healer", 3, 39000, 15, 0.56],
+  ),
+  wm(
+    49,
+    0.5,
+    64,
+    ["normal", 20, 75820, 10, 0.58],
+    ["healer", 4, 53000, 15, 0.58],
+    ["tunneler", 4, 53000, 15, 0.58],
+  ),
+  wm(50, 0.8, 300, ["boss", 10, 200000, 120], ["healer", 5, 100000, 80]),
+
+  // --- Waves 51-59: heavy specials ---
+  wm(
+    51,
+    0.55,
+    70,
+    ["normal", 16, 62000, 10, 0.5],
+    ["healer", 5, 43000, 14, 0.5],
+    ["tunneler", 3, 43000, 14, 0.5],
+  ),
+  w(52, "fast", 25, 98000, 12, 0.4, 72, 0.6),
+  wm(
+    53,
+    0.75,
+    74,
+    ["armored", 16, 68000, 10, 0.52],
+    ["healer", 4, 47000, 15, 0.52],
+    ["tunneler", 3, 47000, 15, 0.52],
+  ),
+  wm(
+    54,
+    0.5,
+    76,
+    ["air", 15, 88000, 12, 0.66],
+    ["tunneler", 4, 62000, 18, 0.66],
+    ["healer", 3, 62000, 18, 0.66],
+  ),
+  wm(
+    55,
+    0.5,
+    78,
+    ["normal", 16, 84000, 12, 0.54],
+    ["healer", 6, 59000, 18, 0.54],
+    ["tunneler", 3, 59000, 18, 0.54],
+  ),
+  wm(
+    56,
+    0.75,
+    80,
+    ["armored", 20, 115000, 14, 0.48],
+    ["tunneler", 4, 80000, 20, 0.48],
+    ["healer", 3, 80000, 20, 0.48],
+  ),
+  wm(
+    57,
+    0.35,
+    82,
+    ["fast", 20, 92000, 12, 0.56],
+    ["tunneler", 5, 64000, 17, 0.56],
+    ["healer", 3, 64000, 17, 0.56],
+  ),
+  w(58, "air", 18, 78000, 13, 0.5, 84, 0.6),
+  wm(
+    59,
+    0.5,
+    86,
+    ["normal", 14, 105000, 12, 0.58],
+    ["healer", 5, 74000, 18, 0.58],
+    ["tunneler", 5, 74000, 18, 0.58],
+  ),
+  wm(60, 0.8, 400, ["boss", 11, 420000, 175], ["healer", 6, 200000, 120]),
+
+  // --- Waves 61-69: heavy mixed, both specials in every wave ---
+  wm(
+    61,
+    0.5,
+    90,
+    ["normal", 14, 110000, 14, 0.62],
+    ["healer", 6, 77000, 21, 0.62],
+    ["tunneler", 4, 77000, 21, 0.62],
+  ),
+  wm(
+    62,
+    0.35,
+    92,
+    ["fast", 18, 118000, 14, 0.6],
+    ["tunneler", 6, 83000, 20, 0.6],
+    ["healer", 5, 83000, 20, 0.6],
+  ),
+  w(63, "armored", 18, 140000, 16, 0.75, 95, 0.64),
+  wm(
+    64,
+    0.5,
+    98,
+    ["air", 15, 132000, 14, 0.72],
+    ["healer", 6, 92000, 21, 0.72],
+    ["tunneler", 4, 92000, 21, 0.72],
+  ),
+  wm(
+    65,
+    0.5,
+    100,
+    ["normal", 13, 178000, 14, 0.52],
+    ["healer", 6, 125000, 21, 0.52],
+    ["tunneler", 7, 125000, 21, 0.52],
+  ),
+  wm(
+    66,
+    0.35,
+    105,
+    ["fast", 17, 148000, 16, 0.66],
+    ["tunneler", 6, 104000, 24, 0.66],
+    ["healer", 5, 104000, 24, 0.66],
+  ),
+  wm(
+    67,
+    0.75,
+    108,
+    ["armored", 12, 158000, 15, 0.64],
+    ["healer", 6, 111000, 22, 0.64],
+    ["tunneler", 6, 111000, 22, 0.64],
+  ),
+  w(68, "air", 16, 185000, 16, 0.5, 112, 0.68),
+  wm(
+    69,
+    0.45,
+    115,
+    ["normal", 12, 195000, 14, 0.7],
+    ["healer", 7, 137000, 21, 0.7],
+    ["tunneler", 7, 137000, 21, 0.7],
+  ),
+  wm(70, 0.7, 600, ["boss", 12, 550000, 250], ["healer", 7, 250000, 150]),
 ];

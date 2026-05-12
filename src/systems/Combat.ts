@@ -40,7 +40,7 @@ export class Combat {
         const effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
         const cooldownTicks = Math.max(1, Math.round(SIM_HZ / effectiveAtkSpeed));
         if (tick - t.lastFireTick < cooldownTicks) continue;
-        const target = pickTarget(t, stats.range, state.creeps, stats.targeting);
+        const target = pickTarget(t, stats.range, state.creeps, stats.targeting, tick);
         if (!target) continue;
         t.lastFireTick = tick;
         const dmgMult = auras.dmg.get(t.id) ?? 0;
@@ -102,19 +102,21 @@ export class Combat {
     const stats = effectiveStats(owner);
     const target = state.creeps.find((c) => c.id === p.targetId && c.alive);
 
-    // Direct hit
-    if (target) {
+    // Direct hit (skip burrowed targets — projectile misses)
+    if (target && !isBurrowed(target, state.tick)) {
       this.applyDamage(target, p.damage, owner);
       this.applyEffects(target, stats.effects, owner);
     }
 
     // Splash
+    const tick = state.tick;
     for (const e of stats.effects) {
       if (e.kind === 'splash') {
         if (e.chance != null && this.game.rng.next() >= e.chance) continue;
         for (const c of state.creeps) {
           if (!c.alive) continue;
           if (c === target) continue;
+          if (isBurrowed(c, tick)) continue;
           const dx = c.px - p.toX;
           const dy = c.py - p.toY;
           const dist = Math.sqrt(dx * dx + dy * dy);
@@ -131,7 +133,7 @@ export class Combat {
         const hit = new Set<number>([target.id]);
         for (let i = 0; i < e.bounces; i++) {
           dmg = Math.round(dmg * e.falloff);
-          const next = nearest(state.creeps, last.px, last.py, hit, stats.range * TILE);
+          const next = nearest(state.creeps, last.px, last.py, hit, stats.range * TILE, tick);
           if (!next) break;
           this.applyDamage(next, dmg, owner);
           this.applyEffects(next, stats.effects.filter((ee) => ee.kind !== 'chain'), owner);
@@ -305,13 +307,18 @@ function canTarget(targeting: 'all' | 'ground' | 'air', creep: CreepState): bool
   return targeting === 'air' ? isAir : !isAir;
 }
 
-function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], targeting: 'all' | 'ground' | 'air'): CreepState | null {
+function isBurrowed(c: CreepState, tick: number): boolean {
+  return !!c.burrowed && c.burrowed.expiresAt > tick;
+}
+
+function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], targeting: 'all' | 'ground' | 'air', tick: number): CreepState | null {
   const r2 = (rangeTiles * TILE) * (rangeTiles * TILE);
   const tx = (t.x + 1) * FINE_TILE;
   const ty = (t.y + 1) * FINE_TILE;
   let best: CreepState | null = null;
   for (const c of creeps) {
     if (!c.alive) continue;
+    if (isBurrowed(c, tick)) continue;
     if (!canTarget(targeting, c)) continue;
     const dx = c.px - tx;
     const dy = c.py - ty;
@@ -321,12 +328,13 @@ function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], tar
   return best;
 }
 
-function nearest(creeps: CreepState[], x: number, y: number, exclude: Set<number>, maxDist: number): CreepState | null {
+function nearest(creeps: CreepState[], x: number, y: number, exclude: Set<number>, maxDist: number, tick: number): CreepState | null {
   let best: CreepState | null = null;
   let bestD2 = maxDist * maxDist;
   for (const c of creeps) {
     if (!c.alive) continue;
     if (exclude.has(c.id)) continue;
+    if (isBurrowed(c, tick)) continue;
     const dx = c.px - x;
     const dy = c.py - y;
     const d2 = dx * dx + dy * dy;

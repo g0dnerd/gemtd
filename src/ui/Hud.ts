@@ -35,7 +35,7 @@ import {
   SPEEDS,
   type SpeedMultiplier,
 } from "../game/constants";
-import { WAVES, WaveDef } from "../data/waves";
+import { WAVES, WaveDef, waveTotalCount } from "../data/waves";
 import type { CreepKind } from "../data/creeps";
 
 const TIER_LABELS = [
@@ -59,6 +59,9 @@ const ARCHETYPE_COLORS: Record<CreepKind, string> = {
   armored: "var(--px-ink-dim)",
   air: "#78a8f8",
   boss: "#ff6878",
+  healer: "#38c860",
+  wizard: "#3878e8",
+  tunneler: "#f0c038",
 };
 
 /** Static lookup: which gem each creep archetype is weak to. */
@@ -68,6 +71,9 @@ const ARCHETYPE_WEAKNESS: Record<CreepKind, GemType> = {
   armored: "emerald",
   air: "sapphire",
   boss: "amethyst",
+  healer: "ruby",
+  wizard: "topaz",
+  tunneler: "diamond",
 };
 
 export function mountHud(
@@ -786,14 +792,15 @@ export function mountHud(
     mid.className = "threat-mid";
     const arch = document.createElement("div");
     arch.className = "threat-arch";
-    arch.style.color = ARCHETYPE_COLORS[def.kind];
-    arch.textContent = def.kind.toUpperCase();
+    const primary = def.groups[0];
+    arch.style.color = ARCHETYPE_COLORS[primary.kind];
+    arch.textContent = def.groups.map(g => g.kind.toUpperCase()).join(" + ");
     const weakRow = document.createElement("div");
     weakRow.className = "threat-weak-row";
     const weakLbl = document.createElement("span");
     weakLbl.className = "threat-weak-lbl";
     weakLbl.textContent = "WEAK";
-    const weakGem = ARCHETYPE_WEAKNESS[def.kind];
+    const weakGem = ARCHETYPE_WEAKNESS[primary.kind];
     const pill = document.createElement("span");
     pill.className = "threat-weak-pill";
     pill.appendChild(htmlGem(weakGem, 12));
@@ -811,14 +818,14 @@ export function mountHud(
     hp.className = "threat-hp";
     const hpVal = document.createElement("span");
     hpVal.className = "threat-hp-val";
-    hpVal.textContent = formatHp(def.hp);
+    hpVal.textContent = formatHp(primary.hp);
     const hpUnit = document.createElement("span");
     hpUnit.className = "threat-hp-unit";
     hpUnit.textContent = "hp";
     hp.append(hpVal, hpUnit);
     const cnt = document.createElement("div");
     cnt.className = "threat-count";
-    cnt.textContent = `×${def.count}`;
+    cnt.textContent = `×${waveTotalCount(def)}`;
     right.append(hp, cnt);
     row.appendChild(right);
 

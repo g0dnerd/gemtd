@@ -399,7 +399,7 @@ export class Game {
       this.towerSprites,
       this.state.tick,
     );
-    renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites);
+    renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites, this.selectedRockId);
     renderCreeps(this.layers.creeps, this.state.creeps);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
     if (this.blueprintMode) {

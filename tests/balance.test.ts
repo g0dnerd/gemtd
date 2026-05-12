@@ -72,10 +72,12 @@ describe("balance / data integrity", () => {
 
   it("every wave references a real creep archetype", () => {
     for (const w of WAVES) {
-      expect(CREEP_ARCHETYPES[w.kind]).toBeDefined();
-      expect(w.count).toBeGreaterThan(0);
-      expect(w.hp).toBeGreaterThan(0);
-      expect(w.bounty).toBeGreaterThan(0);
+      for (const g of w.groups) {
+        expect(CREEP_ARCHETYPES[g.kind]).toBeDefined();
+        expect(g.count).toBeGreaterThan(0);
+        expect(g.hp).toBeGreaterThan(0);
+        expect(g.bounty).toBeGreaterThan(0);
+      }
       expect(w.interval).toBeGreaterThan(0);
     }
   });
@@ -84,7 +86,7 @@ describe("balance / data integrity", () => {
     for (let i = 0; i < 4; i++) {
       const groupAvg = (start: number) => {
         let sum = 0;
-        for (let j = 0; j < 10; j++) sum += WAVES[start + j].hp;
+        for (let j = 0; j < 10; j++) sum += WAVES[start + j].groups[0].hp;
         return sum / 10;
       };
       expect(groupAvg((i + 1) * 10)).toBeGreaterThan(groupAvg(i * 10));
@@ -93,7 +95,7 @@ describe("balance / data integrity", () => {
 
   it("boss waves are at every 10", () => {
     for (let i = 9; i < WAVES.length; i += 10) {
-      expect(WAVES[i].kind).toBe("boss");
+      expect(WAVES[i].groups[0].kind).toBe("boss");
     }
   });
 
@@ -109,7 +111,7 @@ describe("balance / data integrity", () => {
     expect(total).toBe(1505);
   });
 
-  it("there are exactly 50 waves", () => {
-    expect(WAVES.length).toBe(50);
+  it("there are exactly 70 waves", () => {
+    expect(WAVES.length).toBe(70);
   });
 });
