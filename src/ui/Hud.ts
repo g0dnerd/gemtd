@@ -287,13 +287,7 @@ export function mountHud(
   specialGlow.classList.add("radial-glow-ring");
   specialGlow.style.display = "none";
   rSvg.appendChild(specialGlow);
-  const downgradeGlow = svgPath(DOWNGRADE_WEDGE);
-  downgradeGlow.setAttribute("fill", "none");
-  downgradeGlow.setAttribute("stroke", "#d04848");
-  downgradeGlow.setAttribute("stroke-width", "3");
-  downgradeGlow.setAttribute("filter", "url(#radial-glow)");
-  downgradeGlow.style.display = "none";
-  rSvg.appendChild(downgradeGlow);
+  const downgradeGlow = { style: { display: "none" } };
 
   const rHover = svgPath("");
   rHover.style.display = "none";
