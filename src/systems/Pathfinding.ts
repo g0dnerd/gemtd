@@ -145,9 +145,9 @@ function reconstruct(cameFrom: Map<number, number>, endIdx: number, w: number): 
  * tentative-blocked tiles (used to test whether placing a tower
  * would disconnect the path).
  */
-export function blockedFromGrid(grid: Cell[][], extra?: Set<string>): Blocked {
+export function blockedFromGrid(grid: Cell[][], extra?: Set<number>): Blocked {
   return (x, y) => {
-    if (extra?.has(`${x},${y}`)) return true;
+    if (extra?.has(y * GRID_W + x)) return true;
     const c = grid[y][x];
     return c === Cell.Wall || c === Cell.Tower || c === Cell.Rock;
     // Cell.Trap is intentionally NOT blocked — creeps walk over traps.
@@ -157,7 +157,7 @@ export function blockedFromGrid(grid: Cell[][], extra?: Set<string>): Blocked {
 /** Find a route through all waypoints; null if any segment is unreachable. */
 export function findRoute(
   grid: Cell[][],
-  extra?: Set<string>,
+  extra?: Set<number>,
   waypoints: readonly Waypoint[] = WAYPOINTS,
 ): Point[][] | null {
   const blocked = blockedFromGrid(grid, extra);

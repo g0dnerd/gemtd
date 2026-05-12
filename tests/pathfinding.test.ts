@@ -62,9 +62,9 @@ describe('findRoute through canonical waypoints', () => {
   it('rejects placements that fully block any segment', () => {
     const grid = cloneGrid(BASE.grid);
     // Wall off the entire column between waypoints by simulating a tower line.
-    const extra = new Set<string>();
+    const extra = new Set<number>();
     for (let y = 1; y < GRID_H - 1; y++) {
-      extra.add(`10,${y}`);
+      extra.add(y * GRID_W + 10);
     }
     const route = findRoute(grid, extra);
     expect(route).toBeNull();
@@ -72,9 +72,9 @@ describe('findRoute through canonical waypoints', () => {
 
   it('allows placements that lengthen but do not disconnect', () => {
     const grid = cloneGrid(BASE.grid);
-    const extra = new Set<string>();
-    extra.add('10,8');
-    extra.add('11,8');
+    const extra = new Set<number>();
+    extra.add(8 * GRID_W + 10);
+    extra.add(8 * GRID_W + 11);
     const before = findRoute(grid)!;
     const after = findRoute(grid, extra)!;
     expect(after).not.toBeNull();

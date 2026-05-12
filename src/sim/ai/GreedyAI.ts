@@ -102,9 +102,9 @@ export class GreedyAI implements SimAI {
       let bestScore = -Infinity;
 
       for (const [cx, cy] of candidates) {
-        const extra = new Set<string>();
+        const extra = new Set<number>();
         for (const [dx, dy] of FOOTPRINT) {
-          extra.add(`${cx + dx},${cy + dy}`);
+          extra.add((cy + dy) * GRID_W + (cx + dx));
         }
         const tryRoute = findRoute(state.grid, extra);
         if (!tryRoute) continue;

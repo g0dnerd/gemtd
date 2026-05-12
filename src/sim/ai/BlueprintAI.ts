@@ -59,9 +59,9 @@ export class BlueprintAI extends GreedyAI {
       return false;
     }
 
-    const extra = new Set<string>();
+    const extra = new Set<number>();
     for (const [dx, dy] of FOOTPRINT) {
-      extra.add(`${x + dx},${y + dy}`);
+      extra.add((y + dy) * GRID_W + (x + dx));
     }
     if (!findRoute(grid, extra)) return false;
 
@@ -89,9 +89,9 @@ export class BlueprintAI extends GreedyAI {
     let bestScore = -Infinity;
 
     for (const [cx, cy] of candidates) {
-      const extra = new Set<string>();
+      const extra = new Set<number>();
       for (const [dx, dy] of FOOTPRINT) {
-        extra.add(`${cx + dx},${cy + dy}`);
+        extra.add((cy + dy) * GRID_W + (cx + dx));
       }
       const tryRoute = findRoute(state.grid, extra);
       if (!tryRoute) continue;

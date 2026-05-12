@@ -136,8 +136,8 @@ export class BuildPhase {
     }
 
     // Tentatively block all 4 footprint cells and try to find a route.
-    const tentative = new Set<string>();
-    for (const c of footprintCells(x, y)) tentative.add(`${c.x},${c.y}`);
+    const tentative = new Set<number>();
+    for (const c of footprintCells(x, y)) tentative.add(c.y * GRID_W + c.x);
     const tryRoute = findRoute(state.grid, tentative);
     if (!tryRoute) {
       this.game.bus.emit('toast', { kind: 'error', text: 'Would block path' });
