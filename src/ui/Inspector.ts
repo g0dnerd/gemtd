@@ -9,6 +9,7 @@ import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
 import { COMBOS, COMBO_BY_NAME, ComboRecipe, comboStatsAtTier, findAllCombosFor, nextUpgrade } from "../data/combos";
 import { TowerState } from "../game/State";
+import { towerLevel } from "../systems/Combat";
 
 export interface InspectorRefs {
   root: HTMLElement;
@@ -78,6 +79,7 @@ function fingerprint(game: Game): string {
     tower.quality,
     tower.comboKey ?? "",
     tower.upgradeTier ?? 0,
+    tower.kills,
     game.state.phase,
     game.state.designatedKeepTowerId ?? "",
     isCurrentDraw ? 1 : 0,
@@ -145,6 +147,22 @@ function render(refs: InspectorRefs, game: Game): void {
   text.append(name, sub);
   hero.append(frame, text);
   body.appendChild(hero);
+
+  // Kill level chip
+  const lvl = towerLevel(tower);
+  const killChip = document.createElement("div");
+  killChip.className = "inspector-effect";
+  const killLbl = document.createElement("div");
+  killLbl.className = "inspector-effect-label";
+  killLbl.textContent = "KILLS · LEVEL";
+  const killTxt = document.createElement("div");
+  killTxt.className = "inspector-effect-text";
+  killTxt.textContent =
+    lvl > 0
+      ? `${tower.kills} kills · LV ${lvl} (+${lvl * 5}%)`
+      : `${tower.kills} / 10 kills to next level`;
+  killChip.append(killLbl, killTxt);
+  body.appendChild(killChip);
 
   // Stats grid
   const grid = document.createElement("div");
@@ -571,22 +589,32 @@ interface ResolvedStats {
 }
 
 function effectiveStatsFor(t: TowerState): ResolvedStats {
+  const lvl = towerLevel(t);
+  const mult = 1 + lvl * 0.05;
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey!);
     if (combo) {
       const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
       return {
-        dmgMin: s.dmgMin,
-        dmgMax: s.dmgMax,
+        dmgMin: Math.round(s.dmgMin * mult),
+        dmgMax: Math.round(s.dmgMax * mult),
         range: s.range,
-        atkSpeed: s.atkSpeed,
+        atkSpeed: Math.round(s.atkSpeed * mult * 100) / 100,
         effects: s.effects,
         targeting: s.targeting,
       };
     }
   }
   const s = gemStats(t.gem, t.quality);
-  return s;
+  if (lvl === 0) return s;
+  return {
+    dmgMin: Math.round(s.dmgMin * mult),
+    dmgMax: Math.round(s.dmgMax * mult),
+    range: s.range,
+    atkSpeed: +(s.atkSpeed * mult).toFixed(2),
+    effects: s.effects,
+    targeting: s.targeting,
+  };
 }
 
 function getUpgradeCost(tower: TowerState): number | null {

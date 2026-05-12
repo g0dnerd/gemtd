@@ -210,16 +210,22 @@ interface ResolvedStats {
   targeting: 'all' | 'ground' | 'air';
 }
 
+export function towerLevel(t: TowerState): number {
+  return Math.floor(t.kills / 10);
+}
+
 function effectiveStats(t: TowerState): ResolvedStats {
+  const lvl = towerLevel(t);
+  const mult = 1 + lvl * 0.05;
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
       const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
       return {
-        dmgMin: s.dmgMin,
-        dmgMax: s.dmgMax,
+        dmgMin: Math.round(s.dmgMin * mult),
+        dmgMax: Math.round(s.dmgMax * mult),
         range: s.range,
-        atkSpeed: s.atkSpeed,
+        atkSpeed: Math.round(s.atkSpeed * mult * 100) / 100,
         effects: s.effects,
         visualGem: combo.visualGem,
         targeting: s.targeting,
@@ -228,10 +234,10 @@ function effectiveStats(t: TowerState): ResolvedStats {
   }
   const s = gemStats(t.gem, t.quality);
   return {
-    dmgMin: s.dmgMin,
-    dmgMax: s.dmgMax,
+    dmgMin: Math.round(s.dmgMin * mult),
+    dmgMax: Math.round(s.dmgMax * mult),
     range: s.range,
-    atkSpeed: s.atkSpeed,
+    atkSpeed: Math.round(s.atkSpeed * mult * 100) / 100,
     effects: s.effects,
     visualGem: t.gem,
     targeting: s.targeting,
