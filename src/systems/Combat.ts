@@ -53,7 +53,7 @@ export class Combat {
       if (!p.alive) continue;
       const dx = p.toX - p.fromX;
       const dy = p.toY - p.fromY;
-      const dist = Math.hypot(dx, dy);
+      const dist = Math.sqrt(dx * dx + dy * dy);
       const dt = (PROJECTILE_PX_PER_SEC / Math.max(1, dist)) * SIM_DT;
       p.t += dt;
       if (p.t >= 1) {
@@ -61,7 +61,11 @@ export class Combat {
         this.impact(p);
       }
     }
-    state.projectiles = state.projectiles.filter((p) => p.alive);
+    let write = 0;
+    for (let i = 0; i < state.projectiles.length; i++) {
+      if (state.projectiles[i].alive) state.projectiles[write++] = state.projectiles[i];
+    }
+    state.projectiles.length = write;
   }
 
   private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0): void {
@@ -113,7 +117,7 @@ export class Combat {
           if (c === target) continue;
           const dx = c.px - p.toX;
           const dy = c.py - p.toY;
-          const dist = Math.hypot(dx, dy);
+          const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist <= e.radius * TILE) {
             const fall = e.falloff ?? 0.5;
             const splashDmg = Math.round(p.damage * fall);
@@ -313,17 +317,16 @@ function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], tar
 
 function nearest(creeps: CreepState[], x: number, y: number, exclude: Set<number>, maxDist: number): CreepState | null {
   let best: CreepState | null = null;
-  let bestD = Infinity;
+  let bestD2 = maxDist * maxDist;
   for (const c of creeps) {
     if (!c.alive) continue;
     if (exclude.has(c.id)) continue;
     const dx = c.px - x;
     const dy = c.py - y;
-    const d = Math.hypot(dx, dy);
-    if (d > maxDist) continue;
-    if (d < bestD) {
-      bestD = d;
-      best = c;
+    const d2 = dx * dx + dy * dy;
+    if (d2 > bestD2) continue;
+    bestD2 = d2;
+    best = c;
     }
   }
   return best;

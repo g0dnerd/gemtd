@@ -26,6 +26,7 @@ import { generateRuneTexture, runeEffectFromComboKey } from "./RuneSprites";
 
 interface PerEntity {
   obj: Container;
+  lastHpRatio?: number;
 }
 
 interface StargemFx {
@@ -499,13 +500,16 @@ export function renderCreeps(layer: Container, creeps: CreepState[]): void {
     }
     entry.obj.x = c.px;
     entry.obj.y = c.py;
-    // Update HP bar
-    const inner = entry.obj.children[0] as Container;
-    const hpBar = inner.children.find((ch) => (ch as Graphics).label === "hp") as Graphics | undefined;
-    if (hpBar) {
-      hpBar.clear();
-      const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
-      hpBar.rect(-10, -22, 20 * ratio, 3).fill(THEME.good);
+    // Update HP bar only when ratio changes
+    const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
+    if (ratio !== entry.lastHpRatio) {
+      entry.lastHpRatio = ratio;
+      const inner = entry.obj.children[0] as Container;
+      const hpBar = inner.children.find((ch) => (ch as Graphics).label === "hp") as Graphics | undefined;
+      if (hpBar) {
+        hpBar.clear();
+        hpBar.rect(-10, -22, 20 * ratio, 3).fill(THEME.good);
+      }
     }
   }
   for (const [id, entry] of creepObjs) {
@@ -547,6 +551,7 @@ export function renderProjectiles(layer: Container, projectiles: ProjectileState
 }
 
 let hoverGfx: Graphics | null = null;
+let lastHoverKey = "";
 export function renderHover(
   layer: Container,
   state: State,
@@ -556,16 +561,19 @@ export function renderHover(
     hoverGfx = new Graphics();
     layer.addChild(hoverGfx);
   }
+  const key = hover && state.phase === "build"
+    ? `${hover.x},${hover.y},${canPlaceFootprint(state, hover.x, hover.y) ? 1 : 0}`
+    : "";
+  if (key === lastHoverKey) return;
+  lastHoverKey = key;
   hoverGfx.clear();
-  if (!hover) return;
-  if (state.phase !== "build") return;
-  if (hover.x < 0 || hover.y < 0 || hover.x >= GRID_W || hover.y >= GRID_H) return;
+  if (!key) return;
 
   // Hover anchor is the top-left of a 2×2 placement footprint.
-  const cx = hover.x * FINE_TILE;
-  const cy = hover.y * FINE_TILE;
+  const cx = hover!.x * FINE_TILE;
+  const cy = hover!.y * FINE_TILE;
   const sz = FINE_TILE * 2;
-  const buildable = canPlaceFootprint(state, hover.x, hover.y);
+  const buildable = canPlaceFootprint(state, hover!.x, hover!.y);
   const color = buildable ? THEME.accent : THEME.bad;
   hoverGfx.rect(cx, cy, sz, 1).fill(color);
   hoverGfx.rect(cx, cy + sz - 1, sz, 1).fill(color);
@@ -584,6 +592,7 @@ function canPlaceFootprint(state: State, ax: number, ay: number): boolean {
 }
 
 let rangeGfx: Graphics | null = null;
+let lastRangeKey = "";
 export function renderRangePreview(
   layer: Container,
   state: State,
@@ -594,9 +603,24 @@ export function renderRangePreview(
     rangeGfx = new Graphics();
     layer.addChild(rangeGfx);
   }
+
+  let selPart = "";
+  if (selectedTowerId !== null) {
+    const t = state.towers.find((tt) => tt.id === selectedTowerId);
+    if (t && !t.isTrap) selPart = `${t.id},${t.x},${t.y},${t.upgradeTier ?? 0}`;
+  }
+  let hoverPart = "";
+  if (state.phase === "build" && hover) {
+    const draw = activeDraw(state);
+    if (draw && canPlaceFootprint(state, hover.x, hover.y)) {
+      hoverPart = `${hover.x},${hover.y},${draw.gem},${draw.quality}`;
+    }
+  }
+  const key = `${selPart}|${hoverPart}`;
+  if (key === lastRangeKey) return;
+  lastRangeKey = key;
   rangeGfx.clear();
 
-  // Selected tower range (skip for traps — they trigger on their footprint)
   if (selectedTowerId !== null) {
     const t = state.towers.find((tt) => tt.id === selectedTowerId);
     if (t && !t.isTrap) {
@@ -612,8 +636,6 @@ export function renderRangePreview(
     }
   }
 
-  // Build preview range — show on hover when there's an active draw and the
-  // 2×2 footprint anchored at the cursor would be a legal placement.
   if (state.phase === "build" && hover) {
     const draw = activeDraw(state);
     if (draw && canPlaceFootprint(state, hover.x, hover.y)) {

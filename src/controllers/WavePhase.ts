@@ -62,7 +62,13 @@ export class WavePhase {
     }
 
     // Prune dead creeps; if all dead AND all spawned, end the wave.
-    state.creeps = state.creeps.filter((c) => c.alive || this.recentlyDied(c));
+    let write = 0;
+    for (let i = 0; i < state.creeps.length; i++) {
+      if (state.creeps[i].alive || this.recentlyDied(state.creeps[i])) {
+        state.creeps[write++] = state.creeps[i];
+      }
+    }
+    state.creeps.length = write;
     if (this.spawnedSoFar >= def.count && state.creeps.every((c) => !c.alive)) {
       this.endWave();
     }
