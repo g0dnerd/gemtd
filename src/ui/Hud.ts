@@ -310,17 +310,6 @@ export function mountHud(
   rCenter.className = "radial-center";
   radialWrap.appendChild(rCenter);
 
-  const reasonChips = document.createElement("div");
-  reasonChips.className = "radial-reason-chips";
-  reasonChips.style.display = "none";
-  canvasHost.appendChild(reasonChips);
-  const combineChip = document.createElement("div");
-  combineChip.className = "reason-chip";
-  combineChip.textContent = "⊕ NO PAIR THIS ROUND";
-  const specialChip = document.createElement("div");
-  specialChip.className = "reason-chip";
-  specialChip.textContent = "✦ NO RECIPE MATCH";
-  reasonChips.append(combineChip, specialChip);
 
   let radialOpen = false;
   let radialTowerId: number | null = null;
@@ -382,10 +371,6 @@ export function mountHud(
     combineLbl.classList.toggle("disabled", !radialCombineOk);
     specialLbl.classList.toggle("disabled", !radialSpecialOk);
 
-    combineChip.style.display = radialCombineOk ? "none" : "";
-    specialChip.style.display = radialSpecialOk ? "none" : "";
-    reasonChips.style.display =
-      !radialCombineOk || !radialSpecialOk ? "" : "none";
 
     rCenter.innerHTML = "";
     rCenter.appendChild(htmlGem(tower.gem, 24, tower.quality > 2));
@@ -404,7 +389,6 @@ export function mountHud(
     radialTowerId = null;
     curSlice = null;
     radialWrap.style.display = "none";
-    reasonChips.style.display = "none";
     rHover.style.display = "none";
     window.removeEventListener("pointermove", onRadialMove);
     window.removeEventListener("pointerup", onRadialUp);
@@ -873,31 +857,32 @@ export function mountHud(
     startBtn.disabled = !ready;
   }
 
-  game.bus.on("gold:change", refreshChips);
-  game.bus.on("lives:change", refreshChips);
-  game.bus.on("tower:placed", () => {
+  const unsubs: Array<() => void> = [];
+  unsubs.push(game.bus.on("gold:change", refreshChips));
+  unsubs.push(game.bus.on("lives:change", refreshChips));
+  unsubs.push(game.bus.on("tower:placed", () => {
     refreshDraw();
     rebuildRecipes();
-  });
-  game.bus.on("combine:done", () => {
+  }));
+  unsubs.push(game.bus.on("combine:done", () => {
     rebuildRecipes();
-  });
-  game.bus.on("wave:start", () => {
+  }));
+  unsubs.push(game.bus.on("wave:start", () => {
     refreshThreats();
-  });
-  game.bus.on("wave:end", () => {
+  }));
+  unsubs.push(game.bus.on("wave:end", () => {
     refreshThreats();
-  });
-  game.bus.on("phase:enter", () => {
+  }));
+  unsubs.push(game.bus.on("phase:enter", () => {
     refreshThreats();
-  });
-  game.bus.on("draws:roll", () => {
+  }));
+  unsubs.push(game.bus.on("draws:roll", () => {
     refreshDraw();
-  });
-  game.bus.on("draws:change", () => {
+  }));
+  unsubs.push(game.bus.on("draws:change", () => {
     refreshDraw();
-  });
-  game.bus.on("phase:enter", ({ phase }) => {
+  }));
+  unsubs.push(game.bus.on("phase:enter", ({ phase }) => {
     if (phase === "wave") {
       startBtn.disabled = true;
       closeRadial();
@@ -905,9 +890,9 @@ export function mountHud(
       mountGameOver(root, game, phase, onExit);
     }
     game.refreshRoute();
-  });
+  }));
 
-  game.bus.on("focusRecipe", ({ key }) => {
+  unsubs.push(game.bus.on("focusRecipe", ({ key }) => {
     const card = recipesList.querySelector<HTMLElement>(
       `.recipe-card[data-recipe-key="${key}"]`,
     );
@@ -917,7 +902,7 @@ export function mountHud(
     setTimeout(() => {
       card.style.outline = "";
     }, 600);
-  });
+  }));
 
   // Periodic refresh for in-wave HUD.
   const tickHandle = window.setInterval(tick, 100);
@@ -1153,6 +1138,7 @@ export function mountHud(
     window.clearInterval(tickHandle);
     window.removeEventListener("keydown", onKey);
     window.removeEventListener("keyup", onKeyUp);
+    for (const unsub of unsubs) unsub();
     hud.remove();
   };
 

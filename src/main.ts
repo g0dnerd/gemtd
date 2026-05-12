@@ -9,7 +9,6 @@ async function boot() {
   const app = new Application();
   await app.init({
     background: '#2a2238',
-    resizeTo: window,
     antialias: false,
     autoDensity: true,
     resolution: 1,

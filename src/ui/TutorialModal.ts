@@ -44,6 +44,7 @@ export function mountTutorialModal(root: HTMLElement): () => void {
     { title: 'BUILD', body: buildBody() },
     { title: 'MAZE', body: mazeBody() },
     { title: 'COMBINE', body: combineBody() },
+    { title: 'RUNES', body: runesBody() },
     { title: 'KEYS', body: keysBody() },
   ];
 
@@ -129,10 +130,9 @@ function row(left: HTMLElement, text: string): HTMLDivElement {
 function goalBody(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.append(
-    p(`Defend against <b>50 waves</b> of creeps. They march from the red <b>S</b> to the gold <b>E</b>.`),
-    row(htmlHeart(18), `Each leak costs a <b>life</b>. Lose all lives and the run ends.`),
-    row(htmlCoin(18), `Kills earn <b>gold</b>. Spend it on rerolls, gems and combines.`),
-    p(`Survive every wave to win.`),
+    p(`Survive <b>50 waves</b> of creeps. They walk from <b>Start</b> to <b>End</b> through 6 checkpoints.`),
+    row(htmlHeart(18), `Each leak costs a <b>life</b>. Lose all 50 and the run ends.`),
+    row(htmlCoin(18), `Kills earn <b>gold</b>. Spend it on chance-tier upgrades and combines.`),
   );
   return wrap;
 }
@@ -140,12 +140,11 @@ function goalBody(): HTMLElement {
 function buildBody(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.append(
-    p(`Every build phase opens with no gems drawn yet — spend wave gold on <b>chance-tier upgrades</b> first, then click <b>START PLACEMENT</b> (or <kbd>SPACE</kbd>) to roll your <b>5 random gems</b> for the round.`),
-    row(htmlGem('emerald', 22, true), `<b>PLACE</b> — click a slot in the DRAW panel to select it, then click a grass tile.`),
-    row(htmlGem('sapphire', 22), `<b>CYCLE</b> — press <kbd>TAB</kbd> to cycle through unplaced slots, or click chips directly.`),
-    row(htmlGem('topaz', 22), `<b>UNDO</b> — <kbd>U</kbd> reverses placements during build phase.`),
-    p(`After the wave, you must <b>keep just one</b> of the 5 towers. The other four become permanent <b>rocks</b> that block creep paths — that's how you build your maze.`),
-    p(`Click <b>NEXT WAVE</b> (or press <kbd>SPACE</kbd>) once all 5 are placed.`),
+    p(`Each build phase: upgrade your <b>chance tier</b> if you like, then press <b>START PLACEMENT</b> (<kbd>SPACE</kbd>) to roll <b>5 random gems</b>.`),
+    row(htmlGem('emerald', 22, true), `<b>PLACE</b> — select a draw slot, then click a grass tile.`),
+    row(htmlGem('sapphire', 22), `<b>CYCLE</b> — <kbd>TAB</kbd> cycles unplaced slots.`),
+    row(htmlGem('topaz', 22), `<b>UNDO</b> — <kbd>U</kbd> reverses placements.`),
+    p(`Once all 5 are placed, press <b>NEXT WAVE</b> (<kbd>SPACE</kbd>). After the wave, <b>keep one</b> tower (<kbd>K</kbd>); the other four become <b>rocks</b> that block creep paths — that's how you build your maze.`),
   );
   return wrap;
 }
@@ -153,10 +152,9 @@ function buildBody(): HTMLElement {
 function mazeBody(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.append(
-    p(`Creeps don't follow a fixed road. They take the <b>shortest walkable path</b> from start to end through the orange <b>checkpoints</b> (1 → 2 → 3 → 4).`),
-    p(`Place towers between checkpoints to <b>force a longer path</b>. Longer mazes mean more time in tower range = more damage dealt.`),
-    p(`A placement is rejected if it would <b>fully block</b> creeps from reaching the next checkpoint. Try alternative tiles if a build fails.`),
-    p(`<b>Your maze comes from rocks</b> — every wave, 4 of your 5 placed gems become rocks when you pick a keeper. That's the canonical mazing rhythm: get more rocks each wave, refine the path each wave.`),
+    p(`Creeps take the <b>shortest walkable path</b> through 6 <b>checkpoints</b>. Place towers to <b>force longer detours</b> — more time in range means more damage.`),
+    p(`A placement is <b>rejected</b> if it would fully block the path. <b>Air</b> creeps ignore the maze and fly straight between checkpoints.`),
+    p(`Each wave, 4 of your 5 gems become <b>rocks</b> when you pick a keeper. Rocks can be removed later for increasing gold cost.`),
   );
   return wrap;
 }
@@ -164,11 +162,23 @@ function mazeBody(): HTMLElement {
 function combineBody(): HTMLElement {
   const wrap = document.createElement('div');
   wrap.append(
-    p(`Open the <b>★ COMBINE</b> menu (or press <kbd>C</kbd>) during build phase to merge towers:`),
-    p(`<b>Quality upgrade:</b> 5 same-color, same-quality gems → 1 of next quality up (Chipped → Flawed → Normal → Flawless → Perfect).`),
-    p(`<b>Recipes:</b> 2–7 distinct gems at the same quality form a <b>special tower</b>. The full RECIPES panel on the right shows every combination.`),
-    p(`<b>Only kept gems</b> are eligible — the 5 you just drew this wave can't be combined until they survive a wave and you pick one to keep.`),
-    p(`Combining is free, and the merged towers are replaced with a new tower at the first slot's tile.`),
+    p(`<b>Right-click</b> a placed gem to open the <b>radial menu</b> — it shows Keep, Combine (level up), and Special (recipe) actions for that tower.`),
+    p(`<b>Level up:</b> 2 same gems → +1 quality; 4 same gems → +2 quality (Chipped → Flawed → Normal → Flawless → Perfect).`),
+    p(`<b>Recipes:</b> specific gem + quality combos form a <b>special tower</b>. Check the RECIPES panel for all combinations.`),
+    p(`Only <b>kept</b> towers from previous rounds are eligible for recipes. The full ★ COMBINE menu (<kbd>C</kbd>) lets you pick towers manually.`),
+  );
+  return wrap;
+}
+
+function runesBody(): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.append(
+    p(`<b>Runes</b> are special recipe combos that act as <b>traps</b>. Unlike towers, they don't block pathing — creeps walk over them and trigger their effect.`),
+    p(`<b>Rune of Holding</b> — stuns creeps briefly.`),
+    p(`<b>Rune of Damage</b> — deals burst damage on contact.`),
+    p(`<b>Rune of Teleportation</b> — knocks creeps back along the path.`),
+    p(`<b>Rune of Slow</b> — applies a heavy slow.`),
+    p(`Runes have a cooldown between triggers. Place them on the creep path for maximum effect.`),
   );
   return wrap;
 }
@@ -178,11 +188,14 @@ function keysBody(): HTMLElement {
   const grid = document.createElement('div');
   grid.className = 'tutorial-keys';
   const keys: Array<[string, string]> = [
-    ['SPACE', 'Start next wave (when all 5 placed)'],
-    ['TAB', 'Cycle active draw slot (Shift = back)'],
-    ['1 / 2 / 4', 'Sim speed'],
-    ['U', 'Undo last action'],
+    ['SPACE', 'Start placement / next wave'],
+    ['TAB', 'Cycle draw slot (Shift = back)'],
+    ['K', 'Keep hovered or selected tower'],
     ['C', 'Open Combine menu'],
+    ['U', 'Undo last placement'],
+    ['1/2/4/8', 'Sim speed'],
+    ['P', 'Toggle path overlay'],
+    ['R', 'Restart game'],
     ['ESC', 'Deselect / close menu'],
   ];
   for (const [k, label] of keys) {

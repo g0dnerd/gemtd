@@ -7,7 +7,14 @@ import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
 import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
-import { COMBOS, COMBO_BY_NAME, ComboRecipe, comboStatsAtTier, findAllCombosFor, nextUpgrade } from "../data/combos";
+import {
+  COMBOS,
+  COMBO_BY_NAME,
+  ComboRecipe,
+  comboStatsAtTier,
+  findAllCombosFor,
+  nextUpgrade,
+} from "../data/combos";
 import { TowerState } from "../game/State";
 import { towerLevel } from "../systems/Combat";
 
@@ -122,27 +129,31 @@ function render(refs: InspectorRefs, game: Game): void {
   frame.className = "inspector-hero-frame";
   frame.appendChild(
     tower.comboKey
-      ? htmlSpecial(tower.comboKey, 40, true)
-      : htmlGemTier(tower.gem, tower.quality as Quality, 40, true),
+      ? htmlSpecial(tower.comboKey, 28, true)
+      : htmlGemTier(tower.gem, tower.quality as Quality, 28, true),
   );
   const text = document.createElement("div");
   text.className = "inspector-hero-text";
   const name = document.createElement("div");
   name.className = "inspector-hero-name";
-  const sub = document.createElement("div");
+  const sub = document.createElement("span");
   sub.className = "inspector-hero-sub";
   if (tower.comboKey) {
     const combo = COMBO_BY_NAME.get(tower.comboKey!);
     const tier = tower.upgradeTier ?? 0;
-    const tierName = combo && tier > 0 && combo.upgrades[tier - 1]
-      ? combo.upgrades[tier - 1].name
-      : combo?.name;
+    const tierName =
+      combo && tier > 0 && combo.upgrades[tier - 1]
+        ? combo.upgrades[tier - 1].name
+        : combo?.name;
     name.textContent = (tierName ?? "COMBO").toUpperCase();
-    const tierStats = combo ? comboStatsAtTier(combo, tier) : null;
-    sub.textContent = `LV. ${tower.quality} · ${tierStats?.blurb ?? combo?.stats.blurb ?? "COMBO"}`;
+    const blurb =
+      (combo ? comboStatsAtTier(combo, tier) : null)?.blurb ??
+      combo?.stats.blurb ??
+      "COMBO";
+    sub.textContent = blurb;
   } else {
     name.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
-    sub.textContent = `LV. ${tower.quality} · ${QUALITY_NAMES[tower.quality].toUpperCase()}`;
+    sub.textContent = QUALITY_NAMES[tower.quality].toUpperCase();
   }
   text.append(name, sub);
   hero.append(frame, text);
@@ -400,11 +411,13 @@ function matchRecipeWithMust(
   towers: TowerState[],
   must: TowerState,
 ): number[] | null {
-  if (c.key === 'stargem') {
+  if (c.key === "stargem") {
     if (must.quality !== 5) return null;
-    const same = towers.filter(t => t.id !== must.id && t.gem === must.gem && t.quality === 5);
+    const same = towers.filter(
+      (t) => t.id !== must.id && t.gem === must.gem && t.quality === 5,
+    );
     if (same.length < 3) return null;
-    return [must.id, ...same.slice(0, 3).map(t => t.id)];
+    return [must.id, ...same.slice(0, 3).map((t) => t.id)];
   }
   const used = new Set<number>([must.id]);
   const ids: number[] = [];
@@ -497,15 +510,19 @@ function tryAutoCombineSpecial(game: Game): void {
   }
   const state = game.state;
   let placed: TowerState[];
-  if (state.phase !== 'build') {
+  if (state.phase !== "build") {
     placed = state.towers.filter((t) => !t.comboKey);
   } else {
-    const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
+    const allPlaced =
+      state.draws.length > 0 &&
+      state.draws.every((d) => d.placedTowerId !== null);
     if (allPlaced) {
       placed = state.towers.filter((t) => !t.comboKey);
     } else {
       const drawIds = new Set(
-        state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
+        state.draws
+          .map((d) => d.placedTowerId)
+          .filter((id): id is number => id !== null),
       );
       if (drawIds.has(sel.id)) {
         placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
@@ -601,7 +618,7 @@ function effectiveStatsFor(t: TowerState): ResolvedStats {
   const lvl = towerLevel(t);
   const mult = 1 + lvl * 0.05;
   if (t.comboKey) {
-    const combo = COMBO_BY_NAME.get(t.comboKey!);
+    const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
       const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
       return {
@@ -628,15 +645,17 @@ function effectiveStatsFor(t: TowerState): ResolvedStats {
 
 function getUpgradeCost(tower: TowerState): number | null {
   if (!tower.comboKey) return null;
-  const combo = COMBO_BY_NAME.get(tower.comboKey!);
+  const combo = COMBO_BY_NAME.get(tower.comboKey);
   if (!combo) return null;
   const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
   return upgrade?.cost ?? null;
 }
 
-function getUpgradeInfo(tower: TowerState): { name: string; cost: number } | null {
+function getUpgradeInfo(
+  tower: TowerState,
+): { name: string; cost: number } | null {
   if (!tower.comboKey) return null;
-  const combo = COMBO_BY_NAME.get(tower.comboKey!);
+  const combo = COMBO_BY_NAME.get(tower.comboKey);
   if (!combo) return null;
   const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
   if (!upgrade) return null;
