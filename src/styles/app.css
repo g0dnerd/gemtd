@@ -1211,6 +1211,26 @@
   color: var(--px-ink-dim);
 }
 
+.changelog-ver {
+  font-size: 18px;
+}
+.changelog-list {
+  margin: 2px 0 8px 0;
+  padding-left: 18px;
+  list-style: none;
+}
+.changelog-item {
+  font-size: 15px;
+  position: relative;
+  padding-left: 4px;
+}
+.changelog-item::before {
+  content: "▸";
+  position: absolute;
+  left: -14px;
+  color: var(--px-accent);
+}
+
 /* Toast notifications */
 .toast-stack {
   position: absolute;

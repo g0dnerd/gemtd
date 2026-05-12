@@ -46,6 +46,7 @@ export function mountTutorialModal(root: HTMLElement): () => void {
     { title: 'COMBINE', body: combineBody() },
     { title: 'RUNES', body: runesBody() },
     { title: 'KEYS', body: keysBody() },
+    { title: 'CHANGES', body: changesBody() },
   ];
 
   let active = 0;
@@ -180,6 +181,57 @@ function runesBody(): HTMLElement {
     p(`<b>Rune of Slow</b> — applies a heavy slow.`),
     p(`Runes have a cooldown between triggers. Place them on the creep path for maximum effect.`),
   );
+  return wrap;
+}
+
+function changesBody(): HTMLElement {
+  const wrap = document.createElement('div');
+
+  const versions: Array<{ ver: string; notes: string[] }> = [
+    {
+      ver: '0.7.0',
+      notes: [
+        '<b>Aquamarine rework</b> — ramping beam replaces rapid-fire projectiles.',
+      ],
+    },
+    {
+      ver: '0.6.1',
+      notes: [
+        '<b>Amethyst rework</b> — targets all units with air damage bonus.',
+      ],
+    },
+    {
+      ver: '0.6.0',
+      notes: [
+        '<b>Hardcore + Creative mode</b> — new game modes.',
+        '<b>Runes</b> — walkable trap towers triggered by creep proximity (Holding, Damage, Teleportation, Slow).',
+        '<b>Tower kill leveling</b> — towers gain +5% damage per 10 kills.',
+        '<b>8× speed mode</b> — press <kbd>8</kbd> to fast-forward.',
+        '<b>Healer, Wizard, Tunneler</b> — new creep types and wave groups.',
+        '<b>Radial menu</b> — right-click towers for Keep / Combine / Special.',
+        '<b>Path overlay</b> — press <kbd>P</kbd> to see the creep route.',
+        '<b>Recipe hints</b> — tower inspector shows "Forges Into" recipes.',
+        '<b>Stargem</b> — apex gem from 4× Perfect same-type recipe.',
+        '<b>Balance</b> — increased aura/proximity radii, bosses cost 8 lives.',
+      ],
+    },
+  ];
+
+  for (const { ver, notes } of versions) {
+    const hdr = document.createElement('div');
+    hdr.className = 'tutorial-p changelog-ver';
+    hdr.innerHTML = `<b>v${ver}</b>`;
+    wrap.appendChild(hdr);
+    const list = document.createElement('ul');
+    list.className = 'changelog-list';
+    for (const n of notes) {
+      const li = document.createElement('li');
+      li.className = 'tutorial-p changelog-item';
+      li.innerHTML = n;
+      list.appendChild(li);
+    }
+    wrap.appendChild(list);
+  }
   return wrap;
 }
 
