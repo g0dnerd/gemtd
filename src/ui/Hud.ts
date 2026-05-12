@@ -758,8 +758,8 @@ export function mountHud(
 
   const resetBtn = document.createElement("button");
   resetBtn.className = "px-btn px-btn-bad action-bar-reset";
-  resetBtn.textContent = "↺ RESET RUN · R";
-  resetBtn.addEventListener("click", () => game.newGame());
+  resetBtn.textContent = "↺ RESET RUN · CTRL+R";
+  resetBtn.addEventListener("click", () => game.restartGame());
   actionBar.appendChild(resetBtn);
 
   right.appendChild(actionBar);
@@ -868,7 +868,7 @@ export function mountHud(
       game.state.designatedKeepTowerId !== null;
     const ready =
       concluded ||
-      (allDrawsPlaced(game.state) && game.state.designatedKeepTowerId !== null);
+      (allDrawsPlaced(game.state) && (game.state.designatedKeepTowerId !== null || game.creativeMode));
     startBtn.disabled = !ready;
   }
 
@@ -1027,6 +1027,8 @@ export function mountHud(
           }
         }
       }
+    } else if (game.creativeMode && game.state.phase === "build") {
+      game.cmdPlaceCreativeRock(t.x, t.y);
     } else {
       game.selectTower(null);
       game.selectRock(null);
@@ -1038,6 +1040,10 @@ export function mountHud(
   }
 
   const onKey = (ev: KeyboardEvent) => {
+    if (ev.key === "Shift") {
+      shiftDown = true;
+      updateShiftHint();
+    }
     if (ev.key === " ") {
       ev.preventDefault();
       triggerStartCta();
@@ -1064,8 +1070,13 @@ export function mountHud(
       }
       game.selectTower(null);
       game.selectRock(null);
+    } else if (ev.key === "r" && ev.ctrlKey) {
+      ev.preventDefault();
+      game.restartGame();
     } else if (ev.key === "r" || ev.key === "R") {
-      game.newGame();
+      if (game.selectedRockId !== null) {
+        game.cmdRemoveRock(game.selectedRockId);
+      }
     } else if (ev.key === "Tab") {
       // Cycle active draw slot (forward; Shift+Tab for backward).
       ev.preventDefault();
@@ -1113,6 +1124,13 @@ export function mountHud(
         kind: "info",
         text: game.blueprintMode ? "Blueprint ON" : "Blueprint OFF",
       });
+    } else if (ev.key === "m" && ev.ctrlKey) {
+      ev.preventDefault();
+      game.toggleCreativeMode();
+      game.bus.emit("toast", {
+        kind: "info",
+        text: game.creativeMode ? "Creative mode ON — place rocks freely" : "Creative mode OFF",
+      });
     }
   };
   window.addEventListener("keydown", onKey);
@@ -1124,12 +1142,6 @@ export function mountHud(
     }
   };
   window.addEventListener("keyup", onKeyUp);
-  window.addEventListener("keydown", (ev: KeyboardEvent) => {
-    if (ev.key === "Shift") {
-      shiftDown = true;
-      updateShiftHint();
-    }
-  });
 
   // Initial paint.
   rebuildRecipes();

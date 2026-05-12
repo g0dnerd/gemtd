@@ -12,7 +12,7 @@ import { Application, Container, Ticker } from "pixi.js";
 import { State, emptyState, allDrawsPlaced } from "./State";
 import { EventBus } from "../events/EventBus";
 import { RNG } from "./rng";
-import { BASE, Cell } from "../data/map";
+import { BASE, Cell, GRID_W, GRID_H, isBuildable } from "../data/map";
 import { findRoute, flattenRoute, buildAirRoute } from "../systems/Pathfinding";
 import {
   BoardLayers,
@@ -21,7 +21,13 @@ import {
   renderPathTrace,
   renderCheckpoints,
 } from "../render/BoardRenderer";
-import { FINE_TILE, START_GOLD, START_LIVES, SIM_DT, type SpeedMultiplier } from "./constants";
+import {
+  FINE_TILE,
+  START_GOLD,
+  START_LIVES,
+  SIM_DT,
+  type SpeedMultiplier,
+} from "./constants";
 import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES } from "../data/waves";
@@ -44,7 +50,6 @@ import {
   computeKeeperIndices,
   renderBlueprintOverlay,
 } from "../render/BlueprintOverlay";
-import blueprintData from "../../tools/maze_optimizer/blueprint_v3.json";
 
 export class Game {
   readonly bus = new EventBus();
@@ -92,6 +97,9 @@ export class Game {
   /** Blueprint overlay mode — hidden cheat activated by Ctrl+B. */
   blueprintMode = false;
   private blueprint: Blueprint | null = null;
+
+  /** Creative mode — hidden cheat (Ctrl+Shift+C) to place rocks freely during build phase. */
+  creativeMode = false;
 
   /** Currently selected tower (if any). null otherwise. */
   selectedTowerId: number | null = null;
@@ -156,7 +164,7 @@ export class Game {
   }
 
   /** Kick off a new run from the title screen. */
-  newGame(): void {
+  newGame(startLives: number = START_LIVES): void {
     this.state.towers = [];
     this.state.rocks = [];
     this.state.creeps = [];
@@ -173,7 +181,8 @@ export class Game {
     this.state.rocksRemoved = 0;
     this.state.tick = 0;
     this.state.wave = 0;
-    this.state.lives = START_LIVES;
+    this.state.lives = startLives;
+    this.state.hardcore = startLives === 1;
     this.state.gold = START_GOLD;
     this.state.totalKills = 0;
     this.state.speed = 1;
@@ -183,6 +192,10 @@ export class Game {
     renderCheckpoints(this.layers.checkpoints);
     this.refreshRoute();
     this.enterBuild();
+  }
+
+  restartGame(): void {
+    this.newGame(this.state.hardcore ? 1 : START_LIVES);
   }
 
   enterBuild(): void {
@@ -215,11 +228,19 @@ export class Game {
         return;
       }
       if (this.state.designatedKeepTowerId === null) {
-        this.bus.emit("toast", {
-          kind: "error",
-          text: "Mark one gem to keep first",
-        });
-        return;
+        if (this.creativeMode) {
+          const firstDraw = this.state.draws.find(
+            (d) => d.placedTowerId !== null,
+          );
+          if (firstDraw)
+            this.state.designatedKeepTowerId = firstDraw.placedTowerId;
+        } else {
+          this.bus.emit("toast", {
+            kind: "error",
+            text: "Mark one gem to keep first",
+          });
+          return;
+        }
       }
       this.buildPhase.applyKeepAndRock();
     }
@@ -269,15 +290,23 @@ export class Game {
 
   togglePathViz(): void {
     this.pathVizEnabled = !this.pathVizEnabled;
-    try { localStorage.setItem("gemtd:pathViz", this.pathVizEnabled ? "1" : "0"); }
-    catch { /* private mode */ }
+    try {
+      localStorage.setItem("gemtd:pathViz", this.pathVizEnabled ? "1" : "0");
+    } catch {
+      /* private mode */
+    }
     this.refreshRoute();
   }
 
-  toggleBlueprint(): void {
+  toggleCreativeMode(): void {
+    this.creativeMode = !this.creativeMode;
+  }
+
+  async toggleBlueprint(): Promise<void> {
     this.blueprintMode = !this.blueprintMode;
     if (this.blueprintMode && !this.blueprint) {
-      const bp = blueprintData as unknown as Blueprint;
+      const { default: data } = await import("../../tools/maze_optimizer/blueprint_v5.json");
+      const bp = data as unknown as Blueprint;
       bp.keeperIndices = computeKeeperIndices(bp);
       this.blueprint = bp;
     }
@@ -524,6 +553,49 @@ export class Game {
     }
     return true;
   }
+  cmdPlaceCreativeRock(x: number, y: number): boolean {
+    const state = this.state;
+    if (state.phase !== "build" || !this.creativeMode) return false;
+    if (x < 0 || y < 0 || x + 1 >= GRID_W || y + 1 >= GRID_H) return false;
+    const offsets: ReadonlyArray<readonly [number, number]> = [
+      [0, 0],
+      [1, 0],
+      [0, 1],
+      [1, 1],
+    ];
+    for (const [dx, dy] of offsets) {
+      if (!isBuildable(state.grid[y + dy][x + dx])) return false;
+    }
+    const tentative = new Set<number>();
+    for (const [dx, dy] of offsets) tentative.add((y + dy) * GRID_W + (x + dx));
+    if (!findRoute(state.grid, tentative)) {
+      this.bus.emit("toast", { kind: "error", text: "Would block path" });
+      return false;
+    }
+    const id = this.nextId();
+    for (const [dx, dy] of offsets) {
+      state.grid[y + dy][x + dx] = Cell.Rock;
+      state.rocks.push({
+        x: x + dx,
+        y: y + dy,
+        id,
+        placedAtBuildOfWave: state.wave,
+      });
+    }
+    this.refreshRoute();
+    state.undoStack.push({
+      description: "Place creative rock",
+      undo: () => {
+        for (const [dx, dy] of offsets) {
+          state.grid[y + dy][x + dx] = Cell.Grass;
+        }
+        state.rocks = state.rocks.filter((r) => r.id !== id);
+        this.refreshRoute();
+      },
+    });
+    return true;
+  }
+
   cmdUpgradeChanceTier(): boolean {
     const state = this.state;
     if (state.chanceTier >= MAX_CHANCE_TIER) {

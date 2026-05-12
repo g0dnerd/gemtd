@@ -149,6 +149,8 @@ export interface State {
   selectedRockId: number | null;
   /** Lifetime count of rocks the player has demolished — drives removal cost scaling. */
   rocksRemoved: number;
+  /** Started with 1 life. */
+  hardcore: boolean;
   /** Total simulation ticks since game start. */
   tick: number;
   /** Number of waves remaining; computed on init. */
@@ -205,6 +207,7 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     selectedTowerId: null,
     selectedRockId: null,
     rocksRemoved: 0,
+    hardcore: false,
     tick: 0,
     totalWaves,
     waveStats: { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 },

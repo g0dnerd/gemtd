@@ -28,7 +28,7 @@ export function mountGameOver(
   restart.textContent = '▶ NEW GAME';
   restart.addEventListener('click', () => {
     overlay.remove();
-    game.newGame();
+    game.restartGame();
   });
   const titleBtn = document.createElement('button');
   titleBtn.className = 'px-btn';

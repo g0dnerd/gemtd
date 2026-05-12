@@ -6,7 +6,7 @@
 import { GEM_TYPES } from "../render/theme";
 import { htmlGem } from "../render/htmlSprites";
 
-export function mountTitle(root: HTMLElement, onStart: () => void): () => void {
+export function mountTitle(root: HTMLElement, onStart: () => void, onStartHardcore: () => void): () => void {
   const screen = document.createElement("div");
   screen.className = "title-screen";
 
@@ -39,6 +39,7 @@ export function mountTitle(root: HTMLElement, onStart: () => void): () => void {
   menu.className = "title-menu";
   const btns: Array<[string, string, () => void, boolean]> = [
     ["▶ NEW GAME", "px-btn px-btn-primary", onStart, false],
+    ["☠ NEW GAME (HARDCORE)", "px-btn", onStartHardcore, false],
     ["CONTINUE", "px-btn", () => {}, true],
     ["SCORES", "px-btn", () => {}, true],
     ["SETTINGS", "px-btn", () => {}, true],

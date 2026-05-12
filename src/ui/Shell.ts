@@ -23,6 +23,9 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
     dispose = mountTitle(container, () => {
       game.newGame();
       showHud();
+    }, () => {
+      game.newGame(1);
+      showHud();
     });
   };
 
