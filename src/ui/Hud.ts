@@ -292,7 +292,6 @@ export function mountHud(
   downgradeGlow.setAttribute("stroke", "#d04848");
   downgradeGlow.setAttribute("stroke-width", "3");
   downgradeGlow.setAttribute("filter", "url(#radial-glow)");
-  downgradeGlow.classList.add("radial-glow-ring");
   downgradeGlow.style.display = "none";
   rSvg.appendChild(downgradeGlow);
 
