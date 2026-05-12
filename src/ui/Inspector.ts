@@ -390,7 +390,7 @@ function countSpecialRecipes(game: Game, sel: TowerState): number {
 
   let n = 0;
   for (const c of COMBOS) {
-    if (matchRecipeWithMust(c, currentOnly, sel)) { n++; continue; }
+    if (selIsCurrent && matchRecipeWithMust(c, currentOnly, sel)) { n++; continue; }
     if (!selIsCurrent && matchRecipeWithMust(c, keptOnly, sel)) { n++; continue; }
     if (selIsCurrent) {
       if (matchRecipeWithMust(c, [sel, ...keptOnly], sel)) { n++; continue; }
@@ -531,8 +531,10 @@ function tryAutoCombineSpecial(game: Game): void {
   const keptOnly = allNonCombo.filter((t) => !drawIds.has(t.id));
 
   for (const c of COMBOS) {
-    const ids1 = matchRecipeWithMust(c, currentOnly, sel);
-    if (ids1) { game.cmdCombine(ids1); return; }
+    if (selIsCurrent) {
+      const ids1 = matchRecipeWithMust(c, currentOnly, sel);
+      if (ids1) { game.cmdCombine(ids1); return; }
+    }
     if (!selIsCurrent) {
       const ids2 = matchRecipeWithMust(c, keptOnly, sel);
       if (ids2) { game.cmdCombine(ids2); return; }

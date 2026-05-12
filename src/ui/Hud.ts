@@ -20,7 +20,7 @@ import {
   htmlHeart,
   htmlSpecial,
 } from "../render/htmlSprites";
-import { COMBOS } from "../data/combos";
+import { COMBOS, ComboRecipe } from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
 import { mountCombineModal } from "./CombineModal";
 import { mountTutorialModal } from "./TutorialModal";
@@ -464,8 +464,42 @@ export function mountHud(
 
   function checkSpecialOk(tower: TowerState): boolean {
     if (tower.comboKey) return false;
-    const placed = game.state.towers.filter((t) => !t.comboKey);
+    const state = game.state;
+
+    if (state.phase !== 'build') {
+      const placed = state.towers.filter((t) => !t.comboKey);
+      return matchAnyRecipe(placed, tower);
+    }
+
+    const drawIds = new Set(
+      state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
+    );
+    const towerIsCurrent = drawIds.has(tower.id);
+    const allNonCombo = state.towers.filter((t) => !t.comboKey);
+    const currentOnly = allNonCombo.filter((t) => drawIds.has(t.id));
+    const keptOnly = allNonCombo.filter((t) => !drawIds.has(t.id));
+
+    if (towerIsCurrent && matchAnyRecipe(currentOnly, tower)) return true;
+    if (!towerIsCurrent && matchAnyRecipe(keptOnly, tower)) return true;
+    if (towerIsCurrent) {
+      if (matchAnyRecipe([tower, ...keptOnly], tower)) return true;
+    } else {
+      if (matchAnyRecipeMaxCurrent([...keptOnly, ...currentOnly], tower, drawIds, 1)) return true;
+    }
+    return false;
+  }
+
+  function matchAnyRecipe(placed: TowerState[], tower: TowerState): boolean {
     for (const c of COMBOS) {
+      if (c.key === 'stargem') {
+        if (tower.quality === 5) {
+          const same = placed.filter(t => t.id !== tower.id && t.gem === tower.gem && t.quality === 5);
+          if (same.length >= 3) return true;
+        }
+        continue;
+      }
       const used = new Set<number>([tower.id]);
       let consumed = false;
       let valid = true;
@@ -487,6 +521,45 @@ export function mountHud(
         used.add(t.id);
       }
       if (valid && consumed) return true;
+    }
+    return false;
+  }
+
+  function matchAnyRecipeMaxCurrent(
+    placed: TowerState[],
+    tower: TowerState,
+    drawIds: Set<number>,
+    maxCurrent: number,
+  ): boolean {
+    for (const c of COMBOS) {
+      if (c.key === 'stargem') continue;
+      const used = new Set<number>([tower.id]);
+      let consumed = false;
+      let valid = true;
+      const ids: number[] = [];
+      for (const inp of c.inputs) {
+        if (!consumed && inp.gem === tower.gem && inp.quality === tower.quality) {
+          consumed = true;
+          ids.push(tower.id);
+          continue;
+        }
+        const t = placed.find(
+          (tt) =>
+            !used.has(tt.id) &&
+            tt.gem === inp.gem &&
+            tt.quality === inp.quality,
+        );
+        if (!t) {
+          valid = false;
+          break;
+        }
+        used.add(t.id);
+        ids.push(t.id);
+      }
+      if (valid && consumed) {
+        const currentCount = ids.filter((id) => drawIds.has(id)).length;
+        if (currentCount <= maxCurrent) return true;
+      }
     }
     return false;
   }
@@ -514,46 +587,81 @@ export function mountHud(
   }
 
   function doRadialSpecial(tower: TowerState): void {
-    const placed = game.state.towers.filter((t) => !t.comboKey);
+    const state = game.state;
+
+    if (state.phase !== 'build') {
+      const placed = state.towers.filter((t) => !t.comboKey);
+      for (const c of COMBOS) {
+        const ids = findRecipeMatch(placed, tower, c);
+        if (ids) { game.cmdCombine(ids); return; }
+      }
+      return;
+    }
+
+    const drawIds = new Set(
+      state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
+    );
+    const towerIsCurrent = drawIds.has(tower.id);
+    const allNonCombo = state.towers.filter((t) => !t.comboKey);
+    const currentOnly = allNonCombo.filter((t) => drawIds.has(t.id));
+    const keptOnly = allNonCombo.filter((t) => !drawIds.has(t.id));
+
     for (const c of COMBOS) {
-      if (c.key === 'stargem') {
-        if (tower.quality === 5) {
-          const same = placed.filter(t => t.id !== tower.id && t.gem === tower.gem && t.quality === 5);
-          if (same.length >= 3) {
-            game.cmdCombine([tower.id, ...same.slice(0, 3).map(t => t.id)]);
-            return;
-          }
-        }
-        continue;
+      if (towerIsCurrent) {
+        const ids = findRecipeMatch(currentOnly, tower, c);
+        if (ids) { game.cmdCombine(ids); return; }
       }
-      const used = new Set<number>([tower.id]);
-      const ids: number[] = [];
-      let consumed = false;
-      let valid = true;
-      for (const inp of c.inputs) {
-        if (!consumed && inp.gem === tower.gem && inp.quality === tower.quality) {
-          ids.push(tower.id);
-          consumed = true;
-          continue;
-        }
-        const t = placed.find(
-          (tt) =>
-            !used.has(tt.id) &&
-            tt.gem === inp.gem &&
-            tt.quality === inp.quality,
-        );
-        if (!t) {
-          valid = false;
-          break;
-        }
-        used.add(t.id);
-        ids.push(t.id);
+      if (!towerIsCurrent) {
+        const ids = findRecipeMatch(keptOnly, tower, c);
+        if (ids) { game.cmdCombine(ids); return; }
       }
-      if (valid && consumed) {
-        game.cmdCombine(ids);
-        return;
+      if (towerIsCurrent) {
+        const ids = findRecipeMatch([tower, ...keptOnly], tower, c);
+        if (ids) { game.cmdCombine(ids); return; }
+      } else {
+        const ids = findRecipeMatch([...keptOnly, ...currentOnly], tower, c);
+        if (ids) {
+          const currentCount = ids.filter((id) => drawIds.has(id)).length;
+          if (currentCount <= 1) { game.cmdCombine(ids); return; }
+        }
       }
     }
+  }
+
+  function findRecipeMatch(
+    placed: TowerState[],
+    tower: TowerState,
+    c: ComboRecipe,
+  ): number[] | null {
+    if (c.key === 'stargem') {
+      if (tower.quality === 5) {
+        const same = placed.filter(t => t.id !== tower.id && t.gem === tower.gem && t.quality === 5);
+        if (same.length >= 3) return [tower.id, ...same.slice(0, 3).map(t => t.id)];
+      }
+      return null;
+    }
+    const used = new Set<number>([tower.id]);
+    const ids: number[] = [];
+    let consumed = false;
+    for (const inp of c.inputs) {
+      if (!consumed && inp.gem === tower.gem && inp.quality === tower.quality) {
+        ids.push(tower.id);
+        consumed = true;
+        continue;
+      }
+      const t = placed.find(
+        (tt) =>
+          !used.has(tt.id) &&
+          tt.gem === inp.gem &&
+          tt.quality === inp.quality,
+      );
+      if (!t) return null;
+      used.add(t.id);
+      ids.push(t.id);
+    }
+    return consumed ? ids : null;
   }
 
   canvasHost.addEventListener("contextmenu", (ev) => ev.preventDefault());
