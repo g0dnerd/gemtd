@@ -337,6 +337,7 @@ function setComboButton(
 
 function countCombinePairs(game: Game, sel: TowerState): number {
   if (sel.comboKey) return 0;
+  if (sel.quality >= 5) return 0;
   const drawIds = new Set(
     game.state.draws
       .map((d) => d.placedTowerId)
@@ -356,32 +357,40 @@ function countCombinePairs(game: Game, sel: TowerState): number {
 function countSpecialRecipes(game: Game, sel: TowerState): number {
   if (sel.comboKey) return 0;
   const state = game.state;
-  let placed: TowerState[];
-  if (state.phase !== 'build') {
-    // Outside build phase: any non-combo tower is eligible.
-    placed = state.towers.filter((t) => !t.comboKey);
-  } else {
-    const allPlaced = state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
-    if (allPlaced) {
-      placed = state.towers.filter((t) => !t.comboKey);
-    } else {
-      // Mid-placement: current-round towers OR all-kept towers can form recipes.
-      const drawIds = new Set(
-        state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
-      );
-      placed = state.towers.filter((t) => !t.comboKey && (drawIds.has(t.id) || !drawIds.has(sel.id)));
-      if (drawIds.has(sel.id)) {
-        // Selected is current-round: only match with other current-round towers.
-        placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
-      } else {
-        // Selected is kept: only match with other kept towers.
-        placed = state.towers.filter((t) => !t.comboKey && !drawIds.has(t.id));
-      }
+
+  if (state.phase !== "build") {
+    const placed = state.towers.filter((t) => !t.comboKey);
+    let n = 0;
+    for (const c of COMBOS) {
+      if (matchRecipeWithMust(c, placed, sel)) n++;
     }
+    return n;
   }
+
+  const drawIds = new Set(
+    state.draws
+      .map((d) => d.placedTowerId)
+      .filter((id): id is number => id !== null),
+  );
+  const selIsCurrent = drawIds.has(sel.id);
+  const allNonCombo = state.towers.filter((t) => !t.comboKey);
+  const currentOnly = allNonCombo.filter((t) => drawIds.has(t.id));
+  const keptOnly = allNonCombo.filter((t) => !drawIds.has(t.id));
+
   let n = 0;
   for (const c of COMBOS) {
-    if (matchRecipeWithMust(c, placed, sel)) n++;
+    if (matchRecipeWithMust(c, currentOnly, sel)) { n++; continue; }
+    if (!selIsCurrent && matchRecipeWithMust(c, keptOnly, sel)) { n++; continue; }
+    if (selIsCurrent) {
+      if (matchRecipeWithMust(c, [sel, ...keptOnly], sel)) { n++; continue; }
+    } else {
+      const pool = [...keptOnly, ...currentOnly];
+      const result = matchRecipeWithMust(c, pool, sel);
+      if (result) {
+        const currentCount = result.filter((id) => drawIds.has(id)).length;
+        if (currentCount <= 1) { n++; continue; }
+      }
+    }
   }
   return n;
 }

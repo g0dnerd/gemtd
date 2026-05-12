@@ -173,14 +173,13 @@ describe('combine: recipe path', () => {
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(false);
   });
 
-  it('refuses recipe using non-current-round tower when draws not all placed', () => {
+  it('refuses recipe with 2 current-round + 1 kept tower (mid-placement)', () => {
     const h = setup();
     const kept = placeTower(h.game, 4, 4, 'topaz', 1);
     const current = [
       placeTower(h.game, 4, 6, 'diamond', 1),
       placeTower(h.game, 4, 8, 'sapphire', 1),
     ];
-    // Simulate mid-placement: 2 placed + 3 unplaced draw slots.
     h.game.state.draws = [
       ...asDraws(current),
       { slotId: 2, gem: 'ruby', quality: 1 as any, placedTowerId: null },
@@ -190,7 +189,7 @@ describe('combine: recipe path', () => {
     expect(h.phase.combine([kept.id, ...current.map((t) => t.id)])).toBe(false);
   });
 
-  it('allows recipe using any tower after all draws placed', () => {
+  it('refuses recipe with 2 current-round + 1 kept tower (all placed)', () => {
     const h = setup();
     const kept = placeTower(h.game, 4, 4, 'topaz', 1);
     const current = [
@@ -200,10 +199,23 @@ describe('combine: recipe path', () => {
       placeTower(h.game, 6, 6, 'ruby', 1),
       placeTower(h.game, 6, 8, 'ruby', 1),
     ];
-    // All 5 draws placed — recipe can use kept tower from prior round.
     h.game.state.draws = asDraws(current);
-    expect(h.phase.combine([kept.id, current[0].id, current[1].id])).toBe(true);
-    expect(h.game.state.towers.find((t) => t.comboKey === 'silver')).toBeTruthy();
+    expect(h.phase.combine([kept.id, current[0].id, current[1].id])).toBe(false);
+  });
+
+  it('allows recipe with single current-round piece completing kept towers', () => {
+    const h = setup();
+    // Jade = emerald:3 + opal:3 + sapphire:2
+    const keptEmerald = placeTower(h.game, 4, 4, 'emerald', 3);
+    const keptOpal = placeTower(h.game, 4, 6, 'opal', 3);
+    const currentSapphire = placeTower(h.game, 4, 8, 'sapphire', 2);
+    h.game.state.draws = [
+      { slotId: 0, gem: 'sapphire', quality: 2 as any, placedTowerId: currentSapphire.id },
+      { slotId: 1, gem: 'ruby', quality: 1 as any, placedTowerId: null },
+      { slotId: 2, gem: 'ruby', quality: 1 as any, placedTowerId: null },
+    ];
+    expect(h.phase.combine([keptEmerald.id, keptOpal.id, currentSapphire.id])).toBe(true);
+    expect(h.game.state.towers.find((t) => t.comboKey === 'jade')).toBeTruthy();
   });
 
   it('allows recipe combining kept towers during wave phase', () => {

@@ -460,6 +460,7 @@ export function mountHud(
 
   function checkCombineOk(tower: TowerState): boolean {
     if (tower.comboKey) return false;
+    if (tower.quality >= 5) return false;
     const drawIds = new Set(
       game.state.draws
         .map((d) => d.placedTowerId)

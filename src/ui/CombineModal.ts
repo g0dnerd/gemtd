@@ -299,6 +299,10 @@ export function mountCombineModal(root: HTMLElement, game: Game, initialTab?: Ta
     const inputs = selected.map((t) => ({ gem: t.gem, quality: t.quality }));
     const combo = findCombo(inputs);
     if (combo) {
+      if (game.state.phase === 'build') {
+        const currentCount = selected.filter((t) => currentRoundIds.has(t.id)).length;
+        if (currentCount > 1 && currentCount < selected.length) return null;
+      }
       const outputQ = (Math.max(...selected.map((t) => t.quality))) as Quality;
       return {
         gem: combo.visualGem,
