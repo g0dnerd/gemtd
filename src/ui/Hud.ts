@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v0.6";
+  wmVer.textContent = "v0.6.1";
   wm.append(wmName, wmVer);
   headerBar.appendChild(wm);
 
