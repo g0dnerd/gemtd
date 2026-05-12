@@ -189,6 +189,15 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '0.8.1',
+      notes: [
+        '<b>Balance</b> — Mighty Malachite nerfed: damage 100-150→70-100, chain falloff 1.0→0.85.',
+        '<b>Balance</b> — Star Ruby line buffed: damage and poison up across all tiers.',
+        '<b>Balance</b> — Lucky Asian Jade line nerfed: splash falloff 0.6→0.5, poison 80→50 / 120→80.',
+        '<b>Balance</b> — Boss W10 HP 3500→3000, W11 healers HP 1000→800, W50 healers 5→2.',
+      ],
+    },
+    {
       ver: '0.8.0',
       notes: [
         '<b>Balance</b> — Diamond nerfed: base damage 30→25, crit multiplier 2.5→2.0.',
