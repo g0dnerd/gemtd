@@ -189,6 +189,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '0.8.2',
+      notes: [
+        '<b>Balance</b> — Nerfed healer buff: duration 3 s → 2 s, heal rate 0.1 %/tick → 0.075 %/tick.',
+      ],
+    },
+    {
       ver: '0.8.1',
       notes: [
         '<b>Balance</b> — Mighty Malachite nerfed: damage 100-150→70-100, chain falloff 1.0→0.85.',

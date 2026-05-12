@@ -11,8 +11,8 @@ import { FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ, TILE } from '../game/constants';
 
 const HEALER_INTERVAL = 5 * SIM_HZ;
 const HEALER_RADIUS_PX = 3 * TILE;
-const HEALER_BUFF_DURATION = 3 * SIM_HZ;
-const HEALER_HEAL_PCT = 0.001;
+const HEALER_BUFF_DURATION = 2 * SIM_HZ;
+const HEALER_HEAL_PCT = 0.00075;
 
 const WIZARD_COOLDOWN = 12 * SIM_HZ;
 const WIZARD_RADIUS_PX = 3 * TILE;

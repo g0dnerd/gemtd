@@ -210,7 +210,7 @@ export const COIN_SPRITE: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 0, 0],
 ];
 
-/** Rock — placed when a tower is sold; blocks pathing. */
+/** Rock — blocks pathing. */
 export const ROCK_SPRITE: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 0, 0],
   [0, 4, 1, 2, 2, 2, 3, 4],

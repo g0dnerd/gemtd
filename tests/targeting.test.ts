@@ -72,8 +72,8 @@ describe('amethyst rework stats', () => {
   it('air bonus multiplier scales with quality', () => {
     const q1 = gemStats('amethyst', 1).effects.find((e) => e.kind === 'air_bonus');
     const q5 = gemStats('amethyst', 5).effects.find((e) => e.kind === 'air_bonus');
-    expect(q1!.kind === 'air_bonus' && q5!.kind === 'air_bonus' && q5.multiplier).toBeGreaterThan(
-      q1!.kind === 'air_bonus' ? q1.multiplier : 0,
+    expect(q1!.kind === 'air_bonus' && q5!.kind === 'air_bonus' && q5!.multiplier).toBeGreaterThan(
+      q1!.kind === 'air_bonus' ? q1!.multiplier : 0,
     );
   });
 });

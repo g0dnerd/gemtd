@@ -34,7 +34,7 @@ Browser clone of SC2 Gem Tower Defense. TypeScript + PixiJS v8 (canvas) + plain 
 
 Game progresses through phases in `state.phase`: `title → build → wave → choose-keeper → build → ...` (or `gameover`/`victory`). Each phase has its own controller in `src/controllers/`:
 
-- `BuildPhase` — rolls 5 random gem draws (`DRAW_COUNT`); player must place all 5 before wave can start. Handles place/sell/undo/combine. Sell refunds `SELL_REFUND` (75%) and leaves a `Rock` cell. Placement is rejected if it disconnects the route through any consecutive waypoint pair.
+- `BuildPhase` — rolls 5 random gem draws (`DRAW_COUNT`); player must place all 5 before wave can start. Handles place/undo/combine. Placement is rejected if it disconnects the route through any consecutive waypoint pair.
 - `WavePhase` — spawns + steps creeps for the current wave.
 - `KeeperPhase` — after each wave, player keeps **one** of the 5 placed towers; the others convert to rocks (permanent maze blockers, no refund). This is core to the genre.
 - `Combat` (`src/systems/Combat.ts`) — runs every sim step regardless of phase; handles tower targeting/firing, projectile flight, on-hit effects.

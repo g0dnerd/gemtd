@@ -53,7 +53,7 @@ export const CHANCE_TIER_UPGRADE_COST: readonly number[] = [
 
 export const MAX_CHANCE_TIER = CHANCE_TIER_WEIGHTS.length - 1;
 
-/** Per-quality base gold cost (sell refund rounds down). */
+/** Per-quality base gold cost. */
 export const QUALITY_BASE_COST: Record<number, number> = {
   1: 12,
   2: 60,

@@ -125,7 +125,7 @@ export interface State {
   totalKills: number;
   /** 1 / 2 / 4. */
   speed: number;
-  /** Tile grid. Mutated when towers are placed/sold. */
+  /** Tile grid. Mutated when towers are placed. */
   grid: Cell[][];
   towers: TowerState[];
   rocks: RockState[];
