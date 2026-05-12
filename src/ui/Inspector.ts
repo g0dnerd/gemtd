@@ -509,39 +509,46 @@ function tryAutoCombineSpecial(game: Game): void {
     return;
   }
   const state = game.state;
-  let placed: TowerState[];
+
   if (state.phase !== "build") {
-    placed = state.towers.filter((t) => !t.comboKey);
-  } else {
-    const allPlaced =
-      state.draws.length > 0 &&
-      state.draws.every((d) => d.placedTowerId !== null);
-    if (allPlaced) {
-      placed = state.towers.filter((t) => !t.comboKey);
+    const placed = state.towers.filter((t) => !t.comboKey);
+    for (const c of COMBOS) {
+      const ids = matchRecipeWithMust(c, placed, sel);
+      if (ids) { game.cmdCombine(ids); return; }
+    }
+    game.bus.emit("toast", { kind: "error", text: "No recipe uses the selected gem yet" });
+    return;
+  }
+
+  const drawIds = new Set(
+    state.draws
+      .map((d) => d.placedTowerId)
+      .filter((id): id is number => id !== null),
+  );
+  const selIsCurrent = drawIds.has(sel.id);
+  const allNonCombo = state.towers.filter((t) => !t.comboKey);
+  const currentOnly = allNonCombo.filter((t) => drawIds.has(t.id));
+  const keptOnly = allNonCombo.filter((t) => !drawIds.has(t.id));
+
+  for (const c of COMBOS) {
+    const ids1 = matchRecipeWithMust(c, currentOnly, sel);
+    if (ids1) { game.cmdCombine(ids1); return; }
+    if (!selIsCurrent) {
+      const ids2 = matchRecipeWithMust(c, keptOnly, sel);
+      if (ids2) { game.cmdCombine(ids2); return; }
+    }
+    if (selIsCurrent) {
+      const ids3 = matchRecipeWithMust(c, [sel, ...keptOnly], sel);
+      if (ids3) { game.cmdCombine(ids3); return; }
     } else {
-      const drawIds = new Set(
-        state.draws
-          .map((d) => d.placedTowerId)
-          .filter((id): id is number => id !== null),
-      );
-      if (drawIds.has(sel.id)) {
-        placed = state.towers.filter((t) => !t.comboKey && drawIds.has(t.id));
-      } else {
-        placed = state.towers.filter((t) => !t.comboKey && !drawIds.has(t.id));
+      const result = matchRecipeWithMust(c, [...keptOnly, ...currentOnly], sel);
+      if (result) {
+        const currentCount = result.filter((id) => drawIds.has(id)).length;
+        if (currentCount <= 1) { game.cmdCombine(result); return; }
       }
     }
   }
-  for (const c of COMBOS) {
-    const ids = matchRecipeWithMust(c, placed, sel);
-    if (ids) {
-      game.cmdCombine(ids);
-      return;
-    }
-  }
-  game.bus.emit("toast", {
-    kind: "error",
-    text: "No recipe uses the selected gem yet",
-  });
+  game.bus.emit("toast", { kind: "error", text: "No recipe uses the selected gem yet" });
 }
 
 function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {

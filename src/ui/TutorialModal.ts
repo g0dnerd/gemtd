@@ -189,6 +189,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '0.7.2',
+      notes: [
+        '<b>Fix</b> — special combine with 1 current-round gem now works correctly.',
+      ],
+    },
+    {
       ver: '0.7.0',
       notes: [
         '<b>Aquamarine rework</b> — ramping beam replaces rapid-fire projectiles.',
