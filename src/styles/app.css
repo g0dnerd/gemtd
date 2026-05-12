@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
+  overflow: visible;
   background: var(--px-bg);
   box-shadow:
     0 0 0 3px var(--px-border-dark),
@@ -355,7 +355,9 @@
   width: 100%;
   font-size: 8px;
   padding: 7px 10px;
-  transition: box-shadow 120ms ease-out, opacity 120ms ease-out;
+  transition:
+    box-shadow 120ms ease-out,
+    opacity 120ms ease-out;
 }
 .chance-upgrade.is-affordable:not(:disabled) {
   box-shadow:
@@ -371,6 +373,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: scroll;
 }
 .inspector-body {
   display: flex;
@@ -512,19 +515,19 @@
   gap: 2px;
 }
 .inspector-combo-label {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 8px;
   color: var(--px-ink-dimmer);
   letter-spacing: 1px;
 }
 .inspector-combo-name {
-  font-family: 'VT323', monospace;
+  font-family: "VT323", monospace;
   font-size: 18px;
   color: var(--px-accent);
   line-height: 1;
 }
 .inspector-combo-arrow {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 10px;
   color: var(--px-ink-dimmer);
 }
@@ -537,7 +540,9 @@
 }
 .inspector-actions .px-btn {
   font-size: 9px;
-  transition: box-shadow 120ms ease-out, opacity 120ms ease-out;
+  transition:
+    box-shadow 120ms ease-out,
+    opacity 120ms ease-out;
 }
 .inspector-action-keep {
   width: 100%;
@@ -1304,7 +1309,8 @@
    The button glows green when at least one same-gem same-quality pair
    exists this round; blue when at least one recipe is buildable. */
 @keyframes comboPulse {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 2px 2px 0 0 var(--px-accent-hi),
       inset -2px -2px 0 0 var(--px-accent-lo),
@@ -1322,7 +1328,8 @@
   }
 }
 @keyframes comboPulseSpecial {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow:
       inset 2px 2px 0 0 var(--px-accent-hi),
       inset -2px -2px 0 0 var(--px-accent-lo),
@@ -1340,8 +1347,12 @@
   }
 }
 @keyframes comboShimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(200%);
+  }
 }
 .combo-active {
   position: relative;
@@ -1354,7 +1365,7 @@
   animation: comboPulseSpecial 1.6s ease-in-out infinite;
 }
 .combo-active::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   bottom: 0;
@@ -1427,11 +1438,21 @@
   font-size: 14px;
   margin-bottom: 4px;
 }
-.radial-label.keep .ico { color: var(--px-good); }
-.radial-label.combine .ico { color: var(--px-accent); }
-.radial-label.special .ico { color: var(--px-info); }
-.radial-label.disabled { color: var(--px-ink-dimmer); }
-.radial-label.disabled .ico { color: var(--px-ink-dimmer); }
+.radial-label.keep .ico {
+  color: var(--px-good);
+}
+.radial-label.combine .ico {
+  color: var(--px-accent);
+}
+.radial-label.special .ico {
+  color: var(--px-info);
+}
+.radial-label.disabled {
+  color: var(--px-ink-dimmer);
+}
+.radial-label.disabled .ico {
+  color: var(--px-ink-dimmer);
+}
 .radial-center {
   position: absolute;
   left: 50%;
@@ -1445,8 +1466,13 @@
   animation: radialGlow 1.6s ease-in-out infinite;
 }
 @keyframes radialGlow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 /* ===== Pattern #3: Draw panel hover-to-keep ===== */
 .draw-cell.placed-non-keep:hover {
@@ -1522,4 +1548,3 @@
   color: var(--px-good);
   margin-top: 2px;
 }
-
