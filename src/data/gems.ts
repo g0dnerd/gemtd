@@ -110,7 +110,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     spread: 0.2,
     baseRange: 3.0,
     baseAtkSpeed: 0.7,
-    effects: [{ kind: 'aura_atkspeed', radius: 2.0, pct: 0.10 }],
+    effects: [{ kind: 'aura_atkspeed', radius: 3.0, pct: 0.10 }],
     targeting: 'all',
   },
   diamond: {
@@ -195,9 +195,8 @@ function scaleEffects(effects: EffectKind[], quality: Quality): EffectKind[] {
       case 'true':
         return { ...e, chance: Math.min(0.5, e.chance + (quality - 1) * 0.04) };
       case 'aura_atkspeed': {
-        // +3% aura strength per quality tier; radius bumps at flawless+.
         const pct = e.pct + (quality - 1) * 0.03;
-        const radius = quality >= 4 ? e.radius + 0.5 : e.radius;
+        const radius = e.radius + QUALITY_RANGE_BONUS[quality];
         return { ...e, pct, radius };
       }
       default:

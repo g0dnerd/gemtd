@@ -61,7 +61,7 @@ export const COMBOS: ComboRecipe[] = [
       dmgMax: 120,
       range: 4.0,
       atkSpeed: 1.0,
-      effects: [{ kind: "aura_atkspeed", radius: 2.5, pct: 0.3 }],
+      effects: [{ kind: "aura_atkspeed", radius: 4.0, pct: 0.3 }],
       blurb: "+30% atk speed to nearby towers.",
       targeting: "all",
     },
@@ -74,7 +74,7 @@ export const COMBOS: ComboRecipe[] = [
           dmgMax: 200,
           range: 4.5,
           atkSpeed: 1.0,
-          effects: [{ kind: "aura_atkspeed", radius: 3.0, pct: 0.4 }],
+          effects: [{ kind: "aura_atkspeed", radius: 4.5, pct: 0.4 }],
           blurb: "+40% atk speed aura. Wider radius.",
           targeting: "all",
         },
@@ -477,7 +477,7 @@ export const COMBOS: ComboRecipe[] = [
           effects: [
             { kind: "splash", radius: 2.0, falloff: 0.5 },
             { kind: "slow", factor: 0.8, duration: 2.0 },
-            { kind: "aura_dmg", radius: 3.0, pct: 0.05 },
+            { kind: "aura_dmg", radius: 4.25, pct: 0.05 },
           ],
           blurb: "Huge AoE slow. +5% damage to nearby towers.",
           targeting: "all",
@@ -500,7 +500,7 @@ export const COMBOS: ComboRecipe[] = [
       range: 5.0,
       atkSpeed: 0.8,
       effects: [
-        { kind: "prox_armor_reduce", radius: 3.5, value: 5, targets: "air" },
+        { kind: "prox_armor_reduce", radius: 5.0, value: 5, targets: "air" },
       ],
       blurb: "-5 armor to air in range. Air only.",
       targeting: "air",
@@ -517,7 +517,7 @@ export const COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_armor_reduce",
-              radius: 3.5,
+              radius: 5.5,
               value: 6,
               targets: "air",
             },
@@ -537,7 +537,7 @@ export const COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_armor_reduce",
-              radius: 4.0,
+              radius: 6.0,
               value: 7,
               targets: "air",
             },
@@ -564,7 +564,7 @@ export const COMBOS: ComboRecipe[] = [
       range: 4.25,
       atkSpeed: 0.75,
       effects: [
-        { kind: "prox_armor_reduce", radius: 2.5, value: 4, targets: "ground" },
+        { kind: "prox_armor_reduce", radius: 4.25, value: 4, targets: "ground" },
         { kind: "splash", radius: 1.5, falloff: 0.5, chance: 0.33 },
       ],
       blurb: "-4 armor to ground in range. 33% frost nova.",
@@ -582,7 +582,7 @@ export const COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_armor_reduce",
-              radius: 2.5,
+              radius: 4.5,
               value: 6,
               targets: "ground",
             },
