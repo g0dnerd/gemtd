@@ -7,7 +7,7 @@ import { START_GOLD, START_LIVES, MAX_CHANCE_TIER, CHANCE_TIER_UPGRADE_COST } fr
 import { BuildPhase } from '../controllers/BuildPhase';
 import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
-import { COMBOS, nextUpgrade } from '../data/combos';
+import { COMBO_BY_NAME, nextUpgrade } from '../data/combos';
 import { Combat } from '../systems/Combat';
 import { Traps } from '../systems/Traps';
 import { Metrics } from './Metrics';
@@ -217,7 +217,7 @@ export class HeadlessGame {
     const state = this.state;
     const tower = state.towers.find((t) => t.id === towerId);
     if (!tower || !tower.comboKey) return false;
-    const combo = COMBOS.find((c) => c.key === tower.comboKey);
+    const combo = COMBO_BY_NAME.get(tower.comboKey!);
     if (!combo) return false;
     const currentTier = tower.upgradeTier ?? 0;
     const upgrade = nextUpgrade(combo, currentTier);

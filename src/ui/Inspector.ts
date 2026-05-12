@@ -7,7 +7,7 @@ import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
 import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
-import { COMBOS, ComboRecipe, comboStatsAtTier, findAllCombosFor, nextUpgrade } from "../data/combos";
+import { COMBOS, COMBO_BY_NAME, ComboRecipe, comboStatsAtTier, findAllCombosFor, nextUpgrade } from "../data/combos";
 import { TowerState } from "../game/State";
 
 export interface InspectorRefs {
@@ -130,7 +130,7 @@ function render(refs: InspectorRefs, game: Game): void {
   const sub = document.createElement("div");
   sub.className = "inspector-hero-sub";
   if (tower.comboKey) {
-    const combo = COMBOS.find((c) => c.key === tower.comboKey);
+    const combo = COMBO_BY_NAME.get(tower.comboKey!);
     const tier = tower.upgradeTier ?? 0;
     const tierName = combo && tier > 0 && combo.upgrades[tier - 1]
       ? combo.upgrades[tier - 1].name
@@ -572,7 +572,7 @@ interface ResolvedStats {
 
 function effectiveStatsFor(t: TowerState): ResolvedStats {
   if (t.comboKey) {
-    const combo = COMBOS.find((c) => c.key === t.comboKey);
+    const combo = COMBO_BY_NAME.get(t.comboKey!);
     if (combo) {
       const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
       return {
@@ -591,7 +591,7 @@ function effectiveStatsFor(t: TowerState): ResolvedStats {
 
 function getUpgradeCost(tower: TowerState): number | null {
   if (!tower.comboKey) return null;
-  const combo = COMBOS.find((c) => c.key === tower.comboKey);
+  const combo = COMBO_BY_NAME.get(tower.comboKey!);
   if (!combo) return null;
   const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
   return upgrade?.cost ?? null;
@@ -599,7 +599,7 @@ function getUpgradeCost(tower: TowerState): number | null {
 
 function getUpgradeInfo(tower: TowerState): { name: string; cost: number } | null {
   if (!tower.comboKey) return null;
-  const combo = COMBOS.find((c) => c.key === tower.comboKey);
+  const combo = COMBO_BY_NAME.get(tower.comboKey!);
   if (!combo) return null;
   const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
   if (!upgrade) return null;

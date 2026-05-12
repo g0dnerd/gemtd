@@ -11,7 +11,7 @@ import { TILE, FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ } from '../game/constants';
 import { Game } from '../game/Game';
 import { RNG } from '../game/rng';
 import { gemStats } from '../data/gems';
-import { COMBOS, comboStatsAtTier } from '../data/combos';
+import { COMBO_BY_NAME, comboStatsAtTier } from '../data/combos';
 import type { CreepState, ProjectileState, TowerState } from '../game/State';
 import type { EffectKind } from '../data/gems';
 
@@ -208,7 +208,7 @@ interface ResolvedStats {
 
 function effectiveStats(t: TowerState): ResolvedStats {
   if (t.comboKey) {
-    const combo = COMBOS.find((c) => c.key === t.comboKey);
+    const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
       const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
       return {

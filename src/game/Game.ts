@@ -26,7 +26,7 @@ import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES } from "../data/waves";
 import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from "./constants";
-import { COMBOS, nextUpgrade } from "../data/combos";
+import { COMBO_BY_NAME, nextUpgrade } from "../data/combos";
 import { Combat } from "../systems/Combat";
 import { Traps } from "../systems/Traps";
 import { TowerSpriteCache } from "../render/TowerRenderer";
@@ -554,7 +554,7 @@ export class Game {
       this.bus.emit("toast", { kind: "error", text: "Not a special tower" });
       return false;
     }
-    const combo = COMBOS.find((c) => c.key === tower.comboKey);
+    const combo = COMBO_BY_NAME.get(tower.comboKey!);
     if (!combo) return false;
     const currentTier = tower.upgradeTier ?? 0;
     const upgrade = nextUpgrade(combo, currentTier);

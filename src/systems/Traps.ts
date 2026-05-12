@@ -15,7 +15,7 @@
 
 import { TILE, FINE_TILE, SIM_HZ } from '../game/constants';
 import { Game } from '../game/Game';
-import { COMBOS, comboStatsAtTier } from '../data/combos';
+import { COMBO_BY_NAME, comboStatsAtTier } from '../data/combos';
 import type { CreepState, TowerState } from '../game/State';
 import type { EffectKind } from '../data/gems';
 
@@ -156,7 +156,7 @@ interface TrapResolvedStats {
 
 function trapStats(t: TowerState): TrapResolvedStats | null {
   if (!t.comboKey) return null;
-  const combo = COMBOS.find((c) => c.key === t.comboKey);
+  const combo = COMBO_BY_NAME.get(t.comboKey);
   if (!combo) return null;
   const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
   return {

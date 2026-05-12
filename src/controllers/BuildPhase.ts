@@ -13,7 +13,7 @@
 
 import { Cell, GRID_H, GRID_W, isBuildable } from '../data/map';
 import { Game } from '../game/Game';
-import { findCombo, COMBOS } from '../data/combos';
+import { findCombo, COMBO_BY_NAME } from '../data/combos';
 import type { GemType, Quality } from '../render/theme';
 import { GEM_TYPES } from '../render/theme';
 import { findRoute } from '../systems/Pathfinding';
@@ -287,10 +287,13 @@ export class BuildPhase {
     }
 
     // Recipe path: strict (gem, quality) tuple match.
-    // During build with unplaced draws: only all-current-round or all-kept allowed (no mixing).
-    if (state.phase === 'build' && !allDrawsPlaced(state) && !allCurrentRound && !noneCurrentRound) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Place all draws first, or use only current-round towers' });
-      return false;
+    // During build: all-current-round, all-kept, or exactly 1 current-round piece completing a kept set.
+    if (state.phase === 'build' && !allCurrentRound && !noneCurrentRound) {
+      const currentRoundCount = towers.filter((t) => currentRoundIds.has(t.id)).length;
+      if (currentRoundCount > 1) {
+        this.game.bus.emit('toast', { kind: 'error', text: 'Recipe allows at most 1 piece from the current round' });
+        return false;
+      }
     }
     const inputs = towers.map((t) => ({ gem: t.gem, quality: t.quality }));
     const combo = findCombo(inputs);
@@ -358,7 +361,7 @@ export class BuildPhase {
     }
 
     // Place the new tower at the first input's anchor.
-    const comboRecipe = comboKey ? COMBOS.find((c) => c.key === comboKey) : undefined;
+    const comboRecipe = comboKey ? COMBO_BY_NAME.get(comboKey) : undefined;
     const isTrap = comboRecipe?.type === 'trap';
     const newTower: TowerState = {
       id: this.game.nextId(),

@@ -745,6 +745,10 @@ const COMBO_BY_KEY = new Map(
   COMBOS.filter((c) => c.inputs.length > 0).map((c) => [sortKey(c.inputs), c]),
 );
 
+export const COMBO_BY_NAME = new Map<string, ComboRecipe>(
+  COMBOS.map((c) => [c.key, c]),
+);
+
 /** Return the recipe that consumes this exact (gem, quality), if any. */
 export function findComboFor(
   gem: GemType,
@@ -778,7 +782,7 @@ export function findCombo(inputs: ComboInput[]): ComboRecipe | null {
     inputs.every((i) => i.quality === 5) &&
     inputs.every((i) => i.gem === inputs[0].gem)
   ) {
-    return COMBOS.find((c) => c.key === "stargem") ?? null;
+    return COMBO_BY_NAME.get("stargem") ?? null;
   }
 
   return null;

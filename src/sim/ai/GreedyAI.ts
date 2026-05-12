@@ -5,7 +5,7 @@ import type { TowerState } from '../../game/State';
 import { Cell, GRID_H, GRID_W, isBuildable } from '../../data/map';
 import { findRoute, flattenRoute } from '../../systems/Pathfinding';
 import { gemStats } from '../../data/gems';
-import { COMBOS, nextUpgrade } from '../../data/combos';
+import { COMBOS, COMBO_BY_NAME, nextUpgrade } from '../../data/combos';
 import {
   CHANCE_TIER_UPGRADE_COST,
   MAX_CHANCE_TIER,
@@ -63,7 +63,7 @@ export class GreedyAI implements SimAI {
 
     for (const tower of state.towers) {
       if (!tower.comboKey) continue;
-      const combo = COMBOS.find((c) => c.key === tower.comboKey);
+      const combo = COMBO_BY_NAME.get(tower.comboKey!);
       if (!combo) continue;
       const next = nextUpgrade(combo, tower.upgradeTier ?? 0);
       if (!next) continue;
