@@ -271,11 +271,26 @@ export class StrategistAI extends BlueprintAI {
       if (sameGemKept > 0) portfolioMult *= 0.5;
     }
 
+    // --- Chipped gem penalty ---
+    // Only keep chipped (q1) gems if they're close to completing a combo (at most 1 missing)
+    if (tower.quality === 1 && !tower.comboKey) {
+      const combosFor = findAllCombosFor(tower.gem, tower.quality);
+      const nearCombo = combosFor.some((c) => {
+        const r = this.comboReadiness(c, allTowers, tower.id);
+        return r.missing <= 1;
+      });
+      if (!nearCombo) portfolioMult *= 0.1;
+    }
+
+    // Dampen exposure weight for low-quality gems: a q1 gem at a great position
+    // shouldn't outscore a q2+ gem at a worse position
+    const qualityExpScale = tower.comboKey ? 1.0 : Math.min(1.0, tower.quality * 0.4);
+
     return (
-      exposureDps * 0.3 +
+      exposureDps * 0.3 * qualityExpScale +
       comboScore * 0.4 +
       qualityPremium * 0.15 +
-      waveBonus * 0.15
+      waveBonus * 0.15 * qualityExpScale
     ) * portfolioMult;
   }
 
@@ -285,10 +300,27 @@ export class StrategistAI extends BlueprintAI {
     excludeId: number,
   ): { have: number; missing: number; total: number } {
     const total = combo.inputs.length;
+    const tower = towers.find((t) => t.id === excludeId);
     const used = new Set<number>();
+    const matchedInputs = new Set<number>();
     let have = 0;
 
-    for (const input of combo.inputs) {
+    // First pass: match the scored tower to an unmatched input slot
+    if (tower) {
+      for (let i = 0; i < combo.inputs.length; i++) {
+        const inp = combo.inputs[i];
+        if (inp.gem === tower.gem && inp.quality === tower.quality) {
+          matchedInputs.add(i);
+          have++;
+          break;
+        }
+      }
+    }
+
+    // Second pass: match remaining inputs from other towers on the board
+    for (let i = 0; i < combo.inputs.length; i++) {
+      if (matchedInputs.has(i)) continue;
+      const input = combo.inputs[i];
       const match = towers.find(
         (t) =>
           t.id !== excludeId &&
@@ -303,15 +335,6 @@ export class StrategistAI extends BlueprintAI {
       }
     }
 
-    // The tower being scored IS one of the inputs, so count it
-    const isInput = combo.inputs.some(
-      (inp) => {
-        const tower = towers.find((t) => t.id === excludeId);
-        return tower && inp.gem === tower.gem && inp.quality === tower.quality;
-      },
-    );
-    if (isInput) have++;
-
     return { have: Math.min(have, total), missing: total - Math.min(have, total), total };
   }
 }
@@ -324,11 +347,16 @@ function comboValue(combo: ComboRecipe): number {
   for (const e of stats.effects) {
     if (e.kind === 'splash') dps *= 1.5;
     else if (e.kind === 'chain') dps *= 1 + e.bounces * 0.3;
-    else if (e.kind === 'slow') dps *= 1.3;
+    else if (e.kind === 'slow' || e.kind === 'prox_slow') dps *= 1.3;
     else if (e.kind === 'poison') dps += e.dps * e.duration * 0.5;
+    else if (e.kind === 'prox_burn') dps += e.dps * 3;
     else if (e.kind === 'stun') dps *= 1 + e.chance * 2;
     else if (e.kind === 'crit') dps *= 1 + e.chance * (e.multiplier - 1);
     else if (e.kind === 'aura_atkspeed') dps *= 1 + e.pct * 3;
+    else if (e.kind === 'aura_dmg') dps *= 1 + e.pct * 3;
+    else if (e.kind === 'multi_target') dps *= Math.min(e.count, 5);
+    else if (e.kind === 'prox_armor_reduce') dps += e.value * 15;
+    else if (e.kind === 'armor_reduce') dps *= 1 + e.value * 0.1;
   }
 
   if (combo.upgrades.length > 0) dps *= 1.3;
