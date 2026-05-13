@@ -8,6 +8,7 @@
 
 import { GemType, Quality } from "../render/theme";
 import type { EffectKind, Targeting } from "./gems";
+import { RUNES_ENABLED } from "../game/constants";
 
 export interface ComboInput {
   gem: GemType;
@@ -47,7 +48,7 @@ const sortKey = (xs: ComboInput[]): string =>
     .sort()
     .join("+");
 
-export const COMBOS: ComboRecipe[] = [
+const ALL_COMBOS: ComboRecipe[] = [
   {
     key: "black_opal",
     name: "Black Opal",
@@ -736,6 +737,10 @@ export const COMBOS: ComboRecipe[] = [
     type: "trap",
   },
 ];
+
+export const COMBOS: ComboRecipe[] = RUNES_ENABLED
+  ? ALL_COMBOS
+  : ALL_COMBOS.filter((c) => c.type !== 'trap');
 
 const COMBO_BY_KEY = new Map(
   COMBOS.filter((c) => c.inputs.length > 0).map((c) => [sortKey(c.inputs), c]),

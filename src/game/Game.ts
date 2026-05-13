@@ -31,7 +31,7 @@ import {
 import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES } from "../data/waves";
-import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from "./constants";
+import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER, RUNES_ENABLED } from "./constants";
 import { COMBO_BY_NAME, nextUpgrade } from "../data/combos";
 import { Combat } from "../systems/Combat";
 import { Traps } from "../systems/Traps";
@@ -422,7 +422,7 @@ export class Game {
       this.wavePhase.step();
     }
     this.combat.step();
-    this.traps.step();
+    if (RUNES_ENABLED) this.traps.step();
   }
 
   private renderEntities(): void {

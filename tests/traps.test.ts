@@ -4,12 +4,14 @@ import { emptyState, State, TowerState, CreepState } from "../src/game/State";
 import { BASE, Cell } from "../src/data/map";
 import { EventBus } from "../src/events/EventBus";
 import { RNG } from "../src/game/rng";
-import { FINE_TILE } from "../src/game/constants";
+import { FINE_TILE, RUNES_ENABLED } from "../src/game/constants";
 import { findRoute, flattenRoute } from "../src/systems/Pathfinding";
 import { BuildPhase } from "../src/controllers/BuildPhase";
 import { COMBOS, comboStatsAtTier, findCombo } from "../src/data/combos";
 import { isBuildable } from "../src/data/map";
 import { Quality } from "../src/render/theme";
+
+const describeRunes = RUNES_ENABLED ? describe : describe.skip;
 
 interface FakeGame {
   state: State;
@@ -99,7 +101,7 @@ function makeCreep(game: FakeGame, px: number, py: number): CreepState {
   return creep;
 }
 
-describe("Traps system", () => {
+describeRunes("Traps system", () => {
   it("triggers when a creep is inside the trap footprint", () => {
     const { game, state } = setup();
     const trap = makeTrap(game, "rune_damage", 10, 10);
@@ -267,7 +269,7 @@ describe("Traps system", () => {
   });
 });
 
-describe("Traps: Cell.Trap walkability", () => {
+describeRunes("Traps: Cell.Trap walkability", () => {
   it("Cell.Trap is walkable for pathfinding", () => {
     const grid = BASE.grid.map((r) => r.slice());
     grid[10][10] = Cell.Trap;
@@ -283,7 +285,7 @@ describe("Traps: Cell.Trap walkability", () => {
   });
 });
 
-describe("Traps: combine produces trap towers", () => {
+describeRunes("Traps: combine produces trap towers", () => {
   it("Rune of Holding recipe produces a trap tower", () => {
     const grid = BASE.grid.map((r) => r.slice());
     const state = emptyState(grid, 50);
@@ -395,7 +397,7 @@ describe("Traps: combine produces trap towers", () => {
   });
 });
 
-describe("Traps: combo stats", () => {
+describeRunes("Traps: combo stats", () => {
   it("rune_damage has positive damage", () => {
     const combo = COMBOS.find((c) => c.key === "rune_damage")!;
     const stats = comboStatsAtTier(combo, 0);

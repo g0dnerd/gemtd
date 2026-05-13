@@ -4,6 +4,7 @@
  */
 
 import { htmlGem, htmlCoin, htmlHeart } from '../render/htmlSprites';
+import { RUNES_ENABLED } from '../game/constants';
 
 interface Section {
   title: string;
@@ -44,7 +45,7 @@ export function mountTutorialModal(root: HTMLElement): () => void {
     { title: 'BUILD', body: buildBody() },
     { title: 'MAZE', body: mazeBody() },
     { title: 'COMBINE', body: combineBody() },
-    { title: 'RUNES', body: runesBody() },
+    ...(RUNES_ENABLED ? [{ title: 'RUNES', body: runesBody() }] : []),
     { title: 'KEYS', body: keysBody() },
     { title: 'CHANGES', body: changesBody() },
   ];
@@ -188,6 +189,12 @@ function changesBody(): HTMLElement {
   const wrap = document.createElement('div');
 
   const versions: Array<{ ver: string; notes: string[] }> = [
+    {
+      ver: '0.11.0',
+      notes: [
+        '<b>Runes disabled</b> — runes temporarily disabled due to UX/balance issues.',
+      ],
+    },
     {
       ver: '0.10.0',
       notes: [
