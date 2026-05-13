@@ -271,6 +271,16 @@ export class StrategistAI extends BlueprintAI {
       if (sameGemKept > 0) portfolioMult *= 0.5;
     }
 
+    // --- Chipped gem penalty ---
+    // Chipped gems are almost never worth keeping individually.
+    // Only allow if this gem completes a combo right now (missing === 0).
+    if (!tower.comboKey && tower.quality === 1) {
+      const completesCombo = findAllCombosFor(tower.gem, tower.quality).some(
+        (combo) => this.comboReadiness(combo, allTowers, tower.id).missing === 0,
+      );
+      if (!completesCombo) portfolioMult *= 0.05;
+    }
+
     return (
       exposureDps * 0.3 +
       comboScore * 0.4 +
