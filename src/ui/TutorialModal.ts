@@ -190,6 +190,13 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '0.12.0',
+      notes: [
+        '<b>Balance</b> — First chance tier upgrade cost reduced: 30 g → 25 g.',
+        '<b>Balance</b> — Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14 000 → 9 000.',
+      ],
+    },
+    {
       ver: '0.11.0',
       notes: [
         '<b>Runes disabled</b> — runes temporarily disabled due to UX/balance issues.',

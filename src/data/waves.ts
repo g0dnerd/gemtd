@@ -101,8 +101,8 @@ export const WAVES: WaveDef[] = [
     11,
     0.55,
     9,
-    ["healer", 3, 800, 3],
-    ["normal", 9, 1450, 2],
+    ["healer", 2, 800, 4],
+    ["normal", 10, 1450, 2],
     ["fast", 5, 1450, 2],
   ),
   w(12, "fast", 20, 1610, 2, 0.4, 9),
@@ -116,7 +116,7 @@ export const WAVES: WaveDef[] = [
   ),
   w(14, "normal", 18, 2130, 2, 0.55, 10),
   wm(15, 0.55, 12, ["air", 11, 1710, 3], ["healer", 2, 1200, 4]),
-  w(16, "fast", 22, 2820, 3, 0.4, 12),
+  w(16, "fast", 22, 2420, 3, 0.4, 12),
   wm(
     17,
     0.55,
@@ -125,7 +125,7 @@ export const WAVES: WaveDef[] = [
     ["fast", 6, 3220, 3],
     ["healer", 2, 2200, 5],
   ),
-  w(18, "armored", 15, 4650, 5, 0.75, 17),
+  w(18, "armored", 15, 3950, 5, 0.75, 17),
   wm(
     19,
     0.55,
@@ -134,7 +134,7 @@ export const WAVES: WaveDef[] = [
     ["fast", 4, 2820, 4],
     ["healer", 2, 2000, 5],
   ),
-  w(20, "boss", 6, 14000, 20, 1.2, 60),
+  w(20, "boss", 6, 12000, 20, 1.2, 60),
 
   // --- Waves 21-29: tunnelers introduced, both specials mix in ---
   wm(

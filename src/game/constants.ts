@@ -48,7 +48,7 @@ export const CHANCE_TIER_WEIGHTS: readonly (readonly number[])[] = [
 
 /** Cost in gold to upgrade chance tier from index N to N+1 (length 8). */
 export const CHANCE_TIER_UPGRADE_COST: readonly number[] = [
-  30, 75, 120, 160, 210, 260, 300, 350,
+  25, 75, 120, 160, 210, 260, 300, 350,
 ];
 
 export const MAX_CHANCE_TIER = CHANCE_TIER_WEIGHTS.length - 1;

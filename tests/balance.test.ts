@@ -106,9 +106,9 @@ describe("balance / data integrity", () => {
     }
   });
 
-  it("chance-tier upgrade costs total 1505g", () => {
+  it("chance-tier upgrade costs total 1500g", () => {
     const total = CHANCE_TIER_UPGRADE_COST.reduce((a, b) => a + b, 0);
-    expect(total).toBe(1505);
+    expect(total).toBe(1500);
   });
 
   it("there are exactly 70 waves", () => {

@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v0.11.0";
+  wmVer.textContent = "v0.12.0";
   wm.append(wmName, wmVer);
   headerBar.appendChild(wm);
 
@@ -161,15 +161,13 @@ export function mountHud(
     special: SPECIAL_WEDGE,
     downgrade: DOWNGRADE_WEDGE,
   };
-  const SLICE_HIGHLIGHT: Record<
-    RadialSlice,
-    { fill: string; stroke: string }
-  > = {
-    keep: { fill: "rgba(88,200,80,0.22)", stroke: "#58c850" },
-    combine: { fill: "rgba(240,160,64,0.22)", stroke: "#f0a040" },
-    special: { fill: "rgba(120,168,248,0.22)", stroke: "#78a8f8" },
-    downgrade: { fill: "rgba(208,72,72,0.22)", stroke: "#d04848" },
-  };
+  const SLICE_HIGHLIGHT: Record<RadialSlice, { fill: string; stroke: string }> =
+    {
+      keep: { fill: "rgba(88,200,80,0.22)", stroke: "#58c850" },
+      combine: { fill: "rgba(240,160,64,0.22)", stroke: "#f0a040" },
+      special: { fill: "rgba(120,168,248,0.22)", stroke: "#78a8f8" },
+      downgrade: { fill: "rgba(208,72,72,0.22)", stroke: "#d04848" },
+    };
 
   function svgEl<K extends keyof SVGElementTagNameMap>(
     tag: K,
@@ -324,7 +322,6 @@ export function mountHud(
   rCenter.className = "radial-center";
   radialWrap.appendChild(rCenter);
 
-
   let radialOpen = false;
   let radialTowerId: number | null = null;
   let radialCenterX = 0;
@@ -395,7 +392,6 @@ export function mountHud(
     specialLbl.classList.toggle("disabled", !radialSpecialOk);
     downgradeLbl.classList.toggle("disabled", !radialDowngradeOk);
 
-
     rCenter.innerHTML = "";
     rCenter.appendChild(htmlGem(tower.gem, 24, tower.quality > 2));
 
@@ -449,10 +445,7 @@ export function mountHud(
       return;
     }
     const rect = canvasHost.getBoundingClientRect();
-    const s = sliceFromXY(
-      ev.clientX - rect.left,
-      ev.clientY - rect.top,
-    );
+    const s = sliceFromXY(ev.clientX - rect.left, ev.clientY - rect.top);
     const tower = game.state.towers.find((t) => t.id === radialTowerId);
     if (s && tower && isSliceActive(s)) {
       if (s === "keep") {
@@ -492,7 +485,7 @@ export function mountHud(
     if (tower.comboKey) return false;
     if (tower.quality <= 1) return false;
     if (game.state.downgradeUsedThisRound) return false;
-    if (game.state.phase === 'wave') {
+    if (game.state.phase === "wave") {
       return game.state.keptTowerIdThisRound === tower.id;
     }
     const drawIds = new Set(
@@ -507,7 +500,7 @@ export function mountHud(
     if (tower.comboKey) return false;
     const state = game.state;
 
-    if (state.phase !== 'build') {
+    if (state.phase !== "build") {
       const placed = state.towers.filter((t) => !t.comboKey);
       return matchAnyRecipe(placed, tower);
     }
@@ -527,16 +520,26 @@ export function mountHud(
     if (towerIsCurrent) {
       if (matchAnyRecipe([tower, ...keptOnly], tower)) return true;
     } else {
-      if (matchAnyRecipeMaxCurrent([...keptOnly, ...currentOnly], tower, drawIds, 1)) return true;
+      if (
+        matchAnyRecipeMaxCurrent(
+          [...keptOnly, ...currentOnly],
+          tower,
+          drawIds,
+          1,
+        )
+      )
+        return true;
     }
     return false;
   }
 
   function matchAnyRecipe(placed: TowerState[], tower: TowerState): boolean {
     for (const c of COMBOS) {
-      if (c.key === 'stargem') {
+      if (c.key === "stargem") {
         if (tower.quality === 5) {
-          const same = placed.filter(t => t.id !== tower.id && t.gem === tower.gem && t.quality === 5);
+          const same = placed.filter(
+            (t) => t.id !== tower.id && t.gem === tower.gem && t.quality === 5,
+          );
           if (same.length >= 3) return true;
         }
         continue;
@@ -545,7 +548,11 @@ export function mountHud(
       let consumed = false;
       let valid = true;
       for (const inp of c.inputs) {
-        if (!consumed && inp.gem === tower.gem && inp.quality === tower.quality) {
+        if (
+          !consumed &&
+          inp.gem === tower.gem &&
+          inp.quality === tower.quality
+        ) {
           consumed = true;
           continue;
         }
@@ -573,13 +580,17 @@ export function mountHud(
     maxCurrent: number,
   ): boolean {
     for (const c of COMBOS) {
-      if (c.key === 'stargem') continue;
+      if (c.key === "stargem") continue;
       const used = new Set<number>([tower.id]);
       let consumed = false;
       let valid = true;
       const ids: number[] = [];
       for (const inp of c.inputs) {
-        if (!consumed && inp.gem === tower.gem && inp.quality === tower.quality) {
+        if (
+          !consumed &&
+          inp.gem === tower.gem &&
+          inp.quality === tower.quality
+        ) {
           consumed = true;
           ids.push(tower.id);
           continue;
@@ -621,20 +632,20 @@ export function mountHud(
     if (matches.length < 2) return;
     const others = matches.filter((t) => t.id !== tower.id);
     const take = matches.length >= 4 ? 4 : 2;
-    game.cmdCombine([
-      tower.id,
-      ...others.slice(0, take - 1).map((t) => t.id),
-    ]);
+    game.cmdCombine([tower.id, ...others.slice(0, take - 1).map((t) => t.id)]);
   }
 
   function doRadialSpecial(tower: TowerState): void {
     const state = game.state;
 
-    if (state.phase !== 'build') {
+    if (state.phase !== "build") {
       const placed = state.towers.filter((t) => !t.comboKey);
       for (const c of COMBOS) {
         const ids = findRecipeMatch(placed, tower, c);
-        if (ids) { game.cmdCombine(ids); return; }
+        if (ids) {
+          game.cmdCombine(ids);
+          return;
+        }
       }
       return;
     }
@@ -652,20 +663,32 @@ export function mountHud(
     for (const c of COMBOS) {
       if (towerIsCurrent) {
         const ids = findRecipeMatch(currentOnly, tower, c);
-        if (ids) { game.cmdCombine(ids); return; }
+        if (ids) {
+          game.cmdCombine(ids);
+          return;
+        }
       }
       if (!towerIsCurrent) {
         const ids = findRecipeMatch(keptOnly, tower, c);
-        if (ids) { game.cmdCombine(ids); return; }
+        if (ids) {
+          game.cmdCombine(ids);
+          return;
+        }
       }
       if (towerIsCurrent) {
         const ids = findRecipeMatch([tower, ...keptOnly], tower, c);
-        if (ids) { game.cmdCombine(ids); return; }
+        if (ids) {
+          game.cmdCombine(ids);
+          return;
+        }
       } else {
         const ids = findRecipeMatch([...keptOnly, ...currentOnly], tower, c);
         if (ids) {
           const currentCount = ids.filter((id) => drawIds.has(id)).length;
-          if (currentCount <= 1) { game.cmdCombine(ids); return; }
+          if (currentCount <= 1) {
+            game.cmdCombine(ids);
+            return;
+          }
         }
       }
     }
@@ -676,10 +699,13 @@ export function mountHud(
     tower: TowerState,
     c: ComboRecipe,
   ): number[] | null {
-    if (c.key === 'stargem') {
+    if (c.key === "stargem") {
       if (tower.quality === 5) {
-        const same = placed.filter(t => t.id !== tower.id && t.gem === tower.gem && t.quality === 5);
-        if (same.length >= 3) return [tower.id, ...same.slice(0, 3).map(t => t.id)];
+        const same = placed.filter(
+          (t) => t.id !== tower.id && t.gem === tower.gem && t.quality === 5,
+        );
+        if (same.length >= 3)
+          return [tower.id, ...same.slice(0, 3).map((t) => t.id)];
       }
       return null;
     }
@@ -694,9 +720,7 @@ export function mountHud(
       }
       const t = placed.find(
         (tt) =>
-          !used.has(tt.id) &&
-          tt.gem === inp.gem &&
-          tt.quality === inp.quality,
+          !used.has(tt.id) && tt.gem === inp.gem && tt.quality === inp.quality,
       );
       if (!t) return null;
       used.add(t.id);
@@ -928,7 +952,7 @@ export function mountHud(
     arch.className = "threat-arch";
     const primary = def.groups[0];
     arch.style.color = ARCHETYPE_COLORS[primary.kind];
-    arch.textContent = def.groups.map(g => g.kind.toUpperCase()).join(" + ");
+    arch.textContent = def.groups.map((g) => g.kind.toUpperCase()).join(" + ");
     const weakRow = document.createElement("div");
     weakRow.className = "threat-weak-row";
     const weakLbl = document.createElement("span");
@@ -1002,56 +1026,75 @@ export function mountHud(
       game.state.designatedKeepTowerId !== null;
     const ready =
       concluded ||
-      (allDrawsPlaced(game.state) && (game.state.designatedKeepTowerId !== null || game.creativeMode));
+      (allDrawsPlaced(game.state) &&
+        (game.state.designatedKeepTowerId !== null || game.creativeMode));
     startBtn.disabled = !ready;
   }
 
   const unsubs: Array<() => void> = [];
   unsubs.push(game.bus.on("gold:change", refreshChips));
   unsubs.push(game.bus.on("lives:change", refreshChips));
-  unsubs.push(game.bus.on("tower:placed", () => {
-    refreshDraw();
-    rebuildRecipes();
-  }));
-  unsubs.push(game.bus.on("combine:done", () => {
-    rebuildRecipes();
-  }));
-  unsubs.push(game.bus.on("wave:start", () => {
-    refreshThreats();
-  }));
-  unsubs.push(game.bus.on("wave:end", () => {
-    refreshThreats();
-  }));
-  unsubs.push(game.bus.on("phase:enter", () => {
-    refreshThreats();
-  }));
-  unsubs.push(game.bus.on("draws:roll", () => {
-    refreshDraw();
-  }));
-  unsubs.push(game.bus.on("draws:change", () => {
-    refreshDraw();
-  }));
-  unsubs.push(game.bus.on("phase:enter", ({ phase }) => {
-    if (phase === "wave") {
-      startBtn.disabled = true;
-      closeRadial();
-    } else if (phase === "gameover" || phase === "victory") {
-      mountGameOver(root, game, phase, onExit);
-    }
-    game.refreshRoute();
-  }));
+  unsubs.push(
+    game.bus.on("tower:placed", () => {
+      refreshDraw();
+      rebuildRecipes();
+    }),
+  );
+  unsubs.push(
+    game.bus.on("combine:done", () => {
+      rebuildRecipes();
+    }),
+  );
+  unsubs.push(
+    game.bus.on("wave:start", () => {
+      refreshThreats();
+    }),
+  );
+  unsubs.push(
+    game.bus.on("wave:end", () => {
+      refreshThreats();
+    }),
+  );
+  unsubs.push(
+    game.bus.on("phase:enter", () => {
+      refreshThreats();
+    }),
+  );
+  unsubs.push(
+    game.bus.on("draws:roll", () => {
+      refreshDraw();
+    }),
+  );
+  unsubs.push(
+    game.bus.on("draws:change", () => {
+      refreshDraw();
+    }),
+  );
+  unsubs.push(
+    game.bus.on("phase:enter", ({ phase }) => {
+      if (phase === "wave") {
+        startBtn.disabled = true;
+        closeRadial();
+      } else if (phase === "gameover" || phase === "victory") {
+        mountGameOver(root, game, phase, onExit);
+      }
+      game.refreshRoute();
+    }),
+  );
 
-  unsubs.push(game.bus.on("focusRecipe", ({ key }) => {
-    const card = recipesList.querySelector<HTMLElement>(
-      `.recipe-card[data-recipe-key="${key}"]`,
-    );
-    if (!card) return;
-    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    card.style.outline = "2px solid var(--px-accent)";
-    setTimeout(() => {
-      card.style.outline = "";
-    }, 600);
-  }));
+  unsubs.push(
+    game.bus.on("focusRecipe", ({ key }) => {
+      const card = recipesList.querySelector<HTMLElement>(
+        `.recipe-card[data-recipe-key="${key}"]`,
+      );
+      if (!card) return;
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      card.style.outline = "2px solid var(--px-accent)";
+      setTimeout(() => {
+        card.style.outline = "";
+      }, 600);
+    }),
+  );
 
   // Periodic refresh for in-wave HUD.
   const tickHandle = window.setInterval(tick, 100);
@@ -1264,7 +1307,9 @@ export function mountHud(
       game.toggleCreativeMode();
       game.bus.emit("toast", {
         kind: "info",
-        text: game.creativeMode ? "Creative mode ON — place rocks freely" : "Creative mode OFF",
+        text: game.creativeMode
+          ? "Creative mode ON — place rocks freely"
+          : "Creative mode OFF",
       });
     }
   };
