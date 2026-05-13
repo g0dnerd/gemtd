@@ -67,6 +67,10 @@ export interface CreepState {
   stun?: { expiresAt: number };
   /** Proximity-aura armor reduction applied this tick (reset each step). */
   armorReduction: number;
+  /** On-hit armor debuff (duration-tracked, separate from proximity armorReduction). */
+  armorDebuff?: { value: number; expiresAt: number };
+  /** Proximity slow applied this tick (reset each step, like armorReduction). */
+  proxSlowFactor?: number;
   /** Boss / armored / air flags. */
   flags?: { boss?: boolean; armored?: boolean; air?: boolean };
   alive: boolean;

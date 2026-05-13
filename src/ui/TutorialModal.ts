@@ -189,6 +189,17 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '0.10.0',
+      notes: [
+        '<b>Multi-target</b> — Malachite now fires independent projectiles at multiple enemies instead of chain lightning.',
+        '<b>Proximity burn</b> — Star Ruby and Uranium radiate passive damage to all nearby enemies.',
+        '<b>Proximity slow</b> — Uranium slows all enemies in range without attacking.',
+        '<b>Armor shred</b> — Gold applies an armor reduction debuff on hit.',
+        '<b>Bonus gold</b> — Lucky Asian Jade has a 5% chance to double kill bounty.',
+        '<b>Black Opal</b> — Now grants a damage aura instead of attack speed aura.',
+      ],
+    },
+    {
       ver: '0.9.0',
       notes: [
         '<b>Downgrade</b> — new action: reduce a gem\'s tier by 1 to keep it. One use per round; auto-starts the wave.',

@@ -141,6 +141,9 @@ export class WavePhase {
     if (c.slow && c.slow.expiresAt > this.game.state.tick) {
       speed *= c.slow.factor;
     }
+    if (c.proxSlowFactor !== undefined) {
+      speed *= c.proxSlowFactor;
+    }
     const isAir = !!c.flags?.air;
     const route = this.routeFor(isAir);
     if (route.length === 0) return;
@@ -160,6 +163,7 @@ export class WavePhase {
     // Clear expired buffs/states
     if (c.burrowed && c.burrowed.expiresAt <= this.game.state.tick) c.burrowed = undefined;
     if (c.healBuff && c.healBuff.expiresAt <= this.game.state.tick) c.healBuff = undefined;
+    if (c.armorDebuff && c.armorDebuff.expiresAt <= this.game.state.tick) c.armorDebuff = undefined;
 
     // Heal buff ticks
     if (c.healBuff) {

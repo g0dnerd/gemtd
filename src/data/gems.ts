@@ -28,7 +28,12 @@ export type EffectKind =
   | { kind: 'trap_root'; duration: number }
   | { kind: 'trap_knockback'; distance: number }
   | { kind: 'air_bonus'; multiplier: number }
-  | { kind: 'beam_ramp'; rampPerHit: number; maxStacks: number };
+  | { kind: 'beam_ramp'; rampPerHit: number; maxStacks: number }
+  | { kind: 'multi_target'; count: number }
+  | { kind: 'prox_burn'; dps: number; radius: number }
+  | { kind: 'prox_slow'; factor: number; radius: number }
+  | { kind: 'armor_reduce'; value: number; duration: number }
+  | { kind: 'bonus_gold'; chance: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -205,6 +210,14 @@ function scaleEffects(effects: EffectKind[], quality: Quality): EffectKind[] {
       }
       case 'beam_ramp':
         return { ...e, rampPerHit: +(e.rampPerHit + (quality - 1) * 0.01).toFixed(2) };
+      case 'prox_burn':
+        return { ...e, dps: e.dps * dmgScale, radius: e.radius * (1 + (quality - 1) * 0.08) };
+      case 'prox_slow':
+        return { ...e, factor: Math.max(0.3, e.factor - (quality - 1) * 0.04) };
+      case 'armor_reduce':
+        return { ...e, value: e.value + (quality - 1), duration: e.duration + (quality - 1) * 0.5 };
+      case 'bonus_gold':
+        return { ...e, chance: Math.min(0.15, e.chance + (quality - 1) * 0.01) };
       default:
         return e;
     }
@@ -275,6 +288,16 @@ export function effectSummary(e: EffectKind): string {
       return `×${e.multiplier.toFixed(1)} vs air`;
     case 'beam_ramp':
       return `Beam: +${Math.round(e.rampPerHit * 100)}%/hit, max ×${(1 + e.maxStacks * e.rampPerHit).toFixed(1)}`;
+    case 'multi_target':
+      return `Attacks ${e.count} targets`;
+    case 'prox_burn':
+      return `Burn ${Math.round(e.dps)}/s · ${e.radius.toFixed(1)} tiles`;
+    case 'prox_slow':
+      return `Slow ×${e.factor.toFixed(2)} nearby · ${e.radius.toFixed(1)} tiles`;
+    case 'armor_reduce':
+      return `-${e.value} armor for ${e.duration}s`;
+    case 'bonus_gold':
+      return `${Math.round(e.chance * 100)}% bonus gold`;
     case 'none':
       return '';
   }

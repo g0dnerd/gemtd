@@ -24,10 +24,13 @@ export class Combat {
     const state = this.game.state;
     const tick = state.tick;
 
-    // Reset and recompute proximity armor debuffs each tick.
+    // Reset and recompute proximity auras each tick.
     if (state.phase === 'wave') {
-      for (const c of state.creeps) if (c.alive) c.armorReduction = 0;
-      applyProximityAuras(state.towers, state.creeps);
+      for (const c of state.creeps) if (c.alive) {
+        c.armorReduction = 0;
+        c.proxSlowFactor = undefined;
+      }
+      this.applyProximityAuras(state.towers, state.creeps);
     }
 
     // Towers fire (only during waves). Traps are handled by the Traps system.
@@ -36,22 +39,33 @@ export class Combat {
       for (const t of state.towers) {
         if (t.isTrap) continue;
         const stats = effectiveStats(t);
+        // Passive burn towers don't fire projectiles.
+        if (stats.effects.some((e) => e.kind === 'prox_burn')) continue;
         const atkMult = auras.atkSpeed.get(t.id) ?? 0;
         const effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
         const cooldownTicks = Math.max(1, Math.round(SIM_HZ / effectiveAtkSpeed));
         if (tick - t.lastFireTick < cooldownTicks) continue;
         const beamEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'beam_ramp' }> => e.kind === 'beam_ramp');
-        const target = pickTarget(t, stats.range, state.creeps, stats.targeting, tick);
-        if (!target) {
-          if (beamEffect) t.beam = undefined;
-          continue;
-        }
-        t.lastFireTick = tick;
-        const dmgMult = auras.dmg.get(t.id) ?? 0;
-        if (beamEffect) {
-          this.beamHit(t, target, stats, beamEffect, dmgMult);
+        const multiEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'multi_target' }> => e.kind === 'multi_target');
+        if (multiEffect) {
+          const targets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, multiEffect.count);
+          if (targets.length === 0) continue;
+          t.lastFireTick = tick;
+          const dmgMult = auras.dmg.get(t.id) ?? 0;
+          for (const tgt of targets) this.fire(t, tgt, stats, dmgMult);
         } else {
-          this.fire(t, target, stats, dmgMult);
+          const target = pickTarget(t, stats.range, state.creeps, stats.targeting, tick);
+          if (!target) {
+            if (beamEffect) t.beam = undefined;
+            continue;
+          }
+          t.lastFireTick = tick;
+          const dmgMult = auras.dmg.get(t.id) ?? 0;
+          if (beamEffect) {
+            this.beamHit(t, target, stats, beamEffect, dmgMult);
+          } else {
+            this.fire(t, target, stats, dmgMult);
+          }
         }
       }
     }
@@ -177,7 +191,11 @@ export class Combat {
   private applyDamage(c: CreepState, dmg: number, owner: TowerState): void {
     if (!c.alive) return;
     if (c.flags?.armored) dmg = Math.round(dmg * 0.7);
-    if (c.armorReduction > 0) dmg = Math.round(dmg * (1 + c.armorReduction * 0.05));
+    let totalArmorReduce = c.armorReduction;
+    if (c.armorDebuff && c.armorDebuff.expiresAt > this.game.state.tick) {
+      totalArmorReduce += c.armorDebuff.value;
+    }
+    if (totalArmorReduce > 0) dmg = Math.round(dmg * (1 + totalArmorReduce * 0.05));
     c.hp -= dmg;
     this.game.bus.emit('tower:hit', { id: owner.id, targetId: c.id, damage: dmg });
     if (c.hp <= 0) {
@@ -185,6 +203,13 @@ export class Combat {
       owner.kills++;
       const state = this.game.state;
       state.gold += c.bounty;
+      // Bonus gold check
+      const ownerStats = effectiveStats(owner);
+      for (const e of ownerStats.effects) {
+        if (e.kind === 'bonus_gold' && this.game.rng.next() < e.chance) {
+          state.gold += c.bounty;
+        }
+      }
       state.totalKills++;
       state.waveStats.killedThisWave++;
       this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty });
@@ -224,9 +249,55 @@ export class Combat {
           }
           break;
         }
+        case 'armor_reduce': {
+          const expires = tick + Math.round(e.duration * SIM_HZ);
+          if (!c.armorDebuff || c.armorDebuff.value < e.value) {
+            c.armorDebuff = { value: e.value, expiresAt: expires };
+          } else if (c.armorDebuff.value === e.value) {
+            c.armorDebuff.expiresAt = Math.max(c.armorDebuff.expiresAt, expires);
+          }
+          break;
+        }
         // splash/chain handled in impact()
         default:
           break;
+      }
+    }
+  }
+
+  private applyProximityAuras(towers: TowerState[], creeps: CreepState[]): void {
+    for (const src of towers) {
+      const stats = effectiveStats(src);
+      const tx = (src.x + 1) * FINE_TILE;
+      const ty = (src.y + 1) * FINE_TILE;
+      for (const e of stats.effects) {
+        if (e.kind === 'prox_armor_reduce') {
+          const r2 = (e.radius * TILE) ** 2;
+          for (const c of creeps) {
+            if (!c.alive || !canTargetProx(e.targets, c)) continue;
+            const dx = c.px - tx, dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            c.armorReduction = Math.max(c.armorReduction, e.value);
+          }
+        } else if (e.kind === 'prox_burn') {
+          const r2 = (e.radius * TILE) ** 2;
+          const dmgPerTick = e.dps / SIM_HZ;
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx, dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            this.applyDamage(c, Math.max(1, Math.round(dmgPerTick)), src);
+          }
+        } else if (e.kind === 'prox_slow') {
+          const r2 = (e.radius * TILE) ** 2;
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx, dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            const factor = e.factor + (1 - e.factor) * c.slowResist;
+            c.proxSlowFactor = Math.min(c.proxSlowFactor ?? 1, factor);
+          }
+        }
       }
     }
   }
@@ -304,27 +375,6 @@ function computeAuraMults(towers: TowerState[]): AuraMults {
   return { atkSpeed, dmg };
 }
 
-function applyProximityAuras(towers: TowerState[], creeps: CreepState[]): void {
-  for (const src of towers) {
-    const stats = effectiveStats(src);
-    for (const e of stats.effects) {
-      if (e.kind !== 'prox_armor_reduce') continue;
-      const radiusPx = e.radius * TILE;
-      const r2 = radiusPx * radiusPx;
-      const tx = (src.x + 1) * FINE_TILE;
-      const ty = (src.y + 1) * FINE_TILE;
-      for (const c of creeps) {
-        if (!c.alive) continue;
-        if (!canTargetProx(e.targets, c)) continue;
-        const dx = c.px - tx;
-        const dy = c.py - ty;
-        if (dx * dx + dy * dy > r2) continue;
-        c.armorReduction = Math.max(c.armorReduction, e.value);
-      }
-    }
-  }
-}
-
 function canTargetProx(targets: 'ground' | 'air' | 'all', creep: CreepState): boolean {
   if (targets === 'all') return true;
   const isAir = !!creep.flags?.air;
@@ -356,6 +406,20 @@ function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], tar
     if (!best || c.pathPos > best.pathPos) best = c;
   }
   return best;
+}
+
+function pickTargets(t: TowerState, rangeTiles: number, creeps: CreepState[], targeting: 'all' | 'ground' | 'air', tick: number, count: number): CreepState[] {
+  const r2 = (rangeTiles * TILE) ** 2;
+  const tx = (t.x + 1) * FINE_TILE;
+  const ty = (t.y + 1) * FINE_TILE;
+  const inRange: CreepState[] = [];
+  for (const c of creeps) {
+    if (!c.alive || isBurrowed(c, tick) || !canTarget(targeting, c)) continue;
+    const dx = c.px - tx, dy = c.py - ty;
+    if (dx * dx + dy * dy <= r2) inRange.push(c);
+  }
+  inRange.sort((a, b) => b.pathPos - a.pathPos);
+  return inRange.slice(0, count);
 }
 
 function nearest(creeps: CreepState[], x: number, y: number, exclude: Set<number>, maxDist: number, tick: number): CreepState | null {
