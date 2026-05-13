@@ -271,26 +271,11 @@ export class StrategistAI extends BlueprintAI {
       if (sameGemKept > 0) portfolioMult *= 0.5;
     }
 
-    // --- Chipped gem penalty ---
-    // Only keep chipped (q1) gems if they're close to completing a combo (at most 1 missing)
-    if (tower.quality === 1 && !tower.comboKey) {
-      const combosFor = findAllCombosFor(tower.gem, tower.quality);
-      const nearCombo = combosFor.some((c) => {
-        const r = this.comboReadiness(c, allTowers, tower.id);
-        return r.missing <= 1;
-      });
-      if (!nearCombo) portfolioMult *= 0.1;
-    }
-
-    // Dampen exposure weight for low-quality gems: a q1 gem at a great position
-    // shouldn't outscore a q2+ gem at a worse position
-    const qualityExpScale = tower.comboKey ? 1.0 : Math.min(1.0, tower.quality * 0.4);
-
     return (
-      exposureDps * 0.3 * qualityExpScale +
+      exposureDps * 0.3 +
       comboScore * 0.4 +
       qualityPremium * 0.15 +
-      waveBonus * 0.15 * qualityExpScale
+      waveBonus * 0.15
     ) * portfolioMult;
   }
 
