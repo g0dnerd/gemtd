@@ -151,4 +151,47 @@ describe('downgrade', () => {
     expect(t.quality).toBe(1);
     expect(h.game.state.towers).toHaveLength(1);
   });
+
+  describe('during wave phase', () => {
+    function setupWave() {
+      const h = setup();
+      const kept = placeTower(h.game, 4, 4, 'ruby', 3);
+      h.game.state.phase = 'wave';
+      h.game.state.draws = [];
+      h.game.state.keptTowerIdThisRound = kept.id;
+      h.game.state.downgradeUsedThisRound = false;
+      return { ...h, kept };
+    }
+
+    it('allows downgrade on kept tower during wave', () => {
+      const { phase, kept, game } = setupWave();
+      expect(phase.downgrade(kept.id)).toBe(true);
+      expect(kept.quality).toBe(2);
+      expect(game.state.downgradeUsedThisRound).toBe(true);
+      expect(game.waveStarted).toBe(false);
+    });
+
+    it('rejects downgrade on non-kept tower during wave', () => {
+      const { phase, game } = setupWave();
+      const other = placeTower(game, 6, 4, 'emerald', 3);
+      expect(phase.downgrade(other.id)).toBe(false);
+      expect(other.quality).toBe(3);
+    });
+
+    it('respects once-per-round limit across phases', () => {
+      const { phase, kept, game } = setupWave();
+      game.state.downgradeUsedThisRound = true;
+      expect(phase.downgrade(kept.id)).toBe(false);
+      expect(kept.quality).toBe(3);
+    });
+
+    it('does not auto-conclude or start wave', () => {
+      const { phase, kept, game } = setupWave();
+      const other = placeTower(game, 6, 4, 'emerald', 2);
+      expect(phase.downgrade(kept.id)).toBe(true);
+      expect(game.state.towers).toContain(other);
+      expect(game.state.draws).toHaveLength(0);
+      expect(game.waveStarted).toBe(false);
+    });
+  });
 });

@@ -437,11 +437,14 @@ export class BuildPhase {
   }
 
   /**
-   * Downgrade a current-draw tower by 1 quality tier. This auto-keeps the tower,
-   * concludes the round, and starts the wave.
+   * Downgrade a current-draw tower by 1 quality tier.
+   * During build: auto-keeps the tower, concludes the round, and starts the wave.
+   * During wave: just reduces quality on the kept tower.
    */
   downgrade(towerId: number): boolean {
     const state = this.game.state;
+    const duringWave = state.phase === 'wave';
+
     const tower = state.towers.find((t) => t.id === towerId);
     if (!tower) return false;
     if (tower.comboKey) {
@@ -456,10 +459,18 @@ export class BuildPhase {
       this.game.bus.emit('toast', { kind: 'error', text: 'Already downgraded this round' });
       return false;
     }
-    const isCurrentDraw = state.draws.some((d) => d.placedTowerId === towerId);
-    if (!isCurrentDraw) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Only current-round gems can be downgraded' });
-      return false;
+
+    if (duringWave) {
+      if (state.keptTowerIdThisRound !== towerId) {
+        this.game.bus.emit('toast', { kind: 'error', text: 'Only the kept tower can be downgraded' });
+        return false;
+      }
+    } else {
+      const isCurrentDraw = state.draws.some((d) => d.placedTowerId === towerId);
+      if (!isCurrentDraw) {
+        this.game.bus.emit('toast', { kind: 'error', text: 'Only current-round gems can be downgraded' });
+        return false;
+      }
     }
 
     const oldQuality = tower.quality;
@@ -473,8 +484,10 @@ export class BuildPhase {
       newQuality: tower.quality as Quality,
     });
 
-    this.autoConcludeRound(towerId);
-    this.game.enterWave();
+    if (!duringWave) {
+      this.autoConcludeRound(towerId);
+      this.game.enterWave();
+    }
     return true;
   }
 }

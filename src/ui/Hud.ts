@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v0.9.0";
+  wmVer.textContent = "v0.9.1";
   wm.append(wmName, wmVer);
   headerBar.appendChild(wm);
 
@@ -492,6 +492,9 @@ export function mountHud(
     if (tower.comboKey) return false;
     if (tower.quality <= 1) return false;
     if (game.state.downgradeUsedThisRound) return false;
+    if (game.state.phase === 'wave') {
+      return game.state.keptTowerIdThisRound === tower.id;
+    }
     const drawIds = new Set(
       game.state.draws
         .map((d) => d.placedTowerId)

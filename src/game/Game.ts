@@ -205,6 +205,7 @@ export class Game {
     this.state.wave += 1;
     this.state.undoStack = [];
     this.state.designatedKeepTowerId = null;
+    this.state.keptTowerIdThisRound = null;
     this.state.downgradeUsedThisRound = false;
     this.state.waveStats = {
       spawnedThisWave: 0,
@@ -247,6 +248,7 @@ export class Game {
       }
       this.buildPhase.applyKeepAndRock();
     }
+    this.state.keptTowerIdThisRound = this.state.designatedKeepTowerId;
     this.state.draws = [];
     this.state.designatedKeepTowerId = null;
     this.state.phase = "wave";

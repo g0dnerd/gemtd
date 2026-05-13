@@ -142,6 +142,8 @@ export interface State {
   activeDrawSlot: number | null;
   /** Tower id from the current build phase the player marked as the keep; the others rock at wave start. */
   designatedKeepTowerId: number | null;
+  /** Tower id that was kept this round; persists through wave phase for deferred downgrade. */
+  keptTowerIdThisRound: number | null;
   /** Persistent chance-tier (0..8). Affects quality distribution of new draws. */
   chanceTier: number;
   /** Undo stack for the current build phase. */
@@ -206,6 +208,7 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     draws: [],
     activeDrawSlot: null,
     designatedKeepTowerId: null,
+    keptTowerIdThisRound: null,
     chanceTier: 0,
     undoStack: [],
     selectedTowerId: null,
