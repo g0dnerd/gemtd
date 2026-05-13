@@ -56,3 +56,6 @@ __pycache__/
 *.egg-info
 *.so
 blueprint*.json
+
+maze_viz*.html
+report*.html

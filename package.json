@@ -10,6 +10,9 @@
     "test": "vitest run --exclude tests/sim-run.test.ts --exclude tests/sim.test.ts",
     "test:watch": "vitest",
     "sim": "npx vitest run tests/sim-run.test.ts",
+    "sim:run": "npx tsx tools/sim-compare/cli.ts run",
+    "sim:compare": "npx tsx tools/sim-compare/cli.ts compare",
+    "sim:history": "npx tsx tools/sim-compare/cli.ts history",
     "typecheck": "tsc --noEmit",
     "deploy": "npm run build && wrangler deploy"
   },
@@ -20,6 +23,7 @@
     "@cloudflare/vite-plugin": "^1.36.0",
     "typescript": "^5.6.0",
     "vite": "^6.0.0",
+    "tsx": "^4.19.0",
     "vitest": "^2.1.0",
     "wrangler": "^4.88.0"
   }
