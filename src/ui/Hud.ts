@@ -903,7 +903,10 @@ export function mountHud(
 
   const utilsRow = document.createElement("div");
   utilsRow.className = "action-bar-utils";
-  const undoBtn = makeBtn("↶ UNDO", () => game.cmdUndo());
+  const undoBtn = makeBtn("↶ UNDO", () => {
+    pendingTapTile = null;
+    game.cmdUndo();
+  });
   const speedBtn = makeBtn("1×", () => {
     const idx = SPEEDS.indexOf(game.state.speed as SpeedMultiplier);
     const nextSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
@@ -951,8 +954,11 @@ export function mountHud(
   const mobileWaveNum = document.createElement("div");
   mobileWaveNum.className = "mobile-wave-num";
   let mobileResizeObs: ResizeObserver | null = null;
+  const isMobile = window.innerWidth < 768 || window.innerHeight < 500;
+  let pendingTapTile: { x: number; y: number } | null = null;
+  let longPressTimer: ReturnType<typeof setTimeout> | null = null;
 
-  if (window.innerWidth < 768 || window.innerHeight < 500) {
+  if (isMobile) {
     hud.classList.add("mobile");
 
     const mobileStatus = document.createElement("div");
@@ -966,9 +972,28 @@ export function mountHud(
     const tray = document.createElement("div");
     tray.className = "mobile-tray";
 
+    const bpBtn = document.createElement("button");
+    bpBtn.className = "px-btn btn-path-viz";
+    bpBtn.type = "button";
+    function refreshBpBtn(): void {
+      const on = game.blueprintMode;
+      bpBtn.classList.toggle("is-on", on);
+      bpBtn.setAttribute("aria-pressed", String(on));
+      bpBtn.textContent = on ? "BP ON" : "BP";
+    }
+    refreshBpBtn();
+    bpBtn.addEventListener("click", async () => {
+      await game.toggleBlueprint();
+      game.bus.emit("toast", {
+        kind: "info",
+        text: game.blueprintMode ? "Blueprint ON" : "Blueprint OFF",
+      });
+      refreshBpBtn();
+    });
+
     const trayActions = document.createElement("div");
     trayActions.className = "mobile-tray-actions";
-    trayActions.append(startBtn, undoBtn, speedBtn, pathBtn);
+    trayActions.append(startBtn, undoBtn, speedBtn, pathBtn, bpBtn);
 
     const tabBar = document.createElement("div");
     tabBar.className = "mobile-tab-bar";
@@ -1184,6 +1209,7 @@ export function mountHud(
   );
   unsubs.push(
     game.bus.on("phase:enter", ({ phase }) => {
+      pendingTapTile = null;
       if (phase === "wave") {
         startBtn.disabled = true;
         closeRadial();
@@ -1239,6 +1265,9 @@ export function mountHud(
   }
 
   canvasHost.addEventListener("pointermove", (ev: PointerEvent) => {
+    if (longPressTimer !== null && ev.pointerType === "touch") {
+      clearLongPress();
+    }
     game.hoverTile = tileFromPointer(ev);
     game.hoverPixel = pixelFromPointer(ev);
     game.hoverPresent = true;
@@ -1246,16 +1275,33 @@ export function mountHud(
     updateShiftHint();
   });
   canvasHost.addEventListener("pointerleave", () => {
-    game.hoverTile = null;
+    if (!pendingTapTile) {
+      game.hoverTile = null;
+      game.hoverPresent = false;
+    }
     game.hoverPixel = null;
-    game.hoverPresent = false;
     shiftDown = false;
     updateShiftHint();
   });
   canvasHost.addEventListener("pointerenter", () => {
     game.hoverPresent = true;
   });
+  canvasHost.addEventListener("pointerup", () => {
+    clearLongPress();
+  });
+  canvasHost.addEventListener("pointercancel", () => {
+    clearLongPress();
+  });
+  function clearLongPress(): void {
+    if (longPressTimer !== null) {
+      clearTimeout(longPressTimer);
+      longPressTimer = null;
+    }
+  }
+
   canvasHost.addEventListener("pointerdown", (ev: PointerEvent) => {
+    clearLongPress();
+
     if (ev.button === 2) {
       if (radialOpen) {
         closeRadial();
@@ -1276,17 +1322,34 @@ export function mountHud(
       return;
     }
     if (ev.button !== 0) return;
+    if (radialOpen) {
+      closeRadial();
+      return;
+    }
     const t = tileFromPointer(ev);
     if (!t) return;
-    // Left click on a tower → select it.
+    // Left click on a tower → select it (+ start long-press for radial on mobile).
     const tower = game.state.towers.find((tt) => tt.x === t.x && tt.y === t.y);
     if (tower) {
+      pendingTapTile = null;
+      if (isMobile && game.state.phase === "build") {
+        const isRoundTower = game.state.draws.some(
+          (d) => d.placedTowerId === tower.id,
+        );
+        if (isRoundTower) {
+          longPressTimer = setTimeout(() => {
+            longPressTimer = null;
+            openRadial(tower.id, tower.x, tower.y);
+          }, 400);
+        }
+      }
       game.selectTower(tower.id);
       return;
     }
     // Click on a rock cell → select the rock for inspection / removal.
     const rock = game.state.rocks.find((rr) => rr.x === t.x && rr.y === t.y);
     if (rock) {
+      pendingTapTile = null;
       game.selectRock(rock.id);
       return;
     }
@@ -1304,32 +1367,51 @@ export function mountHud(
         }
       }
       if (bestCreep) {
+        pendingTapTile = null;
         game.selectCreep(bestCreep.id);
         return;
       }
     }
     // Otherwise: try to place if there's an active draw.
     if (activeDraw(game.state)) {
-      const placed = game.cmdPlace(t.x, t.y);
-      // Pattern #5: Shift+click = place AND keep
-      if (placed && ev.shiftKey) {
-        const justPlaced = game.state.towers.find(
-          (tt) => tt.x === t.x && tt.y === t.y,
-        );
-        if (justPlaced) {
-          const isCurrentDraw = game.state.draws.some(
-            (d) => d.placedTowerId === justPlaced.id,
+      if (isMobile) {
+        // Two-tap placement: first tap highlights, second tap confirms.
+        if (pendingTapTile && pendingTapTile.x === t.x && pendingTapTile.y === t.y) {
+          // Second tap on same cell → confirm placement.
+          const placed = game.cmdPlace(t.x, t.y);
+          pendingTapTile = null;
+          game.hoverTile = null;
+          if (!placed) {
+            game.bus.emit("toast", { kind: "error", text: "Can't place here" });
+          }
+        } else {
+          // First tap (or tap on a different cell) → highlight the 2x2 preview.
+          pendingTapTile = { x: t.x, y: t.y };
+          game.hoverTile = { x: t.x, y: t.y };
+          game.hoverPresent = true;
+        }
+      } else {
+        const placed = game.cmdPlace(t.x, t.y);
+        // Pattern #5: Shift+click = place AND keep
+        if (placed && ev.shiftKey) {
+          const justPlaced = game.state.towers.find(
+            (tt) => tt.x === t.x && tt.y === t.y,
           );
-          if (isCurrentDraw) {
-            const prev = game.state.designatedKeepTowerId;
-            game.cmdDesignateKeep(justPlaced.id);
-            if (prev !== null && prev !== justPlaced.id) {
-              const prevTower = game.state.towers.find((tt) => tt.id === prev);
-              if (prevTower) {
-                game.bus.emit("toast", {
-                  kind: "good",
-                  text: `Keeper changed to ${GEM_PALETTE[justPlaced.gem].name}`,
-                });
+          if (justPlaced) {
+            const isCurrentDraw = game.state.draws.some(
+              (d) => d.placedTowerId === justPlaced.id,
+            );
+            if (isCurrentDraw) {
+              const prev = game.state.designatedKeepTowerId;
+              game.cmdDesignateKeep(justPlaced.id);
+              if (prev !== null && prev !== justPlaced.id) {
+                const prevTower = game.state.towers.find((tt) => tt.id === prev);
+                if (prevTower) {
+                  game.bus.emit("toast", {
+                    kind: "good",
+                    text: `Keeper changed to ${GEM_PALETTE[justPlaced.gem].name}`,
+                  });
+                }
               }
             }
           }
@@ -1341,6 +1423,7 @@ export function mountHud(
       game.selectTower(null);
       game.selectRock(null);
       game.selectCreep(null);
+      pendingTapTile = null;
     }
   });
 
@@ -1357,6 +1440,7 @@ export function mountHud(
       ev.preventDefault();
       triggerStartCta();
     } else if (ev.key === "u" || ev.key === "U") {
+      pendingTapTile = null;
       game.cmdUndo();
     } else if (ev.key === "1") {
       game.setSpeed(1);

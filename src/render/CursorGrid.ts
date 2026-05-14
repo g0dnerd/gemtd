@@ -56,7 +56,7 @@ export function renderCursorGrid(
       const alpha = GRID_ALPHA * falloff * haloAlpha;
       if (alpha < 0.003) continue;
       gridGfx.moveTo(lineX, segTop).lineTo(lineX, segBot);
-      gridGfx.stroke({ width: 1, color: THEME.ink, alpha, pixelLine: true });
+      gridGfx.stroke({ width: 1, color: THEME.ink, alpha });
     }
   }
 
@@ -73,7 +73,7 @@ export function renderCursorGrid(
       const alpha = GRID_ALPHA * falloff * haloAlpha;
       if (alpha < 0.003) continue;
       gridGfx.moveTo(segLeft, lineY).lineTo(segRight, lineY);
-      gridGfx.stroke({ width: 1, color: THEME.ink, alpha, pixelLine: true });
+      gridGfx.stroke({ width: 1, color: THEME.ink, alpha });
     }
   }
 
@@ -134,6 +134,6 @@ export function renderUniformGrid(gridLayer: Container, phase: string): void {
   for (let gy = 0; gy <= GRID_H; gy++) {
     uniformGfx.moveTo(0, gy * FINE_TILE).lineTo(w, gy * FINE_TILE);
   }
-  uniformGfx.stroke({ width: 1, color: THEME.ink, alpha: GRID_ALPHA, pixelLine: true });
+  uniformGfx.stroke({ width: 1, color: THEME.ink, alpha: GRID_ALPHA });
   uniformDrawn = true;
 }

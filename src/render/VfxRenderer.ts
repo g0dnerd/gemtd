@@ -203,7 +203,7 @@ export class VfxRenderer {
           const dy = Math.sin(ang) * r;
           g.moveTo(fx.x - dx, fx.y - dy)
             .lineTo(fx.x + dx, fx.y + dy)
-            .stroke({ width: 1.5, color: 0xd0f4ff, alpha: a, pixelLine: true });
+            .stroke({ width: 1.5, color: 0xd0f4ff, alpha: a });
         }
         break;
       }
@@ -238,7 +238,7 @@ export class VfxRenderer {
         if (i < cur) {
           g.poly(pts).fill({ color: 0xd8f0f8, alpha: 0.9 });
         } else {
-          g.poly(pts).stroke({ width: 1, color: 0xd8f0f8, alpha: 0.3, pixelLine: true });
+          g.poly(pts).stroke({ width: 1, color: 0xd8f0f8, alpha: 0.3 });
         }
       }
     }

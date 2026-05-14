@@ -209,11 +209,11 @@ function drawDashedRing(g: Graphics, radius: number, color: number): void {
     if (i % 2 === 1) continue;
     const a0 = i * dashArc;
     const a1 = a0 + dashArc * 0.6;
+    g.moveTo(Math.cos(a0) * radius, Math.sin(a0) * radius);
     g.arc(0, 0, radius, a0, a1).stroke({
       width: 1.5,
       color,
       alpha: 0.6,
-      pixelLine: true,
     });
   }
 }
@@ -711,14 +711,14 @@ function towerRange(t: TowerState): number {
 }
 
 function drawDashedCircle(g: Graphics, cx: number, cy: number, r: number, color: number, alpha = 0.7): void {
-  // Approximate a dashed circle by drawing N dashes of fixed arc length.
   const segs = Math.max(16, Math.floor((2 * Math.PI * r) / 8));
   const dashArc = (Math.PI * 2) / segs;
   for (let i = 0; i < segs; i++) {
     if (i % 2 === 1) continue;
     const a0 = i * dashArc;
     const a1 = a0 + dashArc * 0.6;
-    g.arc(cx, cy, r, a0, a1).stroke({ width: 1.5, color, alpha, pixelLine: true });
+    g.moveTo(cx + Math.cos(a0) * r, cy + Math.sin(a0) * r);
+    g.arc(cx, cy, r, a0, a1).stroke({ width: 1.5, color, alpha });
   }
 }
 
