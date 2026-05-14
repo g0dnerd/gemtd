@@ -1,0 +1,583 @@
+{
+  "base": {
+    "commit": "a8b80050aefc3c81f7a5a4f27086e408988836a3",
+    "shortHash": "a8b8005",
+    "message": "v0.12.0 - first chance tier now 25g again",
+    "date": "2026-05-13T22:01:30+02:00",
+    "branch": "main",
+    "dirty": false
+  },
+  "current": {
+    "commit": "3f48b4300412d2723ccbaf5474d9c38196bad8d2",
+    "shortHash": "3f48b43",
+    "message": "v0.12.0 - first chance tier now 25g again",
+    "date": "2026-05-13T22:01:30+02:00",
+    "branch": "test-balance",
+    "dirty": false
+  },
+  "ais": {
+    "GreedyAI": {
+      "aggregate": {
+        "medianWave": {
+          "base": 20,
+          "current": 20,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "meanWave": {
+          "base": 19.8,
+          "current": 19.4,
+          "delta": -0.40000000000000213,
+          "deltaPercent": -2,
+          "flag": null
+        },
+        "p10Wave": {
+          "base": 11,
+          "current": 11,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "p90Wave": {
+          "base": 27,
+          "current": 27,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "minWave": {
+          "base": 10,
+          "current": 10,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "maxWave": {
+          "base": 30,
+          "current": 30,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "meanGold": {
+          "base": 211,
+          "current": 194,
+          "delta": -17,
+          "deltaPercent": -8.1,
+          "flag": null
+        },
+        "meanLives": {
+          "base": 4.2,
+          "current": 3.3,
+          "delta": -0.9000000000000004,
+          "deltaPercent": -21.4,
+          "flag": null
+        },
+        "victoryRate": {
+          "base": 0,
+          "current": 0,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        }
+      },
+      "gemDamageShift": [
+        {
+          "gem": "topaz",
+          "base": 16.6,
+          "current": 20.9,
+          "delta": 4.3,
+          "flag": null
+        },
+        {
+          "gem": "ruby",
+          "base": 24.5,
+          "current": 20.6,
+          "delta": -3.9,
+          "flag": null
+        },
+        {
+          "gem": "diamond",
+          "base": 16.4,
+          "current": 17.6,
+          "delta": 1.2,
+          "flag": null
+        },
+        {
+          "gem": "amethyst",
+          "base": 16.1,
+          "current": 15,
+          "delta": -1.1,
+          "flag": null
+        },
+        {
+          "gem": "sapphire",
+          "base": 6.4,
+          "current": 5.7,
+          "delta": -0.7,
+          "flag": null
+        },
+        {
+          "gem": "emerald",
+          "base": 16.8,
+          "current": 17.1,
+          "delta": 0.3,
+          "flag": null
+        },
+        {
+          "gem": "opal",
+          "base": 0.8,
+          "current": 0.7,
+          "delta": -0.1,
+          "flag": null
+        },
+        {
+          "gem": "aquamarine",
+          "base": 2.5,
+          "current": 2.5,
+          "delta": 0,
+          "flag": null
+        }
+      ],
+      "gemKillShift": [
+        {
+          "gem": "amethyst",
+          "base": 21,
+          "current": 19.4,
+          "delta": -1.6,
+          "flag": null
+        },
+        {
+          "gem": "diamond",
+          "base": 19.7,
+          "current": 20.8,
+          "delta": 1.1,
+          "flag": null
+        },
+        {
+          "gem": "topaz",
+          "base": 10.9,
+          "current": 11.8,
+          "delta": 0.9,
+          "flag": null
+        },
+        {
+          "gem": "emerald",
+          "base": 23.7,
+          "current": 24.5,
+          "delta": 0.8,
+          "flag": null
+        },
+        {
+          "gem": "ruby",
+          "base": 14.1,
+          "current": 13.3,
+          "delta": -0.8,
+          "flag": null
+        },
+        {
+          "gem": "sapphire",
+          "base": 6.4,
+          "current": 6,
+          "delta": -0.4,
+          "flag": null
+        },
+        {
+          "gem": "aquamarine",
+          "base": 3.2,
+          "current": 3.5,
+          "delta": 0.3,
+          "flag": null
+        },
+        {
+          "gem": "opal",
+          "base": 0.9,
+          "current": 0.8,
+          "delta": -0.1,
+          "flag": null
+        }
+      ]
+    },
+    "BlueprintAI": {
+      "aggregate": {
+        "medianWave": {
+          "base": 13,
+          "current": 13,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "meanWave": {
+          "base": 13,
+          "current": 13,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "p10Wave": {
+          "base": 11,
+          "current": 11,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "p90Wave": {
+          "base": 15,
+          "current": 16,
+          "delta": 1,
+          "deltaPercent": 6.7,
+          "flag": "improvement"
+        },
+        "minWave": {
+          "base": 11,
+          "current": 11,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "maxWave": {
+          "base": 20,
+          "current": 18,
+          "delta": -2,
+          "deltaPercent": -10,
+          "flag": null
+        },
+        "meanGold": {
+          "base": 129,
+          "current": 126,
+          "delta": -3,
+          "deltaPercent": -2.3,
+          "flag": null
+        },
+        "meanLives": {
+          "base": 0,
+          "current": 0,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "victoryRate": {
+          "base": 0,
+          "current": 0,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        }
+      },
+      "gemDamageShift": [
+        {
+          "gem": "amethyst",
+          "base": 6.7,
+          "current": 7.6,
+          "delta": 0.9,
+          "flag": null
+        },
+        {
+          "gem": "ruby",
+          "base": 13.2,
+          "current": 12.4,
+          "delta": -0.8,
+          "flag": null
+        },
+        {
+          "gem": "topaz",
+          "base": 7.1,
+          "current": 6.6,
+          "delta": -0.5,
+          "flag": null
+        },
+        {
+          "gem": "aquamarine",
+          "base": 3.2,
+          "current": 3.5,
+          "delta": 0.3,
+          "flag": null
+        },
+        {
+          "gem": "emerald",
+          "base": 40.3,
+          "current": 40.5,
+          "delta": 0.2,
+          "flag": null
+        },
+        {
+          "gem": "opal",
+          "base": 0.5,
+          "current": 0.6,
+          "delta": 0.1,
+          "flag": null
+        },
+        {
+          "gem": "sapphire",
+          "base": 2.9,
+          "current": 2.8,
+          "delta": -0.1,
+          "flag": null
+        },
+        {
+          "gem": "diamond",
+          "base": 26.1,
+          "current": 26.1,
+          "delta": 0,
+          "flag": null
+        }
+      ],
+      "gemKillShift": [
+        {
+          "gem": "diamond",
+          "base": 25.9,
+          "current": 25.6,
+          "delta": -0.3,
+          "flag": null
+        },
+        {
+          "gem": "ruby",
+          "base": 11.2,
+          "current": 10.9,
+          "delta": -0.3,
+          "flag": null
+        },
+        {
+          "gem": "topaz",
+          "base": 6.7,
+          "current": 6.9,
+          "delta": 0.2,
+          "flag": null
+        },
+        {
+          "gem": "emerald",
+          "base": 36,
+          "current": 36.1,
+          "delta": 0.1,
+          "flag": null
+        },
+        {
+          "gem": "amethyst",
+          "base": 11.3,
+          "current": 11.2,
+          "delta": -0.1,
+          "flag": null
+        },
+        {
+          "gem": "opal",
+          "base": 1,
+          "current": 1.1,
+          "delta": 0.1,
+          "flag": null
+        },
+        {
+          "gem": "sapphire",
+          "base": 2.2,
+          "current": 2.3,
+          "delta": 0.1,
+          "flag": null
+        },
+        {
+          "gem": "aquamarine",
+          "base": 5.7,
+          "current": 5.8,
+          "delta": 0.1,
+          "flag": null
+        }
+      ]
+    },
+    "StrategistAI": {
+      "aggregate": {
+        "medianWave": {
+          "base": 18,
+          "current": 16,
+          "delta": -2,
+          "deltaPercent": -11.1,
+          "flag": "regression"
+        },
+        "meanWave": {
+          "base": 16,
+          "current": 15.6,
+          "delta": -0.40000000000000036,
+          "deltaPercent": -2.5,
+          "flag": null
+        },
+        "p10Wave": {
+          "base": 12,
+          "current": 11,
+          "delta": -1,
+          "deltaPercent": -8.3,
+          "flag": "regression"
+        },
+        "p90Wave": {
+          "base": 20,
+          "current": 20,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "minWave": {
+          "base": 11,
+          "current": 11,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "maxWave": {
+          "base": 20,
+          "current": 20,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "meanGold": {
+          "base": 144,
+          "current": 155,
+          "delta": 11,
+          "deltaPercent": 7.6,
+          "flag": null
+        },
+        "meanLives": {
+          "base": 0,
+          "current": 0,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        },
+        "victoryRate": {
+          "base": 0,
+          "current": 0,
+          "delta": 0,
+          "deltaPercent": 0,
+          "flag": null
+        }
+      },
+      "gemDamageShift": [
+        {
+          "gem": "emerald",
+          "base": 29.3,
+          "current": 31.1,
+          "delta": 1.8,
+          "flag": null
+        },
+        {
+          "gem": "diamond",
+          "base": 20.8,
+          "current": 21.8,
+          "delta": 1,
+          "flag": null
+        },
+        {
+          "gem": "amethyst",
+          "base": 12.1,
+          "current": 11.2,
+          "delta": -0.9,
+          "flag": null
+        },
+        {
+          "gem": "ruby",
+          "base": 21.1,
+          "current": 20.3,
+          "delta": -0.8,
+          "flag": null
+        },
+        {
+          "gem": "topaz",
+          "base": 8.8,
+          "current": 8.1,
+          "delta": -0.7,
+          "flag": null
+        },
+        {
+          "gem": "aquamarine",
+          "base": 2.9,
+          "current": 2.2,
+          "delta": -0.7,
+          "flag": null
+        },
+        {
+          "gem": "sapphire",
+          "base": 4.7,
+          "current": 5,
+          "delta": 0.3,
+          "flag": null
+        },
+        {
+          "gem": "opal",
+          "base": 0.3,
+          "current": 0.3,
+          "delta": 0,
+          "flag": null
+        }
+      ],
+      "gemKillShift": [
+        {
+          "gem": "emerald",
+          "base": 27.3,
+          "current": 28.1,
+          "delta": 0.8,
+          "flag": null
+        },
+        {
+          "gem": "diamond",
+          "base": 26.2,
+          "current": 26.7,
+          "delta": 0.5,
+          "flag": null
+        },
+        {
+          "gem": "ruby",
+          "base": 14.2,
+          "current": 13.8,
+          "delta": -0.4,
+          "flag": null
+        },
+        {
+          "gem": "topaz",
+          "base": 7.4,
+          "current": 7,
+          "delta": -0.4,
+          "flag": null
+        },
+        {
+          "gem": "aquamarine",
+          "base": 5,
+          "current": 4.6,
+          "delta": -0.4,
+          "flag": null
+        },
+        {
+          "gem": "amethyst",
+          "base": 14.2,
+          "current": 13.9,
+          "delta": -0.3,
+          "flag": null
+        },
+        {
+          "gem": "sapphire",
+          "base": 5,
+          "current": 5.2,
+          "delta": 0.2,
+          "flag": null
+        },
+        {
+          "gem": "opal",
+          "base": 0.7,
+          "current": 0.7,
+          "delta": 0,
+          "flag": null
+        }
+      ]
+    }
+  },
+  "flags": [
+    {
+      "ai": "StrategistAI",
+      "metric": "medianWave",
+      "severity": "critical",
+      "message": "medianWave: 18 -> 16 (-2)"
+    },
+    {
+      "ai": "StrategistAI",
+      "metric": "p10Wave",
+      "severity": "warn",
+      "message": "p10Wave: 12 -> 11 (-1)"
+    }
+  ]
+}
