@@ -73,39 +73,45 @@ function handleRun(args: string[]): void {
   console.log(`Saved to ${filePath}`);
 }
 
-function handleCompare(args: string[]): void {
-  const { positional } = parseArgs(args);
-  const ref = positional[0];
-
-  const git = getGitInfo();
-
-  // Load current snapshot
-  let current = readSnapshot(git.commit);
-  if (!current) {
-    console.log(`No snapshot for current commit ${git.shortHash}. Run \`npm run sim:run\` first.`);
+function loadSnapshot(ref: string, label: string): Snapshot {
+  const resolved = resolveRef(ref);
+  let snap = resolved ? readSnapshot(resolved) : null;
+  if (!snap) snap = readSnapshot(ref);
+  if (!snap) {
+    console.log(`No snapshot found for ${label} ref "${ref}". Available snapshots:`);
+    printHistory(listSnapshots());
     process.exit(1);
   }
+  return snap;
+}
 
-  // Load base snapshot
-  let base: Snapshot | null = null;
-  if (ref) {
-    const resolved = resolveRef(ref);
-    if (resolved) {
-      base = readSnapshot(resolved);
-    }
-    if (!base) {
-      base = readSnapshot(ref);
-    }
-    if (!base) {
-      console.log(`No snapshot found for ref "${ref}". Available snapshots:`);
-      printHistory(listSnapshots());
-      process.exit(1);
-    }
+function handleCompare(args: string[]): void {
+  const { positional } = parseArgs(args);
+
+  let current: Snapshot;
+  let base: Snapshot;
+
+  if (positional.length >= 2) {
+    current = loadSnapshot(positional[0], 'current');
+    base = loadSnapshot(positional[1], 'base');
   } else {
-    base = findLatestOther(git.commit);
-    if (!base) {
-      console.log('No other snapshot to compare against. Run sim:run on another commit first.');
+    const git = getGitInfo();
+    const snap = readSnapshot(git.commit);
+    if (!snap) {
+      console.log(`No snapshot for current commit ${git.shortHash}. Run \`npm run sim:run\` first.`);
       process.exit(1);
+    }
+    current = snap;
+
+    if (positional.length === 1) {
+      base = loadSnapshot(positional[0], 'base');
+    } else {
+      const other = findLatestOther(git.commit);
+      if (!other) {
+        console.log('No other snapshot to compare against. Run sim:run on another commit first.');
+        process.exit(1);
+      }
+      base = other;
     }
   }
 
@@ -133,14 +139,15 @@ function printUsage(): void {
 Usage: npx tsx tools/sim-compare/cli.ts <command> [options]
 
 Commands:
-  run [--seeds N] [--tag <ref>]  Run sim and store snapshot (default: 50 seeds, tagged as HEAD)
-  compare [ref]          Compare current snapshot against ref (default: most recent other)
-  history [--limit N]    List stored snapshots (default: 20)
+  run [--seeds N] [--tag <ref>]    Run sim and store snapshot (default: 50 seeds, tagged as HEAD)
+  compare [current] [base]         Compare two snapshots (default current: HEAD, default base: most recent other)
+  history [--limit N]              List stored snapshots (default: 20)
 
 Examples:
   npm run sim:run
-  npm run sim:compare
-  npm run sim:compare -- abc1234
+  npm run sim:compare                          # HEAD vs most recent other
+  npm run sim:compare -- abc1234               # HEAD vs abc1234
+  npm run sim:compare -- abc1234 def5678       # abc1234 (current) vs def5678 (base)
   npm run sim:history
 `);
 }
