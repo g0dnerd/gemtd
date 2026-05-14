@@ -15,7 +15,11 @@ async function queryAE(
       body: sql,
     },
   );
-  if (!resp.ok) return [];
+  if (!resp.ok) {
+    const text = await resp.text();
+    console.error(`AE query failed (${resp.status}): ${text}\nSQL: ${sql}`);
+    return [];
+  }
   const result: { data: Record<string, unknown>[] } = await resp.json();
   return result.data ?? [];
 }
@@ -57,7 +61,7 @@ export async function handleStats(
     ),
     queryAE(
       env,
-      `SELECT blob2 as combo_key, count() as count, avg(double4) as avg_damage, avg(double4 / (double8 - double5 + 1)) as avg_dmg_per_wave FROM gemtd_towers WHERE blob2 != '' ${vfB3} GROUP BY blob2 ORDER BY avg_dmg_per_wave DESC`,
+      `SELECT blob2 as combo_key, count() as count, avg(double4) as avg_damage, avg(double4 / (double8 - double5 + 1)) as avg_dmg_per_wave, avg(double5) as avg_wave_built, avg(double2) as avg_tier, max(double2) as max_tier FROM gemtd_towers WHERE blob2 != '' ${vfB3} GROUP BY blob2 ORDER BY avg_dmg_per_wave DESC`,
     ),
     queryAE(
       env,

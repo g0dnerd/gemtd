@@ -130,12 +130,13 @@ function render(data) {
     html += '</table>';
   }
 
-  // Combo popularity
+  // Combo effectiveness
   if (data.combos?.length) {
     html += '<h2>Combo Effectiveness</h2>';
-    html += '<table><tr><th>Combo</th><th>Times Built</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th></tr>';
+    html += '<table><tr><th>Combo</th><th>Tier</th><th>Count</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th><th>Avg Wave Built</th></tr>';
     for (const row of data.combos) {
-      html += '<tr><td>' + row.combo_key + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td></tr>';
+      const tier = Number(row.max_tier) || 0;
+      html += '<tr><td>' + row.combo_key + '</td><td>' + (tier === 0 ? 'Base' : '\\u2605 ' + tier) + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td><td>' + fmt(row.avg_wave_built, 1) + '</td></tr>';
     }
     html += '</table>';
   }
