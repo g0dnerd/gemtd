@@ -142,6 +142,10 @@ export class HeadlessGame {
     this.state.selectedRockId = id;
   }
 
+  handleCreepDeath(c: import('../game/State').CreepState): void {
+    this.combat.handleDeathEffects(c);
+  }
+
   simStep(): void {
     this.state.tick += 1;
     if (this.state.phase === 'wave') {
