@@ -17,6 +17,12 @@ import type { EffectKind } from '../data/gems';
 
 const PROJECTILE_PX_PER_SEC = 480;
 
+export function armorDamageMultiplier(armor: number): number {
+  if (armor >= 0) return 1 / (1 + armor * 0.06);
+  const neg = Math.min(-armor, 10);
+  return 2 - Math.pow(0.94, neg);
+}
+
 export class Combat {
   constructor(private game: Game) {}
 
@@ -190,12 +196,14 @@ export class Combat {
 
   private applyDamage(c: CreepState, dmg: number, owner: TowerState): void {
     if (!c.alive) return;
-    if (c.flags?.armored) dmg = Math.round(dmg * 0.7);
-    let totalArmorReduce = c.armorReduction;
+    let effectiveArmor = c.armor - c.armorReduction;
     if (c.armorDebuff && c.armorDebuff.expiresAt > this.game.state.tick) {
-      totalArmorReduce += c.armorDebuff.value;
+      effectiveArmor -= c.armorDebuff.value;
     }
-    if (totalArmorReduce > 0) dmg = Math.round(dmg * (1 + totalArmorReduce * 0.05));
+    effectiveArmor = Math.max(effectiveArmor, -10);
+    if (effectiveArmor !== 0) {
+      dmg = Math.round(dmg * armorDamageMultiplier(effectiveArmor));
+    }
     c.hp -= dmg;
     this.game.bus.emit('tower:hit', { id: owner.id, targetId: c.id, damage: dmg });
     if (c.hp <= 0) {

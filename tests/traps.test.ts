@@ -95,6 +95,7 @@ function makeCreep(game: FakeGame, px: number, py: number): CreepState {
     color: "ruby",
     alive: true,
     armorReduction: 0,
+    armor: 0,
     slowResist: 0,
   };
   game.state.creeps.push(creep);

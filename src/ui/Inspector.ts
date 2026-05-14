@@ -761,6 +761,25 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
     grid.appendChild(srStat);
   }
 
+  if (c.armor > 0) {
+    const arStat = document.createElement("div");
+    arStat.className = "px-panel-inset inspector-stat";
+    const arLbl = document.createElement("div");
+    arLbl.className = "inspector-stat-label-sm";
+    arLbl.textContent = "ARMOR";
+    const arVal = document.createElement("div");
+    arVal.className = "inspector-stat-value inspector-stat-value-sec";
+    const effective = c.armor - c.armorReduction
+      - (c.armorDebuff && c.armorDebuff.expiresAt > game.state.tick ? c.armorDebuff.value : 0);
+    if (effective !== c.armor) {
+      arVal.textContent = `${effective} (base ${c.armor})`;
+    } else {
+      arVal.textContent = `${c.armor}`;
+    }
+    arStat.append(arLbl, arVal);
+    grid.appendChild(arStat);
+  }
+
   body.appendChild(grid);
 
   // Ability chip (healer / wizard / tunneler)
@@ -802,7 +821,7 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
     const rem = Math.max(0, (c.armorDebuff.expiresAt - tick) / SIM_HZ);
     effects.push({
       label: "ARMOR BREAK",
-      text: `+${(c.armorDebuff.value * 100).toFixed(0)}% dmg taken · ${rem.toFixed(1)}s`,
+      text: `-${c.armorDebuff.value} armor · ${rem.toFixed(1)}s`,
       kind: "debuff",
     });
   }

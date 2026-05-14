@@ -55,6 +55,7 @@ export interface CreepState {
   py: number;
   hp: number;
   maxHp: number;
+  armor: number;
   speed: number;
   bounty: number;
   /** Visual color hint for non-gem creeps. */

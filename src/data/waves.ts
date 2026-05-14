@@ -18,6 +18,8 @@ export interface WaveGroup {
   bounty: number;
   /** 0–1. Fraction of slow effect negated (0 = full slow, 1 = immune). */
   slowResist: number;
+  /** Numeric armor. Overrides archetype defaultArmor if present. */
+  armor?: number;
 }
 
 export interface WaveDef {
@@ -53,16 +55,17 @@ function w(
   interval = 0.7,
   bonus = 5,
   slowResist = 0,
+  armor?: number,
 ): WaveDef {
   return {
     number,
-    groups: [{ kind, count, hp, bounty, slowResist }],
+    groups: [{ kind, count, hp, bounty, slowResist, ...(armor !== undefined ? { armor } : {}) }],
     interval,
     bonus,
   };
 }
 
-type G = [CreepKind, number, number, number, number?];
+type G = [CreepKind, number, number, number, number?, number?];
 
 function wm(
   number: number,
@@ -72,12 +75,13 @@ function wm(
 ): WaveDef {
   return {
     number,
-    groups: groups.map(([kind, count, hp, bounty, slowResist]) => ({
+    groups: groups.map(([kind, count, hp, bounty, slowResist, armor]) => ({
       kind,
       count,
       hp,
       bounty,
       slowResist: slowResist ?? 0,
+      ...(armor !== undefined ? { armor } : {}),
     })),
     interval,
     bonus,

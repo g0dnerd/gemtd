@@ -18,6 +18,7 @@ export interface CreepArchetype {
   hpMult: number;
   /** Bounty multiplier. */
   bountyMult: number;
+  defaultArmor?: number;
   flags: { boss?: boolean; armored?: boolean; air?: boolean };
 }
 
@@ -44,6 +45,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     color: 'opal',
     hpMult: 1.6,
     bountyMult: 1.2,
+    defaultArmor: 7,
     flags: { armored: true },
   },
   air: {

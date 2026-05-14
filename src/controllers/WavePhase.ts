@@ -126,6 +126,7 @@ export class WavePhase {
       color: arch.color,
       alive: true,
       armorReduction: 0,
+      armor: group.armor ?? arch.defaultArmor ?? 0,
       slowResist: group.slowResist,
       flags: arch.flags,
     };
