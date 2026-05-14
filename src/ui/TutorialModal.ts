@@ -190,6 +190,36 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '1.0.0',
+      notes: [
+        '<b>Armor system</b> — numeric armor replaces the armored flag. WC3 damage formula: positive armor reduces damage, negative amplifies. Armor progresses across all 50 waves.',
+        '<b>Special gem upgrade rework</b> — all 9 combo upgrade tiers replaced with identity-defining mechanics:',
+        '&nbsp;&nbsp;Black Opal → <b>Void Opal</b>: vulnerability aura (+20% damage taken).',
+        '&nbsp;&nbsp;Bloodstone → <b>Bloodfire Opal</b>: crit splash, 35% crit ×3.',
+        '&nbsp;&nbsp;Dark Emerald → <b>Venomous Emerald</b>: poison + plague spread on death.',
+        '&nbsp;&nbsp;Gold → <b>Pharaoh\'s Gold</b>: crit splash + proximity armor shred.',
+        '&nbsp;&nbsp;Pink Diamond → <b>Living Diamond</b>: focus crit (+3%/hit) + execute below 25% HP.',
+        '&nbsp;&nbsp;Silver → <b>Frosted Silver</b>: freeze chance. <b>Silver Knight</b>: periodic nova + freeze.',
+        '&nbsp;&nbsp;Star Ruby → <b>Plasma Star</b>: ramping burn. <b>Solar Core</b>: armor-piercing burn + death nova.',
+        '&nbsp;&nbsp;Yellow Sapphire → <b>Blizzard Sapphire</b>: periodic freeze + frostbite bonus.',
+        '&nbsp;&nbsp;Paraiba → stacking armor shred. <b>Ancient Paraiba</b>: enhanced shred (-3/hit, 8 stacks).',
+        '&nbsp;&nbsp;Uranium → <b>Leaking Uranium</b>: armor decay aura + linger burn.',
+        '<b>Balance</b> — Silver T1 buffed: damage 20-26 → 24-31, atk speed 1.1 → 1.25, slow 0.8 → 0.75.',
+        '<b>Balance</b> — Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit.',
+        '<b>Balance</b> — Yellow Sapphire base damage 80-120 → 120-180, slow 25% for 2.5 s.',
+        '<b>Balance</b> — Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled.',
+        '<b>Balance</b> — Lucky Asian Jade damage/poison/crit significantly buffed.',
+        '<b>Balance</b> — Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers.',
+        '<b>Balance</b> — Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP.',
+        '<b>Balance</b> — Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks.',
+        '<b>Waves</b> — reverted to 50 waves. Armor progression added across all waves: armored creeps start at 7 armor (wave 5), normals/fast gain 1-5, bosses gain 5 from wave 30.',
+        '<b>Creep inspector</b> — click a creep to see HP bar, speed, bounty, active debuffs, and flags.',
+        '<b>Sprites</b> — T2 gem sprite redesigned as asymmetric crystal cluster. New sprites and palettes for Silver, Star Ruby, Gold, Black Opal, Paraiba Tourmaline, and others across upgrade tiers.',
+        '<b>Hardcore mode</b> — restyled with skull & bone theme; checkpoint banners replaced with carved waystones.',
+        '<b>Debug</b> — Ctrl+0 on title screen starts a debug game with all gems and combos pre-placed.',
+      ],
+    },
+    {
       ver: '0.12.0',
       notes: [
         '<b>Balance</b> — First chance tier upgrade cost reduced: 30 g → 25 g.',
