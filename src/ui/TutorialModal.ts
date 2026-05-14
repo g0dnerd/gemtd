@@ -3,8 +3,8 @@
  * Plain HTML/CSS — same modal pattern as CombineModal.
  */
 
-import { htmlGem, htmlCoin, htmlHeart } from '../render/htmlSprites';
-import { RUNES_ENABLED } from '../game/constants';
+import { htmlGem, htmlCoin, htmlHeart } from "../render/htmlSprites";
+import { RUNES_ENABLED } from "../game/constants";
 
 interface Section {
   title: string;
@@ -12,94 +12,94 @@ interface Section {
 }
 
 export function mountTutorialModal(root: HTMLElement): () => void {
-  const backdrop = document.createElement('div');
-  backdrop.className = 'modal-backdrop';
+  const backdrop = document.createElement("div");
+  backdrop.className = "modal-backdrop";
 
-  const card = document.createElement('div');
-  card.className = 'px-panel modal-card tutorial-card';
+  const card = document.createElement("div");
+  card.className = "px-panel modal-card tutorial-card";
   backdrop.appendChild(card);
 
-  const head = document.createElement('div');
-  head.className = 'modal-head';
-  const title = document.createElement('div');
-  title.className = 'title px-h';
-  title.textContent = '? HOW TO PLAY ?';
-  const close = document.createElement('button');
-  close.className = 'px-btn';
-  close.style.fontSize = '9px';
-  close.style.padding = '6px 10px';
-  close.textContent = 'X';
+  const head = document.createElement("div");
+  head.className = "modal-head";
+  const title = document.createElement("div");
+  title.className = "title px-h";
+  title.textContent = "? HOW TO PLAY ?";
+  const close = document.createElement("button");
+  close.className = "px-btn";
+  close.style.fontSize = "9px";
+  close.style.padding = "6px 10px";
+  close.textContent = "X";
   head.append(title, close);
   card.appendChild(head);
 
-  const tabs = document.createElement('div');
-  tabs.className = 'tutorial-tabs';
+  const tabs = document.createElement("div");
+  tabs.className = "tutorial-tabs";
   card.appendChild(tabs);
 
-  const body = document.createElement('div');
-  body.className = 'tutorial-body px-panel-inset';
+  const body = document.createElement("div");
+  body.className = "tutorial-body px-panel-inset";
   card.appendChild(body);
 
   const sections: Section[] = [
-    { title: 'GOAL', body: goalBody() },
-    { title: 'BUILD', body: buildBody() },
-    { title: 'MAZE', body: mazeBody() },
-    { title: 'COMBINE', body: combineBody() },
-    ...(RUNES_ENABLED ? [{ title: 'RUNES', body: runesBody() }] : []),
-    { title: 'KEYS', body: keysBody() },
-    { title: 'CHANGES', body: changesBody() },
+    { title: "GOAL", body: goalBody() },
+    { title: "BUILD", body: buildBody() },
+    { title: "MAZE", body: mazeBody() },
+    { title: "COMBINE", body: combineBody() },
+    ...(RUNES_ENABLED ? [{ title: "RUNES", body: runesBody() }] : []),
+    { title: "KEYS", body: keysBody() },
+    { title: "CHANGES", body: changesBody() },
   ];
 
   let active = 0;
   function render(): void {
-    tabs.innerHTML = '';
+    tabs.innerHTML = "";
     sections.forEach((s, i) => {
-      const b = document.createElement('button');
-      b.className = 'px-btn tutorial-tab';
-      if (i === active) b.classList.add('tutorial-tab-active');
+      const b = document.createElement("button");
+      b.className = "px-btn tutorial-tab";
+      if (i === active) b.classList.add("tutorial-tab-active");
       b.textContent = s.title;
-      b.addEventListener('click', () => {
+      b.addEventListener("click", () => {
         active = i;
         render();
       });
       tabs.appendChild(b);
     });
-    body.innerHTML = '';
+    body.innerHTML = "";
     body.appendChild(sections[active].body);
   }
 
-  const footer = document.createElement('div');
-  footer.className = 'cost-actions';
-  const hint = document.createElement('div');
-  hint.className = 'tutorial-hint';
-  hint.textContent = 'Press ESC or click outside to close.';
-  const okBtn = document.createElement('button');
-  okBtn.className = 'px-btn px-btn-primary';
-  okBtn.style.fontSize = '9px';
-  okBtn.textContent = 'GOT IT';
+  const footer = document.createElement("div");
+  footer.className = "cost-actions";
+  const hint = document.createElement("div");
+  hint.className = "tutorial-hint";
+  hint.textContent = "Press ESC or click outside to close.";
+  const okBtn = document.createElement("button");
+  okBtn.className = "px-btn px-btn-primary";
+  okBtn.style.fontSize = "9px";
+  okBtn.textContent = "GOT IT";
   footer.append(hint, okBtn);
   card.appendChild(footer);
 
   function close_(): void {
     backdrop.remove();
-    window.removeEventListener('keydown', onKey);
+    window.removeEventListener("keydown", onKey);
   }
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.key === 'Escape') close_();
-    else if (e.key === 'ArrowRight') {
+    if (e.key === "Escape") close_();
+    else if (e.key === "ArrowRight") {
       active = (active + 1) % sections.length;
       render();
-    } else if (e.key === 'ArrowLeft') {
+    } else if (e.key === "ArrowLeft") {
       active = (active - 1 + sections.length) % sections.length;
       render();
     }
   };
-  window.addEventListener('keydown', onKey);
+  window.addEventListener("keydown", onKey);
 
-  close.addEventListener('click', close_);
-  okBtn.addEventListener('click', close_);
-  backdrop.addEventListener('click', (ev) => {
+  close.addEventListener("click", close_);
+  okBtn.addEventListener("click", close_);
+  backdrop.addEventListener("click", (ev) => {
     if (ev.target === backdrop) close_();
   });
 
@@ -110,234 +110,280 @@ export function mountTutorialModal(root: HTMLElement): () => void {
 }
 
 function p(html: string): HTMLDivElement {
-  const d = document.createElement('div');
-  d.className = 'tutorial-p';
+  const d = document.createElement("div");
+  d.className = "tutorial-p";
   d.innerHTML = html;
   return d;
 }
 
 function row(left: HTMLElement, text: string): HTMLDivElement {
-  const d = document.createElement('div');
-  d.className = 'tutorial-row';
-  const l = document.createElement('div');
-  l.className = 'tutorial-row-icon';
+  const d = document.createElement("div");
+  d.className = "tutorial-row";
+  const l = document.createElement("div");
+  l.className = "tutorial-row-icon";
   l.appendChild(left);
-  const r = document.createElement('div');
-  r.className = 'tutorial-p';
+  const r = document.createElement("div");
+  r.className = "tutorial-p";
   r.innerHTML = text;
   d.append(l, r);
   return d;
 }
 
 function goalBody(): HTMLElement {
-  const wrap = document.createElement('div');
+  const wrap = document.createElement("div");
   wrap.append(
-    p(`Survive <b>50 waves</b> of creeps. They walk from <b>Start</b> to <b>End</b> through 6 checkpoints.`),
-    row(htmlHeart(18), `Each leak costs a <b>life</b>. Lose all 50 and the run ends.`),
-    row(htmlCoin(18), `Kills earn <b>gold</b>. Spend it on chance-tier upgrades and combines.`),
+    p(
+      `Survive <b>50 waves</b> of creeps. They walk from <b>Start</b> to <b>End</b> through 6 checkpoints.`,
+    ),
+    row(
+      htmlHeart(18),
+      `Each leak costs a <b>life</b>. Lose all 50 and the run ends.`,
+    ),
+    row(
+      htmlCoin(18),
+      `Kills earn <b>gold</b>. Spend it on chance-tier upgrades and combines.`,
+    ),
   );
   return wrap;
 }
 
 function buildBody(): HTMLElement {
-  const wrap = document.createElement('div');
+  const wrap = document.createElement("div");
   wrap.append(
-    p(`Each build phase: upgrade your <b>chance tier</b> if you like, then press <b>START PLACEMENT</b> (<kbd>SPACE</kbd>) to roll <b>5 random gems</b>.`),
-    row(htmlGem('emerald', 22, true), `<b>PLACE</b> — select a draw slot, then click a grass tile.`),
-    row(htmlGem('sapphire', 22), `<b>CYCLE</b> — <kbd>TAB</kbd> cycles unplaced slots.`),
-    row(htmlGem('topaz', 22), `<b>UNDO</b> — <kbd>U</kbd> reverses placements.`),
-    p(`Once all 5 are placed, press <b>NEXT WAVE</b> (<kbd>SPACE</kbd>). After the wave, <b>keep one</b> tower (<kbd>K</kbd>); the other four become <b>rocks</b> that block creep paths — that's how you build your maze.`),
+    p(
+      `Each build phase: upgrade your <b>chance tier</b> if you like, then press <b>START PLACEMENT</b> (<kbd>SPACE</kbd>) to roll <b>5 random gems</b>.`,
+    ),
+    row(
+      htmlGem("emerald", 22, true),
+      `<b>PLACE</b> — select a draw slot, then click a grass tile.`,
+    ),
+    row(
+      htmlGem("sapphire", 22),
+      `<b>CYCLE</b> — <kbd>TAB</kbd> cycles unplaced slots.`,
+    ),
+    row(
+      htmlGem("topaz", 22),
+      `<b>UNDO</b> — <kbd>U</kbd> reverses placements.`,
+    ),
+    p(
+      `Once all 5 are placed, press <b>NEXT WAVE</b> (<kbd>SPACE</kbd>). After the wave, <b>keep one</b> tower (<kbd>K</kbd>); the other four become <b>rocks</b> that block creep paths — that's how you build your maze.`,
+    ),
   );
   return wrap;
 }
 
 function mazeBody(): HTMLElement {
-  const wrap = document.createElement('div');
+  const wrap = document.createElement("div");
   wrap.append(
-    p(`Creeps take the <b>shortest walkable path</b> through 6 <b>checkpoints</b>. Place towers to <b>force longer detours</b> — more time in range means more damage.`),
-    p(`A placement is <b>rejected</b> if it would fully block the path. <b>Air</b> creeps ignore the maze and fly straight between checkpoints.`),
-    p(`Each wave, 4 of your 5 gems become <b>rocks</b> when you pick a keeper. Rocks can be removed later for increasing gold cost.`),
+    p(
+      `Creeps take the <b>shortest walkable path</b> through 6 <b>checkpoints</b>. Place towers to <b>force longer detours</b> — more time in range means more damage.`,
+    ),
+    p(
+      `A placement is <b>rejected</b> if it would fully block the path. <b>Air</b> creeps ignore the maze and fly straight between checkpoints.`,
+    ),
+    p(
+      `Each wave, 4 of your 5 gems become <b>rocks</b> when you pick a keeper. Rocks can be removed later for increasing gold cost.`,
+    ),
   );
   return wrap;
 }
 
 function combineBody(): HTMLElement {
-  const wrap = document.createElement('div');
+  const wrap = document.createElement("div");
   wrap.append(
-    p(`<b>Right-click</b> a placed gem to open the <b>radial menu</b> — it shows Keep, Combine (level up), and Special (recipe) actions for that tower.`),
-    p(`<b>Level up:</b> 2 same gems → +1 quality; 4 same gems → +2 quality (Chipped → Flawed → Normal → Flawless → Perfect).`),
-    p(`<b>Recipes:</b> specific gem + quality combos form a <b>special tower</b>. Check the RECIPES panel for all combinations.`),
-    p(`Only <b>kept</b> towers from previous rounds are eligible for recipes. The full ★ COMBINE menu (<kbd>C</kbd>) lets you pick towers manually.`),
+    p(
+      `<b>Right-click</b> a placed gem to open the <b>radial menu</b> — it shows Keep, Combine (level up), and Special (recipe) actions for that tower.`,
+    ),
+    p(
+      `<b>Level up:</b> 2 same gems → +1 quality; 4 same gems → +2 quality (Chipped → Flawed → Normal → Flawless → Perfect).`,
+    ),
+    p(
+      `<b>Recipes:</b> specific gem + quality combos form a <b>special tower</b>. Check the RECIPES panel for all combinations.`,
+    ),
+    p(
+      `Only <b>kept</b> towers from previous rounds are eligible for recipes. The full ★ COMBINE menu (<kbd>C</kbd>) lets you pick towers manually.`,
+    ),
   );
   return wrap;
 }
 
 function runesBody(): HTMLElement {
-  const wrap = document.createElement('div');
+  const wrap = document.createElement("div");
   wrap.append(
-    p(`<b>Runes</b> are special recipe combos that act as <b>traps</b>. Unlike towers, they don't block pathing — creeps walk over them and trigger their effect.`),
+    p(
+      `<b>Runes</b> are special recipe combos that act as <b>traps</b>. Unlike towers, they don't block pathing — creeps walk over them and trigger their effect.`,
+    ),
     p(`<b>Rune of Holding</b> — stuns creeps briefly.`),
     p(`<b>Rune of Damage</b> — deals burst damage on contact.`),
     p(`<b>Rune of Teleportation</b> — knocks creeps back along the path.`),
     p(`<b>Rune of Slow</b> — applies a heavy slow.`),
-    p(`Runes have a cooldown between triggers. Place them on the creep path for maximum effect.`),
+    p(
+      `Runes have a cooldown between triggers. Place them on the creep path for maximum effect.`,
+    ),
   );
   return wrap;
 }
 
 function changesBody(): HTMLElement {
-  const wrap = document.createElement('div');
+  const wrap = document.createElement("div");
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
-      ver: '1.2.1',
+      ver: "1.2.2",
       notes: [
-        '<b>Fix</b> — Wave bonus gold is now only awarded when no creeps leak.',
+        "<b>Balance</b> — Remove poison from Ancient Bloodstone entirely.",
+        "<b>Balance</b> — Buff stargem damage floor and ceiling by 200 each.",
       ],
     },
     {
-      ver: '1.2.0',
+      ver: "1.2.1",
       notes: [
-        '<b>Stats</b> — top 5 damage-dealing towers shown on game over screen.',
+        "<b>Fix</b> — Wave bonus gold is now only awarded when no creeps leak.",
       ],
     },
     {
-      ver: '1.1.0',
+      ver: "1.2.0",
       notes: [
-        '<b>Balance</b> — boss wave bounties reduced by 40% across all boss waves (10, 20, 30, 40, 50).',
-        '<b>Balance</b> — armor now scales across all ground creep waves from wave 11 onward, increasing overall mid-to-late difficulty.',
-        '<b>Balance</b> — air waves nerfed slightly (fewer creeps, lower HP) but compensated with armor; difficulty shifts toward ground waves.',
+        "<b>Stats</b> — top 5 damage-dealing towers shown on game over screen.",
       ],
     },
     {
-      ver: '1.0.0',
+      ver: "1.1.0",
       notes: [
-        '<b>Armor system</b> — numeric armor replaces the armored flag. WC3 damage formula: positive armor reduces damage, negative amplifies. Armor progresses across all 50 waves.',
-        '<b>Special gem upgrade rework</b> — all 9 combo upgrade tiers replaced with identity-defining mechanics:',
-        '&nbsp;&nbsp;Black Opal → <b>Void Opal</b>: vulnerability aura (+20% damage taken).',
-        '&nbsp;&nbsp;Bloodstone → <b>Bloodfire Opal</b>: crit splash, 35% crit ×3.',
-        '&nbsp;&nbsp;Dark Emerald → <b>Venomous Emerald</b>: poison + plague spread on death.',
-        '&nbsp;&nbsp;Gold → <b>Pharaoh\'s Gold</b>: crit splash + proximity armor shred.',
-        '&nbsp;&nbsp;Pink Diamond → <b>Living Diamond</b>: focus crit (+3%/hit) + execute below 25% HP.',
-        '&nbsp;&nbsp;Silver → <b>Frosted Silver</b>: freeze chance. <b>Silver Knight</b>: periodic nova + freeze.',
-        '&nbsp;&nbsp;Star Ruby → <b>Plasma Star</b>: ramping burn. <b>Solar Core</b>: armor-piercing burn + death nova.',
-        '&nbsp;&nbsp;Yellow Sapphire → <b>Blizzard Sapphire</b>: periodic freeze + frostbite bonus.',
-        '&nbsp;&nbsp;Paraiba → stacking armor shred. <b>Ancient Paraiba</b>: enhanced shred (-3/hit, 8 stacks).',
-        '&nbsp;&nbsp;Uranium → <b>Leaking Uranium</b>: armor decay aura + linger burn.',
-        '<b>Balance</b> — Silver T1 buffed: damage 20-26 → 24-31, atk speed 1.1 → 1.25, slow 0.8 → 0.75.',
-        '<b>Balance</b> — Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit.',
-        '<b>Balance</b> — Yellow Sapphire base damage 80-120 → 120-180, slow 25% for 2.5 s.',
-        '<b>Balance</b> — Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled.',
-        '<b>Balance</b> — Lucky Asian Jade damage/poison/crit significantly buffed.',
-        '<b>Balance</b> — Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers.',
-        '<b>Balance</b> — Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP.',
-        '<b>Balance</b> — Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks.',
-        '<b>Waves</b> — reverted to 50 waves. Armor progression added across all waves: armored creeps start at 7 armor (wave 5), normals/fast gain 1-5, bosses gain 5 from wave 30.',
-        '<b>Creep inspector</b> — click a creep to see HP bar, speed, bounty, active debuffs, and flags.',
-        '<b>Sprites</b> — T2 gem sprite redesigned as asymmetric crystal cluster. New sprites and palettes for Silver, Star Ruby, Gold, Black Opal, Paraiba Tourmaline, and others across upgrade tiers.',
-        '<b>Hardcore mode</b> — restyled with skull & bone theme; checkpoint banners replaced with carved waystones.',
-        '<b>Debug</b> — Ctrl+0 on title screen starts a debug game with all gems and combos pre-placed.',
+        "<b>Balance</b> — boss wave bounties reduced by 40% across all boss waves (10, 20, 30, 40, 50).",
+        "<b>Balance</b> — armor now scales across all ground creep waves from wave 11 onward, increasing overall mid-to-late difficulty.",
+        "<b>Balance</b> — air waves nerfed slightly (fewer creeps, lower HP) but compensated with armor; difficulty shifts toward ground waves.",
       ],
     },
     {
-      ver: '0.12.0',
+      ver: "1.0.0",
       notes: [
-        '<b>Balance</b> — First chance tier upgrade cost reduced: 30 g → 25 g.',
-        '<b>Balance</b> — Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14 000 → 9 000.',
+        "<b>Armor system</b> — numeric armor replaces the armored flag. WC3 damage formula: positive armor reduces damage, negative amplifies. Armor progresses across all 50 waves.",
+        "<b>Special gem upgrade rework</b> — all 9 combo upgrade tiers replaced with identity-defining mechanics:",
+        "&nbsp;&nbsp;Black Opal → <b>Void Opal</b>: vulnerability aura (+20% damage taken).",
+        "&nbsp;&nbsp;Bloodstone → <b>Bloodfire Opal</b>: crit splash, 35% crit ×3.",
+        "&nbsp;&nbsp;Dark Emerald → <b>Venomous Emerald</b>: poison + plague spread on death.",
+        "&nbsp;&nbsp;Gold → <b>Pharaoh's Gold</b>: crit splash + proximity armor shred.",
+        "&nbsp;&nbsp;Pink Diamond → <b>Living Diamond</b>: focus crit (+3%/hit) + execute below 25% HP.",
+        "&nbsp;&nbsp;Silver → <b>Frosted Silver</b>: freeze chance. <b>Silver Knight</b>: periodic nova + freeze.",
+        "&nbsp;&nbsp;Star Ruby → <b>Plasma Star</b>: ramping burn. <b>Solar Core</b>: armor-piercing burn + death nova.",
+        "&nbsp;&nbsp;Yellow Sapphire → <b>Blizzard Sapphire</b>: periodic freeze + frostbite bonus.",
+        "&nbsp;&nbsp;Paraiba → stacking armor shred. <b>Ancient Paraiba</b>: enhanced shred (-3/hit, 8 stacks).",
+        "&nbsp;&nbsp;Uranium → <b>Leaking Uranium</b>: armor decay aura + linger burn.",
+        "<b>Balance</b> — Silver T1 buffed: damage 20-26 → 24-31, atk speed 1.1 → 1.25, slow 0.8 → 0.75.",
+        "<b>Balance</b> — Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit.",
+        "<b>Balance</b> — Yellow Sapphire base damage 80-120 → 120-180, slow 25% for 2.5 s.",
+        "<b>Balance</b> — Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled.",
+        "<b>Balance</b> — Lucky Asian Jade damage/poison/crit significantly buffed.",
+        "<b>Balance</b> — Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers.",
+        "<b>Balance</b> — Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP.",
+        "<b>Balance</b> — Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks.",
+        "<b>Waves</b> — reverted to 50 waves. Armor progression added across all waves: armored creeps start at 7 armor (wave 5), normals/fast gain 1-5, bosses gain 5 from wave 30.",
+        "<b>Creep inspector</b> — click a creep to see HP bar, speed, bounty, active debuffs, and flags.",
+        "<b>Sprites</b> — T2 gem sprite redesigned as asymmetric crystal cluster. New sprites and palettes for Silver, Star Ruby, Gold, Black Opal, Paraiba Tourmaline, and others across upgrade tiers.",
+        "<b>Hardcore mode</b> — restyled with skull & bone theme; checkpoint banners replaced with carved waystones.",
+        "<b>Debug</b> — Ctrl+0 on title screen starts a debug game with all gems and combos pre-placed.",
       ],
     },
     {
-      ver: '0.11.0',
+      ver: "0.12.0",
       notes: [
-        '<b>Runes disabled</b> — runes temporarily disabled due to UX/balance issues.',
+        "<b>Balance</b> — First chance tier upgrade cost reduced: 30 g → 25 g.",
+        "<b>Balance</b> — Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14 000 → 9 000.",
       ],
     },
     {
-      ver: '0.10.0',
+      ver: "0.11.0",
       notes: [
-        '<b>Multi-target</b> — Malachite now fires independent projectiles at multiple enemies instead of chain lightning.',
-        '<b>Proximity burn</b> — Star Ruby and Uranium radiate passive damage to all nearby enemies.',
-        '<b>Proximity slow</b> — Uranium slows all enemies in range without attacking.',
-        '<b>Armor shred</b> — Gold applies an armor reduction debuff on hit.',
-        '<b>Bonus gold</b> — Lucky Asian Jade has a 5% chance to double kill bounty.',
-        '<b>Black Opal</b> — Now grants a damage aura instead of attack speed aura.',
+        "<b>Runes disabled</b> — runes temporarily disabled due to UX/balance issues.",
       ],
     },
     {
-      ver: '0.9.0',
+      ver: "0.10.0",
       notes: [
-        '<b>Downgrade</b> — new action: reduce a gem\'s tier by 1 to keep it. One use per round; auto-starts the wave.',
+        "<b>Multi-target</b> — Malachite now fires independent projectiles at multiple enemies instead of chain lightning.",
+        "<b>Proximity burn</b> — Star Ruby and Uranium radiate passive damage to all nearby enemies.",
+        "<b>Proximity slow</b> — Uranium slows all enemies in range without attacking.",
+        "<b>Armor shred</b> — Gold applies an armor reduction debuff on hit.",
+        "<b>Bonus gold</b> — Lucky Asian Jade has a 5% chance to double kill bounty.",
+        "<b>Black Opal</b> — Now grants a damage aura instead of attack speed aura.",
       ],
     },
     {
-      ver: '0.8.2',
+      ver: "0.9.0",
       notes: [
-        '<b>Balance</b> — Nerfed healer buff: duration 3 s → 2 s, heal rate 0.1 %/tick → 0.075 %/tick.',
+        "<b>Downgrade</b> — new action: reduce a gem's tier by 1 to keep it. One use per round; auto-starts the wave.",
       ],
     },
     {
-      ver: '0.8.1',
+      ver: "0.8.2",
       notes: [
-        '<b>Balance</b> — Mighty Malachite nerfed: damage 100-150→70-100, chain falloff 1.0→0.85.',
-        '<b>Balance</b> — Star Ruby line buffed: damage and poison up across all tiers.',
-        '<b>Balance</b> — Lucky Asian Jade line nerfed: splash falloff 0.6→0.5, poison 80→50 / 120→80.',
-        '<b>Balance</b> — Boss W10 HP 3500→3000, W11 healers HP 1000→800, W50 healers 5→2.',
+        "<b>Balance</b> — Nerfed healer buff: duration 3 s → 2 s, heal rate 0.1 %/tick → 0.075 %/tick.",
       ],
     },
     {
-      ver: '0.8.0',
+      ver: "0.8.1",
       notes: [
-        '<b>Balance</b> — Diamond nerfed: base damage 30→25, crit multiplier 2.5→2.0.',
-        '<b>Balance</b> — Sapphire buffed: base damage 12→15.',
-        '<b>Balance</b> — Emerald buffed: base damage 10→13, poison DPS 8→11.',
-        '<b>Balance</b> — Aquamarine buffed: base range 2.5→3.0.',
+        "<b>Balance</b> — Mighty Malachite nerfed: damage 100-150→70-100, chain falloff 1.0→0.85.",
+        "<b>Balance</b> — Star Ruby line buffed: damage and poison up across all tiers.",
+        "<b>Balance</b> — Lucky Asian Jade line nerfed: splash falloff 0.6→0.5, poison 80→50 / 120→80.",
+        "<b>Balance</b> — Boss W10 HP 3500→3000, W11 healers HP 1000→800, W50 healers 5→2.",
       ],
     },
     {
-      ver: '0.7.2',
+      ver: "0.8.0",
       notes: [
-        '<b>Fix</b> — special combine with 1 current-round gem now works correctly.',
+        "<b>Balance</b> — Diamond nerfed: base damage 30→25, crit multiplier 2.5→2.0.",
+        "<b>Balance</b> — Sapphire buffed: base damage 12→15.",
+        "<b>Balance</b> — Emerald buffed: base damage 10→13, poison DPS 8→11.",
+        "<b>Balance</b> — Aquamarine buffed: base range 2.5→3.0.",
       ],
     },
     {
-      ver: '0.7.0',
+      ver: "0.7.2",
       notes: [
-        '<b>Aquamarine rework</b> — ramping beam replaces rapid-fire projectiles.',
+        "<b>Fix</b> — special combine with 1 current-round gem now works correctly.",
       ],
     },
     {
-      ver: '0.6.1',
+      ver: "0.7.0",
       notes: [
-        '<b>Amethyst rework</b> — targets all units with air damage bonus.',
+        "<b>Aquamarine rework</b> — ramping beam replaces rapid-fire projectiles.",
       ],
     },
     {
-      ver: '0.6.0',
+      ver: "0.6.1",
       notes: [
-        '<b>Hardcore + Creative mode</b> — new game modes.',
-        '<b>Runes</b> — walkable trap towers triggered by creep proximity (Holding, Damage, Teleportation, Slow).',
-        '<b>Tower kill leveling</b> — towers gain +5% damage per 10 kills.',
-        '<b>8× speed mode</b> — press <kbd>8</kbd> to fast-forward.',
-        '<b>Healer, Wizard, Tunneler</b> — new creep types and wave groups.',
-        '<b>Radial menu</b> — right-click towers for Keep / Combine / Special.',
-        '<b>Path overlay</b> — press <kbd>P</kbd> to see the creep route.',
+        "<b>Amethyst rework</b> — targets all units with air damage bonus.",
+      ],
+    },
+    {
+      ver: "0.6.0",
+      notes: [
+        "<b>Hardcore + Creative mode</b> — new game modes.",
+        "<b>Runes</b> — walkable trap towers triggered by creep proximity (Holding, Damage, Teleportation, Slow).",
+        "<b>Tower kill leveling</b> — towers gain +5% damage per 10 kills.",
+        "<b>8× speed mode</b> — press <kbd>8</kbd> to fast-forward.",
+        "<b>Healer, Wizard, Tunneler</b> — new creep types and wave groups.",
+        "<b>Radial menu</b> — right-click towers for Keep / Combine / Special.",
+        "<b>Path overlay</b> — press <kbd>P</kbd> to see the creep route.",
         '<b>Recipe hints</b> — tower inspector shows "Forges Into" recipes.',
-        '<b>Stargem</b> — apex gem from 4× Perfect same-type recipe.',
-        '<b>Balance</b> — increased aura/proximity radii, bosses cost 8 lives.',
+        "<b>Stargem</b> — apex gem from 4× Perfect same-type recipe.",
+        "<b>Balance</b> — increased aura/proximity radii, bosses cost 8 lives.",
       ],
     },
   ];
 
   for (const { ver, notes } of versions) {
-    const hdr = document.createElement('div');
-    hdr.className = 'tutorial-p changelog-ver';
+    const hdr = document.createElement("div");
+    hdr.className = "tutorial-p changelog-ver";
     hdr.innerHTML = `<b>v${ver}</b>`;
     wrap.appendChild(hdr);
-    const list = document.createElement('ul');
-    list.className = 'changelog-list';
+    const list = document.createElement("ul");
+    list.className = "changelog-list";
     for (const n of notes) {
-      const li = document.createElement('li');
-      li.className = 'tutorial-p changelog-item';
+      const li = document.createElement("li");
+      li.className = "tutorial-p changelog-item";
       li.innerHTML = n;
       list.appendChild(li);
     }
@@ -347,26 +393,26 @@ function changesBody(): HTMLElement {
 }
 
 function keysBody(): HTMLElement {
-  const wrap = document.createElement('div');
-  const grid = document.createElement('div');
-  grid.className = 'tutorial-keys';
+  const wrap = document.createElement("div");
+  const grid = document.createElement("div");
+  grid.className = "tutorial-keys";
   const keys: Array<[string, string]> = [
-    ['SPACE', 'Start placement / next wave'],
-    ['TAB', 'Cycle draw slot (Shift = back)'],
-    ['K', 'Keep hovered or selected tower'],
-    ['C', 'Open Combine menu'],
-    ['U', 'Undo last placement'],
-    ['1/2/4/8', 'Sim speed'],
-    ['P', 'Toggle path overlay'],
-    ['R', 'Restart game'],
-    ['ESC', 'Deselect / close menu'],
+    ["SPACE", "Start placement / next wave"],
+    ["TAB", "Cycle draw slot (Shift = back)"],
+    ["K", "Keep hovered or selected tower"],
+    ["C", "Open Combine menu"],
+    ["U", "Undo last placement"],
+    ["1/2/4/8", "Sim speed"],
+    ["P", "Toggle path overlay"],
+    ["R", "Restart game"],
+    ["ESC", "Deselect / close menu"],
   ];
   for (const [k, label] of keys) {
-    const r = document.createElement('div');
-    r.className = 'tutorial-key-row';
-    const kb = document.createElement('kbd');
+    const r = document.createElement("div");
+    r.className = "tutorial-key-row";
+    const kb = document.createElement("kbd");
     kb.textContent = k;
-    const lbl = document.createElement('div');
+    const lbl = document.createElement("div");
     lbl.textContent = label;
     r.append(kb, lbl);
     grid.appendChild(r);

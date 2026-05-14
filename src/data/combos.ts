@@ -117,10 +117,9 @@ const ALL_COMBOS: ComboRecipe[] = [
           atkSpeed: 1.0,
           effects: [
             { kind: "splash", radius: 2.5, falloff: 0.5 },
-            { kind: "poison", dps: 150, duration: 4 },
             { kind: "crit", chance: 0.35, multiplier: 3.0 },
           ],
-          blurb: "Massive splash + burn. 35% crit x3.",
+          blurb: "Massive splash. 35% crit x3.",
           targeting: "all",
         },
       },
@@ -690,12 +689,12 @@ const ALL_COMBOS: ComboRecipe[] = [
     name: "Stargem",
     inputs: [],
     stats: {
-      dmgMin: 350,
-      dmgMax: 550,
+      dmgMin: 550,
+      dmgMax: 750,
       range: 5.5,
       atkSpeed: 2.0,
       effects: [
-        { kind: "poison", dps: 100, duration: 4 },
+        { kind: "poison", dps: 400, duration: 4 },
         { kind: "slow", factor: 0.6, duration: 2.5 },
         { kind: "stun", chance: 0.12, duration: 1.0 },
         { kind: "beam_ramp", rampPerHit: 0.15, maxStacks: 25 },

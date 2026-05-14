@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v1.2.1";
+  wmVer.textContent = "v1.2.2";
   wm.append(wmName, wmVer);
   if (game.state.hardcore) {
     const skull = document.createElement("div");
@@ -795,7 +795,7 @@ export function mountHud(
 
   if (game.state.hardcore) right.appendChild(makeHardcoreDivider());
 
-  const recipes = document.createElement("div")
+  const recipes = document.createElement("div");
   recipes.className = "px-panel recipes-panel";
   const recipesHead = document.createElement("div");
   recipesHead.className = "panel-head";
