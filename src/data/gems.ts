@@ -48,7 +48,7 @@ export type EffectKind =
   | { kind: 'stun_poison'; dps: number; duration: number }
   | { kind: 'death_spread'; count: number; radius: number }
   | { kind: 'stacking_armor_reduce'; perHit: number; maxStacks: number; decayInterval: number }
-  | { kind: 'armor_decay_aura'; armorPerSec: number; radius: number }
+  | { kind: 'armor_decay_aura'; armorPerSec: number; radius: number; maxReduction: number }
   | { kind: 'linger_burn'; duration: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
@@ -119,7 +119,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   amethyst: {
     name: 'Amethyst',
     blurb: 'Arcane lance — true damage, devastating vs air.',
-    baseDmg: 18,
+    baseDmg: 21,
     spread: 0.2,
     baseRange: 4.5,
     baseAtkSpeed: 0.9,
@@ -153,7 +153,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     spread: 0.15,
     baseRange: 3.0,
     baseAtkSpeed: 3.0,
-    effects: [{ kind: 'beam_ramp', rampPerHit: 0.18, maxStacks: 30 }],
+    effects: [{ kind: 'beam_ramp', rampPerHit: 0.21, maxStacks: 30 }],
     targeting: 'all',
   },
 };
