@@ -116,6 +116,22 @@ function render(data) {
     html += '</table>';
   }
 
+  // Deaths by wave
+  if (data.deathsByWave?.length) {
+    const totalDeaths = data.deathsByWave.reduce((s, r) => s + Number(r.deaths), 0);
+    const maxDeaths = Math.max(...data.deathsByWave.map(r => Number(r.deaths)));
+    html += '<h2>Deaths by Wave</h2>';
+    html += '<table><tr><th>Wave</th><th>Deaths</th><th>% of Deaths</th><th></th></tr>';
+    for (const row of data.deathsByWave) {
+      const n = Number(row.deaths);
+      const p = totalDeaths > 0 ? n / totalDeaths : 0;
+      const w = maxDeaths > 0 ? (n / maxDeaths * 100) : 0;
+      html += '<tr><td>' + row.wave + '</td><td>' + n + '</td><td>' + pct(p) +
+        '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
+    }
+    html += '</table>';
+  }
+
   // Leaks per wave
   if (data.leaksPerWave?.length) {
     const maxLeak = Math.max(...data.leaksPerWave.map(r => Number(r.avg_leaks)));
@@ -126,6 +142,20 @@ function render(data) {
       const w = maxLeak > 0 ? (avg / maxLeak * 100) : 0;
       html += '<tr><td>' + row.wave + '</td><td>' + fmt(avg, 2) + '</td><td>' + row.total_leaks +
         '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
+    }
+    html += '</table>';
+  }
+
+  // Leaks by creep kind
+  if (data.leaksByKind?.length) {
+    const maxLost = Math.max(...data.leaksByKind.map(r => Number(r.total_lives_lost)));
+    const totalRuns = Number(o.total_runs) || 1;
+    html += '<h2>Lives Lost by Creep Type</h2>';
+    html += '<table><tr><th>Creep</th><th>Leaks</th><th>Total Lives Lost</th><th>Avg Lives/Run</th><th>Avg Cost/Leak</th><th></th></tr>';
+    for (const row of data.leaksByKind) {
+      const totalLost = Number(row.total_lives_lost);
+      const w = maxLost > 0 ? (totalLost / maxLost * 100) : 0;
+      html += '<tr><td>' + row.creep_kind + '</td><td>' + row.leak_count + '</td><td>' + fmt(totalLost, 0) + '</td><td>' + fmt(totalLost / totalRuns, 1) + '</td><td>' + fmt(row.avg_lives_per_leak, 1) + '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
     }
     html += '</table>';
   }
@@ -182,11 +212,11 @@ function render(data) {
   }
 
   // Lives remaining curve
-  if (data.waveCurves?.length) {
-    const maxLives = Math.max(...data.waveCurves.map(r => Number(r.avg_lives)));
+  if (data.leaksPerWave?.length) {
+    const maxLives = Math.max(...data.leaksPerWave.map(r => Number(r.avg_lives)));
     html += '<h2>Lives Remaining by Wave</h2>';
     html += '<table><tr><th>Wave</th><th>Avg Lives</th><th></th></tr>';
-    for (const row of data.waveCurves) {
+    for (const row of data.leaksPerWave) {
       const lives = Number(row.avg_lives);
       const w = maxLives > 0 ? (lives / maxLives * 100) : 0;
       html += '<tr><td>' + row.wave + '</td><td>' + fmt(lives, 1) + '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
@@ -195,11 +225,11 @@ function render(data) {
   }
 
   // Wave damage output
-  if (data.waveCurves?.length) {
-    const maxDmg = Math.max(...data.waveCurves.map(r => Number(r.avg_damage)));
+  if (data.waveDamage?.length) {
+    const maxDmg = Math.max(...data.waveDamage.map(r => Number(r.avg_damage)));
     html += '<h2>Wave Damage Output</h2>';
     html += '<table><tr><th>Wave</th><th>Avg Damage</th><th></th></tr>';
-    for (const row of data.waveCurves) {
+    for (const row of data.waveDamage) {
       const dmg = Number(row.avg_damage);
       const w = maxDmg > 0 ? (dmg / maxDmg * 100) : 0;
       html += '<tr><td>' + row.wave + '</td><td>' + fmt(dmg, 0) + '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
@@ -208,11 +238,11 @@ function render(data) {
   }
 
   // Gold economy curve
-  if (data.waveCurves?.length) {
-    const maxGold = Math.max(...data.waveCurves.map(r => Number(r.avg_gold)));
+  if (data.leaksPerWave?.length) {
+    const maxGold = Math.max(...data.leaksPerWave.map(r => Number(r.avg_gold)));
     html += '<h2>Gold Economy by Wave</h2>';
     html += '<table><tr><th>Wave</th><th>Avg Gold</th><th></th></tr>';
-    for (const row of data.waveCurves) {
+    for (const row of data.leaksPerWave) {
       const gold = Number(row.avg_gold);
       const w = maxGold > 0 ? (gold / maxGold * 100) : 0;
       html += '<tr><td>' + row.wave + '</td><td>' + fmt(gold, 0) + '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';

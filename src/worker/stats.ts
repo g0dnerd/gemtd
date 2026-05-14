@@ -1,37 +1,19 @@
 import type { Env } from "./types";
 
-async function queryAE(
-  env: Env,
-  sql: string,
-): Promise<Record<string, unknown>[]> {
-  const resp = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${env.CF_ACCOUNT_ID}/analytics_engine/sql`,
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${env.CF_API_TOKEN}`,
-        "Content-Type": "text/plain",
-      },
-      body: sql,
-    },
-  );
-  if (!resp.ok) {
-    const text = await resp.text();
-    console.error(`AE query failed (${resp.status}): ${text}\nSQL: ${sql}`);
-    return [];
-  }
-  const result: { data: Record<string, unknown>[] } = await resp.json();
-  return result.data ?? [];
-}
-
 export async function handleStats(
   url: URL,
   env: Env,
 ): Promise<Response> {
   const version = url.searchParams.get("version") || null;
-  const vf = version ? `AND blob2 = '${version}'` : "";
-  const vfB1 = version ? `AND blob1 = '${version}'` : "";
-  const vfB3 = version ? `AND blob3 = '${version}'` : "";
+  const db = env.gemtd_telemetry;
+
+  const rv = version ? "AND version = ?" : "";
+  const rBind = version ? [version] : [];
+
+  const cv = version
+    ? "AND run_id IN (SELECT run_id FROM runs WHERE version = ?)"
+    : "";
+  const cBind = version ? [version] : [];
 
   const [
     overviewRows,
@@ -43,62 +25,106 @@ export async function handleStats(
     chanceTiming,
     keeperCurve,
     keeperChoices,
-    waveCurves,
+    waveDamage,
+    leaksByKind,
+    deathsByWave,
   ] = await Promise.all([
-    queryAE(
-      env,
-      `SELECT count() as total_runs, avg(double1) as avg_wave, avg(double10) as avg_duration_ticks, avg(double4) as avg_kills FROM gemtd_runs WHERE 1=1 ${vf}`,
-    ),
-    queryAE(
-      env,
-      `SELECT count() as wins FROM gemtd_runs WHERE blob1 = 'victory' ${vf}`,
-    ),
-    queryAE(
-      env,
-      `SELECT double1 as wave, count() as runs FROM gemtd_waves WHERE 1=1 ${vfB1} GROUP BY double1 ORDER BY double1`,
-    ),
-    queryAE(
-      env,
-      `SELECT double1 as wave, avg(double5) as avg_leaks, sum(double5) as total_leaks, count() as runs FROM gemtd_waves WHERE 1=1 ${vfB1} GROUP BY double1 ORDER BY double1`,
-    ),
-    queryAE(
-      env,
-      `SELECT blob2 as combo_key, count() as count, avg(double4) as avg_damage, avg(double4 / (double8 - double5 + 1)) as avg_dmg_per_wave, avg(double5) as avg_wave_built, avg(double2) as avg_tier, max(double2) as max_tier FROM gemtd_towers WHERE blob2 != '' ${vfB3} GROUP BY blob2 ORDER BY avg_dmg_per_wave DESC`,
-    ),
-    queryAE(
-      env,
-      `SELECT blob1 as gem, count() as count, avg(double4) as avg_damage, avg(double4 / (double8 - double5 + 1)) as avg_dmg_per_wave, avg(double1) as avg_quality FROM gemtd_towers WHERE 1=1 ${vfB3} GROUP BY blob1 ORDER BY avg_dmg_per_wave DESC`,
-    ),
-    queryAE(
-      env,
-      `SELECT double5 as tier, avg(double1) as avg_wave, avg(double2) as avg_gold, count() as count FROM gemtd_events WHERE blob1 = 'chance_upgrade' ${vfB3} GROUP BY double5 ORDER BY double5`,
-    ),
-    queryAE(
-      env,
-      `SELECT double1 as wave, avg(double12) as avg_keeper_quality FROM gemtd_waves WHERE double12 > 0 ${vfB1} GROUP BY double1 ORDER BY double1`,
-    ),
-    queryAE(
-      env,
-      `SELECT blob2 as gem, count() as count, avg(double3) as avg_quality, avg(double1) as avg_wave FROM gemtd_events WHERE blob1 = 'keeper' ${vfB3} GROUP BY blob2 ORDER BY count DESC`,
-    ),
-    queryAE(
-      env,
-      `SELECT double1 as wave, avg(double2) as avg_lives, avg(double13) as avg_damage, avg(double3) as avg_gold FROM gemtd_waves WHERE 1=1 ${vfB1} GROUP BY double1 ORDER BY double1`,
-    ),
+    db.prepare(
+      `SELECT count(*) as total_runs, avg(wave_reached) as avg_wave,
+              avg(duration_ticks) as avg_duration_ticks, avg(total_kills) as avg_kills
+       FROM runs WHERE 1=1 ${rv}`,
+    ).bind(...rBind).all(),
+
+    db.prepare(
+      `SELECT count(*) as wins FROM runs WHERE outcome = 'victory' ${rv}`,
+    ).bind(...rBind).all(),
+
+    db.prepare(
+      `SELECT wave, count(*) as runs FROM waves
+       WHERE 1=1 ${cv} GROUP BY wave ORDER BY wave`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave, avg(leaks) as avg_leaks, sum(leaks) as total_leaks,
+              avg(lives) as avg_lives, avg(gold) as avg_gold, count(*) as runs
+       FROM waves WHERE 1=1 ${cv} GROUP BY wave ORDER BY wave`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT t.combo_key, count(*) as count,
+              avg(t.total_damage) as avg_damage,
+              avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave,
+              avg(t.placed_wave) as avg_wave_built,
+              avg(t.upgrade_tier) as avg_tier, max(t.upgrade_tier) as max_tier
+       FROM towers t JOIN runs r ON t.run_id = r.run_id
+       WHERE t.combo_key != '' ${cv.replace("run_id", "t.run_id")}
+       GROUP BY t.combo_key ORDER BY avg_dmg_per_wave DESC`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT t.gem, count(*) as count,
+              avg(t.total_damage) as avg_damage,
+              avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave,
+              avg(t.quality) as avg_quality
+       FROM towers t JOIN runs r ON t.run_id = r.run_id
+       WHERE 1=1 ${cv.replace("run_id", "t.run_id")}
+       GROUP BY t.gem ORDER BY avg_dmg_per_wave DESC`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT chance_tier as tier, avg(wave) as avg_wave,
+              avg(gold) as avg_gold, count(*) as count
+       FROM events WHERE event_type = 'chance_upgrade' ${cv}
+       GROUP BY chance_tier ORDER BY chance_tier`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave, avg(keeper_quality) as avg_keeper_quality
+       FROM waves WHERE keeper_quality > 0 ${cv}
+       GROUP BY wave ORDER BY wave`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT gem, count(*) as count,
+              avg(quality) as avg_quality, avg(wave) as avg_wave
+       FROM events WHERE event_type = 'keeper' ${cv}
+       GROUP BY gem ORDER BY count DESC`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave, avg(total_damage) as avg_damage
+       FROM waves WHERE 1=1 ${cv}
+       GROUP BY wave ORDER BY wave`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT detail as creep_kind, count(*) as leak_count,
+              sum(cost) as total_lives_lost, avg(cost) as avg_lives_per_leak
+       FROM events WHERE event_type = 'leak' ${cv}
+       GROUP BY detail ORDER BY total_lives_lost DESC`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave_reached as wave, count(*) as deaths
+       FROM runs WHERE outcome = 'gameover' ${rv}
+       GROUP BY wave_reached ORDER BY wave_reached`,
+    ).bind(...rBind).all(),
   ]);
 
-  const overview = overviewRows[0] ?? {};
-  const wins = winRows[0]?.wins ?? 0;
+  const overview = overviewRows.results?.[0] ?? {};
+  const wins = winRows.results?.[0]?.wins ?? 0;
 
   return Response.json({
     overview: { ...overview, wins },
-    survivalCurve,
-    leaksPerWave,
-    combos,
-    gemDps,
-    chanceTiming,
-    keeperCurve,
-    keeperChoices,
-    waveCurves,
+    survivalCurve: survivalCurve.results,
+    leaksPerWave: leaksPerWave.results,
+    combos: combos.results,
+    gemDps: gemDps.results,
+    chanceTiming: chanceTiming.results,
+    keeperCurve: keeperCurve.results,
+    keeperChoices: keeperChoices.results,
+    waveDamage: waveDamage.results,
+    leaksByKind: leaksByKind.results,
+    deathsByWave: deathsByWave.results,
   });
 }

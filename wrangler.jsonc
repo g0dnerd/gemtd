@@ -1,20 +1,23 @@
 {
-  "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "gemtd",
-  "main": "src/worker/index.ts",
-  "compatibility_date": "2026-05-06",
-  "observability": {
-    "enabled": true,
-  },
-  "assets": {
-    "binding": "ASSETS",
-    "not_found_handling": "none",
-  },
-  "compatibility_flags": ["nodejs_compat"],
-  "analytics_engine_datasets": [
-    { "binding": "TELEMETRY_RUNS", "dataset": "gemtd_runs" },
-    { "binding": "TELEMETRY_WAVES", "dataset": "gemtd_waves" },
-    { "binding": "TELEMETRY_TOWERS", "dataset": "gemtd_towers" },
-    { "binding": "TELEMETRY_EVENTS", "dataset": "gemtd_events" },
-  ],
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "gemtd",
+	"main": "src/worker/index.ts",
+	"compatibility_date": "2026-05-06",
+	"observability": {
+		"enabled": true,
+	},
+	"assets": {
+		"binding": "ASSETS",
+		"not_found_handling": "none",
+	},
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"d1_databases": [
+		{
+			"binding": "gemtd_telemetry",
+			"database_name": "gemtd-telemetry",
+			"database_id": "d5883004-8f82-4f6d-a6fe-8f83c02e658a"
+		}
+	],
 }

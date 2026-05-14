@@ -5,6 +5,7 @@
 
 import type { Quality } from '../render/theme';
 import type { GemType } from '../render/theme';
+import type { CreepKind } from '../data/creeps';
 
 export interface GameEvents {
   'phase:enter': { phase: 'title' | 'build' | 'wave' | 'gameover' | 'victory' };
@@ -12,7 +13,7 @@ export interface GameEvents {
   'wave:end': { wave: number; lifeLost: number; goldEarned: number };
   'creep:spawn': { id: number };
   'creep:die': { id: number; bounty: number };
-  'creep:leak': { id: number };
+  'creep:leak': { id: number; kind: CreepKind; hp: number; maxHp: number; liveCost: number };
   'tower:placed': { id: number; x: number; y: number; gem: GemType; quality: Quality };
   'tower:fire': { id: number; targetId: number };
   'tower:hit': { id: number; targetId: number; damage: number };

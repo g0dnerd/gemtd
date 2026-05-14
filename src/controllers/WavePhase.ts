@@ -195,7 +195,7 @@ export class WavePhase {
     const cost = baseCost + Math.floor(waveNum / 10);
     state.lives = Math.max(0, state.lives - cost);
     state.waveStats.leakedThisWave++;
-    this.game.bus.emit('creep:leak', { id: c.id });
+    this.game.bus.emit('creep:leak', { id: c.id, kind: c.kind, hp: c.hp, maxHp: c.maxHp, liveCost: cost });
     this.game.bus.emit('lives:change', { lives: state.lives });
     if (state.lives <= 0) {
       this.endWave();

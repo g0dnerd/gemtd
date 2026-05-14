@@ -2,14 +2,6 @@ import type { Game } from "../game/Game";
 import type { State } from "../game/State";
 import type { EventBus } from "../events/EventBus";
 
-function chunks<T>(arr: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    result.push(arr.slice(i, i + size));
-  }
-  return result;
-}
-
 interface WaveSnapshot {
   wave: number;
   lives: number;
@@ -185,6 +177,20 @@ export class TelemetryCollector {
         });
       }),
 
+      b.on("creep:leak", ({ kind, hp, liveCost }) => {
+        this.events.push({
+          type: "leak",
+          wave: s.wave,
+          gold: s.gold,
+          gem: "",
+          quality: 0,
+          cost: liveCost,
+          chanceTier: s.chanceTier,
+          detail: kind,
+          value1: hp,
+        });
+      }),
+
       b.on("tower:downgrade", ({ gem, oldQuality, newQuality }) => {
         this.downgradesUsed++;
         this.events.push({
@@ -247,19 +253,13 @@ export class TelemetryCollector {
       cleanWaves: this.cleanWaves,
     };
 
-    // AE allows max 25 writeDataPoint calls per worker invocation.
-    // Chunk arrays so each request stays within the limit.
-    const CHUNK = 24; // leave 1 slot for the run summary write
-    this.send({ ...header, dataset: "runs", run });
-    for (const chunk of chunks(this.waves, CHUNK)) {
-      this.send({ ...header, dataset: "waves", run, waves: chunk });
-    }
-    for (const chunk of chunks(towers, CHUNK)) {
-      this.send({ ...header, dataset: "towers", run, towers: chunk });
-    }
-    for (const chunk of chunks(this.events, CHUNK)) {
-      this.send({ ...header, dataset: "events", run, events: chunk });
-    }
+    this.send({
+      ...header,
+      run,
+      waves: this.waves,
+      towers,
+      events: this.events,
+    });
   }
 
   private send(payload: Record<string, unknown>): void {
