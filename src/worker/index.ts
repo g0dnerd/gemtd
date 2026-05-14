@@ -28,6 +28,16 @@ export default {
       return handleDashboard(env.TELEMETRY_SECRET);
     }
 
-    return env.ASSETS.fetch(request);
+    const assetResponse = await env.ASSETS.fetch(request);
+    if (assetResponse.status !== 404) return assetResponse;
+
+    // SPA fallback: serve index.html for non-file routes
+    const indexResponse = await env.ASSETS.fetch(
+      new Request(new URL("/index.html", url), request),
+    );
+    return new Response(indexResponse.body, {
+      status: 200,
+      headers: indexResponse.headers,
+    });
   },
 } satisfies ExportedHandler<Env>;
