@@ -354,6 +354,10 @@ export class Game {
     this.bus.emit("wave:start", { wave: this.state.wave });
   }
 
+  handleCreepDeath(c: import('../game/State').CreepState): void {
+    this.combat.handleDeathEffects(c);
+  }
+
   endWave(lifeLost: number, goldEarned: number): void {
     this.bus.emit("wave:end", { wave: this.state.wave, lifeLost, goldEarned });
     if (this.state.lives <= 0) {

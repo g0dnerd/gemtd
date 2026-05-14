@@ -233,6 +233,10 @@ class BenchmarkScenario {
     this.state.phase = 'build';
   }
 
+  handleCreepDeath(c: import('../../src/game/State').CreepState): void {
+    this.combat.handleDeathEffects(c);
+  }
+
   selectTower(_id: number | null): void {}
   selectRock(_id: number | null): void {}
 

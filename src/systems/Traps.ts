@@ -76,6 +76,7 @@ export class Traps {
         state.waveStats.killedThisWave++;
         this.game.bus.emit('creep:die', { id: creep.id, bounty: creep.bounty });
         this.game.bus.emit('gold:change', { gold: state.gold });
+        this.game.handleCreepDeath(creep);
         return;
       }
     }
@@ -124,6 +125,7 @@ export class Traps {
             state.waveStats.killedThisWave++;
             this.game.bus.emit('creep:die', { id: other.id, bounty: other.bounty });
             this.game.bus.emit('gold:change', { gold: state.gold });
+            this.game.handleCreepDeath(other);
           }
         }
         break;

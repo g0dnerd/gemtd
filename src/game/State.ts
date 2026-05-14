@@ -33,6 +33,16 @@ export interface TowerState {
   isTrap?: boolean;
   /** Tick when the trap last triggered — gates re-arm cooldown. */
   lastTriggerTick?: number;
+  /** Attack counter for periodic_nova. */
+  attackCount?: number;
+  /** Focus crit tracking — current target and accumulated stacks. */
+  focusTarget?: { creepId: number; stacks: number };
+  /** Per-creep burn exposure ticks for prox_burn_ramp. */
+  burnExposure?: Record<number, number>;
+  /** Timer tick for periodic_freeze. */
+  lastFreezeTick?: number;
+  /** Creep IDs in burn aura last tick — for linger_burn exit detection. */
+  burnAuraCreepIds?: number[];
 }
 
 export interface RockState {
@@ -81,6 +91,16 @@ export interface CreepState {
   burrowed?: { expiresAt: number };
   /** Tick when this creep's special ability can next fire. */
   abilityCooldown?: number;
+  /** Vulnerability multiplier from auras/frostbite — reset each tick. */
+  vulnerability: number;
+  /** Accumulated armor decay from Uranium radiation (persistent). */
+  radiationArmor?: number;
+  /** Lingering burn after leaving a burn aura. */
+  lingerBurn?: { dps: number; ticksLeft: number; ownerId: number };
+  /** Stacking armor shred from Paraiba hits. */
+  armorStacks?: { count: number; armorPer: number; decayTicks: number; lastDecayTick: number };
+  /** Poison spread params — stored when stun_poison applies. */
+  poisonSpread?: { count: number; radius: number };
 }
 
 export interface ProjectileState {
@@ -98,6 +118,8 @@ export interface ProjectileState {
   /** Color hint, defaults to tower's gem color. */
   color: GemType;
   alive: boolean;
+  /** Set when the projectile was a critical hit — triggers crit_splash on impact. */
+  wasCrit?: boolean;
 }
 
 export interface DrawOffer {

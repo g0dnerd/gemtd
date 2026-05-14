@@ -97,6 +97,7 @@ function makeCreep(game: FakeGame, px: number, py: number): CreepState {
     armorReduction: 0,
     armor: 0,
     slowResist: 0,
+    vulnerability: 0,
   };
   game.state.creeps.push(creep);
   return creep;

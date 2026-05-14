@@ -35,8 +35,30 @@ export class Combat {
       for (const c of state.creeps) if (c.alive) {
         c.armorReduction = 0;
         c.proxSlowFactor = undefined;
+        c.vulnerability = 0;
       }
-      this.applyProximityAuras(state.towers, state.creeps);
+      const inBurnAura = this.applyProximityAuras(state.towers, state.creeps);
+
+      // Linger burn + armor stack decay processing (after proximity auras)
+      for (const c of state.creeps) {
+        if (!c.alive) continue;
+        if (c.lingerBurn && c.lingerBurn.ticksLeft > 0 && !inBurnAura.has(c.id)) {
+          const owner = state.towers.find(t => t.id === c.lingerBurn!.ownerId);
+          if (owner) {
+            const dmg = Math.max(1, Math.round(c.lingerBurn.dps / SIM_HZ));
+            this.applyDamage(c, dmg, owner);
+          }
+          c.lingerBurn.ticksLeft--;
+          if (c.lingerBurn.ticksLeft <= 0) c.lingerBurn = undefined;
+        }
+        if (c.armorStacks && c.armorStacks.count > 0) {
+          if (tick - c.armorStacks.lastDecayTick >= c.armorStacks.decayTicks) {
+            c.armorStacks.count--;
+            c.armorStacks.lastDecayTick = tick;
+            if (c.armorStacks.count <= 0) c.armorStacks = undefined;
+          }
+        }
+      }
     }
 
     // Towers fire (only during waves). Traps are handled by the Traps system.
@@ -46,7 +68,7 @@ export class Combat {
         if (t.isTrap) continue;
         const stats = effectiveStats(t);
         // Passive burn towers don't fire projectiles.
-        if (stats.effects.some((e) => e.kind === 'prox_burn')) continue;
+        if (stats.effects.some((e) => e.kind === 'prox_burn' || e.kind === 'prox_burn_ramp')) continue;
         const atkMult = auras.atkSpeed.get(t.id) ?? 0;
         const effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
         const cooldownTicks = Math.max(1, Math.round(SIM_HZ / effectiveAtkSpeed));
@@ -67,8 +89,22 @@ export class Combat {
           }
           t.lastFireTick = tick;
           const dmgMult = auras.dmg.get(t.id) ?? 0;
-          if (beamEffect) {
+
+          const novaEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'periodic_nova' }> => e.kind === 'periodic_nova');
+          if (novaEffect) {
+            t.attackCount = (t.attackCount ?? 0) + 1;
+            if (t.attackCount % novaEffect.everyN === 0) {
+              const allTargets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, Infinity);
+              for (const tgt of allTargets) this.fire(t, tgt, stats, dmgMult);
+            } else {
+              this.fire(t, target, stats, dmgMult);
+            }
+          } else if (beamEffect) {
             this.beamHit(t, target, stats, beamEffect, dmgMult);
+            const hasOnHitEffects = stats.effects.some(e =>
+              e.kind === 'slow' || e.kind === 'poison' || e.kind === 'stun'
+            );
+            if (hasOnHitEffects) this.fire(t, target, stats, dmgMult);
           } else {
             this.fire(t, target, stats, dmgMult);
           }
@@ -121,14 +157,41 @@ export class Combat {
     const fromY = (tower.y + 1) * FINE_TILE;
     const baseDmg = randInt(this.game.rng, stats.dmgMin, stats.dmgMax);
     let dmg = Math.round(baseDmg * (1 + dmgAuraMult));
+
+    // Focus crit: track target and accumulate bonus crit chance
+    const focusCrit = stats.effects.find((e): e is Extract<EffectKind, { kind: 'focus_crit' }> => e.kind === 'focus_crit');
+    if (focusCrit) {
+      if (tower.focusTarget && tower.focusTarget.creepId === target.id) {
+        const maxStacks = Math.round(focusCrit.maxBonus / focusCrit.pctPerHit);
+        tower.focusTarget.stacks = Math.min(tower.focusTarget.stacks + 1, maxStacks);
+      } else {
+        tower.focusTarget = { creepId: target.id, stacks: 0 };
+      }
+    }
+
+    let wasCrit = false;
     for (const e of stats.effects) {
-      if (e.kind === 'crit' && this.game.rng.next() < e.chance) {
-        dmg = Math.round(dmg * e.multiplier);
+      if (e.kind === 'crit') {
+        let chance = e.chance;
+        if (focusCrit && tower.focusTarget) {
+          chance += tower.focusTarget.stacks * focusCrit.pctPerHit;
+        }
+        if (this.game.rng.next() < chance) {
+          dmg = Math.round(dmg * e.multiplier);
+          wasCrit = true;
+        }
       }
       if (e.kind === 'air_bonus' && target.flags?.air) {
         dmg = Math.round(dmg * e.multiplier);
       }
     }
+
+    // Execute: bonus damage below HP threshold (after crit)
+    const execute = stats.effects.find((e): e is Extract<EffectKind, { kind: 'execute' }> => e.kind === 'execute');
+    if (execute && target.hp / target.maxHp < execute.hpThreshold) {
+      dmg = Math.round(dmg * (1 + execute.dmgBonus));
+    }
+
     const proj: ProjectileState = {
       id: this.game.nextId(),
       fromX, fromY,
@@ -140,6 +203,7 @@ export class Combat {
       ownerTowerId: tower.id,
       color: stats.visualGem,
       alive: true,
+      wasCrit: wasCrit || undefined,
     };
     state.projectiles.push(proj);
     this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
@@ -151,15 +215,16 @@ export class Combat {
     if (!owner) return;
     const stats = effectiveStats(owner);
     const target = state.creeps.find((c) => c.id === p.targetId && c.alive);
+    const tick = state.tick;
 
     // Direct hit (skip burrowed targets — projectile misses)
-    if (target && !isBurrowed(target, state.tick)) {
+    if (target && !isBurrowed(target, tick)) {
       this.applyDamage(target, p.damage, owner);
       this.applyEffects(target, stats.effects, owner);
     }
 
-    // Splash
-    const tick = state.tick;
+    // Splash — collect targets for freeze_chance / stacking_armor_reduce
+    const splashTargets: CreepState[] = [];
     for (const e of stats.effects) {
       if (e.kind === 'splash') {
         if (e.chance != null && this.game.rng.next() >= e.chance) continue;
@@ -174,10 +239,10 @@ export class Combat {
             const fall = e.falloff ?? 0.5;
             const splashDmg = Math.round(p.damage * fall);
             this.applyDamage(c, splashDmg, owner);
+            splashTargets.push(c);
           }
         }
       } else if (e.kind === 'chain' && target) {
-        // Chain hops to nearest creeps within range.
         let last = target;
         let dmg = p.damage;
         const hit = new Set<number>([target.id]);
@@ -192,17 +257,77 @@ export class Combat {
         }
       }
     }
+
+    // Crit splash: on crit, deal splash damage around impact (no on-hit effects)
+    if (p.wasCrit) {
+      const critSplash = stats.effects.find((e): e is Extract<EffectKind, { kind: 'crit_splash' }> => e.kind === 'crit_splash');
+      if (critSplash) {
+        for (const c of state.creeps) {
+          if (!c.alive || c === target || isBurrowed(c, tick)) continue;
+          const dx = c.px - p.toX;
+          const dy = c.py - p.toY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist <= critSplash.radius * TILE) {
+            const splashDmg = Math.round(p.damage * critSplash.falloff);
+            this.applyDamage(c, splashDmg, owner);
+          }
+        }
+      }
+    }
+
+    // Freeze chance on splash targets
+    const freezeChance = stats.effects.find((e): e is Extract<EffectKind, { kind: 'freeze_chance' }> => e.kind === 'freeze_chance');
+    if (freezeChance && splashTargets.length > 0) {
+      for (const c of splashTargets) {
+        if (!c.alive) continue;
+        if (this.game.rng.next() < freezeChance.chance) {
+          const expires = tick + Math.round(freezeChance.duration * SIM_HZ);
+          if (!c.stun || c.stun.expiresAt < expires) {
+            c.stun = { expiresAt: expires };
+          }
+        }
+      }
+    }
+
+    // Stacking armor reduce on primary + splash targets
+    const stackEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'stacking_armor_reduce' }> => e.kind === 'stacking_armor_reduce');
+    if (stackEffect) {
+      const allHit = target && target.alive ? [target, ...splashTargets] : splashTargets;
+      for (const c of allHit) {
+        if (!c.alive) continue;
+        if (c.armorStacks) {
+          if (c.armorStacks.count < stackEffect.maxStacks) {
+            c.armorStacks.count++;
+            c.armorStacks.lastDecayTick = tick;
+          }
+        } else {
+          c.armorStacks = {
+            count: 1,
+            armorPer: stackEffect.perHit,
+            decayTicks: Math.round(stackEffect.decayInterval * SIM_HZ),
+            lastDecayTick: tick,
+          };
+        }
+      }
+    }
   }
 
-  private applyDamage(c: CreepState, dmg: number, owner: TowerState): void {
+  applyDamage(c: CreepState, dmg: number, owner: TowerState, ignoreArmor = false): void {
     if (!c.alive) return;
-    let effectiveArmor = c.armor - c.armorReduction;
-    if (c.armorDebuff && c.armorDebuff.expiresAt > this.game.state.tick) {
-      effectiveArmor -= c.armorDebuff.value;
+    if (!ignoreArmor) {
+      let effectiveArmor = c.armor - c.armorReduction;
+      if (c.armorDebuff && c.armorDebuff.expiresAt > this.game.state.tick) {
+        effectiveArmor -= c.armorDebuff.value;
+      }
+      if (c.radiationArmor) effectiveArmor -= c.radiationArmor;
+      if (c.armorStacks) effectiveArmor -= c.armorStacks.count * c.armorStacks.armorPer;
+      effectiveArmor = Math.max(effectiveArmor, -10);
+      if (effectiveArmor !== 0) {
+        dmg = Math.round(dmg * armorDamageMultiplier(effectiveArmor));
+      }
     }
-    effectiveArmor = Math.max(effectiveArmor, -10);
-    if (effectiveArmor !== 0) {
-      dmg = Math.round(dmg * armorDamageMultiplier(effectiveArmor));
+    if (c.vulnerability > 0) {
+      dmg = Math.round(dmg * (1 + c.vulnerability));
     }
     c.hp -= dmg;
     this.game.bus.emit('tower:hit', { id: owner.id, targetId: c.id, damage: dmg });
@@ -222,6 +347,7 @@ export class Combat {
       state.waveStats.killedThisWave++;
       this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty });
       this.game.bus.emit('gold:change', { gold: state.gold });
+      this.handleDeathEffects(c);
     }
   }
 
@@ -247,6 +373,10 @@ export class Combat {
           } else {
             c.poison.expiresAt = expires;
           }
+          const deathSpread = effects.find((ee): ee is Extract<EffectKind, { kind: 'death_spread' }> => ee.kind === 'death_spread');
+          if (deathSpread) {
+            c.poisonSpread = { count: deathSpread.count, radius: deathSpread.radius };
+          }
           break;
         }
         case 'stun': {
@@ -254,6 +384,20 @@ export class Combat {
           const expires = tick + Math.round(e.duration * SIM_HZ);
           if (!c.stun || c.stun.expiresAt < expires) {
             c.stun = { expiresAt: expires };
+          }
+          // Stun poison: if stun fires, apply poison and mark as spreadable
+          const stunPoison = effects.find((ee): ee is Extract<EffectKind, { kind: 'stun_poison' }> => ee.kind === 'stun_poison');
+          if (stunPoison) {
+            const poisonExpires = tick + Math.round(stunPoison.duration * SIM_HZ);
+            if (!c.poison || c.poison.dps < stunPoison.dps) {
+              c.poison = { dps: stunPoison.dps, expiresAt: poisonExpires, nextTick: tick + SIM_HZ };
+            } else {
+              c.poison.expiresAt = poisonExpires;
+            }
+            const deathSpread = effects.find((ee): ee is Extract<EffectKind, { kind: 'death_spread' }> => ee.kind === 'death_spread');
+            if (deathSpread) {
+              c.poisonSpread = { count: deathSpread.count, radius: deathSpread.radius };
+            }
           }
           break;
         }
@@ -266,18 +410,30 @@ export class Combat {
           }
           break;
         }
-        // splash/chain handled in impact()
         default:
           break;
       }
     }
   }
 
-  private applyProximityAuras(towers: TowerState[], creeps: CreepState[]): void {
+  private applyProximityAuras(towers: TowerState[], creeps: CreepState[]): Set<number> {
+    const tick = this.game.state.tick;
+    const inBurnAura = new Set<number>();
+
     for (const src of towers) {
       const stats = effectiveStats(src);
       const tx = (src.x + 1) * FINE_TILE;
       const ty = (src.y + 1) * FINE_TILE;
+
+      // Track which creeps are in burn aura this tick (for linger_burn exit detection)
+      const hasLingerBurn = stats.effects.some(e => e.kind === 'linger_burn');
+      const hasBurn = stats.effects.some(e => e.kind === 'prox_burn' || e.kind === 'prox_burn_ramp');
+      const prevBurnCreepIds = src.burnAuraCreepIds;
+      let currentBurnCreepIds: number[] | undefined;
+      if (hasLingerBurn && hasBurn) {
+        currentBurnCreepIds = [];
+      }
+
       for (const e of stats.effects) {
         if (e.kind === 'prox_armor_reduce') {
           const r2 = (e.radius * TILE) ** 2;
@@ -295,7 +451,28 @@ export class Combat {
             const dx = c.px - tx, dy = c.py - ty;
             if (dx * dx + dy * dy > r2) continue;
             this.applyDamage(c, Math.max(1, Math.round(dmgPerTick)), src);
+            inBurnAura.add(c.id);
+            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
           }
+        } else if (e.kind === 'prox_burn_ramp') {
+          const r2 = (e.radius * TILE) ** 2;
+          if (!src.burnExposure) src.burnExposure = {};
+          const hasArmorPierce = stats.effects.some(ee => ee.kind === 'armor_pierce_burn');
+          const newExposure: Record<number, number> = {};
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx, dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            const prev = src.burnExposure[c.id] ?? 0;
+            const exposure = prev + 1;
+            newExposure[c.id] = exposure;
+            const rampMult = 1 + Math.min((exposure / SIM_HZ) * e.rampPct, e.rampCap);
+            const dmg = Math.max(1, Math.round((e.dps * rampMult) / SIM_HZ));
+            this.applyDamage(c, dmg, src, hasArmorPierce);
+            inBurnAura.add(c.id);
+            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
+          }
+          src.burnExposure = newExposure;
         } else if (e.kind === 'prox_slow') {
           const r2 = (e.radius * TILE) ** 2;
           for (const c of creeps) {
@@ -305,7 +482,125 @@ export class Combat {
             const factor = e.factor + (1 - e.factor) * c.slowResist;
             c.proxSlowFactor = Math.min(c.proxSlowFactor ?? 1, factor);
           }
+        } else if (e.kind === 'vulnerability_aura') {
+          const r2 = (e.radius * TILE) ** 2;
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx, dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            c.vulnerability += e.pct;
+          }
+        } else if (e.kind === 'armor_decay_aura') {
+          const r2 = (e.radius * TILE) ** 2;
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx, dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            c.radiationArmor = Math.min((c.radiationArmor ?? 0) + e.armorPerSec / SIM_HZ, e.maxReduction);
+          }
+        } else if (e.kind === 'periodic_freeze') {
+          const intervalTicks = Math.round(e.interval * SIM_HZ);
+          if (tick - (src.lastFreezeTick ?? 0) >= intervalTicks) {
+            src.lastFreezeTick = tick;
+            const r2 = (stats.range * TILE) ** 2;
+            const stunDuration = Math.round(e.duration * SIM_HZ);
+            for (const c of creeps) {
+              if (!c.alive) continue;
+              const dx = c.px - tx, dy = c.py - ty;
+              if (dx * dx + dy * dy > r2) continue;
+              const expires = tick + stunDuration;
+              if (!c.stun || c.stun.expiresAt < expires) {
+                c.stun = { expiresAt: expires };
+              }
+            }
+          }
         }
+      }
+
+      // Linger burn: detect creeps that left the burn aura
+      if (hasLingerBurn && currentBurnCreepIds && prevBurnCreepIds) {
+        const currentSet = new Set(currentBurnCreepIds);
+        const lingerEffect = stats.effects.find((ee): ee is Extract<EffectKind, { kind: 'linger_burn' }> => ee.kind === 'linger_burn')!;
+        const burnEffect = stats.effects.find(ee => ee.kind === 'prox_burn' || ee.kind === 'prox_burn_ramp');
+        if (burnEffect) {
+          const burnDps = burnEffect.dps;
+          for (const id of prevBurnCreepIds) {
+            if (currentSet.has(id)) continue;
+            const c = creeps.find(cc => cc.id === id && cc.alive);
+            if (!c) continue;
+            c.lingerBurn = {
+              dps: burnDps,
+              ticksLeft: Math.round(lingerEffect.duration * SIM_HZ),
+              ownerId: src.id,
+            };
+          }
+        }
+      }
+      src.burnAuraCreepIds = currentBurnCreepIds;
+    }
+
+    // Second pass: frostbite (needs final proxSlowFactor)
+    for (const src of towers) {
+      const stats = effectiveStats(src);
+      const tx = (src.x + 1) * FINE_TILE;
+      const ty = (src.y + 1) * FINE_TILE;
+      for (const e of stats.effects) {
+        if (e.kind !== 'frostbite') continue;
+        const r2 = (stats.range * TILE) ** 2;
+        for (const c of creeps) {
+          if (!c.alive) continue;
+          const dx = c.px - tx, dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          const slowFactor = c.slow && c.slow.expiresAt > tick ? c.slow.factor : 1;
+          const proxFactor = c.proxSlowFactor ?? 1;
+          if (slowFactor * proxFactor <= e.speedThreshold) {
+            c.vulnerability += e.dmgBonus;
+          }
+        }
+      }
+    }
+    return inBurnAura;
+  }
+
+  handleDeathEffects(dead: CreepState): void {
+    const state = this.game.state;
+
+    // Death nova: scan towers for the effect
+    for (const t of state.towers) {
+      const stats = effectiveStats(t);
+      const deathNova = stats.effects.find((e): e is Extract<EffectKind, { kind: 'death_nova' }> => e.kind === 'death_nova');
+      if (!deathNova) continue;
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+      const rangePx = stats.range * TILE;
+      const dx = dead.px - tx, dy = dead.py - ty;
+      if (dx * dx + dy * dy > rangePx * rangePx) continue;
+      const novaDmg = Math.round(dead.maxHp * deathNova.hpPct);
+      const novaR2 = (deathNova.radius * TILE) ** 2;
+      for (const c of state.creeps) {
+        if (!c.alive) continue;
+        const cdx = c.px - dead.px, cdy = c.py - dead.py;
+        if (cdx * cdx + cdy * cdy > novaR2) continue;
+        this.applyDamage(c, novaDmg, t);
+      }
+    }
+
+    // Death spread (plague): if creep had spreadable poison
+    if (dead.poisonSpread && dead.poison) {
+      const { count, radius } = dead.poisonSpread;
+      const r2 = (radius * TILE) ** 2;
+      const candidates: { creep: CreepState; dist2: number }[] = [];
+      for (const c of state.creeps) {
+        if (!c.alive) continue;
+        const dx = c.px - dead.px, dy = c.py - dead.py;
+        const d2 = dx * dx + dy * dy;
+        if (d2 <= r2) candidates.push({ creep: c, dist2: d2 });
+      }
+      candidates.sort((a, b) => a.dist2 - b.dist2);
+      const tick = state.tick;
+      for (let i = 0; i < Math.min(count, candidates.length); i++) {
+        const c = candidates[i].creep;
+        c.poison = { dps: dead.poison.dps, expiresAt: tick + 3 * SIM_HZ, nextTick: tick + SIM_HZ };
       }
     }
   }

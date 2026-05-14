@@ -33,7 +33,23 @@ export type EffectKind =
   | { kind: 'prox_burn'; dps: number; radius: number }
   | { kind: 'prox_slow'; factor: number; radius: number }
   | { kind: 'armor_reduce'; value: number; duration: number }
-  | { kind: 'bonus_gold'; chance: number };
+  | { kind: 'bonus_gold'; chance: number }
+  | { kind: 'vulnerability_aura'; radius: number; pct: number }
+  | { kind: 'crit_splash'; radius: number; falloff: number }
+  | { kind: 'focus_crit'; pctPerHit: number; maxBonus: number }
+  | { kind: 'execute'; dmgBonus: number; hpThreshold: number }
+  | { kind: 'freeze_chance'; chance: number; duration: number }
+  | { kind: 'periodic_nova'; everyN: number }
+  | { kind: 'prox_burn_ramp'; dps: number; radius: number; rampPct: number; rampCap: number }
+  | { kind: 'death_nova'; hpPct: number; radius: number }
+  | { kind: 'armor_pierce_burn' }
+  | { kind: 'periodic_freeze'; interval: number; duration: number }
+  | { kind: 'frostbite'; speedThreshold: number; dmgBonus: number }
+  | { kind: 'stun_poison'; dps: number; duration: number }
+  | { kind: 'death_spread'; count: number; radius: number }
+  | { kind: 'stacking_armor_reduce'; perHit: number; maxStacks: number; decayInterval: number }
+  | { kind: 'armor_decay_aura'; armorPerSec: number; radius: number }
+  | { kind: 'linger_burn'; duration: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -298,6 +314,38 @@ export function effectSummary(e: EffectKind): string {
       return `-${e.value} armor for ${e.duration}s`;
     case 'bonus_gold':
       return `${Math.round(e.chance * 100)}% bonus gold`;
+    case 'vulnerability_aura':
+      return `Vuln +${Math.round(e.pct * 100)}% · ${e.radius.toFixed(1)} tiles`;
+    case 'crit_splash':
+      return `Crit splash r=${e.radius.toFixed(1)} ×${e.falloff}`;
+    case 'focus_crit':
+      return `Focus: +${Math.round(e.pctPerHit * 100)}%/hit, max +${Math.round(e.maxBonus * 100)}%`;
+    case 'execute':
+      return `Execute +${Math.round(e.dmgBonus * 100)}% below ${Math.round(e.hpThreshold * 100)}% HP`;
+    case 'freeze_chance':
+      return `${Math.round(e.chance * 100)}% freeze ${e.duration}s`;
+    case 'periodic_nova':
+      return `Nova every ${e.everyN} attacks`;
+    case 'prox_burn_ramp':
+      return `Burn ${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s · ${e.radius.toFixed(1)} tiles`;
+    case 'death_nova':
+      return `Death: ${Math.round(e.hpPct * 100)}% maxHP nova r=${e.radius.toFixed(1)}`;
+    case 'armor_pierce_burn':
+      return `Burn ignores armor`;
+    case 'periodic_freeze':
+      return `Freeze all ${e.interval}s for ${e.duration}s`;
+    case 'frostbite':
+      return `Frostbite: +${Math.round(e.dmgBonus * 100)}% dmg when ≤${Math.round(e.speedThreshold * 100)}% speed`;
+    case 'stun_poison':
+      return `Stun → Poison ${Math.round(e.dps)}/s for ${e.duration}s`;
+    case 'death_spread':
+      return `Plague: spreads to ${e.count} on death`;
+    case 'stacking_armor_reduce':
+      return `-${e.perHit} armor/hit, max ${e.maxStacks} stacks`;
+    case 'armor_decay_aura':
+      return `-${e.armorPerSec} armor/s · ${e.radius.toFixed(1)} tiles`;
+    case 'linger_burn':
+      return `Linger burn ${e.duration}s`;
     case 'none':
       return '';
   }

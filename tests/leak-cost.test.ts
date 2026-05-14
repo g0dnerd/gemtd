@@ -22,6 +22,7 @@ function injectLeakingCreep(game: HeadlessGame, boss = false): void {
     armor: 0,
     flags: boss ? { boss: true } : {},
     alive: true,
+    vulnerability: 0,
   };
   game.state.creeps.push(creep);
 }

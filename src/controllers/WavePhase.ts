@@ -129,6 +129,7 @@ export class WavePhase {
       armor: group.armor ?? arch.defaultArmor ?? 0,
       slowResist: group.slowResist,
       flags: arch.flags,
+      vulnerability: 0,
     };
     this.game.state.creeps.push(creep);
     this.spawnedSoFar++;
@@ -206,6 +207,7 @@ export class WavePhase {
     this.goldEarned += c.bounty;
     this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty });
     this.game.bus.emit('gold:change', { gold: state.gold });
+    this.game.handleCreepDeath(c);
   }
 
   private tickAbility(c: CreepState): void {
