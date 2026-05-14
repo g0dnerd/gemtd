@@ -49,7 +49,7 @@ function setup() {
 
 function placeTower(game: FakeGame, x: number, y: number, gem: TowerState['gem'], quality: Quality): TowerState {
   const id = game.nextId();
-  const t: TowerState = { id, x, y, gem, quality, lastFireTick: 0, kills: 0, totalDamage: 0 };
+  const t: TowerState = { id, x, y, gem, quality, lastFireTick: 0, kills: 0, totalDamage: 0, placedWave: 1 };
   game.state.towers.push(t);
   for (let dy = 0; dy < 2; dy++) {
     for (let dx = 0; dx < 2; dx++) {

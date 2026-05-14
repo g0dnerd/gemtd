@@ -41,7 +41,7 @@ function setupR1Combo(
     quality: 1 as Quality,
     comboKey,
     lastFireTick: 0,
-    kills: 0, totalDamage: 0,
+    kills: 0, totalDamage: 0, placedWave: 1,
   };
   state.towers.push(comboTower);
   for (let dy = 0; dy < 2; dy++)

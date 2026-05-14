@@ -354,6 +354,7 @@ export class Game {
         lastFireTick: 0,
         kills: 0,
         totalDamage: 0,
+        placedWave: this.state.wave,
         isTrap: spec.isTrap || undefined,
       });
       specIdx++;

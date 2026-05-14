@@ -30,6 +30,8 @@ export interface TowerState {
   kills: number;
   /** Cumulative damage dealt (post-armor). */
   totalDamage: number;
+  /** Wave number when this tower was placed. */
+  placedWave: number;
   /** Beam state — tracks current beam target and ramp stacks. */
   beam?: { targetId: number; stacks: number };
   /** Trap towers don't block pathing and trigger on creep proximity instead of firing projectiles. */

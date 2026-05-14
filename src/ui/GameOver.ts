@@ -77,7 +77,7 @@ function buildLeaderboard(towers: TowerState[]): HTMLTableElement {
 
   const thead = document.createElement('thead');
   const headerRow = document.createElement('tr');
-  for (const text of ['#', 'Tower', 'Damage']) {
+  for (const text of ['#', 'Tower', 'Round', 'Damage']) {
     const th = document.createElement('th');
     th.textContent = text;
     headerRow.appendChild(th);
@@ -98,12 +98,14 @@ function buildLeaderboard(towers: TowerState[]): HTMLTableElement {
       tdRank.textContent = `${i + 1}`;
       const tdName = document.createElement('td');
       tdName.textContent = label;
+      const tdRound = document.createElement('td');
+      tdRound.textContent = `${tower.placedWave}`;
       const tdDmg = document.createElement('td');
       tdDmg.className = 'dmg';
       tdDmg.textContent = tower.totalDamage.toLocaleString();
-      tr.append(tdRank, tdName, tdDmg);
+      tr.append(tdRank, tdName, tdRound, tdDmg);
     } else {
-      for (const text of [`${i + 1}`, '—', '—']) {
+      for (const text of [`${i + 1}`, '—', '—', '—']) {
         const td = document.createElement('td');
         td.textContent = text;
         tr.appendChild(td);

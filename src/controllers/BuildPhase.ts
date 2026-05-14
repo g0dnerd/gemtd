@@ -157,6 +157,7 @@ export class BuildPhase {
       lastFireTick: 0,
       kills: 0,
       totalDamage: 0,
+      placedWave: state.wave,
     };
     state.towers.push(tower);
     setFootprint(state, x, y, Cell.Tower);
@@ -374,6 +375,7 @@ export class BuildPhase {
       lastFireTick: 0,
       kills: 0,
       totalDamage: 0,
+      placedWave: state.wave,
       isTrap: isTrap || undefined,
     };
     state.towers.push(newTower);

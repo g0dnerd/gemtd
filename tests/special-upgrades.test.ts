@@ -76,7 +76,7 @@ function makeTower(
     gem: "ruby",
     quality: 1 as Quality,
     lastFireTick: 0,
-    kills: 0, totalDamage: 0,
+    kills: 0, totalDamage: 0, placedWave: 1,
     comboKey: opts.comboKey,
     upgradeTier: opts.upgradeTier,
   };
