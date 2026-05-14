@@ -282,6 +282,12 @@ export class Game {
       }
     }
 
+    // Shuffle so each debug game gets a different layout
+    for (let i = specs.length - 1; i > 0; i--) {
+      const j = this.rng.int(i + 1);
+      [specs[i], specs[j]] = [specs[j], specs[i]];
+    }
+
     // Simulate blueprint placement round by round (mirrors computeKeeperIndices)
     const keeperPositions: Array<{ x: number; y: number }> = [];
     const rockPositions: Array<{ x: number; y: number }> = [];
@@ -379,7 +385,7 @@ export class Game {
     ];
     const debugWave: WaveDef = {
       number: 1,
-      groups: CREEP_KINDS.map((kind) => ({
+      groups: CREEP_KINDS.filter((kind) => kind !== "wizard").map((kind) => ({
         kind,
         count: 10,
         hp: 100000,
