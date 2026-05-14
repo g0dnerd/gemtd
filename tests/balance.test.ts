@@ -111,7 +111,7 @@ describe("balance / data integrity", () => {
     expect(total).toBe(1500);
   });
 
-  it("there are exactly 70 waves", () => {
-    expect(WAVES.length).toBe(70);
+  it("there are exactly 50 waves", () => {
+    expect(WAVES.length).toBe(50);
   });
 });
