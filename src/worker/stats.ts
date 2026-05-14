@@ -28,6 +28,7 @@ export async function handleStats(
     waveDamage,
     leaksByKind,
     deathsByWave,
+    versionRows,
   ] = await Promise.all([
     db.prepare(
       `SELECT count(*) as total_runs, avg(wave_reached) as avg_wave,
@@ -109,6 +110,10 @@ export async function handleStats(
        FROM runs WHERE outcome = 'gameover' ${rv}
        GROUP BY wave_reached ORDER BY wave_reached`,
     ).bind(...rBind).all(),
+
+    db.prepare(
+      `SELECT DISTINCT version FROM runs ORDER BY version DESC`,
+    ).all(),
   ]);
 
   const overview = overviewRows.results?.[0] ?? {};
@@ -116,6 +121,7 @@ export async function handleStats(
 
   return Response.json({
     overview: { ...overview, wins },
+    versions: (versionRows.results ?? []).map((r: Record<string, unknown>) => r.version),
     survivalCurve: survivalCurve.results,
     leaksPerWave: leaksPerWave.results,
     combos: combos.results,

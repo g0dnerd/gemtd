@@ -76,6 +76,7 @@ async function load() {
     const resp = await fetch(base + '/stats' + qs(params));
     if (!resp.ok) throw new Error(await resp.text());
     const data = await resp.json();
+    populateVersions(data.versions || [], v);
     render(data);
   } catch (err) {
     el.innerHTML = '<div class="error">' + err.message + '</div>';
@@ -307,6 +308,19 @@ function sortTable(table, colIdx, th) {
   });
 
   rows.forEach(r => tbody.appendChild(r));
+}
+
+function populateVersions(versions, selected) {
+  const sel = document.getElementById('version');
+  const cur = selected || sel.value;
+  sel.innerHTML = '<option value="">All</option>';
+  for (const v of versions) {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    if (v === cur) opt.selected = true;
+    sel.appendChild(opt);
+  }
 }
 
 load();
