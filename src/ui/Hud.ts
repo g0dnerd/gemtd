@@ -957,6 +957,7 @@ export function mountHud(
   const isMobile = window.innerWidth < 768 || window.innerHeight < 500;
   let pendingTapTile: { x: number; y: number } | null = null;
   let longPressTimer: ReturnType<typeof setTimeout> | null = null;
+  let longPressOrigin: { x: number; y: number } | null = null;
 
   if (isMobile) {
     hud.classList.add("mobile");
@@ -1265,8 +1266,12 @@ export function mountHud(
   }
 
   canvasHost.addEventListener("pointermove", (ev: PointerEvent) => {
-    if (longPressTimer !== null && ev.pointerType === "touch") {
-      clearLongPress();
+    if (longPressTimer !== null && ev.pointerType === "touch" && longPressOrigin) {
+      const dx = ev.clientX - longPressOrigin.x;
+      const dy = ev.clientY - longPressOrigin.y;
+      if (dx * dx + dy * dy > 15 * 15) {
+        clearLongPress();
+      }
     }
     game.hoverTile = tileFromPointer(ev);
     game.hoverPixel = pixelFromPointer(ev);
@@ -1297,6 +1302,7 @@ export function mountHud(
       clearTimeout(longPressTimer);
       longPressTimer = null;
     }
+    longPressOrigin = null;
   }
 
   canvasHost.addEventListener("pointerdown", (ev: PointerEvent) => {
@@ -1337,8 +1343,10 @@ export function mountHud(
           (d) => d.placedTowerId === tower.id,
         );
         if (isRoundTower) {
+          longPressOrigin = { x: ev.clientX, y: ev.clientY };
           longPressTimer = setTimeout(() => {
             longPressTimer = null;
+            longPressOrigin = null;
             openRadial(tower.id, tower.x, tower.y);
           }, 400);
         }
