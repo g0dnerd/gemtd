@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.2.3",
+      notes: [
+        "<b>Balance</b> — Nerfed wave 15 air creep HP (1710 → 1510).",
+      ],
+    },
+    {
       ver: "1.2.2",
       notes: [
         "<b>Balance</b> — Remove poison from Ancient Bloodstone entirely.",
