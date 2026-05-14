@@ -361,9 +361,9 @@ describe("death_nova", () => {
 
     combat.handleDeathEffects(deadCreep);
 
-    // Nova damage: 15% of 1000 maxHP = 150
+    // Nova damage: 10% of 1000 maxHP = 100
     expect(nearby.hp).toBeLessThan(5000);
-    expect(nearby.hp).toBe(5000 - 150);
+    expect(nearby.hp).toBe(5000 - 100);
     expect(faraway.hp).toBe(5000);
   });
 });

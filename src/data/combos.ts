@@ -99,9 +99,7 @@ const ALL_COMBOS: ComboRecipe[] = [
       dmgMax: 420,
       range: 4.0,
       atkSpeed: 1.0,
-      effects: [
-        { kind: "splash", radius: 2.0, falloff: 0.5 },
-      ],
+      effects: [{ kind: "splash", radius: 2.0, falloff: 0.5 }],
       blurb: "High splash radius.",
       targeting: "all",
     },
@@ -110,8 +108,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Ancient Bloodstone",
         cost: 310,
         stats: {
-          dmgMin: 400,
-          dmgMax: 620,
+          dmgMin: 320,
+          dmgMax: 540,
           range: 4.0,
           atkSpeed: 1.0,
           effects: [
@@ -469,9 +467,9 @@ const ALL_COMBOS: ComboRecipe[] = [
               rampCap: 1.5,
             },
             { kind: "armor_pierce_burn" },
-            { kind: "death_nova", hpPct: 0.15, radius: 2.0 },
+            { kind: "death_nova", hpPct: 0.1, radius: 2.0 },
           ],
-          blurb: "Burn ramps +12%/s. Ignores armor. Death nova 15% HP.",
+          blurb: "Burn ramps +12%/s. Ignores armor. Death nova 10% HP.",
           targeting: "all",
         },
       },

@@ -229,6 +229,13 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.2.6",
+      notes: [
+        "<b>Balance</b> — Nerfed Ancient Bloodstone damage (400–620 → 320–540).",
+        "<b>Balance</b> — Nerfed Solar Core death nova (15% → 10% max HP).",
+      ],
+    },
+    {
       ver: "1.2.5",
       notes: [
         "<b>Balance</b> — Remove poison from base Bloodstone (splash-only now).",
