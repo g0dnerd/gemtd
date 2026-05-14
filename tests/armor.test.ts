@@ -6,7 +6,7 @@ import { Combat } from "../src/systems/Combat";
 import { BASE } from "../src/data/map";
 import { EventBus } from "../src/events/EventBus";
 import { RNG } from "../src/game/rng";
-import { FINE_TILE, SIM_HZ } from "../src/game/constants";
+import { FINE_TILE } from "../src/game/constants";
 import type { Quality } from "../src/render/theme";
 import type { Game } from "../src/game/Game";
 
