@@ -32,7 +32,8 @@ import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES } from "../data/waves";
 import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER, RUNES_ENABLED } from "./constants";
-import { COMBO_BY_NAME, nextUpgrade } from "../data/combos";
+import { COMBOS, COMBO_BY_NAME, nextUpgrade } from "../data/combos";
+import { GEM_TYPES, type GemType, type Quality } from "../render/theme";
 import { Combat } from "../systems/Combat";
 import { Traps } from "../systems/Traps";
 import { TowerSpriteCache } from "../render/TowerRenderer";
@@ -203,6 +204,95 @@ export class Game {
 
   restartGame(): void {
     this.newGame(this.state.hardcore ? 1 : START_LIVES);
+  }
+
+  /** Debug mode: start a game with every gem×quality and every combo pre-placed. */
+  newDebugGame(): void {
+    this.state.towers = [];
+    this.state.rocks = [];
+    this.state.creeps = [];
+    this.state.projectiles = [];
+    this.state.undoStack = [];
+    this.state.draws = [];
+    this.state.activeDrawSlot = null;
+    this.state.designatedKeepTowerId = null;
+    this.state.chanceTier = MAX_CHANCE_TIER;
+    this.state.selectedTowerId = null;
+    this.state.selectedRockId = null;
+    this.state.selectedCreepId = null;
+    this.selectedTowerId = null;
+    this.selectedRockId = null;
+    this.selectedCreepId = null;
+    this.state.rocksRemoved = 0;
+    this.state.downgradeUsedThisRound = false;
+    this.state.tick = 0;
+    this.state.wave = 1;
+    this.state.lives = START_LIVES;
+    this.state.hardcore = false;
+    this.state.gold = 99999;
+    this.state.totalKills = 0;
+    this.state.speed = 1;
+    this.state.grid = BASE.grid.map((row) => row.slice());
+    this.state.waveStats = { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 };
+
+    const grid = this.state.grid;
+    const offsets: ReadonlyArray<readonly [number, number]> = [[0, 0], [1, 0], [0, 1], [1, 1]];
+
+    const specs: Array<{
+      gem: GemType; quality: Quality;
+      comboKey?: string; upgradeTier?: number; isTrap?: boolean;
+    }> = [];
+    for (const gem of GEM_TYPES) {
+      for (const q of [1, 2, 3, 4, 5] as Quality[]) {
+        specs.push({ gem, quality: q });
+      }
+    }
+    for (const combo of COMBOS) {
+      for (let tier = 0; tier <= combo.upgrades.length; tier++) {
+        specs.push({
+          gem: combo.visualGem,
+          quality: 5 as Quality,
+          comboKey: combo.key,
+          upgradeTier: tier,
+          isTrap: combo.type === "trap",
+        });
+      }
+    }
+
+    let specIdx = 0;
+    for (let y = 10; y < GRID_H - 2 && specIdx < specs.length; y++) {
+      for (let x = 2; x < GRID_W - 2 && specIdx < specs.length; x++) {
+        if (x + 1 >= GRID_W - 2 || y + 1 >= GRID_H - 2) continue;
+        if (!isBuildable(grid[y][x]) || !isBuildable(grid[y][x + 1]) ||
+            !isBuildable(grid[y + 1][x]) || !isBuildable(grid[y + 1][x + 1])) continue;
+        const spec = specs[specIdx];
+        const cellType = spec.isTrap ? Cell.Trap : Cell.Tower;
+        for (const [dx, dy] of offsets) grid[y + dy][x + dx] = cellType;
+        if (spec.isTrap || findRoute(grid)) {
+          this.state.towers.push({
+            id: this.nextId(), x, y,
+            gem: spec.gem, quality: spec.quality,
+            comboKey: spec.comboKey, upgradeTier: spec.upgradeTier,
+            lastFireTick: 0, kills: 0,
+            isTrap: spec.isTrap || undefined,
+          });
+          specIdx++;
+        } else {
+          for (const [dx, dy] of offsets) grid[y + dy][x + dx] = Cell.Grass;
+        }
+      }
+    }
+
+    renderGround(this.layers.ground, this.state.grid);
+    renderCheckpoints(this.layers.checkpoints);
+    this.refreshRoute();
+
+    // "Round concluded" state: no draws + keep designated → Start Wave works immediately
+    this.state.designatedKeepTowerId = this.state.towers[0]?.id ?? null;
+    this.state.phase = "build";
+    this.bus.emit("phase:enter", { phase: "build" });
+    this.bus.emit("gold:change", { gold: this.state.gold });
+    this.bus.emit("lives:change", { lives: this.state.lives });
   }
 
   enterBuild(): void {

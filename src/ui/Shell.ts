@@ -35,6 +35,15 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
     dispose = mountHud(container, app, game, showTitle);
   };
 
+  // Ctrl+0: debug mode — start with every gem/combo pre-placed.
+  document.addEventListener('keydown', (ev) => {
+    if (ev.ctrlKey && ev.key === '0') {
+      ev.preventDefault();
+      game.newDebugGame();
+      showHud();
+    }
+  });
+
   // Toasts overlay sits above everything.
   mountToasts(root, game);
   mountTweaks(root, game);
