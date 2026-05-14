@@ -27,6 +27,7 @@ Update the version in **both** of these files:
 
 1. **`package.json`** — the `"version"` field.
 2. **`src/ui/Hud.ts`** — the line that sets `wmVer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
+3. **`src/ui/title.ts`** — the line that sets `footer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
 
 ### 3. Changelog (skip if `none`)
 
@@ -41,6 +42,7 @@ If yes:
 - Summarize the conversation's changes into short changelog bullet strings (use the same `<b>Tag</b> — description` HTML format as the existing entries).
 - Present the proposed bullets to the user for approval/editing.
 - Insert a **new version block** at the top of the `versions` array in the `changesBody()` function of `src/ui/TutorialModal.ts`, matching the existing format:
+
   ```ts
       {
         ver: 'X.Y.Z',

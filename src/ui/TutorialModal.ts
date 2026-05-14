@@ -229,10 +229,14 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
-      ver: "1.2.3",
+      ver: "1.2.4",
       notes: [
-        "<b>Balance</b> — Nerfed wave 15 air creep HP (1710 → 1510).",
+        "<b>Infra</b> — Anonymous telemetry for balance tuning (no personal data collected).",
       ],
+    },
+    {
+      ver: "1.2.3",
+      notes: ["<b>Balance</b> — Nerfed wave 15 air creep HP (1710 → 1510)."],
     },
     {
       ver: "1.2.2",
