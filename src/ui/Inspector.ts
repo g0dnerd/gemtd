@@ -1,11 +1,11 @@
 /**
- * Selected-tower inspector. Shows stats, range circle (rendered in PIXI),
- * effect summary, and KEEP / COMBINE buttons.
+ * Selected-tower / creep / rock inspector. Shows stats, range circle (for towers),
+ * effect summary, and action buttons.
  */
 
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
-import { htmlGemTier, htmlSpecial } from "../render/htmlSprites";
+import { htmlGemTier, htmlSpecial, htmlCreep } from "../render/htmlSprites";
 import { effectSummary, gemStats } from "../data/gems";
 import {
   COMBOS,
@@ -15,8 +15,9 @@ import {
   findAllCombosFor,
   nextUpgrade,
 } from "../data/combos";
-import { TowerState } from "../game/State";
+import { CreepState, TowerState } from "../game/State";
 import { towerLevel } from "../systems/Combat";
+import { SIM_HZ } from "../game/constants";
 
 export interface InspectorRefs {
   root: HTMLElement;
@@ -62,6 +63,22 @@ export function refreshInspector(refs: InspectorRefs, game: Game): void {
  * mousedown and mouseup straddle a tick boundary.
  */
 function fingerprint(game: Game): string {
+  const creepId = game.selectedCreepId;
+  if (creepId !== null) {
+    const c = game.state.creeps.find((cc) => cc.id === creepId);
+    if (!c || !c.alive) return `none|${game.state.phase}`;
+    return [
+      "creep", c.id, c.kind, c.hp, c.maxHp, c.speed, c.bounty,
+      c.slow ? `s${c.slow.factor}` : "",
+      c.poison ? `p${c.poison.dps}` : "",
+      c.stun ? "stun" : "",
+      c.armorDebuff ? `ad${c.armorDebuff.value}` : "",
+      c.healBuff ? "hb" : "",
+      c.burrowed ? "bur" : "",
+      c.flags?.boss ? "B" : "", c.flags?.armored ? "A" : "", c.flags?.air ? "F" : "",
+      game.state.tick,
+    ].join("|");
+  }
   const rockId = game.selectedRockId;
   if (rockId !== null) {
     const removable = game.canRemoveRock(rockId);
@@ -104,6 +121,14 @@ function render(refs: InspectorRefs, game: Game): void {
   refs.lastFingerprint = fp;
   const body = refs.body;
   body.innerHTML = "";
+
+  if (game.selectedCreepId !== null) {
+    const creep = game.state.creeps.find((c) => c.id === game.selectedCreepId);
+    if (creep && creep.alive) {
+      renderCreep(body, creep, game);
+      return;
+    }
+  }
 
   if (game.selectedRockId !== null) {
     renderRock(body, game, game.selectedRockId);
@@ -633,6 +658,198 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
   remove.addEventListener("click", () => game.cmdRemoveRock(rockId));
   actions.append(remove);
   body.appendChild(actions);
+}
+
+const CREEP_KIND_NAMES: Record<string, string> = {
+  normal: "CREEP", fast: "SWIFT", armored: "ARMORED",
+  air: "FLYER", boss: "BOSS", healer: "HEALER",
+  wizard: "WIZARD", tunneler: "TUNNELER",
+};
+
+const ABILITY_DESC: Record<string, string> = {
+  healer: "Heals nearby allies over time",
+  wizard: "Teleports allies forward",
+  tunneler: "Burrows underground, becoming untargetable",
+};
+
+function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
+  // Hero row — large sprite + name
+  const hero = document.createElement("div");
+  hero.className = "px-panel-inset inspector-hero";
+  const frame = document.createElement("div");
+  frame.className = "inspector-hero-frame inspector-hero-frame-creep";
+  frame.appendChild(htmlCreep(c.kind, c.color, 44, true));
+  const text = document.createElement("div");
+  text.className = "inspector-hero-text";
+  const name = document.createElement("div");
+  name.className = "inspector-hero-name";
+  name.textContent = CREEP_KIND_NAMES[c.kind] ?? c.kind.toUpperCase();
+  const sub = document.createElement("span");
+  sub.className = "inspector-hero-sub";
+  sub.textContent = GEM_PALETTE[c.color].name.toUpperCase();
+  text.append(name, sub);
+  hero.append(frame, text);
+  body.appendChild(hero);
+
+  // Flag chips (boss / armored / air)
+  if (c.flags?.boss || c.flags?.armored || c.flags?.air) {
+    const flagRow = document.createElement("div");
+    flagRow.className = "inspector-creep-flags";
+    if (c.flags.boss) flagRow.appendChild(flagChip("BOSS", "bad"));
+    if (c.flags.armored) flagRow.appendChild(flagChip("ARMORED", "muted"));
+    if (c.flags.air) flagRow.appendChild(flagChip("AIR", "accent"));
+    body.appendChild(flagRow);
+  }
+
+  // HP bar
+  const hpRow = document.createElement("div");
+  hpRow.className = "inspector-creep-hp";
+  const hpLabel = document.createElement("div");
+  hpLabel.className = "inspector-effect-label";
+  hpLabel.textContent = "HIT POINTS";
+  const hpNums = document.createElement("div");
+  hpNums.className = "inspector-creep-hp-nums";
+  const pct = Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100));
+  hpNums.textContent = `${Math.ceil(c.hp)} / ${c.maxHp}  (${pct.toFixed(0)}%)`;
+  const hpTrack = document.createElement("div");
+  hpTrack.className = "inspector-creep-hp-track";
+  const hpFill = document.createElement("div");
+  hpFill.className = "inspector-creep-hp-fill";
+  hpFill.style.width = `${pct}%`;
+  if (pct < 25) hpFill.classList.add("hp-crit");
+  else if (pct < 50) hpFill.classList.add("hp-warn");
+  hpTrack.appendChild(hpFill);
+  hpRow.append(hpLabel, hpNums, hpTrack);
+  body.appendChild(hpRow);
+
+  // Stats grid — speed + bounty + optional slow resist
+  const grid = document.createElement("div");
+  grid.className = "inspector-stats-grid";
+
+  const spdStat = document.createElement("div");
+  spdStat.className = "px-panel-inset inspector-stat";
+  const spdLbl = document.createElement("div");
+  spdLbl.className = "inspector-stat-label-sm";
+  spdLbl.textContent = "SPEED";
+  const spdVal = document.createElement("div");
+  spdVal.className = "inspector-stat-value inspector-stat-value-sec";
+  spdVal.innerHTML = `${c.speed.toFixed(1)}<small>/s</small>`;
+  spdStat.append(spdLbl, spdVal);
+  grid.appendChild(spdStat);
+
+  const bntStat = document.createElement("div");
+  bntStat.className = "px-panel-inset inspector-stat";
+  const bntLbl = document.createElement("div");
+  bntLbl.className = "inspector-stat-label-sm";
+  bntLbl.textContent = "BOUNTY";
+  const bntVal = document.createElement("div");
+  bntVal.className = "inspector-stat-value inspector-stat-value-sec";
+  bntVal.innerHTML = `${c.bounty}<small>g</small>`;
+  bntStat.append(bntLbl, bntVal);
+  grid.appendChild(bntStat);
+
+  if (c.slowResist > 0) {
+    const srStat = document.createElement("div");
+    srStat.className = "px-panel-inset inspector-stat";
+    const srLbl = document.createElement("div");
+    srLbl.className = "inspector-stat-label-sm";
+    srLbl.textContent = "SLOW RES";
+    const srVal = document.createElement("div");
+    srVal.className = "inspector-stat-value inspector-stat-value-sec";
+    srVal.textContent = `${(c.slowResist * 100).toFixed(0)}%`;
+    srStat.append(srLbl, srVal);
+    grid.appendChild(srStat);
+  }
+
+  body.appendChild(grid);
+
+  // Ability chip (healer / wizard / tunneler)
+  const abilDesc = ABILITY_DESC[c.kind];
+  if (abilDesc) {
+    const chip = document.createElement("div");
+    chip.className = "inspector-effect";
+    const lbl = document.createElement("div");
+    lbl.className = "inspector-effect-label";
+    lbl.textContent = `ABILITY · ${c.kind.toUpperCase()}`;
+    const txt = document.createElement("div");
+    txt.className = "inspector-effect-text";
+    txt.textContent = abilDesc;
+    chip.append(lbl, txt);
+    body.appendChild(chip);
+  }
+
+  // Active status effects
+  const effects: Array<{ label: string; text: string; kind: "debuff" | "cc" | "buff" }> = [];
+  const tick = game.state.tick;
+
+  if (c.slow) {
+    const rem = Math.max(0, (c.slow.expiresAt - tick) / SIM_HZ);
+    effects.push({
+      label: "SLOW",
+      text: `${((1 - c.slow.factor) * 100).toFixed(0)}% slow · ${rem.toFixed(1)}s`,
+      kind: "debuff",
+    });
+  }
+  if (c.poison) {
+    const rem = Math.max(0, (c.poison.expiresAt - tick) / SIM_HZ);
+    effects.push({
+      label: "POISON",
+      text: `${c.poison.dps.toFixed(1)} dps · ${rem.toFixed(1)}s`,
+      kind: "debuff",
+    });
+  }
+  if (c.armorDebuff) {
+    const rem = Math.max(0, (c.armorDebuff.expiresAt - tick) / SIM_HZ);
+    effects.push({
+      label: "ARMOR BREAK",
+      text: `+${(c.armorDebuff.value * 100).toFixed(0)}% dmg taken · ${rem.toFixed(1)}s`,
+      kind: "debuff",
+    });
+  }
+  if (c.stun) {
+    const rem = Math.max(0, (c.stun.expiresAt - tick) / SIM_HZ);
+    effects.push({
+      label: "STUNNED",
+      text: `${rem.toFixed(1)}s remaining`,
+      kind: "cc",
+    });
+  }
+  if (c.burrowed) {
+    const rem = Math.max(0, (c.burrowed.expiresAt - tick) / SIM_HZ);
+    effects.push({
+      label: "BURROWED",
+      text: `Untargetable · ${rem.toFixed(1)}s`,
+      kind: "buff",
+    });
+  }
+  if (c.healBuff) {
+    const rem = Math.max(0, (c.healBuff.expiresAt - tick) / SIM_HZ);
+    effects.push({
+      label: "HEALING",
+      text: `+${(c.healBuff.hpPerTick * SIM_HZ).toFixed(0)} hp/s · ${rem.toFixed(1)}s`,
+      kind: "buff",
+    });
+  }
+
+  for (const eff of effects) {
+    const chip = document.createElement("div");
+    chip.className = `inspector-effect inspector-effect-${eff.kind}`;
+    const lbl = document.createElement("div");
+    lbl.className = "inspector-effect-label";
+    lbl.textContent = eff.label;
+    const txt = document.createElement("div");
+    txt.className = "inspector-effect-text";
+    txt.textContent = eff.text;
+    chip.append(lbl, txt);
+    body.appendChild(chip);
+  }
+}
+
+function flagChip(text: string, variant: string): HTMLSpanElement {
+  const span = document.createElement("span");
+  span.className = `inspector-creep-flag inspector-creep-flag-${variant}`;
+  span.textContent = text;
+  return span;
 }
 
 interface ResolvedStats {

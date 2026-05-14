@@ -155,6 +155,8 @@ export interface State {
   selectedTowerId: number | null;
   /** Currently selected rock anchor id (mutually exclusive with selectedTowerId). */
   selectedRockId: number | null;
+  /** Currently selected creep id (mutually exclusive with tower/rock). */
+  selectedCreepId: number | null;
   /** Lifetime count of rocks the player has demolished — drives removal cost scaling. */
   rocksRemoved: number;
   /** Started with 1 life. */
@@ -217,6 +219,7 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     undoStack: [],
     selectedTowerId: null,
     selectedRockId: null,
+    selectedCreepId: null,
     rocksRemoved: 0,
     hardcore: false,
     downgradeUsedThisRound: false,

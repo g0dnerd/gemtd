@@ -1200,6 +1200,24 @@ export function mountHud(
       game.selectRock(rock.id);
       return;
     }
+    // Click near a creep → select it for inspection.
+    const pxPt = pixelFromPointer(ev);
+    if (pxPt) {
+      let bestCreep: { id: number; dist: number } | null = null;
+      for (const c of game.state.creeps) {
+        if (!c.alive) continue;
+        const dx = pxPt.x - c.px;
+        const dy = pxPt.y - c.py;
+        const dist = dx * dx + dy * dy;
+        if (dist < 18 * 18 && (!bestCreep || dist < bestCreep.dist)) {
+          bestCreep = { id: c.id, dist };
+        }
+      }
+      if (bestCreep) {
+        game.selectCreep(bestCreep.id);
+        return;
+      }
+    }
     // Otherwise: try to place if there's an active draw.
     if (activeDraw(game.state)) {
       const placed = game.cmdPlace(t.x, t.y);
@@ -1232,6 +1250,7 @@ export function mountHud(
     } else {
       game.selectTower(null);
       game.selectRock(null);
+      game.selectCreep(null);
     }
   });
 
@@ -1270,6 +1289,7 @@ export function mountHud(
       }
       game.selectTower(null);
       game.selectRock(null);
+      game.selectCreep(null);
     } else if (ev.key === "r" && ev.ctrlKey) {
       ev.preventDefault();
       game.restartGame();

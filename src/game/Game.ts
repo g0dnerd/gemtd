@@ -108,6 +108,9 @@ export class Game {
   /** Currently selected rock anchor id (mutually exclusive with selectedTowerId). */
   selectedRockId: number | null = null;
 
+  /** Currently selected creep id (mutually exclusive with tower/rock). */
+  selectedCreepId: number | null = null;
+
   constructor(app: Application) {
     this.app = app;
     this.rng = new RNG(
@@ -177,8 +180,10 @@ export class Game {
     this.state.chanceTier = 0;
     this.state.selectedTowerId = null;
     this.state.selectedRockId = null;
+    this.state.selectedCreepId = null;
     this.selectedTowerId = null;
     this.selectedRockId = null;
+    this.selectedCreepId = null;
     this.state.rocksRemoved = 0;
     this.state.downgradeUsedThisRound = false;
     this.state.tick = 0;
@@ -327,6 +332,8 @@ export class Game {
     if (id !== null) {
       this.selectedRockId = null;
       this.state.selectedRockId = null;
+      this.selectedCreepId = null;
+      this.state.selectedCreepId = null;
     }
   }
 
@@ -336,6 +343,19 @@ export class Game {
     if (id !== null) {
       this.selectedTowerId = null;
       this.state.selectedTowerId = null;
+      this.selectedCreepId = null;
+      this.state.selectedCreepId = null;
+    }
+  }
+
+  selectCreep(id: number | null): void {
+    this.selectedCreepId = id;
+    this.state.selectedCreepId = id;
+    if (id !== null) {
+      this.selectedTowerId = null;
+      this.state.selectedTowerId = null;
+      this.selectedRockId = null;
+      this.state.selectedRockId = null;
     }
   }
 
@@ -434,7 +454,11 @@ export class Game {
       this.state.tick,
     );
     renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites, this.selectedRockId);
-    renderCreeps(this.layers.creeps, this.state.creeps);
+    if (this.selectedCreepId !== null) {
+      const sc = this.state.creeps.find((c) => c.id === this.selectedCreepId);
+      if (!sc || !sc.alive) this.selectCreep(null);
+    }
+    renderCreeps(this.layers.creeps, this.state.creeps, this.selectedCreepId);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
     renderBeams(this.layers.projectiles, this.state.towers, this.state.creeps);
     if (this.blueprintMode) {

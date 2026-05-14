@@ -3,9 +3,10 @@
  * from the design's sprites.jsx). Used for HUD icons (heart, coin, gem chips).
  */
 
-import { GEM_PALETTE, GemType, Quality } from './theme';
-import { GEM_SPRITE, COIN_SPRITE, HEART_SPRITE, OUTLINE_COLOR, PixelGrid } from './sprites';
+import { GEM_PALETTE, GemType, Quality, THEME } from './theme';
+import { GEM_SPRITE, COIN_SPRITE, HEART_SPRITE, OUTLINE_COLOR, PixelGrid, SPRITE_BY_KIND } from './sprites';
 import { TIER_GRIDS, SPECIAL_SPRITES, applyOpalFlecks, OPAL_FLECK_CSS } from './spriteData';
+import type { CreepKind } from '../data/creeps';
 
 export interface PaletteCss {
   light: string;
@@ -139,4 +140,17 @@ export function htmlHeart(size = 14): HTMLDivElement {
 
 export function htmlCoin(size = 14): HTMLDivElement {
   return htmlSprite(COIN_SPRITE, { light: '#ffe068', mid: '#f0c038', dark: '#886820' }, size);
+}
+
+export function htmlCreep(kind: CreepKind, color: GemType, size = 36, glow = false): HTMLDivElement {
+  const palette = GEM_PALETTE[color];
+  const css: PaletteCss = {
+    light: palette.css.light,
+    mid: palette.css.mid,
+    dark: palette.css.dark,
+    outline: OUTLINE_COLOR,
+    sparkle: hex6(THEME.ink),
+    extra: hex6(THEME.bad),
+  };
+  return htmlSprite(SPRITE_BY_KIND[kind], css, size, glow);
 }

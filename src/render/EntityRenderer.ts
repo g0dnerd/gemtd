@@ -467,7 +467,7 @@ export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSp
   }
 }
 
-export function renderCreeps(layer: Container, creeps: CreepState[]): void {
+export function renderCreeps(layer: Container, creeps: CreepState[], selectedCreepId: number | null = null): void {
   const seen = new Set<number>();
   for (const c of creeps) {
     if (!c.alive) continue;
@@ -513,6 +513,17 @@ export function renderCreeps(layer: Container, creeps: CreepState[]): void {
     entry.obj.x = c.px;
     entry.obj.y = c.py;
     entry.obj.alpha = c.burrowed ? 0.3 : 1;
+    // Selection ring
+    const isSelected = c.id === selectedCreepId;
+    let ring = entry.obj.children.find((ch) => ch.label === "sel") as Graphics | undefined;
+    if (isSelected && !ring) {
+      ring = new Graphics();
+      ring.label = "sel";
+      ring.circle(0, 0, 20).stroke({ width: 2, color: THEME.ink, alpha: 0.8 });
+      entry.obj.addChildAt(ring, 0);
+    } else if (!isSelected && ring) {
+      ring.destroy();
+    }
     // Update HP bar only when ratio changes
     const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
     if (ratio !== entry.lastHpRatio) {
