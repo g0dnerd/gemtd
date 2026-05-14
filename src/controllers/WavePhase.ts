@@ -6,7 +6,7 @@
 import { Game } from '../game/Game';
 import { CreepState } from '../game/State';
 import { CREEP_ARCHETYPES } from '../data/creeps';
-import { WAVES, waveTotalCount, groupForSpawn } from '../data/waves';
+import { WAVES, type WaveDef, waveTotalCount, groupForSpawn } from '../data/waves';
 import { FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ, TILE } from '../game/constants';
 
 const HEALER_INTERVAL = 5 * SIM_HZ;
@@ -37,7 +37,7 @@ export class WavePhase {
     this.elapsed = 0;
     this.goldEarned = 0;
     this.livesAtStart = this.game.state.lives;
-    const def = WAVES[wave - 1];
+    const def = this.waveDef()!;
     this.game.state.waveStats = {
       spawnedThisWave: 0,
       killedThisWave: 0,
@@ -48,10 +48,14 @@ export class WavePhase {
 
   constructor(private game: Game) {}
 
+  private waveDef(): WaveDef | undefined {
+    return this.game.state.debugWaveDef ?? WAVES[this.wave - 1];
+  }
+
   step(): void {
     const state = this.game.state;
     if (state.phase !== 'wave') return;
-    const def = WAVES[this.wave - 1];
+    const def = this.waveDef();
     if (!def) return;
 
     this.elapsed += SIM_DT;
@@ -104,7 +108,7 @@ export class WavePhase {
   }
 
   private spawnCreep(): void {
-    const def = WAVES[this.wave - 1];
+    const def = this.waveDef()!;
     const group = groupForSpawn(def, this.spawnedSoFar);
     const arch = CREEP_ARCHETYPES[group.kind];
     const isAir = !!arch.flags.air;
@@ -282,7 +286,7 @@ export class WavePhase {
 
   private endWave(): void {
     const state = this.game.state;
-    const def = WAVES[this.wave - 1];
+    const def = this.waveDef()!;
     const lifeLost = this.livesAtStart - state.lives;
     if (state.waveStats.leakedThisWave === 0) {
       state.gold += def.bonus;

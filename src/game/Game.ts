@@ -30,9 +30,16 @@ import {
 } from "./constants";
 import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
-import { WAVES } from "../data/waves";
-import { CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER, RUNES_ENABLED } from "./constants";
+import { WAVES, type WaveDef } from "../data/waves";
+import { MAZE_BLUEPRINT } from "../data/maze-blueprint";
+import { exposureAt } from "../sim/blueprintKeeper";
+import {
+  CHANCE_TIER_UPGRADE_COST,
+  MAX_CHANCE_TIER,
+  RUNES_ENABLED,
+} from "./constants";
 import { COMBOS, COMBO_BY_NAME, nextUpgrade } from "../data/combos";
+import type { CreepKind } from "../data/creeps";
 import { GEM_TYPES, type GemType, type Quality } from "../render/theme";
 import { Combat } from "../systems/Combat";
 import { Traps } from "../systems/Traps";
@@ -198,6 +205,8 @@ export class Game {
     this.state.gold = START_GOLD;
     this.state.totalKills = 0;
     this.state.speed = 1;
+    this.state.totalWaves = WAVES.length;
+    this.state.debugWaveDef = undefined;
     // Reset grid
     this.state.grid = BASE.grid.map((row) => row.slice());
     renderGround(this.layers.ground, this.state.grid);
@@ -210,7 +219,7 @@ export class Game {
     this.newGame(this.state.hardcore ? 1 : START_LIVES);
   }
 
-  /** Debug mode: start a game with every gem×quality and every combo pre-placed. */
+  /** Debug mode: place gems along the blueprint maze, one wave of every creep kind. */
   newDebugGame(): void {
     this.state.towers = [];
     this.state.rocks = [];
@@ -237,15 +246,24 @@ export class Game {
     this.state.gold = 99999;
     this.state.totalKills = 0;
     this.state.speed = 1;
+    this.state.totalWaves = 1;
     this.state.grid = BASE.grid.map((row) => row.slice());
-    this.state.waveStats = { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 };
+    this.state.waveStats = {
+      spawnedThisWave: 0,
+      killedThisWave: 0,
+      leakedThisWave: 0,
+      totalToSpawn: 0,
+    };
 
     const grid = this.state.grid;
-    const offsets: ReadonlyArray<readonly [number, number]> = [[0, 0], [1, 0], [0, 1], [1, 1]];
 
+    // Build gem spec list: all gem×quality + all combos at every tier
     const specs: Array<{
-      gem: GemType; quality: Quality;
-      comboKey?: string; upgradeTier?: number; isTrap?: boolean;
+      gem: GemType;
+      quality: Quality;
+      comboKey?: string;
+      upgradeTier?: number;
+      isTrap?: boolean;
     }> = [];
     for (const gem of GEM_TYPES) {
       for (const q of [1, 2, 3, 4, 5] as Quality[]) {
@@ -264,35 +282,120 @@ export class Game {
       }
     }
 
-    let specIdx = 0;
-    for (let y = 10; y < GRID_H - 2 && specIdx < specs.length; y++) {
-      for (let x = 2; x < GRID_W - 2 && specIdx < specs.length; x++) {
-        if (x + 1 >= GRID_W - 2 || y + 1 >= GRID_H - 2) continue;
-        if (!isBuildable(grid[y][x]) || !isBuildable(grid[y][x + 1]) ||
-            !isBuildable(grid[y + 1][x]) || !isBuildable(grid[y + 1][x + 1])) continue;
-        const spec = specs[specIdx];
-        const cellType = spec.isTrap ? Cell.Trap : Cell.Tower;
-        for (const [dx, dy] of offsets) grid[y + dy][x + dx] = cellType;
-        if (spec.isTrap || findRoute(grid)) {
-          this.state.towers.push({
-            id: this.nextId(), x, y,
-            gem: spec.gem, quality: spec.quality,
-            comboKey: spec.comboKey, upgradeTier: spec.upgradeTier,
-            lastFireTick: 0, kills: 0, totalDamage: 0,
-            isTrap: spec.isTrap || undefined,
-          });
-          specIdx++;
-        } else {
-          for (const [dx, dy] of offsets) grid[y + dy][x + dx] = Cell.Grass;
+    // Simulate blueprint placement round by round (mirrors computeKeeperIndices)
+    const keeperPositions: Array<{ x: number; y: number }> = [];
+    const rockPositions: Array<{ x: number; y: number }> = [];
+
+    for (const positions of MAZE_BLUEPRINT) {
+      const placed: Array<{ x: number; y: number; localIdx: number }> = [];
+      for (let i = 0; i < positions.length; i++) {
+        const [x, y] = positions[i];
+        let valid = true;
+        for (let dy = 0; dy < 2; dy++)
+          for (let dx = 0; dx < 2; dx++)
+            if (grid[y + dy]?.[x + dx] !== Cell.Grass) valid = false;
+        if (!valid) continue;
+        for (let dy = 0; dy < 2; dy++)
+          for (let dx = 0; dx < 2; dx++) grid[y + dy][x + dx] = Cell.Tower;
+        placed.push({ x, y, localIdx: placed.length });
+      }
+      if (placed.length === 0) continue;
+
+      const segments = findRoute(grid);
+      const flat = segments ? flattenRoute(segments) : [];
+      const routeSet = new Set(flat.map((p) => `${p.x},${p.y}`));
+
+      let bestLocalIdx = 0;
+      let bestExp = -1;
+      for (let i = 0; i < placed.length; i++) {
+        const exp = exposureAt(placed[i].x, placed[i].y, routeSet);
+        if (exp > bestExp) {
+          bestExp = exp;
+          bestLocalIdx = i;
         }
       }
+
+      keeperPositions.push({
+        x: placed[bestLocalIdx].x,
+        y: placed[bestLocalIdx].y,
+      });
+      for (let i = 0; i < placed.length; i++) {
+        if (i === bestLocalIdx) continue;
+        const { x, y } = placed[i];
+        for (let dy = 0; dy < 2; dy++)
+          for (let dx = 0; dx < 2; dx++) grid[y + dy][x + dx] = Cell.Rock;
+        rockPositions.push({ x, y });
+      }
     }
+
+    // Assign gems: keepers first (best exposure), then overflow into rock slots
+    const allSlots = [...keeperPositions, ...rockPositions];
+    let specIdx = 0;
+    for (const pos of allSlots) {
+      if (specIdx >= specs.length) break;
+      const spec = specs[specIdx];
+      const cellType = spec.isTrap ? Cell.Trap : Cell.Tower;
+      for (let dy = 0; dy < 2; dy++)
+        for (let dx = 0; dx < 2; dx++) grid[pos.y + dy][pos.x + dx] = cellType;
+      this.state.towers.push({
+        id: this.nextId(),
+        x: pos.x,
+        y: pos.y,
+        gem: spec.gem,
+        quality: spec.quality,
+        comboKey: spec.comboKey,
+        upgradeTier: spec.upgradeTier,
+        lastFireTick: 0,
+        kills: 0,
+        totalDamage: 0,
+        isTrap: spec.isTrap || undefined,
+      });
+      specIdx++;
+    }
+
+    // Remaining slots stay as rocks
+    for (let i = specIdx; i < allSlots.length; i++) {
+      const pos = allSlots[i];
+      for (let dy = 0; dy < 2; dy++)
+        for (let dx = 0; dx < 2; dx++) grid[pos.y + dy][pos.x + dx] = Cell.Rock;
+      this.state.rocks.push({
+        x: pos.x,
+        y: pos.y,
+        id: this.nextId(),
+        placedAtBuildOfWave: 1,
+      });
+    }
+
+    // Debug wave: 10 of every creep kind
+    const CREEP_KINDS: CreepKind[] = [
+      "normal",
+      "fast",
+      "armored",
+      "air",
+      "boss",
+      "healer",
+      "wizard",
+      "tunneler",
+    ];
+    const debugWave: WaveDef = {
+      number: 1,
+      groups: CREEP_KINDS.map((kind) => ({
+        kind,
+        count: 10,
+        hp: 100000,
+        bounty: 10,
+        slowResist: 0,
+        armor: 50,
+      })),
+      interval: 0.5,
+      bonus: 100,
+    };
+    this.state.debugWaveDef = debugWave;
 
     renderGround(this.layers.ground, this.state.grid);
     renderCheckpoints(this.layers.checkpoints);
     this.refreshRoute();
 
-    // "Round concluded" state: no draws + keep designated → Start Wave works immediately
     this.state.designatedKeepTowerId = this.state.towers[0]?.id ?? null;
     this.state.phase = "build";
     this.bus.emit("phase:enter", { phase: "build" });
@@ -359,7 +462,7 @@ export class Game {
     this.bus.emit("wave:start", { wave: this.state.wave });
   }
 
-  handleCreepDeath(c: import('../game/State').CreepState): void {
+  handleCreepDeath(c: import("../game/State").CreepState): void {
     this.combat.handleDeathEffects(c);
   }
 
@@ -414,7 +517,8 @@ export class Game {
   async toggleBlueprint(): Promise<void> {
     this.blueprintMode = !this.blueprintMode;
     if (this.blueprintMode && !this.blueprint) {
-      const { default: data } = await import("../../tools/maze_optimizer/blueprint_v5.json");
+      const { default: data } =
+        await import("../../tools/maze_optimizer/blueprint_v5.json");
       const bp = data as unknown as Blueprint;
       bp.keeperIndices = computeKeeperIndices(bp);
       this.blueprint = bp;
@@ -552,7 +656,12 @@ export class Game {
       this.towerSprites,
       this.state.tick,
     );
-    renderRocks(this.layers.rocks, this.state.rocks, this.towerSprites, this.selectedRockId);
+    renderRocks(
+      this.layers.rocks,
+      this.state.rocks,
+      this.towerSprites,
+      this.selectedRockId,
+    );
     if (this.selectedCreepId !== null) {
       const sc = this.state.creeps.find((c) => c.id === this.selectedCreepId);
       if (!sc || !sc.alive) this.selectCreep(null);

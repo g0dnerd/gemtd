@@ -6,6 +6,7 @@
 
 import { Cell } from '../data/map';
 import type { CreepKind } from '../data/creeps';
+import type { WaveDef } from '../data/waves';
 import type { GemType, Quality } from '../render/theme';
 
 export type Phase = 'title' | 'build' | 'wave' | 'gameover' | 'victory';
@@ -199,6 +200,8 @@ export interface State {
     leakedThisWave: number;
     totalToSpawn: number;
   };
+  /** Override wave definition for debug mode. */
+  debugWaveDef?: WaveDef;
 }
 
 /** The currently-active draw slot (lowest unplaced, or whatever activeDrawSlot points at). null if none. */
