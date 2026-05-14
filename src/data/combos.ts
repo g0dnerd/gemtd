@@ -323,8 +323,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "diamond", quality: 3 },
     ],
     stats: {
-      dmgMin: 350,
-      dmgMax: 450,
+      dmgMin: 250,
+      dmgMax: 350,
       range: 4.5,
       atkSpeed: 1.0,
       effects: [{ kind: "crit", chance: 0.1, multiplier: 5.0 }],
@@ -334,10 +334,10 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Living Diamond",
-        cost: 175,
+        cost: 250,
         stats: {
-          dmgMin: 400,
-          dmgMax: 620,
+          dmgMin: 300,
+          dmgMax: 520,
           range: 4.75,
           atkSpeed: 1.1,
           effects: [
@@ -394,8 +394,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Silver Knight",
         cost: 300,
         stats: {
-          dmgMin: 120,
-          dmgMax: 160,
+          dmgMin: 320,
+          dmgMax: 360,
           range: 4.0,
           atkSpeed: 1.1,
           effects: [
@@ -467,7 +467,7 @@ const ALL_COMBOS: ComboRecipe[] = [
               rampCap: 1.5,
             },
             { kind: "armor_pierce_burn" },
-            { kind: "death_nova", hpPct: 0.1, radius: 2.0 },
+            { kind: "death_nova", hpPct: 0.08, radius: 2.0 },
           ],
           blurb: "Burn ramps +12%/s. Ignores armor. Death nova 10% HP.",
           targeting: "all",
@@ -542,8 +542,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Red Crystal Facet",
         cost: 100,
         stats: {
-          dmgMin: 120,
-          dmgMax: 200,
+          dmgMin: 160,
+          dmgMax: 250,
           range: 5.5,
           atkSpeed: 0.8,
           effects: [
@@ -562,8 +562,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Rose Quartz Crystal",
         cost: 100,
         stats: {
-          dmgMin: 160,
-          dmgMax: 250,
+          dmgMin: 240,
+          dmgMax: 300,
           range: 6.0,
           atkSpeed: 0.8,
           effects: [

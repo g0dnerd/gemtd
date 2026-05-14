@@ -59,7 +59,7 @@ export function mountTitle(
   // Footer
   const footer = document.createElement("div");
   footer.className = "title-footer";
-  footer.textContent = "v1.2.6";
+  footer.textContent = "v1.2.7";
   screen.appendChild(footer);
 
   root.appendChild(screen);

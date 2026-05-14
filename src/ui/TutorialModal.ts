@@ -229,6 +229,18 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.2.7",
+      notes: [
+        "<b>Nerf</b> — Wave 34 air creep HP reduced by 20%.",
+        "<b>Nerf</b> — Pink Diamond base damage reduced (350–450 → 250–350).",
+        "<b>Nerf</b> — Living Diamond cost increased (175 → 250) and damage reduced.",
+        "<b>Buff</b> — Silver Knight damage increased (120–160 → 320–360).",
+        "<b>Nerf</b> — Solar Core death nova reduced (10% → 8% max HP).",
+        "<b>Buff</b> — Red Crystal Facet damage increased (120–200 → 160–250).",
+        "<b>Buff</b> — Rose Quartz Crystal damage increased (160–250 → 240–300).",
+      ],
+    },
+    {
       ver: "1.2.6",
       notes: [
         "<b>Balance</b> — Nerfed Ancient Bloodstone damage (400–620 → 320–540).",
