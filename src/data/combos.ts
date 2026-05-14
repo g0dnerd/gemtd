@@ -350,13 +350,13 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "sapphire", quality: 1 },
     ],
     stats: {
-      dmgMin: 20,
-      dmgMax: 26,
+      dmgMin: 24,
+      dmgMax: 31,
       range: 3.5,
-      atkSpeed: 1.1,
+      atkSpeed: 1.25,
       effects: [
         { kind: "splash", radius: 1.2, falloff: 0.5 },
-        { kind: "slow", factor: 0.8, duration: 1.5 },
+        { kind: "slow", factor: 0.75, duration: 1.5 },
       ],
       blurb: "Splash slow 20%.",
       targeting: "all",
