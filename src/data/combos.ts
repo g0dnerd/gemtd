@@ -101,9 +101,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       atkSpeed: 1.0,
       effects: [
         { kind: "splash", radius: 2.0, falloff: 0.5 },
-        { kind: "poison", dps: 100, duration: 4 },
       ],
-      blurb: "Burn dmg to nearby enemies. High splash radius.",
+      blurb: "High splash radius.",
       targeting: "all",
     },
     upgrades: [
