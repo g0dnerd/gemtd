@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.2.3",
+      notes: [
+        "<b>Infra</b> — Anonymous telemetry for balance tuning (no personal data collected).",
+      ],
+    },
+    {
       ver: "1.2.2",
       notes: [
         "<b>Balance</b> — Remove poison from Ancient Bloodstone entirely.",

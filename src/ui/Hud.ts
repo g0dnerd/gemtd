@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v1.2.2";
+  wmVer.textContent = "v1.2.3";
   wm.append(wmName, wmVer);
   if (game.state.hardcore) {
     const skull = document.createElement("div");

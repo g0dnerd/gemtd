@@ -27,6 +27,8 @@ export interface GameEvents {
   };
   'tower:upgrade': { id: number; comboKey: string; tier: number };
   'tower:downgrade': { id: number; gem: GemType; oldQuality: Quality; newQuality: Quality };
+  'chance:upgrade': { tier: number; cost: number };
+  'rock:remove': { id: number; cost: number };
   'toast': { kind: 'info' | 'good' | 'error'; text: string };
   'focusRecipe': { key: string };
   'rune:trigger': { id: number; effect: string };

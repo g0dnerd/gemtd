@@ -11,6 +11,7 @@
 import { Application, Container, Ticker } from "pixi.js";
 import { State, emptyState, allDrawsPlaced } from "./State";
 import { EventBus } from "../events/EventBus";
+import { attachTelemetry } from "../telemetry";
 import { RNG } from "./rng";
 import { BASE, Cell, GRID_W, GRID_H, isBuildable } from "../data/map";
 import { findRoute, flattenRoute, buildAirRoute } from "../systems/Pathfinding";
@@ -112,6 +113,8 @@ export class Game {
   /** Creative mode — hidden cheat (Ctrl+Shift+C) to place rocks freely during build phase. */
   creativeMode = false;
 
+  private detachTelemetry?: () => void;
+
   /** Currently selected tower (if any). null otherwise. */
   selectedTowerId: number | null = null;
 
@@ -212,6 +215,8 @@ export class Game {
     renderGround(this.layers.ground, this.state.grid);
     renderCheckpoints(this.layers.checkpoints);
     this.refreshRoute();
+    this.detachTelemetry?.();
+    this.detachTelemetry = attachTelemetry(this);
     this.enterBuild();
   }
 
@@ -609,6 +614,7 @@ export class Game {
     if (state.selectedRockId === rockId) this.selectRock(null);
     this.refreshRoute();
     this.bus.emit("gold:change", { gold: state.gold });
+    this.bus.emit("rock:remove", { id: rockId, cost });
     this.bus.emit("toast", { kind: "good", text: `Rock cleared · −${cost}g` });
     return true;
   }
@@ -856,6 +862,7 @@ export class Game {
     state.gold -= cost;
     state.chanceTier += 1;
     this.bus.emit("gold:change", { gold: state.gold });
+    this.bus.emit("chance:upgrade", { tier: state.chanceTier, cost });
     this.bus.emit("toast", {
       kind: "good",
       text: `Chance tier → L${state.chanceTier}`,
