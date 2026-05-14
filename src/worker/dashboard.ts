@@ -129,20 +129,20 @@ function render(data) {
 
   // Combo popularity
   if (data.combos?.length) {
-    html += '<h2>Combo Popularity</h2>';
-    html += '<table><tr><th>Combo</th><th>Times Built</th><th>Avg Damage</th></tr>';
+    html += '<h2>Combo Effectiveness</h2>';
+    html += '<table><tr><th>Combo</th><th>Times Built</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th></tr>';
     for (const row of data.combos) {
-      html += '<tr><td>' + row.combo_key + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_damage, 0) + '</td></tr>';
+      html += '<tr><td>' + row.combo_key + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td></tr>';
     }
     html += '</table>';
   }
 
-  // Gem DPS
+  // Gem effectiveness
   if (data.gemDps?.length) {
-    html += '<h2>Tower DPS by Gem</h2>';
-    html += '<table><tr><th>Gem</th><th>Count</th><th>Avg Damage</th><th>Avg Quality</th></tr>';
+    html += '<h2>Tower Effectiveness by Gem</h2>';
+    html += '<table><tr><th>Gem</th><th>Count</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th><th>Avg Quality</th></tr>';
     for (const row of data.gemDps) {
-      html += '<tr><td>' + row.gem + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_damage, 0) + '</td><td>' + fmt(row.avg_quality, 1) + '</td></tr>';
+      html += '<tr><td>' + row.gem + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td><td>' + fmt(row.avg_quality, 1) + '</td></tr>';
     }
     html += '</table>';
   }

@@ -57,11 +57,11 @@ export async function handleStats(
     ),
     queryAE(
       env,
-      `SELECT blob2 as combo_key, count() as count, avg(double4) as avg_damage FROM gemtd_towers WHERE blob2 != '' ${vfB3} GROUP BY blob2 ORDER BY count DESC`,
+      `SELECT blob2 as combo_key, count() as count, avg(double4) as avg_damage, avg(double4 / (double8 - double5 + 1)) as avg_dmg_per_wave FROM gemtd_towers WHERE blob2 != '' ${vfB3} GROUP BY blob2 ORDER BY avg_dmg_per_wave DESC`,
     ),
     queryAE(
       env,
-      `SELECT blob1 as gem, count() as count, avg(double4) as avg_damage, avg(double1) as avg_quality FROM gemtd_towers WHERE 1=1 ${vfB3} GROUP BY blob1 ORDER BY avg_damage DESC`,
+      `SELECT blob1 as gem, count() as count, avg(double4) as avg_damage, avg(double4 / (double8 - double5 + 1)) as avg_dmg_per_wave, avg(double1) as avg_quality FROM gemtd_towers WHERE 1=1 ${vfB3} GROUP BY blob1 ORDER BY avg_dmg_per_wave DESC`,
     ),
     queryAE(
       env,
