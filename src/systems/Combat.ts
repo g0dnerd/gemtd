@@ -96,6 +96,7 @@ export class Combat {
             if (t.attackCount % novaEffect.everyN === 0) {
               const allTargets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, Infinity);
               for (const tgt of allTargets) this.fire(t, tgt, stats, dmgMult);
+              this.game.bus.emit('vfx:nova', { x: (t.x + 1) * FINE_TILE, y: (t.y + 1) * FINE_TILE, rangePx: stats.range * TILE });
             } else {
               this.fire(t, target, stats, dmgMult);
             }
@@ -272,6 +273,7 @@ export class Combat {
             this.applyDamage(c, splashDmg, owner);
           }
         }
+        this.game.bus.emit('vfx:critSplash', { x: p.toX, y: p.toY, radiusPx: critSplash.radius * TILE });
       }
     }
 
@@ -284,6 +286,7 @@ export class Combat {
           const expires = tick + Math.round(freezeChance.duration * SIM_HZ);
           if (!c.stun || c.stun.expiresAt < expires) {
             c.stun = { expiresAt: expires };
+            this.game.bus.emit('vfx:freezeProc', { x: c.px, y: c.py });
           }
         }
       }
@@ -342,6 +345,7 @@ export class Combat {
       for (const e of ownerStats.effects) {
         if (e.kind === 'bonus_gold' && this.game.rng.next() < e.chance) {
           state.gold += c.bounty;
+          this.game.bus.emit('vfx:bonusGold', { x: c.px, y: c.py });
         }
       }
       state.totalKills++;
@@ -514,6 +518,7 @@ export class Combat {
                 c.stun = { expiresAt: expires };
               }
             }
+            this.game.bus.emit('vfx:periodicFreeze', { x: tx, y: ty, rangePx: stats.range * TILE });
           }
         }
       }
@@ -584,6 +589,7 @@ export class Combat {
         if (cdx * cdx + cdy * cdy > novaR2) continue;
         this.applyDamage(c, novaDmg, t);
       }
+      this.game.bus.emit('vfx:deathNova', { x: dead.px, y: dead.py, radiusPx: deathNova.radius * TILE });
     }
 
     // Death spread (plague): if creep had spreadable poison
@@ -599,9 +605,16 @@ export class Combat {
       }
       candidates.sort((a, b) => a.dist2 - b.dist2);
       const tick = state.tick;
-      for (let i = 0; i < Math.min(count, candidates.length); i++) {
+      const spreadCount = Math.min(count, candidates.length);
+      for (let i = 0; i < spreadCount; i++) {
         const c = candidates[i].creep;
         c.poison = { dps: dead.poison.dps, expiresAt: tick + 3 * SIM_HZ, nextTick: tick + SIM_HZ };
+      }
+      if (spreadCount > 0) {
+        this.game.bus.emit('vfx:deathSpread', {
+          fromX: dead.px, fromY: dead.py,
+          targets: candidates.slice(0, spreadCount).map(({ creep: sc }) => ({ x: sc.px, y: sc.py })),
+        });
       }
     }
   }

@@ -30,6 +30,13 @@ export interface GameEvents {
   'toast': { kind: 'info' | 'good' | 'error'; text: string };
   'focusRecipe': { key: string };
   'rune:trigger': { id: number; effect: string };
+  'vfx:nova': { x: number; y: number; rangePx: number };
+  'vfx:periodicFreeze': { x: number; y: number; rangePx: number };
+  'vfx:deathNova': { x: number; y: number; radiusPx: number };
+  'vfx:deathSpread': { fromX: number; fromY: number; targets: Array<{ x: number; y: number }> };
+  'vfx:critSplash': { x: number; y: number; radiusPx: number };
+  'vfx:bonusGold': { x: number; y: number };
+  'vfx:freezeProc': { x: number; y: number };
 }
 
 type Handler<T> = (payload: T) => void;

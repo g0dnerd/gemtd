@@ -36,6 +36,7 @@ import { COMBOS, COMBO_BY_NAME, nextUpgrade } from "../data/combos";
 import { GEM_TYPES, type GemType, type Quality } from "../render/theme";
 import { Combat } from "../systems/Combat";
 import { Traps } from "../systems/Traps";
+import { VfxRenderer } from "../render/VfxRenderer";
 import { TowerSpriteCache } from "../render/TowerRenderer";
 import {
   renderTowers,
@@ -67,6 +68,7 @@ export class Game {
   private wavePhase: WavePhase;
   private combat: Combat;
   private traps: Traps;
+  private vfx: VfxRenderer;
 
   /** Accumulator for fixed-step sim. */
   private accum = 0;
@@ -136,6 +138,7 @@ export class Game {
     this.wavePhase = new WavePhase(this);
     this.combat = new Combat(this);
     this.traps = new Traps(this);
+    this.vfx = new VfxRenderer(this.bus);
 
     renderGround(this.layers.ground, this.state.grid);
     renderCheckpoints(this.layers.checkpoints);
@@ -174,6 +177,7 @@ export class Game {
     this.state.rocks = [];
     this.state.creeps = [];
     this.state.projectiles = [];
+    this.vfx.clear();
     this.state.undoStack = [];
     this.state.draws = [];
     this.state.activeDrawSlot = null;
@@ -212,6 +216,7 @@ export class Game {
     this.state.rocks = [];
     this.state.creeps = [];
     this.state.projectiles = [];
+    this.vfx.clear();
     this.state.undoStack = [];
     this.state.draws = [];
     this.state.activeDrawSlot = null;
@@ -555,6 +560,7 @@ export class Game {
     renderCreeps(this.layers.creeps, this.state.creeps, this.selectedCreepId);
     renderProjectiles(this.layers.projectiles, this.state.projectiles);
     renderBeams(this.layers.projectiles, this.state.towers, this.state.creeps);
+    this.vfx.render(this.layers.fx, this.state);
     if (this.blueprintMode) {
       const placedCount = this.state.draws.filter(
         (d) => d.placedTowerId !== null,
