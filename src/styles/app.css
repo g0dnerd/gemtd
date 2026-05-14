@@ -1548,3 +1548,97 @@
   color: var(--px-good);
   margin-top: 2px;
 }
+
+/* ===== Hardcore: Skull & Bone theme ===== */
+.hud.hardcore {
+  --px-panel: #2e2840;
+  --px-panel-2: #443858;
+  --px-accent: #d8c8a0;
+  --px-accent-hi: #e8dcc0;
+  --px-accent-lo: #8a7a58;
+}
+.hud.hardcore .hud-col-left,
+.hud.hardcore .hud-col-right {
+  position: relative;
+}
+.hud.hardcore .hud-col-left::before,
+.hud.hardcore .hud-col-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  border-top: 3px dotted #8a7a58;
+}
+.hud.hardcore .hud-col-left > *,
+.hud.hardcore .hud-col-right > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Skull & crossbones decorations */
+.hardcore-sigil {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 2px 0;
+  opacity: 0.35;
+  pointer-events: none;
+}
+.hardcore-sigil svg {
+  flex-shrink: 0;
+}
+.hardcore-sigil-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 1px 0;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+/* Skull & bone panel divider between sections */
+.hardcore-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 2px 0;
+  opacity: 0.3;
+  pointer-events: none;
+}
+.hardcore-divider::before,
+.hardcore-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, #8a7a58 0px, #8a7a58 4px, transparent 4px, transparent 8px);
+}
+
+/* Hardcore header bar: bone white wordmark */
+.hud.hardcore .wm-name {
+  color: #d8c8a0;
+  text-shadow: 2px 2px 0 #0a0510;
+}
+
+/* Lives counter pulse when at 1hp */
+.hud.hardcore .stat-mini .val[style*="#ff8898"] {
+  animation: hardcorePulse 2s ease-in-out infinite;
+}
+@keyframes hardcorePulse {
+  0%, 100% { text-shadow: 0 0 0 transparent; }
+  50% { text-shadow: 0 0 8px rgba(208,72,72,0.6); }
+}
+.wm-hardcore-badge {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: #d8c8a0;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}

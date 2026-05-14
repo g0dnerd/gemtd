@@ -3,7 +3,7 @@
  * Towers / rocks / creeps / projectiles are drawn on separate layers.
  *
  * Visual direction: Variant B "Cobblestone Keep" — cobblestone path tiling,
- * brick-seamed walls, sparse-decorated grass, banner-flag checkpoints, a
+ * brick-seamed walls, sparse-decorated grass, carved-waystone checkpoints, a
  * cave-mouth spawn marker, and a crystal-shrine end marker.
  */
 
@@ -309,9 +309,9 @@ function makeMonoLabel(s: string, size: number, color: number): Text {
 }
 
 /**
- * Render checkpoint markers as numbered red banners on poles. Each banner
- * sits at the waypoint's fine cell, with the cloth extending up-and-right
- * so it doesn't overlap surrounding tower placements.
+ * Render checkpoint markers as carved waystones — flush stone tablets with
+ * engraved numbers that sit entirely within the cell, avoiding occlusion
+ * by towers or rocks placed above.
  */
 export function renderCheckpoints(layer: Container): void {
   layer.removeChildren();
@@ -337,42 +337,22 @@ export function renderCheckpoints(layer: Container): void {
       }
     }
 
-    // Soft warm glow under the banner.
-    for (let i = 3; i >= 1; i--) {
-      g.ellipse(ox + 17, oy + 15, 10 + i * 3, 5 + i * 2).fill({
-        color: 0xf0a040,
-        alpha: 0.06,
-      });
-    }
+    // Stone body with bevelled edges.
+    g.rect(ox + 3, oy + 3, 12, 12).fill(0x7a6a5a);
+    g.rect(ox + 3, oy + 3, 12, 2).fill(0xa8988a);
+    g.rect(ox + 3, oy + 3, 2, 12).fill(0xa8988a);
+    g.rect(ox + 3, oy + 13, 12, 2).fill(0x3a2a20);
+    g.rect(ox + 13, oy + 3, 2, 12).fill(0x3a2a20);
 
-    // Pole + soft side light.
-    g.rect(ox + 9, oy - 18, 2, 29).fill(0x1a1428);
-    g.rect(ox + 8, oy - 18, 1, 29).fill(0xb8a584);
-    // Pennant ornament on top.
-    g.rect(ox + 8, oy - 20, 4, 2).fill(0xf0a040);
-
-    // Flag body + stripes.
-    g.rect(ox + 11, oy - 17, 16, 12).fill(0xd04848);
-    g.rect(ox + 11, oy - 17, 16, 2).fill(0xf06868);
-    g.rect(ox + 11, oy - 7, 16, 2).fill(0x802020);
-
-    // Swallowtail cutouts — punch them with grass color so the banner reads
-    // as notched even on top of grass tiles next to the path.
-    g.rect(ox + 23, oy - 15, 4, 2).fill(CELL.grass);
-    g.rect(ox + 25, oy - 13, 2, 2).fill(CELL.grass);
-    g.rect(ox + 23, oy - 11, 4, 2).fill(CELL.grass);
+    // Dark inset recess for the numeral.
+    g.rect(ox + 5, oy + 5, 8, 8).fill(0x1a1428);
 
     layer.addChild(g);
 
-    // Numeral with 1px shadow.
-    const numStr = String(idx + 1);
-    const shadow = makeMonoLabel(numStr, 8, 0x1a1428);
-    shadow.x = ox + 17 - Math.round(shadow.width / 2) + 1;
-    shadow.y = oy - 16 + 1;
-    layer.addChild(shadow);
-    const num = makeMonoLabel(numStr, 8, 0xf4e4c1);
-    num.x = ox + 17 - Math.round(num.width / 2);
-    num.y = oy - 16;
+    // Engraved numeral (accent color, no shadow needed on dark inset).
+    const num = makeMonoLabel(String(cpIdx), 7, 0xf0a040);
+    num.x = ox + 9 - Math.round(num.width / 2);
+    num.y = oy + 5;
     layer.addChild(num);
   });
 }

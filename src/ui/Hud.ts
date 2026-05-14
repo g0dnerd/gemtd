@@ -83,7 +83,7 @@ export function mountHud(
   onExit: () => void,
 ): () => void {
   const hud = document.createElement("div");
-  hud.className = "hud";
+  hud.className = "hud" + (game.state.hardcore ? " hardcore" : "");
 
   const left = document.createElement("div");
   left.className = "hud-col hud-col-left";
@@ -109,6 +109,22 @@ export function mountHud(
   wmVer.className = "wm-ver";
   wmVer.textContent = "v0.12.0";
   wm.append(wmName, wmVer);
+  if (game.state.hardcore) {
+    const skull = document.createElement("div");
+    skull.className = "wm-hardcore-badge";
+    skull.innerHTML =
+      '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="4" y="1" width="6" height="6" rx="1" fill="#d8c8a0"/>' +
+      '<rect x="5" y="2" width="1" height="1" fill="#2e2840"/>' +
+      '<rect x="8" y="2" width="1" height="1" fill="#2e2840"/>' +
+      '<rect x="6" y="4" width="2" height="1" fill="#2e2840"/>' +
+      '<rect x="1" y="8" width="12" height="2" rx="1" fill="#d8c8a0"/>' +
+      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#d8c8a0" transform="rotate(-20 7 11)"/>' +
+      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#d8c8a0" transform="rotate(20 7 11)"/>' +
+      "</svg>" +
+      " ☠";
+    wm.appendChild(skull);
+  }
   headerBar.appendChild(wm);
 
   const livesMini = makeStatMini(htmlHeart(16), "LIVES", "50", "#ff8898");
@@ -119,8 +135,12 @@ export function mountHud(
   const chance = makeChancePanel(game);
   left.appendChild(chance.root);
 
+  if (game.state.hardcore) left.appendChild(makeHardcoreDivider());
+
   const draw = makeDrawPanel(game);
   left.appendChild(draw.root);
+
+  if (game.state.hardcore) left.appendChild(makeHardcoreDivider());
 
   const inspector = mountInspector(game);
   left.appendChild(inspector.root);
@@ -773,7 +793,9 @@ export function mountHud(
   threats.append(threatsHead, threatsList);
   right.appendChild(threats);
 
-  const recipes = document.createElement("div");
+  if (game.state.hardcore) right.appendChild(makeHardcoreDivider());
+
+  const recipes = document.createElement("div")
   recipes.className = "px-panel recipes-panel";
   const recipesHead = document.createElement("div");
   recipesHead.className = "panel-head";
@@ -1371,6 +1393,22 @@ export function mountHud(
     b.textContent = label;
     b.addEventListener("click", onClick);
     return b;
+  }
+
+  function makeHardcoreDivider(): HTMLDivElement {
+    const d = document.createElement("div");
+    d.className = "hardcore-divider";
+    d.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<rect x="4" y="1" width="6" height="6" rx="1" fill="#8a7a58"/>' +
+      '<rect x="5" y="2" width="1" height="1" fill="#2e2840"/>' +
+      '<rect x="8" y="2" width="1" height="1" fill="#2e2840"/>' +
+      '<rect x="6" y="4" width="2" height="1" fill="#2e2840"/>' +
+      '<rect x="1" y="8" width="12" height="2" rx="1" fill="#8a7a58"/>' +
+      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#8a7a58" transform="rotate(-20 7 11)"/>' +
+      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#8a7a58" transform="rotate(20 7 11)"/>' +
+      "</svg>";
+    return d;
   }
 
   function makeChancePanel(g: Game): {
