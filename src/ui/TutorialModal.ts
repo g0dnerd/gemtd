@@ -190,6 +190,14 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '1.1.0',
+      notes: [
+        '<b>Balance</b> — boss wave bounties reduced by 40% across all boss waves (10, 20, 30, 40, 50).',
+        '<b>Balance</b> — armor now scales across all ground creep waves from wave 11 onward, increasing overall mid-to-late difficulty.',
+        '<b>Balance</b> — air waves nerfed slightly (fewer creeps, lower HP) but compensated with armor; difficulty shifts toward ground waves.',
+      ],
+    },
+    {
       ver: '1.0.0',
       notes: [
         '<b>Armor system</b> — numeric armor replaces the armored flag. WC3 damage formula: positive armor reduces damage, negative amplifies. Armor progresses across all 50 waves.',
