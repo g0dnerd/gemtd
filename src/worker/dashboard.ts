@@ -36,6 +36,7 @@ export function handleDashboard(secret: string): Response {
 <h1>GemTD Telemetry</h1>
 <div class="controls">
   <label>Version: <select id="version"><option value="">All</option></select></label>
+  <select id="vmode"><option value="eq">=</option><option value="gte">>=</option></select>
   <button onclick="load()">Refresh</button>
 </div>
 <div id="content"><p class="loading">Loading...</p></div>
@@ -55,10 +56,34 @@ function qs(params) {
   return '?' + p.toString();
 }
 
-function updateExportLinks() {
+let allVersions = [];
+
+function semverCmp(a, b) {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  }
+  return 0;
+}
+
+function versionParams(params) {
   const v = document.getElementById('version').value;
+  const mode = document.getElementById('vmode').value;
+  if (!v) return;
+  if (mode === 'gte') {
+    const matching = allVersions.filter(ver => semverCmp(ver, v) >= 0);
+    if (matching.length && matching.length < allVersions.length) {
+      params.versions = matching.join(',');
+    }
+  } else {
+    params.version = v;
+  }
+}
+
+function updateExportLinks() {
   const params = { secret: SECRET, format: 'csv' };
-  if (v) params.version = v;
+  versionParams(params);
   ['runs','waves','towers','events'].forEach(ds => {
     document.getElementById('exp-' + ds).href = base + '/export' + qs({ ...params, dataset: ds });
   });
@@ -67,7 +92,7 @@ function updateExportLinks() {
 async function load() {
   const v = document.getElementById('version').value;
   const params = { secret: SECRET };
-  if (v) params.version = v;
+  versionParams(params);
   const el = document.getElementById('content');
   el.innerHTML = '<p class="loading">Loading...</p>';
   updateExportLinks();
@@ -76,7 +101,8 @@ async function load() {
     const resp = await fetch(base + '/stats' + qs(params));
     if (!resp.ok) throw new Error(await resp.text());
     const data = await resp.json();
-    populateVersions(data.versions || [], v);
+    allVersions = data.versions || [];
+    populateVersions(allVersions, v);
     render(data);
   } catch (err) {
     el.innerHTML = '<div class="error">' + err.message + '</div>';

@@ -5,15 +5,30 @@ export async function handleStats(
   env: Env,
 ): Promise<Response> {
   const version = url.searchParams.get("version") || null;
+  const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
   const db = env.gemtd_telemetry;
 
-  const rv = version ? "AND version = ?" : "";
-  const rBind = version ? [version] : [];
+  let rv = "";
+  let rBind: string[] = [];
+  if (versions && versions.length > 0) {
+    const ph = versions.map(() => "?").join(",");
+    rv = `AND version IN (${ph})`;
+    rBind = versions;
+  } else if (version) {
+    rv = "AND version = ?";
+    rBind = [version];
+  }
 
-  const cv = version
-    ? "AND run_id IN (SELECT run_id FROM runs WHERE version = ?)"
-    : "";
-  const cBind = version ? [version] : [];
+  let cv = "";
+  let cBind: string[] = [];
+  if (versions && versions.length > 0) {
+    const ph = versions.map(() => "?").join(",");
+    cv = `AND run_id IN (SELECT run_id FROM runs WHERE version IN (${ph}))`;
+    cBind = versions;
+  } else if (version) {
+    cv = "AND run_id IN (SELECT run_id FROM runs WHERE version = ?)";
+    cBind = [version];
+  }
 
   const [
     overviewRows,

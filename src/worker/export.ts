@@ -33,6 +33,7 @@ export async function handleExport(
     10000,
   );
   const version = url.searchParams.get("version") || null;
+  const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
 
   const columns = TABLES[table];
   if (!columns) {
@@ -47,11 +48,21 @@ export async function handleExport(
 
   if (table === "runs") {
     sql = `SELECT ${columns.join(", ")} FROM runs`;
-    if (version) { sql += " WHERE version = ?"; binds.push(version); }
+    if (versions && versions.length > 0) {
+      sql += ` WHERE version IN (${versions.map(() => "?").join(",")})`;
+      binds.push(...versions);
+    } else if (version) {
+      sql += " WHERE version = ?";
+      binds.push(version);
+    }
     sql += " ORDER BY created_at DESC LIMIT ?";
   } else {
     sql = `SELECT ${columns.join(", ")} FROM ${table}`;
-    if (version) {
+    if (versions && versions.length > 0) {
+      const ph = versions.map(() => "?").join(",");
+      sql += ` WHERE run_id IN (SELECT run_id FROM runs WHERE version IN (${ph}))`;
+      binds.push(...versions);
+    } else if (version) {
       sql += " WHERE run_id IN (SELECT run_id FROM runs WHERE version = ?)";
       binds.push(version);
     }
