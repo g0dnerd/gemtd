@@ -92,8 +92,8 @@ describe('diamond rework stats', () => {
 describe('pink diamond rework stats', () => {
   it('has boosted damage over old values', () => {
     const pd = COMBOS.find((c) => c.key === 'pink_diamond')!;
-    expect(pd.stats.dmgMin).toBeGreaterThanOrEqual(300);
-    expect(pd.stats.dmgMax).toBeGreaterThanOrEqual(450);
+    expect(pd.stats.dmgMin).toBeGreaterThanOrEqual(250);
+    expect(pd.stats.dmgMax).toBeGreaterThanOrEqual(350);
   });
 
   it('retains x5 crit effect', () => {

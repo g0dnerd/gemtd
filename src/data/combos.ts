@@ -248,8 +248,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Lucky Asian Jade",
         cost: 250,
         stats: {
-          dmgMin: 200,
-          dmgMax: 300,
+          dmgMin: 300,
+          dmgMax: 450,
           range: 4.25,
           atkSpeed: 1.3,
           effects: [

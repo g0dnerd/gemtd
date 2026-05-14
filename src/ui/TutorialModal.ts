@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.2.8",
+      notes: [
+        "<b>Buff</b> — Lucky Asian Jade damage range +50% (200–300 → 300–450).",
+      ],
+    },
+    {
       ver: "1.2.7",
       notes: [
         "<b>Nerf</b> — Wave 34 air creep HP reduced by 20%.",
