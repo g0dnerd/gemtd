@@ -1355,6 +1355,25 @@
   font-size: 22px;
   color: var(--px-ink-dim);
 }
+.game-over .leaderboard {
+  border-collapse: collapse;
+  font-family: "VT323", monospace;
+  font-size: 20px;
+  color: var(--px-ink);
+}
+.game-over .leaderboard th {
+  font-size: 16px;
+  color: var(--px-ink-dim);
+  text-align: left;
+  padding: 2px 12px;
+  border-bottom: 2px solid var(--px-border-dark);
+}
+.game-over .leaderboard td {
+  padding: 2px 12px;
+}
+.game-over .leaderboard td.dmg {
+  text-align: right;
+}
 
 /* Pixel sprite: a 1px <div> with a giant box-shadow listing every pixel.
    Used for HTML-side gem/coin/heart icons (HUD). */

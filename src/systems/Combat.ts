@@ -329,6 +329,7 @@ export class Combat {
     if (c.vulnerability > 0) {
       dmg = Math.round(dmg * (1 + c.vulnerability));
     }
+    owner.totalDamage += dmg;
     c.hp -= dmg;
     this.game.bus.emit('tower:hit', { id: owner.id, targetId: c.id, damage: dmg });
     if (c.hp <= 0) {

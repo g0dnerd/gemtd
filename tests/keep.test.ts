@@ -52,7 +52,7 @@ function setup() {
 
 function placeTower(game: FakeGame, x: number, y: number, gem: GemType): TowerState {
   const id = game.nextId();
-  const t: TowerState = { id, x, y, gem, quality: 1, lastFireTick: 0, kills: 0 };
+  const t: TowerState = { id, x, y, gem, quality: 1, lastFireTick: 0, kills: 0, totalDamage: 0 };
   game.state.towers.push(t);
   // Tower occupies a 2×2 fine-cell footprint anchored at (x, y).
   for (let dy = 0; dy < 2; dy++) {

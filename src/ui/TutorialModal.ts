@@ -190,6 +190,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '1.2.0',
+      notes: [
+        '<b>Stats</b> — top 5 damage-dealing towers shown on game over screen.',
+      ],
+    },
+    {
       ver: '1.1.0',
       notes: [
         '<b>Balance</b> — boss wave bounties reduced by 40% across all boss waves (10, 20, 30, 40, 50).',

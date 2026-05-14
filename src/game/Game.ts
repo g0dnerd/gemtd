@@ -273,7 +273,7 @@ export class Game {
             id: this.nextId(), x, y,
             gem: spec.gem, quality: spec.quality,
             comboKey: spec.comboKey, upgradeTier: spec.upgradeTier,
-            lastFireTick: 0, kills: 0,
+            lastFireTick: 0, kills: 0, totalDamage: 0,
             isTrap: spec.isTrap || undefined,
           });
           specIdx++;

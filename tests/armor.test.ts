@@ -107,7 +107,7 @@ function makeTower(game: Game): TowerState {
     gem: "ruby",
     quality: 1 as Quality,
     lastFireTick: 0,
-    kills: 0,
+    kills: 0, totalDamage: 0,
   };
   game.state.towers.push(tower);
   return tower;
