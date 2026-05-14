@@ -921,16 +921,16 @@ export interface SpecialFx {
 }
 
 export const SPECIAL_FX: Record<string, SpecialFx> = {
-  bloodstone:   { glow: hex("#ff5040"), halo: 0.7,  pulse: 2.4, orbit: false, aura: false, ground: hex("#681818") },
+  bloodstone:   { glow: hex("#ff5040"), halo: 0.7,  pulse: 2.4, orbit: false, aura: false, ground: null },
   pink_diamond: { glow: hex("#ff80c0"), halo: 0.55, pulse: 1.8, orbit: true,  aura: false, ground: null },
   uranium:      { glow: hex("#c0ff60"), halo: 0.85, pulse: 1.2, orbit: false, aura: true,  ground: hex("#446618") },
   black_opal:   { glow: hex("#a0a0ff"), halo: 0.6,  pulse: 3.0, orbit: true,  aura: true,  ground: null },
   jade:         { glow: hex("#80e8b0"), halo: 0.35, pulse: 3.0, orbit: false, aura: false, ground: null },
   malachite:    { glow: hex("#a0e878"), halo: 0.4,  pulse: 2.4, orbit: false, aura: false, ground: null },
-  star_ruby:    { glow: hex("#ffa040"), halo: 0.55, pulse: 2.0, orbit: false, aura: false, ground: hex("#5c1010") },
+  star_ruby:    { glow: hex("#ffa040"), halo: 0.55, pulse: 2.0, orbit: false, aura: false, ground: null },
   gold:         { glow: hex("#ffd840"), halo: 0.6,  pulse: 2.4, orbit: false, aura: false, ground: null },
   silver:       { glow: hex("#e0e8f0"), halo: 0.4,  pulse: 2.4, orbit: false, aura: false, ground: null },
-  dark_emerald:       { glow: hex("#28e0a0"), halo: 0.5,  pulse: 1.6, orbit: false, aura: false, ground: hex("#082018") },
+  dark_emerald:       { glow: hex("#28e0a0"), halo: 0.5,  pulse: 1.6, orbit: false, aura: false, ground: null },
   red_crystal:        { glow: hex("#ff5478"), halo: 0.55, pulse: 2.2, orbit: true,  aura: false, ground: null },
   paraiba_tourmaline: { glow: hex("#3cf0e0"), halo: 0.7,  pulse: 1.8, orbit: false, aura: false, ground: hex("#0a4858") },
   yellow_sapphire:    { glow: hex("#ffd048"), halo: 0.7,  pulse: 1.9, orbit: false, aura: false, ground: null },
