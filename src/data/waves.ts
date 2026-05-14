@@ -211,13 +211,7 @@ export const WAVES: WaveDef[] = [
     ["fast", 6, 18530, 3, 0.18, 4],
     ["healer", 2, 13000, 5, 0.18, 4],
   ),
-  wm(
-    30,
-    1.0,
-    100,
-    ["boss", 8, 32000, 18, 0, 5],
-    ["healer", 3, 22000, 12, 0, 3],
-  ),
+  wm(30, 1.0, 80, ["boss", 8, 32000, 18, 0, 5], ["healer", 3, 22000, 12, 0, 3]),
 
   // --- Waves 31-39: specials become regular fixtures, armor continues climbing ---
   wm(
@@ -285,7 +279,7 @@ export const WAVES: WaveDef[] = [
   wm(
     40,
     1.0,
-    140,
+    100,
     ["boss", 9, 90000, 33, 0, 14],
     ["healer", 4, 50000, 24, 0, 11],
   ),
