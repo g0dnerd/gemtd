@@ -10,7 +10,12 @@ import type { TowerState } from '../game/State';
 function towerDisplayName(t: TowerState): string {
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
-    if (combo) return combo.name;
+    if (combo) {
+      if (t.upgradeTier && t.upgradeTier > 0 && combo.upgrades[t.upgradeTier - 1]) {
+        return combo.upgrades[t.upgradeTier - 1].name;
+      }
+      return combo.name;
+    }
   }
   const stats = gemStats(t.gem, t.quality);
   return `${stats.qualityName} ${stats.name}`;

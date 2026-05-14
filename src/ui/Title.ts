@@ -5,8 +5,13 @@
 
 import { GEM_TYPES } from "../render/theme";
 import { htmlGem } from "../render/htmlSprites";
+import { mountTutorialModal } from "./TutorialModal";
 
-export function mountTitle(root: HTMLElement, onStart: () => void, onStartHardcore: () => void): () => void {
+export function mountTitle(
+  root: HTMLElement,
+  onStart: () => void,
+  onStartHardcore: () => void,
+): () => void {
   const screen = document.createElement("div");
   screen.className = "title-screen";
 
@@ -37,18 +42,15 @@ export function mountTitle(root: HTMLElement, onStart: () => void, onStartHardco
   // Menu
   const menu = document.createElement("div");
   menu.className = "title-menu";
-  const btns: Array<[string, string, () => void, boolean]> = [
-    ["▶ NEW GAME", "px-btn px-btn-primary", onStart, false],
-    ["☠ NEW GAME (HARDCORE)", "px-btn", onStartHardcore, false],
-    ["CONTINUE", "px-btn", () => {}, true],
-    ["SCORES", "px-btn", () => {}, true],
-    ["SETTINGS", "px-btn", () => {}, true],
+  const btns: Array<[string, string, () => void]> = [
+    ["▶ NEW GAME", "px-btn px-btn-primary", onStart],
+    ["☠ NEW GAME (HARDCORE)", "px-btn", onStartHardcore],
+    ["? HOW TO PLAY", "px-btn", () => mountTutorialModal(root)],
   ];
-  for (const [label, cls, fn, disabled] of btns) {
+  for (const [label, cls, fn] of btns) {
     const b = document.createElement("button");
     b.className = cls;
     b.textContent = label;
-    b.disabled = disabled;
     b.addEventListener("click", fn);
     menu.appendChild(b);
   }
@@ -57,7 +59,7 @@ export function mountTitle(root: HTMLElement, onStart: () => void, onStartHardco
   // Footer
   const footer = document.createElement("div");
   footer.className = "title-footer";
-  footer.textContent = "v0.1 · PRESS START";
+  footer.textContent = "v1.2.1";
   screen.appendChild(footer);
 
   root.appendChild(screen);
