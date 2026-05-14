@@ -232,6 +232,7 @@ function changesBody(): HTMLElement {
       ver: "1.2.5",
       notes: [
         "<b>Balance</b> — Remove poison from base Bloodstone (splash-only now).",
+        "<b>Balance</b> — Nerf diamond crit at higher qualities: reduced chance scaling (+3%/tier instead of +5%) and multiplier (1.8× at Normal+).",
       ],
     },
     {

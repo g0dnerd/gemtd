@@ -211,8 +211,11 @@ function scaleEffects(effects: EffectKind[], quality: Quality): EffectKind[] {
         return { ...e, bounces: e.bounces + (quality - 1) };
       case 'stun':
         return { ...e, chance: Math.min(0.5, e.chance + (quality - 1) * 0.04) };
-      case 'crit':
-        return { ...e, chance: Math.min(0.6, e.chance + (quality - 1) * 0.05) };
+      case 'crit': {
+        const critChance = Math.min(0.6, e.chance + (quality - 1) * 0.03);
+        const critMult = quality >= 3 ? e.multiplier * 0.9 : e.multiplier;
+        return { ...e, chance: critChance, multiplier: critMult };
+      }
       case 'slow':
         return { ...e, factor: Math.max(0.4, e.factor - (quality - 1) * 0.04) };
       case 'true':

@@ -2,6 +2,14 @@ import type { Game } from "../game/Game";
 import type { State } from "../game/State";
 import type { EventBus } from "../events/EventBus";
 
+function chunks<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) {
+    result.push(arr.slice(i, i + size));
+  }
+  return result;
+}
+
 interface WaveSnapshot {
   wave: number;
   lives: number;
@@ -40,30 +48,6 @@ interface TelemetryEvent {
   chanceTier: number;
   detail: string;
   value1: number;
-}
-
-export interface TelemetryPayload {
-  runId: string;
-  version: string;
-  mode: "normal" | "hardcore" | "blueprint";
-  outcome: "gameover" | "victory";
-  run: {
-    waveReached: number;
-    finalLives: number;
-    finalGold: number;
-    totalKills: number;
-    towerCount: number;
-    comboCount: number;
-    maxChanceTier: number;
-    rocksRemoved: number;
-    downgradesUsed: number;
-    durationTicks: number;
-    totalLeaks: number;
-    cleanWaves: number;
-  };
-  waves: WaveSnapshot[];
-  towers: TowerSnapshot[];
-  events: TelemetryEvent[];
 }
 
 export class TelemetryCollector {
@@ -241,30 +225,44 @@ export class TelemetryCollector {
       y: t.y,
     }));
 
-    const payload: TelemetryPayload = {
+    const header = {
       runId: this.runId,
       version: __GAME_VERSION__,
       mode: this.mode,
       outcome,
-      run: {
-        waveReached: s.wave,
-        finalLives: s.lives,
-        finalGold: s.gold,
-        totalKills: s.totalKills,
-        towerCount: s.towers.length,
-        comboCount: s.towers.filter((t) => t.comboKey).length,
-        maxChanceTier: this.maxChanceTier,
-        rocksRemoved: s.rocksRemoved,
-        downgradesUsed: this.downgradesUsed,
-        durationTicks: s.tick,
-        totalLeaks: this.totalLeaks,
-        cleanWaves: this.cleanWaves,
-      },
-      waves: this.waves,
-      towers,
-      events: this.events,
     };
 
+    const run = {
+      waveReached: s.wave,
+      finalLives: s.lives,
+      finalGold: s.gold,
+      totalKills: s.totalKills,
+      towerCount: s.towers.length,
+      comboCount: s.towers.filter((t) => t.comboKey).length,
+      maxChanceTier: this.maxChanceTier,
+      rocksRemoved: s.rocksRemoved,
+      downgradesUsed: this.downgradesUsed,
+      durationTicks: s.tick,
+      totalLeaks: this.totalLeaks,
+      cleanWaves: this.cleanWaves,
+    };
+
+    // AE allows max 25 writeDataPoint calls per worker invocation.
+    // Chunk arrays so each request stays within the limit.
+    const CHUNK = 24; // leave 1 slot for the run summary write
+    this.send({ ...header, dataset: "runs", run });
+    for (const chunk of chunks(this.waves, CHUNK)) {
+      this.send({ ...header, dataset: "waves", run, waves: chunk });
+    }
+    for (const chunk of chunks(towers, CHUNK)) {
+      this.send({ ...header, dataset: "towers", run, towers: chunk });
+    }
+    for (const chunk of chunks(this.events, CHUNK)) {
+      this.send({ ...header, dataset: "events", run, events: chunk });
+    }
+  }
+
+  private send(payload: Record<string, unknown>): void {
     const body = JSON.stringify(payload);
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/telemetry", body);

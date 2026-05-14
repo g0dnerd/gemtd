@@ -15,7 +15,10 @@ export function handleDashboard(secret: string): Response {
   .card .label { font-size: 11px; color: #888; text-transform: uppercase; }
   .card .value { font-size: 24px; color: #e94560; margin-top: 4px; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 13px; }
-  th { text-align: left; padding: 6px 8px; background: #16213e; color: #e94560; border-bottom: 2px solid #0f3460; }
+  th { text-align: left; padding: 6px 8px; background: #16213e; color: #e94560; border-bottom: 2px solid #0f3460; cursor: pointer; user-select: none; }
+  th:hover { background: #1a2a4e; }
+  th .sort-arrow { opacity: 0.4; margin-left: 4px; font-size: 10px; }
+  th.sorted .sort-arrow { opacity: 1; }
   td { padding: 5px 8px; border-bottom: 1px solid #0f3460; }
   tr:hover td { background: #16213e; }
   .bar-cell { position: relative; }
@@ -129,20 +132,20 @@ function render(data) {
 
   // Combo popularity
   if (data.combos?.length) {
-    html += '<h2>Combo Popularity</h2>';
-    html += '<table><tr><th>Combo</th><th>Times Built</th><th>Avg Damage</th></tr>';
+    html += '<h2>Combo Effectiveness</h2>';
+    html += '<table><tr><th>Combo</th><th>Times Built</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th></tr>';
     for (const row of data.combos) {
-      html += '<tr><td>' + row.combo_key + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_damage, 0) + '</td></tr>';
+      html += '<tr><td>' + row.combo_key + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td></tr>';
     }
     html += '</table>';
   }
 
-  // Gem DPS
+  // Gem effectiveness
   if (data.gemDps?.length) {
-    html += '<h2>Tower DPS by Gem</h2>';
-    html += '<table><tr><th>Gem</th><th>Count</th><th>Avg Damage</th><th>Avg Quality</th></tr>';
+    html += '<h2>Tower Effectiveness by Gem</h2>';
+    html += '<table><tr><th>Gem</th><th>Count</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th><th>Avg Quality</th></tr>';
     for (const row of data.gemDps) {
-      html += '<tr><td>' + row.gem + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_damage, 0) + '</td><td>' + fmt(row.avg_quality, 1) + '</td></tr>';
+      html += '<tr><td>' + row.gem + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td><td>' + fmt(row.avg_quality, 1) + '</td></tr>';
     }
     html += '</table>';
   }
@@ -168,6 +171,7 @@ function render(data) {
   }
 
   el.innerHTML = html;
+  makeSortable();
 }
 
 function card(label, value) {
@@ -180,6 +184,49 @@ function fmtTime(ticks) {
   const m = Math.floor(secs / 60);
   const s = secs % 60;
   return m + ':' + String(s).padStart(2, '0');
+}
+
+function makeSortable() {
+  document.querySelectorAll('table').forEach(table => {
+    const headers = table.querySelectorAll('th');
+    headers.forEach((th, colIdx) => {
+      if (th.closest('.bar-cell') || th.textContent.trim() === '') return;
+      th.innerHTML = th.textContent + '<span class="sort-arrow">\\u25B2</span>';
+      th.addEventListener('click', () => sortTable(table, colIdx, th));
+    });
+  });
+}
+
+function sortTable(table, colIdx, th) {
+  const tbody = table.querySelector('tbody') || table;
+  const headerRow = table.querySelector('tr');
+  const rows = Array.from(table.querySelectorAll('tr')).slice(1);
+  if (rows.length === 0) return;
+
+  const allHeaders = table.querySelectorAll('th');
+  const wasAsc = th.dataset.sort === 'asc';
+  allHeaders.forEach(h => { h.classList.remove('sorted'); delete h.dataset.sort; });
+
+  const dir = wasAsc ? 'desc' : 'asc';
+  th.dataset.sort = dir;
+  th.classList.add('sorted');
+  th.querySelector('.sort-arrow').textContent = dir === 'asc' ? '\\u25B2' : '\\u25BC';
+
+  rows.sort((a, b) => {
+    const aCell = a.cells[colIdx];
+    const bCell = b.cells[colIdx];
+    if (!aCell || !bCell) return 0;
+    const aText = aCell.textContent.replace('%', '').trim();
+    const bText = bCell.textContent.replace('%', '').trim();
+    const aNum = parseFloat(aText);
+    const bNum = parseFloat(bText);
+    if (!isNaN(aNum) && !isNaN(bNum)) {
+      return dir === 'asc' ? aNum - bNum : bNum - aNum;
+    }
+    return dir === 'asc' ? aText.localeCompare(bText) : bText.localeCompare(aText);
+  });
+
+  rows.forEach(r => tbody.appendChild(r));
 }
 
 load();

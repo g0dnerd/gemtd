@@ -107,7 +107,7 @@ export async function handleExport(
     ? `WHERE ${versionCol} = '${version}'`
     : "";
 
-  const sql = `SELECT ${def.columns.join(", ")} FROM ${def.dataset} ${versionFilter} ORDER BY timestamp DESC LIMIT ${limit}`;
+  const sql = `SELECT ${def.columns.join(", ")} FROM ${def.dataset} ${versionFilter} LIMIT ${limit}`;
 
   try {
     const resp = await fetch(
