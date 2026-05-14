@@ -284,8 +284,10 @@ export class WavePhase {
     const state = this.game.state;
     const def = WAVES[this.wave - 1];
     const lifeLost = this.livesAtStart - state.lives;
-    state.gold += def.bonus;
-    this.goldEarned += def.bonus;
+    if (state.waveStats.leakedThisWave === 0) {
+      state.gold += def.bonus;
+      this.goldEarned += def.bonus;
+    }
     this.game.bus.emit('gold:change', { gold: state.gold });
     this.game.endWave(lifeLost, this.goldEarned);
   }

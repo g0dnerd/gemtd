@@ -190,6 +190,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: '1.2.1',
+      notes: [
+        '<b>Fix</b> — Wave bonus gold is now only awarded when no creeps leak.',
+      ],
+    },
+    {
       ver: '1.2.0',
       notes: [
         '<b>Stats</b> — top 5 damage-dealing towers shown on game over screen.',
