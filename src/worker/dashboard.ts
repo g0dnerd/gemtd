@@ -171,6 +171,55 @@ function render(data) {
     html += '</table>';
   }
 
+  // Keeper choice distribution
+  if (data.keeperChoices?.length) {
+    html += '<h2>Keeper Choice Distribution</h2>';
+    html += '<table><tr><th>Gem</th><th>Times Kept</th><th>Avg Quality</th><th>Avg Wave Kept</th></tr>';
+    for (const row of data.keeperChoices) {
+      html += '<tr><td>' + row.gem + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_quality, 2) + '</td><td>' + fmt(row.avg_wave, 1) + '</td></tr>';
+    }
+    html += '</table>';
+  }
+
+  // Lives remaining curve
+  if (data.waveCurves?.length) {
+    const maxLives = Math.max(...data.waveCurves.map(r => Number(r.avg_lives)));
+    html += '<h2>Lives Remaining by Wave</h2>';
+    html += '<table><tr><th>Wave</th><th>Avg Lives</th><th></th></tr>';
+    for (const row of data.waveCurves) {
+      const lives = Number(row.avg_lives);
+      const w = maxLives > 0 ? (lives / maxLives * 100) : 0;
+      html += '<tr><td>' + row.wave + '</td><td>' + fmt(lives, 1) + '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
+    }
+    html += '</table>';
+  }
+
+  // Wave damage output
+  if (data.waveCurves?.length) {
+    const maxDmg = Math.max(...data.waveCurves.map(r => Number(r.avg_damage)));
+    html += '<h2>Wave Damage Output</h2>';
+    html += '<table><tr><th>Wave</th><th>Avg Damage</th><th></th></tr>';
+    for (const row of data.waveCurves) {
+      const dmg = Number(row.avg_damage);
+      const w = maxDmg > 0 ? (dmg / maxDmg * 100) : 0;
+      html += '<tr><td>' + row.wave + '</td><td>' + fmt(dmg, 0) + '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
+    }
+    html += '</table>';
+  }
+
+  // Gold economy curve
+  if (data.waveCurves?.length) {
+    const maxGold = Math.max(...data.waveCurves.map(r => Number(r.avg_gold)));
+    html += '<h2>Gold Economy by Wave</h2>';
+    html += '<table><tr><th>Wave</th><th>Avg Gold</th><th></th></tr>';
+    for (const row of data.waveCurves) {
+      const gold = Number(row.avg_gold);
+      const w = maxGold > 0 ? (gold / maxGold * 100) : 0;
+      html += '<tr><td>' + row.wave + '</td><td>' + fmt(gold, 0) + '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
+    }
+    html += '</table>';
+  }
+
   el.innerHTML = html;
   makeSortable();
 }

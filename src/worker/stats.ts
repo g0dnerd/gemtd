@@ -42,6 +42,8 @@ export async function handleStats(
     gemDps,
     chanceTiming,
     keeperCurve,
+    keeperChoices,
+    waveCurves,
   ] = await Promise.all([
     queryAE(
       env,
@@ -75,6 +77,14 @@ export async function handleStats(
       env,
       `SELECT double1 as wave, avg(double12) as avg_keeper_quality FROM gemtd_waves WHERE double12 > 0 ${vfB1} GROUP BY double1 ORDER BY double1`,
     ),
+    queryAE(
+      env,
+      `SELECT blob2 as gem, count() as count, avg(double3) as avg_quality, avg(double1) as avg_wave FROM gemtd_events WHERE blob1 = 'keeper' ${vfB3} GROUP BY blob2 ORDER BY count DESC`,
+    ),
+    queryAE(
+      env,
+      `SELECT double1 as wave, avg(double2) as avg_lives, avg(double13) as avg_damage, avg(double3) as avg_gold FROM gemtd_waves WHERE 1=1 ${vfB1} GROUP BY double1 ORDER BY double1`,
+    ),
   ]);
 
   const overview = overviewRows[0] ?? {};
@@ -88,5 +98,7 @@ export async function handleStats(
     gemDps,
     chanceTiming,
     keeperCurve,
+    keeperChoices,
+    waveCurves,
   });
 }
