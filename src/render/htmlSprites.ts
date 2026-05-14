@@ -5,7 +5,7 @@
 
 import { GEM_PALETTE, GemType, Quality, THEME } from './theme';
 import { GEM_SPRITE, COIN_SPRITE, HEART_SPRITE, OUTLINE_COLOR, PixelGrid, SPRITE_BY_KIND } from './sprites';
-import { TIER_GRIDS, SPECIAL_SPRITES, applyOpalFlecks, OPAL_FLECK_CSS } from './spriteData';
+import { TIER_GRIDS, SPECIAL_SPRITES, SPECIAL_TIER_GRIDS, SPECIAL_TIER_PALETTES, applyOpalFlecks, OPAL_FLECK_CSS } from './spriteData';
 import type { CreepKind } from '../data/creeps';
 
 export interface PaletteCss {
@@ -112,26 +112,26 @@ export function htmlGemTier(type: GemType, quality: Quality, size = 24, glow = f
 
 const hex6 = (n: number): string => `#${n.toString(16).padStart(6, '0')}`;
 
-const SPECIAL_CSS_PALETTES: Record<string, PaletteCss> = Object.fromEntries(
-  Object.entries(SPECIAL_SPRITES).map(([key, spec]) => [
-    key,
-    {
-      light: hex6(spec.palette.light),
-      mid: hex6(spec.palette.mid),
-      dark: hex6(spec.palette.dark),
-      sparkle: hex6(spec.palette.sparkle),
-    },
-  ]),
-);
-
 /** Special-combo silhouette + per-special palette (e.g. Star Ruby, Bloodstone). */
-export function htmlSpecial(comboKey: string, size = 24, glow = false): HTMLDivElement {
+export function htmlSpecial(comboKey: string, size = 24, glow = false, upgradeTier = 0): HTMLDivElement {
   const spec = SPECIAL_SPRITES[comboKey];
-  const palette = SPECIAL_CSS_PALETTES[comboKey];
-  if (!spec || !palette) {
+  if (!spec) {
     return htmlGem('diamond', size, glow);
   }
-  return htmlSprite(spec.grid, palette, size, glow);
+  const effectiveTier = Math.min(upgradeTier + 1, 3) as 2 | 3;
+  const tierGrids = SPECIAL_TIER_GRIDS[comboKey];
+  const grid = (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
+  const tierPalette = effectiveTier > 1
+    ? SPECIAL_TIER_PALETTES[comboKey]?.[effectiveTier]
+    : undefined;
+  const pal = tierPalette ?? spec.palette;
+  const cssPal: PaletteCss = {
+    light: hex6(pal.light),
+    mid: hex6(pal.mid),
+    dark: hex6(pal.dark),
+    sparkle: hex6(pal.sparkle),
+  };
+  return htmlSprite(grid, cssPal, size, glow);
 }
 
 export function htmlHeart(size = 14): HTMLDivElement {

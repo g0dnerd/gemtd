@@ -155,7 +155,7 @@ function render(refs: InspectorRefs, game: Game): void {
   frame.className = "inspector-hero-frame";
   frame.appendChild(
     tower.comboKey
-      ? htmlSpecial(tower.comboKey, 28, true)
+      ? htmlSpecial(tower.comboKey, 28, true, tower.upgradeTier ?? 0)
       : htmlGemTier(tower.gem, tower.quality as Quality, 28, true),
   );
   const text = document.createElement("div");
