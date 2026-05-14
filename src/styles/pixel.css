@@ -68,6 +68,7 @@ html, body {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   background: var(--px-bg);
   color: var(--px-ink);
   font-family: 'VT323', ui-monospace, monospace;

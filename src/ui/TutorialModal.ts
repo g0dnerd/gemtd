@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.2.5",
+      notes: [
+        "<b>Balance</b> — Nerf diamond crit at higher qualities: reduced chance scaling (+3%/tier instead of +5%) and multiplier (1.8× at Normal+).",
+      ],
+    },
+    {
       ver: "1.2.4",
       notes: [
         "<b>Infra</b> — Anonymous telemetry for balance tuning (no personal data collected).",

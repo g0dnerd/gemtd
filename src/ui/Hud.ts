@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v1.2.4";
+  wmVer.textContent = "v1.2.5";
   wm.append(wmName, wmVer);
   if (game.state.hardcore) {
     const skull = document.createElement("div");
@@ -436,8 +436,8 @@ export function mountHud(
 
   function onRadialMove(ev: PointerEvent): void {
     const rect = canvasHost.getBoundingClientRect();
-    const px = ev.clientX - rect.left;
-    const py = ev.clientY - rect.top;
+    const px = (ev.clientX - rect.left) * (boardPxW / rect.width);
+    const py = (ev.clientY - rect.top) * (boardPxH / rect.height);
     const dx = px - radialCenterX;
     const dy = py - radialCenterY;
     if (Math.sqrt(dx * dx + dy * dy) > 180) {
@@ -465,7 +465,10 @@ export function mountHud(
       return;
     }
     const rect = canvasHost.getBoundingClientRect();
-    const s = sliceFromXY(ev.clientX - rect.left, ev.clientY - rect.top);
+    const s = sliceFromXY(
+      (ev.clientX - rect.left) * (boardPxW / rect.width),
+      (ev.clientY - rect.top) * (boardPxH / rect.height),
+    );
     const tower = game.state.towers.find((t) => t.id === radialTowerId);
     if (s && tower && isSliceActive(s)) {
       if (s === "keep") {
@@ -944,6 +947,91 @@ export function mountHud(
 
   right.appendChild(actionBar);
 
+  // ===== Mobile responsive layout =====
+  const mobileWaveNum = document.createElement("div");
+  mobileWaveNum.className = "mobile-wave-num";
+  let mobileResizeObs: ResizeObserver | null = null;
+
+  if (window.innerWidth < 768 || window.innerHeight < 500) {
+    hud.classList.add("mobile");
+
+    const mobileStatus = document.createElement("div");
+    mobileStatus.className = "mobile-status";
+    mobileStatus.append(wm, livesMini.root, goldMini.root, mobileWaveNum);
+
+    const boardWrap = document.createElement("div");
+    boardWrap.className = "mobile-board-wrap";
+    boardWrap.append(mobileStatus, canvasHost);
+
+    const tray = document.createElement("div");
+    tray.className = "mobile-tray";
+
+    const trayActions = document.createElement("div");
+    trayActions.className = "mobile-tray-actions";
+    trayActions.append(startBtn, undoBtn, speedBtn, pathBtn);
+
+    const tabBar = document.createElement("div");
+    tabBar.className = "mobile-tab-bar";
+    const tabContent = document.createElement("div");
+    tabContent.className = "mobile-tab-content";
+
+    const mobileTabs = [
+      { id: "chance", label: "TIER", panel: chance.root },
+      { id: "threats", label: "NEXT", panel: threats },
+      { id: "inspect", label: "INFO", panel: inspector.root },
+      { id: "recipes", label: "RECIPES", panel: recipes },
+    ];
+    let activeTabId: string | null = null;
+
+    for (const tab of mobileTabs) {
+      const btn = document.createElement("button");
+      btn.className = "px-btn mobile-tab-btn";
+      btn.dataset.tab = tab.id;
+      btn.textContent = tab.label;
+      btn.addEventListener("click", () => {
+        if (activeTabId === tab.id) {
+          tabContent.innerHTML = "";
+          activeTabId = null;
+          btn.classList.remove("active");
+        } else {
+          tabContent.innerHTML = "";
+          tabContent.appendChild(tab.panel);
+          activeTabId = tab.id;
+          tabBar
+            .querySelectorAll(".mobile-tab-btn")
+            .forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+        }
+      });
+      tabBar.appendChild(btn);
+    }
+
+    tray.append(draw.root, trayActions, tabBar, tabContent);
+
+    hud.innerHTML = "";
+    hud.append(boardWrap, tray);
+
+    function updateCanvasScale(): void {
+      const wrapW = boardWrap.clientWidth;
+      const wrapH = boardWrap.clientHeight;
+      if (wrapW === 0 || wrapH === 0) return;
+      const statusH = 36;
+      const availH = wrapH - statusH;
+      const scale = Math.min(wrapW / boardPxW, availH / boardPxH, 1);
+      const scaledW = boardPxW * scale;
+      const scaledH = boardPxH * scale;
+      canvasHost.style.position = "absolute";
+      canvasHost.style.transformOrigin = "0 0";
+      canvasHost.style.transform = `scale(${scale})`;
+      canvasHost.style.left = `${Math.round((wrapW - scaledW) / 2)}px`;
+      canvasHost.style.top = `${Math.round(statusH + (availH - scaledH) / 2)}px`;
+    }
+
+    mobileResizeObs = new ResizeObserver(updateCanvasScale);
+    mobileResizeObs.observe(boardWrap);
+    requestAnimationFrame(updateCanvasScale);
+  }
+
   function refreshThreats(): void {
     threatsList.innerHTML = "";
     const cur = Math.max(1, game.state.wave || 1);
@@ -1033,16 +1121,18 @@ export function mountHud(
     chance.refresh();
     refreshStartGate();
     refreshInspector(inspector, game);
+    mobileWaveNum.textContent = `W${game.state.wave || 0}/${WAVES.length}`;
   }
 
   function refreshStartGate(): void {
     if (game.state.phase !== "build") return;
+    const mobile = hud.classList.contains("mobile");
     if (inPrePlacement()) {
-      startBtn.textContent = "▶ START PLACEMENT · SPACE";
+      startBtn.textContent = mobile ? "▶ START" : "▶ START PLACEMENT · SPACE";
       startBtn.disabled = false;
       return;
     }
-    startBtn.textContent = "▶ NEXT WAVE · SPACE";
+    startBtn.textContent = mobile ? "▶ WAVE" : "▶ NEXT WAVE · SPACE";
     const concluded =
       game.state.draws.length === 0 &&
       game.state.designatedKeepTowerId !== null;
@@ -1124,8 +1214,8 @@ export function mountHud(
   // === Pointer + keyboard input ===
   function tileFromPointer(ev: PointerEvent): { x: number; y: number } | null {
     const rect = canvasHost.getBoundingClientRect();
-    const lx = ev.clientX - rect.left;
-    const ly = ev.clientY - rect.top;
+    const lx = (ev.clientX - rect.left) * (boardPxW / rect.width);
+    const ly = (ev.clientY - rect.top) * (boardPxH / rect.height);
     const bx = game.board.x;
     const by = game.board.y;
     const tx = Math.floor((lx - bx) / FINE_TILE);
@@ -1136,8 +1226,8 @@ export function mountHud(
 
   function pixelFromPointer(ev: PointerEvent): { x: number; y: number } | null {
     const rect = canvasHost.getBoundingClientRect();
-    const lx = ev.clientX - rect.left;
-    const ly = ev.clientY - rect.top;
+    const lx = (ev.clientX - rect.left) * (boardPxW / rect.width);
+    const ly = (ev.clientY - rect.top) * (boardPxH / rect.height);
     const bx = game.board.x;
     const by = game.board.y;
     const px = lx - bx;
@@ -1371,6 +1461,7 @@ export function mountHud(
 
   return () => {
     closeRadial();
+    if (mobileResizeObs) mobileResizeObs.disconnect();
     window.clearInterval(tickHandle);
     window.removeEventListener("keydown", onKey);
     window.removeEventListener("keyup", onKeyUp);

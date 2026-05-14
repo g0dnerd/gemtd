@@ -27,7 +27,7 @@ Update the version in **both** of these files:
 
 1. **`package.json`** — the `"version"` field.
 2. **`src/ui/Hud.ts`** — the line that sets `wmVer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
-3. **`src/ui/title.ts`** — the line that sets `footer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
+3. **`src/ui/Title.ts`** — the line that sets `footer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
 
 ### 3. Changelog (skip if `none`)
 
