@@ -614,19 +614,29 @@
 .inspector-creep-hp-track {
   height: 6px;
   background: var(--px-border-dark);
-  box-shadow: inset 1px 1px 0 0 rgba(0,0,0,0.3);
+  box-shadow: inset 1px 1px 0 0 rgba(0, 0, 0, 0.3);
 }
 .inspector-creep-hp-fill {
   height: 100%;
   background: var(--px-good);
   transition: width 0.1s linear;
 }
-.inspector-creep-hp-fill.hp-warn { background: var(--px-accent); }
-.inspector-creep-hp-fill.hp-crit { background: var(--px-bad); }
+.inspector-creep-hp-fill.hp-warn {
+  background: var(--px-accent);
+}
+.inspector-creep-hp-fill.hp-crit {
+  background: var(--px-bad);
+}
 
-.inspector-effect-debuff .inspector-effect-label { color: var(--px-bad); }
-.inspector-effect-cc .inspector-effect-label { color: #6da8ff; }
-.inspector-effect-buff .inspector-effect-label { color: var(--px-good); }
+.inspector-effect-debuff .inspector-effect-label {
+  color: var(--px-bad);
+}
+.inspector-effect-cc .inspector-effect-label {
+  color: #6da8ff;
+}
+.inspector-effect-buff .inspector-effect-label {
+  color: var(--px-good);
+}
 
 /* Recipes — V2c compact hero-banner layout */
 .recipes-panel {
@@ -1617,15 +1627,15 @@
 .hud.hardcore .hud-col-right {
   position: relative;
 }
-.hud.hardcore .hud-col-left::before,
-.hud.hardcore .hud-col-right::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  border-top: 3px dotted #8a7a58;
-}
+/* .hud.hardcore .hud-col-left::before, */
+/* .hud.hardcore .hud-col-right::before { */
+/*   content: ""; */
+/*   position: absolute; */
+/*   inset: 0; */
+/*   pointer-events: none; */
+/*   z-index: 0; */
+/*   border-top: 3px dotted #8a7a58; */
+/* } */
 .hud.hardcore .hud-col-left > *,
 .hud.hardcore .hud-col-right > * {
   position: relative;
@@ -1670,7 +1680,13 @@
   content: "";
   flex: 1;
   height: 1px;
-  background: repeating-linear-gradient(90deg, #8a7a58 0px, #8a7a58 4px, transparent 4px, transparent 8px);
+  background: repeating-linear-gradient(
+    90deg,
+    #8a7a58 0px,
+    #8a7a58 4px,
+    transparent 4px,
+    transparent 8px
+  );
 }
 
 /* Hardcore header bar: bone white wordmark */
@@ -1684,8 +1700,13 @@
   animation: hardcorePulse 2s ease-in-out infinite;
 }
 @keyframes hardcorePulse {
-  0%, 100% { text-shadow: 0 0 0 transparent; }
-  50% { text-shadow: 0 0 8px rgba(208,72,72,0.6); }
+  0%,
+  100% {
+    text-shadow: 0 0 0 transparent;
+  }
+  50% {
+    text-shadow: 0 0 8px rgba(208, 72, 72, 0.6);
+  }
 }
 .wm-hardcore-badge {
   display: flex;
