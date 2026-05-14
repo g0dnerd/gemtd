@@ -358,7 +358,7 @@ function render(refs: InspectorRefs, game: Game): void {
 
   const combineBtn = document.createElement("button");
   combineBtn.className = "px-btn";
-  combineBtn.disabled = !inBuild || !!tower.comboKey;
+  combineBtn.disabled = !inBuild || !!tower.comboKey || tower.quality >= 5;
   setComboButton(combineBtn, "★ COMBINE", combineCount, false);
   combineBtn.addEventListener("click", () => tryAutoCombine(game));
 
