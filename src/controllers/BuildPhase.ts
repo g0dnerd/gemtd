@@ -488,6 +488,8 @@ export class BuildPhase {
       newQuality: tower.quality as Quality,
     });
 
+    this.game.selectTower(towerId);
+
     if (!duringWave) {
       this.autoConcludeRound(towerId);
       this.game.enterWave();
