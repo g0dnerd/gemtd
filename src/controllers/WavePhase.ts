@@ -4,9 +4,9 @@
  */
 
 import { Game } from '../game/Game';
-import { CreepState } from '../game/State';
+import { CreepState, CreepPayload } from '../game/State';
 import { CREEP_ARCHETYPES } from '../data/creeps';
-import { WAVES, type WaveDef, waveTotalCount, groupForSpawn } from '../data/waves';
+import { WAVES, type WaveDef, type PayloadGroup, waveTotalCount, groupForSpawn } from '../data/waves';
 import { FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ, TILE } from '../game/constants';
 
 const HEALER_INTERVAL = 5 * SIM_HZ;
@@ -134,6 +134,7 @@ export class WavePhase {
       slowResist: group.slowResist,
       flags: arch.flags,
       vulnerability: 0,
+      payload: group.payload ? resolvePayload(group.payload) : undefined,
     };
     this.game.state.creeps.push(creep);
     this.spawnedSoFar++;
@@ -294,4 +295,22 @@ export class WavePhase {
     this.game.bus.emit('gold:change', { gold: state.gold });
     this.game.endWave(lifeLost, this.goldEarned);
   }
+}
+
+function resolvePayload(groups: PayloadGroup[]): CreepPayload[] {
+  return groups.map(g => {
+    const arch = CREEP_ARCHETYPES[g.kind];
+    return {
+      kind: g.kind,
+      count: g.count,
+      hp: Math.round(g.hp * arch.hpMult),
+      speed: arch.speed,
+      bounty: Math.round(g.bounty * arch.bountyMult),
+      color: arch.color,
+      armor: g.armor ?? arch.defaultArmor ?? 0,
+      slowResist: g.slowResist ?? 0,
+      flags: { ...arch.flags },
+      payload: g.payload ? resolvePayload(g.payload) : undefined,
+    };
+  });
 }

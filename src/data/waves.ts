@@ -9,6 +9,16 @@
 
 import type { CreepKind } from "./creeps";
 
+export interface PayloadGroup {
+  kind: CreepKind;
+  count: number;
+  hp: number;
+  bounty: number;
+  slowResist?: number;
+  armor?: number;
+  payload?: PayloadGroup[];
+}
+
 export interface WaveGroup {
   kind: CreepKind;
   count: number;
@@ -20,6 +30,8 @@ export interface WaveGroup {
   slowResist: number;
   /** Numeric armor. Overrides archetype defaultArmor if present. */
   armor?: number;
+  /** Creeps spawned when this one dies. Recursive — containers can nest. */
+  payload?: PayloadGroup[];
 }
 
 export interface WaveDef {
@@ -127,8 +139,24 @@ export const WAVES: WaveDef[] = [
     ["fast", 4, 2250, 4, 0, 2],
     ["healer", 2, 1500, 5],
   ),
-  w(14, "normal", 18, 2130, 2, 0.55, 10, 0, 2),
-  wm(15, 0.55, 12, ["air", 11, 1510, 3], ["healer", 2, 1200, 4]),
+  wm(14, 0.55, 10, ["air", 11, 1510, 3], ["healer", 2, 1200, 4]),
+  {
+    number: 15,
+    groups: [
+      {
+        kind: "vessel" as CreepKind,
+        count: 5,
+        hp: 1800,
+        bounty: 4,
+        slowResist: 0,
+        payload: [
+          { kind: "normal" as CreepKind, count: 3, hp: 1200, bounty: 2 },
+        ],
+      },
+    ],
+    interval: 0.8,
+    bonus: 12,
+  },
   w(16, "fast", 22, 2420, 3, 0.4, 12, 0, 2),
   wm(
     17,
@@ -174,16 +202,41 @@ export const WAVES: WaveDef[] = [
     ["normal", 3, 10830, 4, 0, 3],
     ["tunneler", 2, 7500, 6, 0, 3],
   ),
-  w(24, "air", 12, 5800, 3, 0.5, 18, 0.08, 2),
   wm(
-    25,
+    24,
     0.5,
-    19,
+    18,
     ["normal", 13, 11580, 3, 0.1, 3],
     ["air", 3, 11580, 3, 0.1],
     ["fast", 5, 11580, 3, 0.1, 3],
     ["tunneler", 2, 8000, 5, 0.1, 3],
   ),
+  {
+    number: 25,
+    groups: [
+      {
+        kind: "coral" as CreepKind,
+        count: 3,
+        hp: 7000,
+        bounty: 8,
+        slowResist: 0.1,
+        armor: 3,
+        payload: [
+          {
+            kind: "vessel" as CreepKind,
+            count: 2,
+            hp: 5000,
+            bounty: 6,
+            payload: [
+              { kind: "normal" as CreepKind, count: 3, hp: 3500, bounty: 3 },
+            ],
+          },
+        ],
+      },
+    ],
+    interval: 1.0,
+    bonus: 19,
+  },
   wm(
     26,
     0.35,
@@ -240,16 +293,66 @@ export const WAVES: WaveDef[] = [
     ["fast", 4, 16200, 5, 0.28, 9],
     ["healer", 3, 11300, 7, 0.28, 9],
   ),
+  {
+    number: 35,
+    groups: [
+      {
+        kind: "coral" as CreepKind,
+        count: 2,
+        hp: 16000,
+        bounty: 12,
+        slowResist: 0.3,
+        armor: 9,
+        payload: [
+          {
+            kind: "vessel" as CreepKind,
+            count: 2,
+            hp: 12000,
+            bounty: 8,
+            payload: [
+              {
+                kind: "gazer" as CreepKind,
+                count: 2,
+                hp: 8000,
+                bounty: 6,
+                payload: [
+                  {
+                    kind: "tunneler" as CreepKind,
+                    count: 3,
+                    hp: 10000,
+                    bounty: 4,
+                  },
+                  {
+                    kind: "normal" as CreepKind,
+                    count: 3,
+                    hp: 12000,
+                    bounty: 3,
+                  },
+                  {
+                    kind: "healer" as CreepKind,
+                    count: 1,
+                    hp: 5000,
+                    bounty: 5,
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    interval: 1.2,
+    bonus: 29,
+  },
   wm(
-    35,
+    36,
     0.5,
-    29,
+    30,
     ["normal", 13, 25270, 5, 0.3, 9],
     ["armored", 4, 25270, 5, 0.3, 13],
     ["fast", 6, 25270, 5, 0.3, 9],
     ["healer", 3, 17700, 7, 0.3, 9],
   ),
-  w(36, "fast", 25, 28430, 5, 0.35, 30, 0.42, 10),
   wm(
     37,
     0.75,
@@ -309,15 +412,61 @@ export const WAVES: WaveDef[] = [
     ["healer", 3, 30000, 15, 0.36, 15],
     ["tunneler", 2, 30000, 15, 0.36, 15],
   ),
-  w(44, "air", 16, 31500, 9, 0.5, 52, 0.48, 10),
   wm(
-    45,
+    44,
     0.5,
-    53,
+    52,
     ["normal", 22, 47390, 9, 0.5, 17],
     ["healer", 3, 33000, 14, 0.5, 17],
     ["tunneler", 2, 33000, 14, 0.5, 17],
   ),
+  {
+    number: 45,
+    groups: [
+      {
+        kind: "coral" as CreepKind,
+        count: 2,
+        hp: 28000,
+        bounty: 15,
+        slowResist: 0.5,
+        armor: 17,
+        payload: [
+          {
+            kind: "vessel" as CreepKind,
+            count: 2,
+            hp: 20000,
+            bounty: 10,
+            payload: [
+              {
+                kind: "gazer" as CreepKind,
+                count: 2,
+                hp: 14000,
+                bounty: 8,
+                payload: [
+                  {
+                    kind: "anemone" as CreepKind,
+                    count: 2,
+                    hp: 10000,
+                    bounty: 6,
+                    payload: [
+                      {
+                        kind: "fast" as CreepKind,
+                        count: 10,
+                        hp: 30000,
+                        bounty: 4,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    interval: 1.5,
+    bonus: 53,
+  },
   wm(
     46,
     0.35,

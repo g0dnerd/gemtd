@@ -229,6 +229,13 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.4.0",
+      notes: [
+        "<b>New</b> — Container creeps: 4 new kinds (Vessel, Gazer, Coral, Anemone) that split into smaller creeps on death.",
+        "&nbsp;&nbsp;Container waves at 15, 25, 35, 45 with increasing nesting depth (1–4 layers).",
+      ],
+    },
+    {
       ver: "1.3.4",
       notes: [
         "<b>Balance</b> — slightly buff Ruby's damage scaling curve.",

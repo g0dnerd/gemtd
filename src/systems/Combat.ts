@@ -352,7 +352,7 @@ export class Combat {
       state.waveStats.killedThisWave++;
       this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty });
       this.game.bus.emit('gold:change', { gold: state.gold });
-      this.handleDeathEffects(c);
+      this.game.handleCreepDeath(c);
     }
   }
 

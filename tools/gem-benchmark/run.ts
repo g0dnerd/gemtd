@@ -235,6 +235,27 @@ class BenchmarkScenario {
 
   handleCreepDeath(c: import('../../src/game/State').CreepState): void {
     this.combat.handleDeathEffects(c);
+    if (c.payload) {
+      const state = this.state;
+      for (const p of c.payload) {
+        const route = state.flatRoute;
+        if (route.length === 0) continue;
+        const pathPos = Math.min(c.pathPos, route.length - 2);
+        for (let i = 0; i < p.count; i++) {
+          const id = this.nextId();
+          state.creeps.push({
+            id, kind: p.kind, pathPos, px: c.px, py: c.py,
+            hp: p.hp, maxHp: p.hp, speed: p.speed, bounty: p.bounty,
+            color: p.color, armor: p.armor, slowResist: p.slowResist,
+            flags: p.flags, alive: true, armorReduction: 0,
+            vulnerability: 0, payload: p.payload,
+          });
+          state.waveStats.spawnedThisWave++;
+          state.waveStats.totalToSpawn++;
+          this.bus.emit('creep:spawn', { id });
+        }
+      }
+    }
   }
 
   selectTower(_id: number | null): void {}

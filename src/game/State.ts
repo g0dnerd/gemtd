@@ -9,6 +9,19 @@ import type { CreepKind } from '../data/creeps';
 import type { WaveDef } from '../data/waves';
 import type { GemType, Quality } from '../render/theme';
 
+export interface CreepPayload {
+  kind: CreepKind;
+  count: number;
+  hp: number;
+  speed: number;
+  bounty: number;
+  color: GemType;
+  armor: number;
+  slowResist: number;
+  flags: { boss?: boolean; armored?: boolean; air?: boolean };
+  payload?: CreepPayload[];
+}
+
 export type Phase = 'title' | 'build' | 'wave' | 'gameover' | 'victory';
 
 /** Number of gems drawn at the start of each build phase (canonical: 5). */
@@ -106,6 +119,8 @@ export interface CreepState {
   armorStacks?: { count: number; armorPer: number; decayTicks: number; lastDecayTick: number };
   /** Poison spread params — stored when stun_poison applies. */
   poisonSpread?: { count: number; radius: number };
+  /** Creeps to spawn when this container dies. */
+  payload?: CreepPayload[];
 }
 
 export interface ProjectileState {

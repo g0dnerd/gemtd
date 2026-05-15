@@ -3,7 +3,7 @@ import { EventBus } from '../events/EventBus';
 import { RNG } from '../game/rng';
 import { BASE, Cell } from '../data/map';
 import { findRoute, flattenRoute, buildAirRoute } from '../systems/Pathfinding';
-import { START_GOLD, START_LIVES, MAX_CHANCE_TIER, CHANCE_TIER_UPGRADE_COST } from '../game/constants';
+import { FINE_TILE, START_GOLD, START_LIVES, MAX_CHANCE_TIER, CHANCE_TIER_UPGRADE_COST } from '../game/constants';
 import { BuildPhase } from '../controllers/BuildPhase';
 import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
@@ -144,6 +144,48 @@ export class HeadlessGame {
 
   handleCreepDeath(c: import('../game/State').CreepState): void {
     this.combat.handleDeathEffects(c);
+    this.spawnContainerPayload(c);
+  }
+
+  private spawnContainerPayload(dead: import('../game/State').CreepState): void {
+    if (!dead.payload) return;
+    const state = this.state;
+    for (const p of dead.payload) {
+      const isAir = !!p.flags?.air;
+      const route = isAir ? state.airRoute : state.flatRoute;
+      if (route.length === 0) continue;
+      let pathPos = dead.pathPos;
+      if (!!dead.flags?.air !== isAir) {
+        pathPos = nearestPathPos(dead.px, dead.py, route);
+      }
+      pathPos = Math.min(pathPos, route.length - 2);
+      for (let i = 0; i < p.count; i++) {
+        const id = this.nextId();
+        const creep: import('../game/State').CreepState = {
+          id,
+          kind: p.kind,
+          pathPos,
+          px: dead.px,
+          py: dead.py,
+          hp: p.hp,
+          maxHp: p.hp,
+          speed: p.speed,
+          bounty: p.bounty,
+          color: p.color,
+          armor: p.armor,
+          slowResist: p.slowResist,
+          flags: p.flags,
+          alive: true,
+          armorReduction: 0,
+          vulnerability: 0,
+          payload: p.payload,
+        };
+        state.creeps.push(creep);
+        state.waveStats.spawnedThisWave++;
+        state.waveStats.totalToSpawn++;
+        this.bus.emit('creep:spawn', { id });
+      }
+    }
   }
 
   simStep(): void {
@@ -259,4 +301,16 @@ export class HeadlessGame {
       outcome: this.state.phase === 'victory' ? 'victory' : 'gameover',
     };
   }
+}
+
+function nearestPathPos(px: number, py: number, route: Array<{x: number; y: number}>): number {
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < route.length; i++) {
+    const rx = route[i].x * FINE_TILE + FINE_TILE / 2;
+    const ry = route[i].y * FINE_TILE + FINE_TILE / 2;
+    const d = (px - rx) ** 2 + (py - ry) ** 2;
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
 }
