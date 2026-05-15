@@ -109,11 +109,11 @@ const ALL_COMBOS: ComboRecipe[] = [
         cost: 310,
         stats: {
           dmgMin: 320,
-          dmgMax: 540,
+          dmgMax: 500,
           range: 4.0,
           atkSpeed: 1.0,
           effects: [
-            { kind: "splash", radius: 2.5, falloff: 0.5 },
+            { kind: "splash", radius: 2.0, falloff: 0.5 },
             { kind: "crit", chance: 0.35, multiplier: 3.0 },
           ],
           blurb: "Massive splash. 35% crit x3.",
@@ -151,10 +151,10 @@ const ALL_COMBOS: ComboRecipe[] = [
           atkSpeed: 1.2,
           effects: [
             { kind: "stun", chance: 0.15, duration: 2.0 },
-            { kind: "poison", dps: 90, duration: 3 },
-            { kind: "death_spread", count: 2, radius: 2.5 },
+            { kind: "poison", dps: 112, duration: 3 },
+            { kind: "death_spread", count: 5, radius: 2 },
           ],
-          blurb: "15% stun. Poison 60/s. Plague spreads on death.",
+          blurb: "15% stun. Poison 112/s. Plague spreads on death.",
           targeting: "all",
         },
       },
@@ -255,9 +255,9 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             { kind: "poison", dps: 110, duration: 4 },
             { kind: "slow", factor: 0.5, duration: 4.0 },
-            { kind: "crit", chance: 0.1, multiplier: 6.0 },
-            { kind: "stun", chance: 0.03, duration: 2.0 },
-            { kind: "bonus_gold", chance: 0.05 },
+            { kind: "crit", chance: 0.15, multiplier: 6.0 },
+            { kind: "stun", chance: 0.08, duration: 2.0 },
+            { kind: "bonus_gold", chance: 0.1 },
           ],
           blurb:
             "Poison 90 dps 4s. 50% slow. Lucky crits, stuns, and bonus gold.",
@@ -461,7 +461,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 95,
+              dps: 105,
               radius: 2.6,
               rampPct: 0.12,
               rampCap: 1.5,

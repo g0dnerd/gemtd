@@ -229,6 +229,15 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.4.3",
+      notes: [
+        "<b>Buff</b> — Venomous Emerald: poison DPS 90 → 112, death spread 2 → 5 targets (radius 2.5 → 2).",
+        "<b>Buff</b> — Solar Core: prox burn ramp DPS 95 → 105.",
+        "<b>Nerf</b> — Ancient Bloodstone: max damage 540 → 500, splash radius 2.5 → 2.",
+        "<b>Buff</b> — Lucky Asian Jade: crit 10% → 15%, stun 3% → 8%, bonus gold 5% → 10%.",
+      ],
+    },
+    {
       ver: "1.4.2",
       notes: [
         "<b>Balance</b> — reduce wave 30 healer count (3 → 2) and HP (−30%).",
