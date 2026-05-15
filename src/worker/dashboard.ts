@@ -35,8 +35,8 @@ export function handleDashboard(secret: string): Response {
 <body>
 <h1>GemTD Telemetry</h1>
 <div class="controls">
-  <label>Version: <select id="version"><option value="">All</option></select></label>
-  <select id="vmode"><option value="eq">=</option><option value="gte">>=</option></select>
+  <label>Version: <select id="vmode"><option value="eq">=</option><option value="gte">>=</option></select></label>
+  <select id="version"><option value="">All</option></select>
   <button onclick="load()">Refresh</button>
 </div>
 <div id="content"><p class="loading">Loading...</p></div>
@@ -193,7 +193,7 @@ function render(data) {
     html += '<h2>Combo Effectiveness</h2>';
     html += '<table><tr><th>Combo</th><th>Tier</th><th>Count</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th><th>Avg Wave Built</th></tr>';
     for (const row of data.combos) {
-      const tier = Number(row.max_tier) || 0;
+      const tier = Number(row.tier) || 0;
       html += '<tr><td>' + row.combo_key + '</td><td>' + (tier === 0 ? 'Base' : '\\u2605 ' + tier) + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td><td>' + fmt(row.avg_wave_built, 1) + '</td></tr>';
     }
     html += '</table>';

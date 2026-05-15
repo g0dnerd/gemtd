@@ -75,14 +75,13 @@ export async function handleStats(
     ).bind(...cBind, ...cBind).all(),
 
     db.prepare(
-      `SELECT t.combo_key, count(*) as count,
+      `SELECT t.combo_key, t.upgrade_tier as tier, count(*) as count,
               avg(t.total_damage) as avg_damage,
               avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave,
-              avg(t.placed_wave) as avg_wave_built,
-              avg(t.upgrade_tier) as avg_tier, max(t.upgrade_tier) as max_tier
+              avg(t.placed_wave) as avg_wave_built
        FROM towers t JOIN runs r ON t.run_id = r.run_id
        WHERE t.combo_key != '' ${cv.replace("run_id", "t.run_id")}
-       GROUP BY t.combo_key ORDER BY avg_dmg_per_wave DESC`,
+       GROUP BY t.combo_key, t.upgrade_tier ORDER BY t.combo_key, t.upgrade_tier`,
     ).bind(...cBind).all(),
 
     db.prepare(
