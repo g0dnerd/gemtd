@@ -87,7 +87,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseAtkSpeed: 1.0,
     effects: [{ kind: 'splash', radius: 1.0, falloff: 0.5 }],
     targeting: 'all',
-    qualityDmgMult: { 1: 0.85, 2: 1.7, 3: 3.5, 4: 6.6, 5: 13.2 },
+    qualityDmgMult: { 1: 0.9, 2: 2.0, 3: 4.5, 4: 9.0, 5: 18.0 },
   },
   sapphire: {
     name: 'Sapphire',

@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.3.4",
+      notes: [
+        "<b>Balance</b> — slightly buff Ruby's damage scaling curve.",
+      ],
+    },
+    {
       ver: "1.3.3",
       notes: [
         "<b>Balance</b> — Ruby damage nerfed ~15–40% (scaling by tier), hitting Flawless/Perfect hardest.",

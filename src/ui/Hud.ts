@@ -62,6 +62,10 @@ const ARCHETYPE_COLORS: Record<CreepKind, string> = {
   healer: "#38c860",
   wizard: "#3878e8",
   tunneler: "#f0c038",
+  vessel: "#f0c038",
+  gazer: "#d090f0",
+  coral: "#78e898",
+  anemone: "#b8f4ee",
 };
 
 /** Static lookup: which gem each creep archetype is weak to. */
@@ -74,6 +78,10 @@ const ARCHETYPE_WEAKNESS: Record<CreepKind, GemType> = {
   healer: "ruby",
   wizard: "topaz",
   tunneler: "diamond",
+  vessel: "ruby",
+  gazer: "sapphire",
+  coral: "emerald",
+  anemone: "topaz",
 };
 
 export function mountHud(
@@ -107,7 +115,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v1.3.3";
+  wmVer.textContent = "v1.3.4";
   wm.append(wmName, wmVer);
   if (game.state.hardcore) {
     const skull = document.createElement("div");
