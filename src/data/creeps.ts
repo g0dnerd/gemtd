@@ -50,7 +50,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
   },
   air: {
     kind: 'air',
-    speed: 2.0,
+    speed: 1.7,
     color: 'diamond',
     hpMult: 0.6,
     bountyMult: 1.2,

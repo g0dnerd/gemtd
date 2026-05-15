@@ -229,6 +229,13 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.3.1",
+      notes: [
+        "<b>Balance</b> — Air units move 15% slower (2.0 → 1.7 tiles/s).",
+        "<b>Fix</b> — Wave preview now shows actual HP after archetype multiplier.",
+      ],
+    },
+    {
       ver: "1.3.0",
       notes: [
         "<b>Balance</b> — Healer buffs no longer stack.",

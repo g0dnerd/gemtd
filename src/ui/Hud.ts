@@ -36,7 +36,7 @@ import {
   type SpeedMultiplier,
 } from "../game/constants";
 import { WAVES, WaveDef, waveTotalCount } from "../data/waves";
-import type { CreepKind } from "../data/creeps";
+import { CREEP_ARCHETYPES, type CreepKind } from "../data/creeps";
 
 const TIER_LABELS = [
   "CHIPPED",
@@ -107,7 +107,7 @@ export function mountHud(
   wmName.textContent = "GEM TD";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v1.3.0";
+  wmVer.textContent = "v1.3.1";
   wm.append(wmName, wmVer);
   if (game.state.hardcore) {
     const skull = document.createElement("div");
@@ -1112,7 +1112,8 @@ export function mountHud(
     hp.className = "threat-hp";
     const hpVal = document.createElement("span");
     hpVal.className = "threat-hp-val";
-    hpVal.textContent = formatHp(primary.hp);
+    const effectiveHp = Math.round(primary.hp * CREEP_ARCHETYPES[primary.kind].hpMult);
+    hpVal.textContent = formatHp(effectiveHp);
     const hpUnit = document.createElement("span");
     hpUnit.className = "threat-hp-unit";
     hpUnit.textContent = "hp";
