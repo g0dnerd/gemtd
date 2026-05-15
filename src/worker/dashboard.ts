@@ -200,10 +200,12 @@ function render(data) {
 
   // Gem effectiveness
   if (data.gemDps?.length) {
+    const qNames = { 1: 'Chipped', 2: 'Flawed', 3: 'Normal', 4: 'Flawless', 5: 'Perfect' };
     html += '<h2>Tower Effectiveness by Gem</h2>';
-    html += '<table><tr><th>Gem</th><th>Count</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th><th>Avg Quality</th></tr>';
+    html += '<table><tr><th>Gem</th><th>Quality</th><th>Count</th><th>Avg Dmg/Wave</th><th>Avg Total Dmg</th></tr>';
     for (const row of data.gemDps) {
-      html += '<tr><td>' + row.gem + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td><td>' + fmt(row.avg_quality, 1) + '</td></tr>';
+      const q = qNames[row.quality] || row.quality;
+      html += '<tr><td>' + row.gem + '</td><td>' + q + '</td><td>' + row.count + '</td><td>' + fmt(row.avg_dmg_per_wave, 0) + '</td><td>' + fmt(row.avg_damage, 0) + '</td></tr>';
     }
     html += '</table>';
   }
