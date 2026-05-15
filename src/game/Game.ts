@@ -226,6 +226,8 @@ export class Game {
 
   /** Debug mode: place gems along the blueprint maze, one wave of every creep kind. */
   newDebugGame(): void {
+    this.detachTelemetry?.();
+    this.detachTelemetry = undefined;
     this.state.towers = [];
     this.state.rocks = [];
     this.state.creeps = [];
@@ -524,6 +526,10 @@ export class Game {
 
   toggleCreativeMode(): void {
     this.creativeMode = !this.creativeMode;
+    if (this.creativeMode) {
+      this.detachTelemetry?.();
+      this.detachTelemetry = undefined;
+    }
   }
 
   async toggleBlueprint(): Promise<void> {

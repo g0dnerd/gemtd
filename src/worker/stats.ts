@@ -8,25 +8,27 @@ export async function handleStats(
   const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
   const db = env.gemtd_telemetry;
 
-  let rv = "";
+  const mf = "AND mode NOT IN ('debug', 'creative')";
+
+  let rv = mf;
   let rBind: string[] = [];
   if (versions && versions.length > 0) {
     const ph = versions.map(() => "?").join(",");
-    rv = `AND version IN (${ph})`;
+    rv = `${mf} AND version IN (${ph})`;
     rBind = versions;
   } else if (version) {
-    rv = "AND version = ?";
+    rv = `${mf} AND version = ?`;
     rBind = [version];
   }
 
-  let cv = "";
+  let cv = `AND run_id IN (SELECT run_id FROM runs WHERE 1=1 ${mf})`;
   let cBind: string[] = [];
   if (versions && versions.length > 0) {
     const ph = versions.map(() => "?").join(",");
-    cv = `AND run_id IN (SELECT run_id FROM runs WHERE version IN (${ph}))`;
+    cv = `AND run_id IN (SELECT run_id FROM runs WHERE 1=1 ${mf} AND version IN (${ph}))`;
     cBind = versions;
   } else if (version) {
-    cv = "AND run_id IN (SELECT run_id FROM runs WHERE version = ?)";
+    cv = `AND run_id IN (SELECT run_id FROM runs WHERE 1=1 ${mf} AND version = ?)`;
     cBind = [version];
   }
 
@@ -133,7 +135,7 @@ export async function handleStats(
     ).bind(...rBind).all(),
 
     db.prepare(
-      `SELECT DISTINCT version FROM runs ORDER BY version DESC`,
+      `SELECT DISTINCT version FROM runs WHERE 1=1 ${mf} ORDER BY version DESC`,
     ).all(),
   ]);
 

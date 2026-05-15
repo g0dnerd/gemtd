@@ -43,29 +43,32 @@ export async function handleExport(
     );
   }
 
+  const mf = "mode NOT IN ('debug', 'creative')";
+
   let sql: string;
   const binds: unknown[] = [];
 
   if (table === "runs") {
-    sql = `SELECT ${columns.join(", ")} FROM runs`;
+    sql = `SELECT ${columns.join(", ")} FROM runs WHERE ${mf}`;
     if (versions && versions.length > 0) {
-      sql += ` WHERE version IN (${versions.map(() => "?").join(",")})`;
+      sql += ` AND version IN (${versions.map(() => "?").join(",")})`;
       binds.push(...versions);
     } else if (version) {
-      sql += " WHERE version = ?";
+      sql += " AND version = ?";
       binds.push(version);
     }
     sql += " ORDER BY created_at DESC LIMIT ?";
   } else {
-    sql = `SELECT ${columns.join(", ")} FROM ${table}`;
+    const subWhere = [mf];
     if (versions && versions.length > 0) {
       const ph = versions.map(() => "?").join(",");
-      sql += ` WHERE run_id IN (SELECT run_id FROM runs WHERE version IN (${ph}))`;
+      subWhere.push(`version IN (${ph})`);
       binds.push(...versions);
     } else if (version) {
-      sql += " WHERE run_id IN (SELECT run_id FROM runs WHERE version = ?)";
+      subWhere.push("version = ?");
       binds.push(version);
     }
+    sql = `SELECT ${columns.join(", ")} FROM ${table} WHERE run_id IN (SELECT run_id FROM runs WHERE ${subWhere.join(" AND ")})`;
     sql += " LIMIT ?";
   }
   binds.push(limit);
