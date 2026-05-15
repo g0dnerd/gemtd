@@ -61,3 +61,8 @@ blueprint*.json
 maze_viz*.html
 report*.html
 tools/sim-compare/results/compare*.json
+
+.od-skills/
+
+# Large audio source
+bgm.wav

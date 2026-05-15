@@ -1120,7 +1120,9 @@ export function mountHud(
     hp.className = "threat-hp";
     const hpVal = document.createElement("span");
     hpVal.className = "threat-hp-val";
-    const effectiveHp = Math.round(primary.hp * CREEP_ARCHETYPES[primary.kind].hpMult);
+    const effectiveHp = Math.round(
+      primary.hp * CREEP_ARCHETYPES[primary.kind].hpMult,
+    );
     hpVal.textContent = formatHp(effectiveHp);
     const hpUnit = document.createElement("span");
     hpUnit.className = "threat-hp-unit";
@@ -1275,7 +1277,11 @@ export function mountHud(
   }
 
   canvasHost.addEventListener("pointermove", (ev: PointerEvent) => {
-    if (longPressTimer !== null && ev.pointerType === "touch" && longPressOrigin) {
+    if (
+      longPressTimer !== null &&
+      ev.pointerType === "touch" &&
+      longPressOrigin
+    ) {
       const dx = ev.clientX - longPressOrigin.x;
       const dy = ev.clientY - longPressOrigin.y;
       if (dx * dx + dy * dy > 15 * 15) {
@@ -1393,7 +1399,11 @@ export function mountHud(
     if (activeDraw(game.state)) {
       if (isMobile) {
         // Two-tap placement: first tap highlights, second tap confirms.
-        if (pendingTapTile && pendingTapTile.x === t.x && pendingTapTile.y === t.y) {
+        if (
+          pendingTapTile &&
+          pendingTapTile.x === t.x &&
+          pendingTapTile.y === t.y
+        ) {
           // Second tap on same cell → confirm placement.
           const placed = game.cmdPlace(t.x, t.y);
           pendingTapTile = null;
@@ -1422,7 +1432,9 @@ export function mountHud(
               const prev = game.state.designatedKeepTowerId;
               game.cmdDesignateKeep(justPlaced.id);
               if (prev !== null && prev !== justPlaced.id) {
-                const prevTower = game.state.towers.find((tt) => tt.id === prev);
+                const prevTower = game.state.towers.find(
+                  (tt) => tt.id === prev,
+                );
                 if (prevTower) {
                   game.bus.emit("toast", {
                     kind: "good",

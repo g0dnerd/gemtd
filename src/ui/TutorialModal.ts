@@ -243,9 +243,7 @@ function changesBody(): HTMLElement {
     },
     {
       ver: "1.3.4",
-      notes: [
-        "<b>Balance</b> — slightly buff Ruby's damage scaling curve.",
-      ],
+      notes: ["<b>Balance</b> — slightly buff Ruby's damage scaling curve."],
     },
     {
       ver: "1.3.3",
@@ -270,9 +268,7 @@ function changesBody(): HTMLElement {
     },
     {
       ver: "1.3.0",
-      notes: [
-        "<b>Balance</b> — Healer buffs no longer stack.",
-      ],
+      notes: ["<b>Balance</b> — Healer buffs no longer stack."],
     },
     {
       ver: "1.2.8",

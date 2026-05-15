@@ -1,0 +1,43 @@
+v1.5.0 milestones
+
+BALANCE
+- buff tunneler HP
+- give armored creeps more armor
+- make wave 50 a super tanky pinata
+- Nerf Ancient Bloodstone (35% -> 15%?)
+- Nerf Silver Knight
+- Buff Venomous Emerald
+- Buff Living Diamond
+- Buff Stargem
+- Buff Aquamarine
+- Buff Red Crystal
+  - additional range?
+- make all container creeps much slower and much tankier
+- late game waves drop too much gold with too little too spend on (players end game with >2k gold)
+  - more upgrade tiers?
+  - reduced bounties?
+  - raise cost of existing upgrades?
+
+SYSTEMS
+- Rotating/random gem weaknesses (take all gem types, shuffle)
+- Silver Knight and Blizzard Sapphire collide in terms of ability, rework either
+
+
+MISC
+- Move Changelog to somewhere else
+
+QOL
+- Make Opal shots more visible
+- Small banner/explanation when new creep type first appears
+
+WIP
+- new creep types: berserker (chrysalid), sapper (mycoid)
+
+DONE
+- Rename "ON HIT" in tower inspector to something more generic
+- Double check all gem/combo tooltips and blurbs
+- Update keybindings in tutorial modal, remove MAZE tab
+- design for rock & gem selection
+- Track damage by specials separately before they get upgraded vs after
+- Demote should only start round if all gems have been placed
+- Fix combo damage misattributed to normal gems in dashboard
