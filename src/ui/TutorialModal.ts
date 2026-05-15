@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.4.2",
+      notes: [
+        "<b>Balance</b> — reduce wave 30 healer count (3 → 2) and HP (−30%).",
+      ],
+    },
+    {
       ver: "1.4.1",
       notes: [
         "<b>Balance</b> — nerf wave 40 boss HP (−30%) and healer HP (−40%).",
