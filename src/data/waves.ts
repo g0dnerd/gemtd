@@ -383,8 +383,8 @@ export const WAVES: WaveDef[] = [
     40,
     1.0,
     100,
-    ["boss", 9, 72000, 33, 0, 14],
-    ["healer", 4, 40000, 24, 0, 11],
+    ["boss", 9, 50400, 33, 0, 14],
+    ["healer", 4, 24000, 24, 0, 11],
   ),
 
   // --- Waves 41-49: specials prominent, armor high ---

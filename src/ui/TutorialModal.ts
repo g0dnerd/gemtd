@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.4.1",
+      notes: [
+        "<b>Balance</b> — nerf wave 40 boss HP (−30%) and healer HP (−40%).",
+      ],
+    },
+    {
       ver: "1.4.0",
       notes: [
         "<b>New</b> — Container creeps: 4 new kinds (Vessel, Gazer, Coral, Anemone) that split into smaller creeps on death.",
