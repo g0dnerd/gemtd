@@ -76,6 +76,12 @@ function versionParams(params) {
     if (matching.length && matching.length < allVersions.length) {
       params.versions = matching.join(',');
     }
+  } else if (v.endsWith('.x')) {
+    const prefix = v.slice(0, -1);
+    const matching = allVersions.filter(ver => ver.startsWith(prefix));
+    if (matching.length && matching.length < allVersions.length) {
+      params.versions = matching.join(',');
+    }
   } else {
     params.version = v;
   }
@@ -343,13 +349,37 @@ function populateVersions(versions, selected) {
   const sel = document.getElementById('version');
   const cur = selected || sel.value;
   sel.innerHTML = '<option value="">All</option>';
-  for (const v of versions) {
-    const opt = document.createElement('option');
-    opt.value = v;
-    opt.textContent = v;
-    if (v === cur) opt.selected = true;
-    sel.appendChild(opt);
+
+  const parsed = versions.map(v => {
+    const [maj, min, pat] = v.split('.').map(Number);
+    return { str: v, maj, min, pat };
+  });
+  const majors = new Map();
+  for (const p of parsed) {
+    if (!majors.has(p.maj)) majors.set(p.maj, new Map());
+    const minors = majors.get(p.maj);
+    if (!minors.has(p.min)) minors.set(p.min, []);
+    minors.get(p.min).push(p);
   }
+
+  for (const maj of [...majors.keys()].sort((a, b) => b - a)) {
+    addOpt(sel, maj + '.x', maj + '.x', cur);
+    const minors = majors.get(maj);
+    for (const min of [...minors.keys()].sort((a, b) => b - a)) {
+      addOpt(sel, maj + '.' + min + '.x', '\\u00A0\\u00A0' + maj + '.' + min + '.x', cur);
+      for (const p of minors.get(min).sort((a, b) => b.pat - a.pat)) {
+        addOpt(sel, p.str, '\\u00A0\\u00A0\\u00A0\\u00A0' + p.str, cur);
+      }
+    }
+  }
+}
+
+function addOpt(sel, value, text, selected) {
+  const opt = document.createElement('option');
+  opt.value = value;
+  opt.textContent = text;
+  if (value === selected) opt.selected = true;
+  sel.appendChild(opt);
 }
 
 load();
