@@ -162,12 +162,13 @@ function render(data) {
   // Leaks per wave
   if (data.leaksPerWave?.length) {
     const maxLeak = Math.max(...data.leaksPerWave.map(r => Number(r.avg_leaks)));
-    html += '<h2>Average Leaks per Wave</h2>';
-    html += '<table><tr><th>Wave</th><th>Avg Leaks</th><th>Total Leaks</th><th></th></tr>';
+    html += '<h2>Wave Leak Summary</h2>';
+    html += '<table><tr><th>Wave</th><th>Avg Leaks</th><th>Avg Lives Lost</th><th>Total Leaks</th><th></th></tr>';
     for (const row of data.leaksPerWave) {
       const avg = Number(row.avg_leaks);
+      const avgLost = Number(row.avg_lives_lost);
       const w = maxLeak > 0 ? (avg / maxLeak * 100) : 0;
-      html += '<tr><td>' + row.wave + '</td><td>' + fmt(avg, 2) + '</td><td>' + row.total_leaks +
+      html += '<tr><td>' + row.wave + '</td><td>' + fmt(avg, 2) + '</td><td>' + fmt(avgLost, 2) + '</td><td>' + row.total_leaks +
         '</td><td class="bar-cell"><span class="bar" style="width:' + w + '%"></span></td></tr>';
     }
     html += '</table>';

@@ -241,10 +241,9 @@ export class WavePhase {
       const dx = other.px - c.px;
       const dy = other.py - c.py;
       if (dx * dx + dy * dy > r2) continue;
+      if (other.healBuff && other.healBuff.expiresAt > tick) continue;
       const hpPerTick = Math.max(1, Math.round(other.maxHp * HEALER_HEAL_PCT));
-      if (!other.healBuff || other.healBuff.expiresAt < tick + HEALER_BUFF_DURATION) {
-        other.healBuff = { hpPerTick, expiresAt: tick + HEALER_BUFF_DURATION };
-      }
+      other.healBuff = { hpPerTick, expiresAt: tick + HEALER_BUFF_DURATION };
     }
   }
 

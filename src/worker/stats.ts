@@ -61,10 +61,18 @@ export async function handleStats(
     ).bind(...cBind).all(),
 
     db.prepare(
-      `SELECT wave, avg(leaks) as avg_leaks, sum(leaks) as total_leaks,
-              avg(lives) as avg_lives, avg(gold) as avg_gold, count(*) as runs
-       FROM waves WHERE 1=1 ${cv} GROUP BY wave ORDER BY wave`,
-    ).bind(...cBind).all(),
+      `SELECT w.wave, avg(w.leaks) as avg_leaks, sum(w.leaks) as total_leaks,
+              avg(w.lives) as avg_lives, avg(w.gold) as avg_gold,
+              avg(COALESCE(e.lives_lost, 0)) as avg_lives_lost, count(*) as runs
+       FROM waves w
+       LEFT JOIN (
+         SELECT run_id, wave, sum(cost) as lives_lost
+         FROM events WHERE event_type = 'leak' ${cv}
+         GROUP BY run_id, wave
+       ) e ON w.run_id = e.run_id AND w.wave = e.wave
+       WHERE 1=1 ${cv.replace(/run_id/g, "w.run_id")}
+       GROUP BY w.wave ORDER BY w.wave`,
+    ).bind(...cBind, ...cBind).all(),
 
     db.prepare(
       `SELECT t.combo_key, count(*) as count,

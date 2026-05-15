@@ -229,6 +229,12 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.3.0",
+      notes: [
+        "<b>Balance</b> — Healer buffs no longer stack.",
+      ],
+    },
+    {
       ver: "1.2.8",
       notes: [
         "<b>Buff</b> — Lucky Asian Jade damage range +50% (200–300 → 300–450).",
