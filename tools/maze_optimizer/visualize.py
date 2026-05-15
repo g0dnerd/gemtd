@@ -18,7 +18,7 @@ try:
 except ImportError:
     from pathfinding import find_route, flatten_route, footprint_cells
 
-from fitness import exposure_at_flat
+from fitness import AIR_ROUNDS, AIR_ROUTE, select_keeper
 
 C_WALL = 0
 C_GRASS = 1
@@ -109,19 +109,14 @@ def build_all_snapshots(data):
         route_set = set(flat_route)
 
         if placed:
-            best_idx = max(
-                range(len(placed)),
-                key=lambda i: exposure_at_flat(placed[i][0], placed[i][1], flat_route),
+            keeper_idx, _ = select_keeper(
+                placed, route_set, r_idx in AIR_ROUNDS
             )
             for i, (px, py) in enumerate(placed):
-                if i == best_idx:
+                if i == keeper_idx:
                     keepers.add((px, py))
                 else:
                     place_tower(grid, px, py, Cell.Rock)
-
-        segments = find_route(grid)
-        flat_route = flatten_route(segments) if segments else []
-        route_set = set(flat_route)
 
         snapshots.append(
             {
@@ -158,8 +153,10 @@ def generate_html(blueprint_path: str) -> str:
 
     fitness = data.get("fitness", 0)
     exposure = data.get("exposure_total", 0)
+    air_exposure = data.get("air_exposure_total", 0)
 
     waypoints_json = [[wp.x, wp.y] for wp in WAYPOINTS]
+    air_route_json = [[x, y] for x, y in sorted(AIR_ROUTE)]
 
     return f"""<!DOCTYPE html>
 <html>
@@ -210,7 +207,8 @@ def generate_html(blueprint_path: str) -> str:
     <div>Round: <b id="st-round">0</b>/{total_rounds}</div>
     <div>Path length: <b id="st-path">0</b></div>
     <div>Fitness: <b>{fitness:.0f}</b></div>
-    <div>Exposure: <b>{exposure}</b></div>
+    <div>Ground exp: <b>{exposure}</b></div>
+    <div>Air exp: <b>{air_exposure}</b></div>
   </div>
   <canvas id="c" width="{GRID_W * 14}" height="{GRID_H * 14}"></canvas>
   <div id="hover-info" style="font-size:12px;color:#888;height:18px;margin-top:4px;"></div>
@@ -224,12 +222,14 @@ def generate_html(blueprint_path: str) -> str:
     <div class="legend-item"><div class="legend-swatch" style="background:#22cc55"></div> Tower</div>
     <div class="legend-item"><div class="legend-swatch" style="background:#5a5a6e"></div> Rock</div>
     <div class="legend-item"><div class="legend-swatch" style="background:#44bbcc"></div> Creep path</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,80,80,0.5)"></div> Air path</div>
     <div class="legend-item"><div class="legend-swatch" style="background:#1a1a2e"></div> Wall</div>
     <div class="legend-item"><div class="legend-swatch" style="background:#2d5a1e"></div> Grass</div>
   </div>
 <script>
 const SNAPSHOTS = {json.dumps(snap_json, separators=(",", ":"))};
 const WAYPOINTS = {json.dumps(waypoints_json)};
+const AIR_ROUTE = {json.dumps(air_route_json)};
 const GW = {GRID_W}, GH = {GRID_H}, CS = 14;
 const PALETTE = {json.dumps(COLORS_CSS)};
 
@@ -309,6 +309,12 @@ function draw(round) {{
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
     ctx.stroke();
+  }}
+
+  // Air route overlay
+  for (const [ax, ay] of AIR_ROUTE) {{
+    ctx.fillStyle = 'rgba(255, 80, 80, 0.25)';
+    ctx.fillRect(ax * CS, ay * CS, CS, CS);
   }}
 
   for (const [wx, wy] of WAYPOINTS) {{

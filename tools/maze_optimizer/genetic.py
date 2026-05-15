@@ -18,32 +18,55 @@ from grid import (
 
 try:
     from pathfinding_cy import find_route, flatten_route, footprint_cells
+    from pathfinding import build_cell_to_seg, reroute_affected
 except ImportError:
-    from pathfinding import find_route, flatten_route, footprint_cells
+    from pathfinding import (
+        find_route, flatten_route, footprint_cells,
+        build_cell_to_seg, reroute_affected,
+    )
 
 from fitness import (
     NUM_ROUNDS,
     GEMS_PER_ROUND,
     KEEPER_R2,
+    AIR_ROUNDS,
     evaluate,
     exposure_at,
     exposure_at_flat,
+    air_exposure_at,
+    select_keeper,
 )
 
 Chromosome = list[list[tuple[int, int]]]
 
 _worker_base_grid: np.ndarray | None = None
-_worker_exposure_weight: float = 0.1
+_worker_exposure_weight: float = 0.15
+_worker_air_exposure_weight: float = 5.0
+_worker_air_keeper_ratio: float = 2.0
 
 
-def _init_worker(base_grid: np.ndarray, exposure_weight: float) -> None:
+def _init_worker(
+    base_grid: np.ndarray,
+    exposure_weight: float,
+    air_exposure_weight: float,
+    air_keeper_ratio: float,
+) -> None:
     global _worker_base_grid, _worker_exposure_weight
+    global _worker_air_exposure_weight, _worker_air_keeper_ratio
     _worker_base_grid = base_grid
     _worker_exposure_weight = exposure_weight
+    _worker_air_exposure_weight = air_exposure_weight
+    _worker_air_keeper_ratio = air_keeper_ratio
 
 
 def _evaluate_wrapper(chromosome: Chromosome) -> dict:
-    return evaluate(chromosome, _worker_base_grid, _worker_exposure_weight)  # type: ignore[arg-type]
+    return evaluate(
+        chromosome,
+        _worker_base_grid,  # type: ignore[arg-type]
+        _worker_exposure_weight,
+        _worker_air_exposure_weight,
+        _worker_air_keeper_ratio,
+    )
 
 
 def get_candidates(
@@ -77,7 +100,10 @@ def create_greedy_individual(
     w_exp = 0.5 + rng.uniform(-noise, noise)
     w_maze = 3.0 + rng.uniform(-noise, noise)
 
-    for _ in range(NUM_ROUNDS):
+    w_air = 1.0 + rng.uniform(-noise, noise)
+
+    for round_idx in range(NUM_ROUNDS):
+        is_air = round_idx in AIR_ROUNDS
         positions: list[tuple[int, int]] = []
 
         for _ in range(GEMS_PER_ROUND):
@@ -115,6 +141,8 @@ def create_greedy_individual(
 
                 maze_gain = len(flat_try) - route_len
                 score = exp * w_exp + maze_gain * w_maze
+                if is_air:
+                    score += air_exposure_at(cx, cy) * w_air
 
                 if score > best_score:
                     best_score = score
@@ -140,12 +168,11 @@ def create_greedy_individual(
         chromosome.append(positions)
 
         if positions:
-            best_keeper = max(
-                range(len(positions)),
-                key=lambda i: exposure_at_flat(positions[i][0], positions[i][1], flat_route),
+            keeper_idx, _ = select_keeper(
+                positions, set(flat_route), is_air
             )
             for i, (px, py) in enumerate(positions):
-                if i != best_keeper:
+                if i != keeper_idx:
                     place_tower(grid, px, py, Cell.Rock)
 
     return chromosome
@@ -162,7 +189,8 @@ def create_random_individual(
     flat_route = flatten_route(segments)
     route_set = set(flat_route)
 
-    for _ in range(NUM_ROUNDS):
+    for round_idx in range(NUM_ROUNDS):
+        is_air = round_idx in AIR_ROUNDS
         positions: list[tuple[int, int]] = []
 
         for _ in range(GEMS_PER_ROUND):
@@ -201,12 +229,11 @@ def create_random_individual(
         chromosome.append(positions)
 
         if positions:
-            best_keeper = max(
-                range(len(positions)),
-                key=lambda i: exposure_at_flat(positions[i][0], positions[i][1], flat_route),
+            keeper_idx, _ = select_keeper(
+                positions, set(flat_route), is_air
             )
             for i, (px, py) in enumerate(positions):
-                if i != best_keeper:
+                if i != keeper_idx:
                     place_tower(grid, px, py, Cell.Rock)
 
     return chromosome
@@ -269,6 +296,7 @@ def _replay_to_round(
     assert segments is not None
     flat_route = flatten_route(segments)
     route_set = set(flat_route)
+    cell_seg = build_cell_to_seg(segments)
 
     for r in range(target_round):
         positions = chromosome[r]
@@ -283,23 +311,20 @@ def _replay_to_round(
             place_tower(grid, x, y)
             placed.append((x, y))
             if fc & route_set:
-                new_seg = find_route(grid)
+                new_seg = reroute_affected(grid, segments, fc, cell_seg)
                 if new_seg:
-                    flat_route = flatten_route(new_seg)
+                    segments = new_seg
+                    flat_route = flatten_route(segments)
                     route_set = set(flat_route)
+                    cell_seg = build_cell_to_seg(segments)
 
         if placed:
-            best_keeper = max(
-                range(len(placed)),
-                key=lambda i: exposure_at_flat(placed[i][0], placed[i][1], flat_route),
+            keeper_idx, _ = select_keeper(
+                placed, route_set, r in AIR_ROUNDS
             )
             for i, (px, py) in enumerate(placed):
-                if i != best_keeper:
+                if i != keeper_idx:
                     place_tower(grid, px, py, Cell.Rock)
-            new_seg = find_route(grid)
-            if new_seg:
-                flat_route = flatten_route(new_seg)
-                route_set = set(flat_route)
 
     return grid, flat_route, route_set
 
@@ -309,6 +334,7 @@ def _greedy_round(
     flat_route: list[tuple[int, int]],
     route_set: set[tuple[int, int]],
     rng: random.Random,
+    is_air_round: bool = False,
     max_candidates: int = 200,
 ) -> list[tuple[int, int]]:
     """Generate one round of greedy placements on the given grid state."""
@@ -316,6 +342,7 @@ def _greedy_round(
     positions: list[tuple[int, int]] = []
     w_exp = 0.5 + rng.uniform(-0.3, 0.3)
     w_maze = 3.0 + rng.uniform(-0.5, 0.5)
+    w_air = 1.0 + rng.uniform(-0.3, 0.3)
 
     for _ in range(GEMS_PER_ROUND):
         candidates = get_candidates(grid, adjacent_only=True)
@@ -350,6 +377,8 @@ def _greedy_round(
                     exp += 1
             maze_gain = len(flat_try) - route_len
             score = exp * w_exp + maze_gain * w_maze
+            if is_air_round:
+                score += air_exposure_at(cx, cy) * w_air
             if score > best_score:
                 best_score = score
                 best_pos = (cx, cy)
@@ -434,7 +463,9 @@ def mutate(chromosome: Chromosome, rng: random.Random, base_grid: np.ndarray | N
         if base_grid is not None:
             round_idx = rng.randint(0, NUM_ROUNDS - 1)
             grid, flat_route, route_set = _replay_to_round(chromosome, base_grid, round_idx)
-            chromosome[round_idx] = _greedy_round(grid, flat_route, route_set, rng)
+            chromosome[round_idx] = _greedy_round(
+                grid, flat_route, route_set, rng, is_air_round=round_idx in AIR_ROUNDS
+            )
             return round_idx
         # Fallback: small perturbation
         round_idx = rng.randint(0, NUM_ROUNDS - 1)
@@ -471,11 +502,13 @@ def local_search(
     base_grid: np.ndarray,
     rng: random.Random,
     iterations: int = 50,
-    exposure_weight: float = 0.1,
+    exposure_weight: float = 0.15,
+    air_exposure_weight: float = 5.0,
+    air_keeper_ratio: float = 2.0,
 ) -> tuple[Chromosome, float]:
     """Hill-climbing on a single individual."""
     best = [list(r) for r in individual]
-    best_result = evaluate(best, base_grid, exposure_weight)
+    best_result = evaluate(best, base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio)
     best_fitness = best_result["fitness"]
     best = best_result["chromosome"]
 
@@ -488,7 +521,7 @@ def local_search(
             max(PLACE_MIN, min(PLACE_MAX_X, x + rng.randint(-5, 5))),
             max(PLACE_MIN, min(PLACE_MAX_Y, y + rng.randint(-5, 5))),
         )
-        result = evaluate(candidate, base_grid, exposure_weight)
+        result = evaluate(candidate, base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio)
         if result["fitness"] > best_fitness:
             best_fitness = result["fitness"]
             best = result["chromosome"]
@@ -496,17 +529,68 @@ def local_search(
     return best, best_fitness
 
 
+_FITNESS_CACHE_MAX = 10_000
+
+
+def _chromosome_key(chromosome: Chromosome) -> tuple:
+    return tuple(pos for rnd in chromosome for pos in rnd)
+
+
 def evaluate_population(
     population: list[Chromosome],
     base_grid: np.ndarray,
     cores: int | None,
-    exposure_weight: float = 0.1,
+    exposure_weight: float = 0.15,
+    air_exposure_weight: float = 5.0,
+    air_keeper_ratio: float = 2.0,
+    cache: dict | None = None,
 ) -> list[dict]:
-    if cores == 1:
-        return [evaluate(ind, base_grid, exposure_weight) for ind in population]
+    if cache is not None:
+        uncached_indices: list[int] = []
+        uncached_chroms: list[Chromosome] = []
+        cached_results: dict[int, dict] = {}
+        for i, ind in enumerate(population):
+            key = _chromosome_key(ind)
+            if key in cache:
+                cached_results[i] = cache[key]
+            else:
+                uncached_indices.append(i)
+                uncached_chroms.append(ind)
+    else:
+        uncached_indices = list(range(len(population)))
+        uncached_chroms = list(population)
+        cached_results = {}
 
-    with Pool(cores, initializer=_init_worker, initargs=(base_grid, exposure_weight)) as pool:
-        return pool.map(_evaluate_wrapper, population)
+    if not uncached_chroms:
+        return [cached_results[i] for i in range(len(population))]
+
+    if cores == 1:
+        fresh = [
+            evaluate(ind, base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio)
+            for ind in uncached_chroms
+        ]
+    else:
+        with Pool(
+            cores,
+            initializer=_init_worker,
+            initargs=(base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio),
+        ) as pool:
+            fresh = pool.map(_evaluate_wrapper, uncached_chroms)
+
+    if cache is not None:
+        for idx, result in zip(uncached_indices, fresh):
+            key = _chromosome_key(population[idx])
+            cache[key] = result
+            cached_results[idx] = result
+        if len(cache) > _FITNESS_CACHE_MAX:
+            to_remove = len(cache) - _FITNESS_CACHE_MAX
+            for k in list(cache)[:to_remove]:
+                del cache[k]
+    else:
+        for idx, result in zip(uncached_indices, fresh):
+            cached_results[idx] = result
+
+    return [cached_results[i] for i in range(len(population))]
 
 
 def run_ga(
@@ -519,7 +603,9 @@ def run_ga(
     elite_pct: float = 0.05,
     cores: int | None = None,
     seed: int = 42,
-    exposure_weight: float = 0.05,
+    exposure_weight: float = 0.15,
+    air_exposure_weight: float = 5.0,
+    air_keeper_ratio: float = 2.0,
 ) -> dict:
     if base_grid is None:
         base_grid = build_base_layout()
@@ -527,16 +613,18 @@ def run_ga(
     rng = random.Random(seed)
 
     print(f"GA params: pop={population_size}, gen={generations}, tourn={tournament_size}, "
-          f"exp_w={exposure_weight}, cores={cores}")
+          f"exp_w={exposure_weight}, air_w={air_exposure_weight}, air_kr={air_keeper_ratio}, cores={cores}")
     print("Initializing population...")
 
     t0 = time.time()
     population = init_population(base_grid, population_size, rng)
     print(f"Population initialized in {time.time() - t0:.1f}s")
 
+    fitness_cache: dict[tuple, dict] = {}
+
     print("Evaluating initial population...")
     t0 = time.time()
-    results = evaluate_population(population, base_grid, cores, exposure_weight)
+    results = evaluate_population(population, base_grid, cores, exposure_weight, air_exposure_weight, air_keeper_ratio, fitness_cache)
     print(f"Initial evaluation in {time.time() - t0:.1f}s")
 
     population = [r["chromosome"] for r in results]
@@ -550,7 +638,8 @@ def run_ga(
     r0 = results[best_idx]
     print(
         f"Gen 0: best={best_fitness:.1f} avg={sum(fitness_scores) / len(fitness_scores):.1f} "
-        f"path={r0['path_length']} cum={r0['cumulative_path']} exp={r0['exposure_total']}"
+        f"path={r0['path_length']} cum={r0['cumulative_path']} "
+        f"exp={r0['exposure_total']} air={r0['air_exposure_total']}"
     )
 
     elite_count = max(1, int(population_size * elite_pct))
@@ -595,7 +684,10 @@ def run_ga(
         population = new_population[:population_size]
 
         t0 = time.time()
-        results = evaluate_population(population, base_grid, cores, exposure_weight)
+        results = evaluate_population(
+            population, base_grid, cores, exposure_weight, air_exposure_weight, air_keeper_ratio,
+            fitness_cache,
+        )
         eval_time = time.time() - t0
 
         population = [r["chromosome"] for r in results]
@@ -612,26 +704,32 @@ def run_ga(
         else:
             stagnation += 1
 
-        # Local search on elites every 10 generations
         if gen % 5 == 0:
             for li in range(ls_count):
                 idx = ranked[li] if li < len(ranked) else 0
                 ls_chrom, ls_fit = local_search(
-                    population[idx], base_grid, rng, iterations=100, exposure_weight=exposure_weight
+                    population[idx], base_grid, rng, iterations=100,
+                    exposure_weight=exposure_weight,
+                    air_exposure_weight=air_exposure_weight,
+                    air_keeper_ratio=air_keeper_ratio,
                 )
                 if ls_fit > fitness_scores[idx]:
                     population[idx] = ls_chrom
                     fitness_scores[idx] = ls_fit
                     if ls_fit > best_fitness:
                         best_fitness = ls_fit
-                        best_result = evaluate(ls_chrom, base_grid, exposure_weight)
+                        best_result = evaluate(
+                            ls_chrom, base_grid, exposure_weight,
+                            air_exposure_weight, air_keeper_ratio,
+                        )
                         stagnation = 0
 
         if gen % 5 == 0 or stagnation == 0:
             ri = results[gen_best_idx]
             print(
                 f"Gen {gen}: best={gen_best:.1f} avg={gen_avg:.1f} "
-                f"path={ri['path_length']} cum={ri['cumulative_path']} exp={ri['exposure_total']} "
+                f"path={ri['path_length']} cum={ri['cumulative_path']} "
+                f"exp={ri['exposure_total']} air={ri['air_exposure_total']} "
                 f"pen={ri['validity_penalty']} stag={stagnation} mut={effective_mutation:.2f} ({eval_time:.1f}s)"
             )
 

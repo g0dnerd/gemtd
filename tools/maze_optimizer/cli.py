@@ -22,7 +22,14 @@ def main() -> None:
         "--elite-pct", type=float, default=0.05, help="Elite percentage"
     )
     parser.add_argument(
-        "--exposure-weight", type=float, default=0.05, help="Exposure weight in fitness"
+        "--exposure-weight", type=float, default=0.15, help="Ground exposure weight in fitness"
+    )
+    parser.add_argument(
+        "--air-exposure-weight", type=float, default=5.0, help="Air exposure weight in fitness"
+    )
+    parser.add_argument(
+        "--air-keeper-ratio", type=float, default=2.0,
+        help="Air-to-ground weight when selecting keeper on air rounds",
     )
     parser.add_argument(
         "--cores", type=int, default=None, help="CPU cores (default: all)"
@@ -49,6 +56,8 @@ def main() -> None:
         cores=args.cores,
         seed=args.seed,
         exposure_weight=args.exposure_weight,
+        air_exposure_weight=args.air_exposure_weight,
+        air_keeper_ratio=args.air_keeper_ratio,
     )
 
     output = {
@@ -56,6 +65,7 @@ def main() -> None:
         "path_length": result["path_length"],
         "cumulative_path": result["cumulative_path"],
         "exposure_total": result["exposure_total"],
+        "air_exposure_total": result["air_exposure_total"],
         "rounds": result["chromosome"],
     }
 
@@ -63,10 +73,11 @@ def main() -> None:
         json.dump(output, f, indent=2)
 
     print(f"\nBlueprint saved to {args.output}")
-    print(f"  Fitness:        {result['fitness']:.1f}")
-    print(f"  Path length:    {result['path_length']}")
+    print(f"  Fitness:         {result['fitness']:.1f}")
+    print(f"  Path length:     {result['path_length']}")
     print(f"  Cumulative path: {result['cumulative_path']}")
-    print(f"  Exposure:       {result['exposure_total']}")
+    print(f"  Ground exposure: {result['exposure_total']}")
+    print(f"  Air exposure:    {result['air_exposure_total']}")
 
 
 if __name__ == "__main__":

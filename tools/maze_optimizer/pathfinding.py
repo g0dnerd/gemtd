@@ -111,3 +111,50 @@ def flatten_route(segments: list[list[tuple[int, int]]]) -> list[tuple[int, int]
 
 def footprint_cells(x: int, y: int) -> set[tuple[int, int]]:
     return {(x + dx, y + dy) for dx, dy in FOOTPRINT}
+
+
+try:
+    from pathfinding_cy import a_star as _fast_a_star
+except ImportError:
+    _fast_a_star = a_star
+
+
+def build_cell_to_seg(
+    segments: list[list[tuple[int, int]]],
+) -> dict[tuple[int, int], set[int]]:
+    mapping: dict[tuple[int, int], set[int]] = {}
+    for seg_idx, seg in enumerate(segments):
+        for cell in seg:
+            if cell in mapping:
+                mapping[cell].add(seg_idx)
+            else:
+                mapping[cell] = {seg_idx}
+    return mapping
+
+
+def reroute_affected(
+    grid: np.ndarray,
+    segments: list[list[tuple[int, int]]],
+    affected_cells: set[tuple[int, int]],
+    cell_to_seg: dict[tuple[int, int], set[int]],
+    extra: set[tuple[int, int]] | None = None,
+    waypoints=None,
+) -> list[list[tuple[int, int]]] | None:
+    if waypoints is None:
+        waypoints = WAYPOINTS
+    dirty: set[int] = set()
+    for cell in affected_cells:
+        s = cell_to_seg.get(cell)
+        if s:
+            dirty.update(s)
+    if not dirty:
+        return segments
+    new_segments = list(segments)
+    for seg_idx in dirty:
+        a = waypoints[seg_idx]
+        b = waypoints[seg_idx + 1]
+        new_seg = _fast_a_star((a[0], a[1]), (b[0], b[1]), grid, extra)
+        if new_seg is None:
+            return None
+        new_segments[seg_idx] = new_seg
+    return new_segments
