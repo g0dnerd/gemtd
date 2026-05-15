@@ -43,7 +43,7 @@ export async function handleExport(
     );
   }
 
-  const mf = "mode NOT IN ('debug', 'creative')";
+  const mf = "mode NOT IN ('debug', 'creative') AND wave_reached > 1";
 
   let sql: string;
   const binds: unknown[] = [];

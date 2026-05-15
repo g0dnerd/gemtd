@@ -8,7 +8,7 @@ export async function handleStats(
   const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
   const db = env.gemtd_telemetry;
 
-  const mf = "AND mode NOT IN ('debug', 'creative')";
+  const mf = "AND mode NOT IN ('debug', 'creative') AND wave_reached > 1";
 
   let rv = mf;
   let rBind: string[] = [];
