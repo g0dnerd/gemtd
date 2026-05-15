@@ -72,6 +72,8 @@ export interface GemBase {
   targeting: Targeting;
   /** Color hint for projectile (defaults to gem color). */
   projectileColor?: GemType;
+  /** Per-gem override for QUALITY_DMG_MULT. Entries omitted fall through to the global table. */
+  qualityDmgMult?: Partial<Record<Quality, number>>;
 }
 
 /** Per-gem stat block. */
@@ -85,6 +87,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseAtkSpeed: 1.0,
     effects: [{ kind: 'splash', radius: 1.0, falloff: 0.5 }],
     targeting: 'all',
+    qualityDmgMult: { 1: 0.85, 2: 1.7, 3: 3.5, 4: 6.6, 5: 13.2 },
   },
   sapphire: {
     name: 'Sapphire',
@@ -199,8 +202,7 @@ const QUALITY_SPEED_BONUS: Record<Quality, number> = {
 };
 
 /** Effect potency typically scales with quality too. */
-function scaleEffects(effects: EffectKind[], quality: Quality): EffectKind[] {
-  const dmgScale = QUALITY_DMG_MULT[quality];
+function scaleEffects(effects: EffectKind[], quality: Quality, dmgScale: number): EffectKind[] {
   return effects.map((e) => {
     switch (e.kind) {
       case 'poison':
@@ -253,7 +255,8 @@ const QUALITY_LABELS: Record<Quality, string> = {
 
 export function gemStats(gem: GemType, quality: Quality): GemStats {
   const base = GEM_BASE[gem];
-  const dmgMid = base.baseDmg * QUALITY_DMG_MULT[quality];
+  const dmgMult = base.qualityDmgMult?.[quality] ?? QUALITY_DMG_MULT[quality];
+  const dmgMid = base.baseDmg * dmgMult;
   const half = dmgMid * base.spread;
   return {
     gem,
@@ -266,7 +269,7 @@ export function gemStats(gem: GemType, quality: Quality): GemStats {
     range: base.baseRange + QUALITY_RANGE_BONUS[quality],
     atkSpeed: +(base.baseAtkSpeed * QUALITY_SPEED_BONUS[quality]).toFixed(2),
     cost: QUALITY_BASE_COST[quality],
-    effects: scaleEffects(base.effects, quality),
+    effects: scaleEffects(base.effects, quality, dmgMult),
     targeting: base.targeting,
   };
 }

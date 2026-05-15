@@ -229,6 +229,13 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.3.3",
+      notes: [
+        "<b>Balance</b> — Ruby damage nerfed ~15–40% (scaling by tier), hitting Flawless/Perfect hardest.",
+        "<b>Balance</b> — Wave 40 boss and healer HP reduced by 20%.",
+      ],
+    },
+    {
       ver: "1.3.2",
       notes: [
         "<b>Balance</b> — Star Ruby range reduced by 35% across all tiers.",
