@@ -229,6 +229,13 @@ function changesBody(): HTMLElement {
 
   const versions: Array<{ ver: string; notes: string[] }> = [
     {
+      ver: "1.3.2",
+      notes: [
+        "<b>Balance</b> — Star Ruby range reduced by 35% across all tiers.",
+        "<b>Balance</b> — Wave 24 air creep armor reduced from 3 to 2.",
+      ],
+    },
+    {
       ver: "1.3.1",
       notes: [
         "<b>Balance</b> — Air units move 15% slower (2.0 → 1.7 tiles/s).",

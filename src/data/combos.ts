@@ -422,9 +422,9 @@ const ALL_COMBOS: ComboRecipe[] = [
     stats: {
       dmgMin: 0,
       dmgMax: 0,
-      range: 3.5,
+      range: 2.275,
       atkSpeed: 1.0,
-      effects: [{ kind: "prox_burn", dps: 34, radius: 3.5 }],
+      effects: [{ kind: "prox_burn", dps: 34, radius: 2.275 }],
       blurb: "Burns all enemies within range for 34/s.",
       targeting: "all",
     },
@@ -435,13 +435,13 @@ const ALL_COMBOS: ComboRecipe[] = [
         stats: {
           dmgMin: 0,
           dmgMax: 0,
-          range: 3.75,
+          range: 2.4375,
           atkSpeed: 1.0,
           effects: [
             {
               kind: "prox_burn_ramp",
               dps: 36,
-              radius: 3.75,
+              radius: 2.4375,
               rampPct: 0.08,
               rampCap: 0.8,
             },
@@ -456,13 +456,13 @@ const ALL_COMBOS: ComboRecipe[] = [
         stats: {
           dmgMin: 0,
           dmgMax: 0,
-          range: 4.0,
+          range: 2.6,
           atkSpeed: 1.0,
           effects: [
             {
               kind: "prox_burn_ramp",
               dps: 95,
-              radius: 4.0,
+              radius: 2.6,
               rampPct: 0.12,
               rampCap: 1.5,
             },
