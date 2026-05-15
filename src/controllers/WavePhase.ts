@@ -168,6 +168,9 @@ export class WavePhase {
     c.py = (tA.y + (tB.y - tA.y) * frac) * FINE_TILE + FINE_TILE / 2;
 
     // Clear expired buffs/states
+    if (c.stun && c.stun.expiresAt <= this.game.state.tick) c.stun = undefined;
+    if (c.slow && c.slow.expiresAt <= this.game.state.tick) c.slow = undefined;
+    if (c.poison && c.poison.expiresAt <= this.game.state.tick) c.poison = undefined;
     if (c.burrowed && c.burrowed.expiresAt <= this.game.state.tick) c.burrowed = undefined;
     if (c.healBuff && c.healBuff.expiresAt <= this.game.state.tick) c.healBuff = undefined;
     if (c.armorDebuff && c.armorDebuff.expiresAt <= this.game.state.tick) c.armorDebuff = undefined;
