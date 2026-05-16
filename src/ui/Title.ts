@@ -61,6 +61,14 @@ export function mountTitle(
   const footer = document.createElement("div");
   footer.className = "title-footer";
 
+  const footerTop = document.createElement("div");
+  footerTop.className = "title-footer-top";
+  const version = document.createElement("span");
+  version.textContent = "v1.4.3";
+  footerTop.appendChild(version);
+
+  const footerBottom = document.createElement("div");
+  footerBottom.className = "title-footer-bottom";
   const muteBtn = document.createElement("button");
   muteBtn.className = "title-mute-btn";
   muteBtn.textContent = isMuted() ? "MUSIC OFF" : "MUSIC ON";
@@ -69,15 +77,14 @@ export function mountTitle(
     const nowMuted = toggleMute();
     muteBtn.textContent = nowMuted ? "MUSIC OFF" : "MUSIC ON";
   });
-
-  const credit = document.createElement("div");
-  credit.className = "title-credit";
+  const sep = document.createElement("span");
+  sep.textContent = "·";
+  const credit = document.createElement("span");
+  credit.className = "title-footer-credit";
   credit.textContent = "Music by hundredsense";
+  footerBottom.append(muteBtn, sep, credit);
 
-  const version = document.createElement("div");
-  version.textContent = "v1.4.3";
-
-  footer.append(credit, version, muteBtn);
+  footer.append(footerTop, footerBottom);
   screen.appendChild(footer);
 
   root.appendChild(screen);
