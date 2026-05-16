@@ -358,6 +358,7 @@ export class Combat {
 
   private applyEffects(c: CreepState, effects: EffectKind[], _owner: TowerState): void {
     if (!c.alive) return;
+    if (c.chrysalidAwakened) return;
     const tick = this.game.state.tick;
     for (const e of effects) {
       switch (e.kind) {

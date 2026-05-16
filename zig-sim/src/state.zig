@@ -91,6 +91,8 @@ pub const CreepState = struct {
     // Poison spread on death
     poison_spread_count: i32 = 0,
     poison_spread_radius: f32 = 0,
+    // Chrysalid awakened state
+    chrysalid_awakened: bool = false,
     // Container payload (index into payload pool)
     payload_index: i32 = -1,
     payload_count: i32 = 0,
@@ -189,6 +191,7 @@ pub const State = struct {
     active_draw_slot: i32 = -1, // -1 = none
 
     wave_stats: WaveStats = .{},
+    last_wave_stats: WaveStats = .{},
 
     // Payload pool for container creeps
     payload_pool: [MAX_PAYLOAD_POOL]PayloadEntry = undefined,

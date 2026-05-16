@@ -71,6 +71,8 @@ pub const CreepKind = enum(u8) {
     gazer = 9,
     coral = 10,
     anemone = 11,
+    chrysalid = 12,
+    mycoid = 13,
 };
 
 pub const Phase = enum(u8) {

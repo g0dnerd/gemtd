@@ -67,6 +67,8 @@ const ARCHETYPE_COLORS: Record<CreepKind, string> = {
   gazer: "#d090f0",
   coral: "#78e898",
   anemone: "#b8f4ee",
+  chrysalid: "#d090f0",
+  mycoid: "#78e898",
 };
 
 /** Static lookup: which gem each creep archetype is weak to. */
@@ -83,6 +85,8 @@ const ARCHETYPE_WEAKNESS: Record<CreepKind, GemType> = {
   gazer: "sapphire",
   coral: "emerald",
   anemone: "topaz",
+  chrysalid: "ruby",
+  mycoid: "diamond",
 };
 
 export function mountHud(

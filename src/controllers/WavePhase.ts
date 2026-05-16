@@ -21,6 +21,9 @@ const WIZARD_TELEPORT_TILES = 8;
 const TUNNELER_COOLDOWN = 12 * SIM_HZ;
 const TUNNELER_BURROW_DURATION = 3.5 * SIM_HZ;
 
+const CHRYSALID_HP_THRESHOLD = 0.4;
+const CHRYSALID_SPEED_MULT = 1.5;
+
 export class WavePhase {
   private wave = 0;
   private spawnedSoFar = 0;
@@ -189,6 +192,19 @@ export class WavePhase {
     }
     if (c.hp <= 0) {
       this.kill(c);
+      return;
+    }
+
+    // Chrysalid awakening: when HP drops below threshold, become debuff-immune + faster
+    if (c.kind === 'chrysalid' && !c.chrysalidAwakened && c.hp / c.maxHp <= CHRYSALID_HP_THRESHOLD) {
+      c.chrysalidAwakened = true;
+      c.speed *= CHRYSALID_SPEED_MULT;
+      c.slowResist = 1;
+      c.slow = undefined;
+      c.stun = undefined;
+      c.poison = undefined;
+      c.armorDebuff = undefined;
+      this.game.bus.emit('creep:chrysalidAwaken', { id: c.id });
     }
   }
 

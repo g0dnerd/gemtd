@@ -3,6 +3,7 @@ const Game = @import("Game.zig");
 const state_mod = @import("state.zig");
 const types = @import("types.zig");
 const constants = @import("constants.zig");
+const gems = @import("gems.zig");
 
 // C-compatible result types
 pub const PlaceResult = extern struct {
@@ -117,8 +118,8 @@ pub export fn sim_run_wave(handle: *Game) WaveResult {
         .wave = st.wave,
         .lives = st.lives,
         .gold = st.gold,
-        .killed = st.wave_stats.killed,
-        .leaked = st.wave_stats.leaked,
+        .killed = st.last_wave_stats.killed,
+        .leaked = st.last_wave_stats.leaked,
     };
 }
 
@@ -190,6 +191,39 @@ pub export fn sim_get_state(handle: *Game) StateSnapshot {
     };
 }
 
+pub export fn sim_get_route(handle: *Game, out: [*]Pos, max: u32) u32 {
+    const st = &handle.state;
+    const n = @min(st.flat_route_len, max);
+    for (0..n) |i| {
+        out[i] = .{ .x = st.flat_route[i].x, .y = st.flat_route[i].y };
+    }
+    return @intCast(n);
+}
+
+pub export fn sim_try_place_route_len(handle: *Game, gx: i32, gy: i32) i32 {
+    const pathfinding = @import("pathfinding.zig");
+    const st = &handle.state;
+    const GRID_SIZE = constants.GRID_W * constants.GRID_H;
+
+    for ([_][2]i32{ .{ 0, 0 }, .{ 1, 0 }, .{ 0, 1 }, .{ 1, 1 } }) |off| {
+        const fx: usize = @intCast(gx + off[0]);
+        const fy: usize = @intCast(gy + off[1]);
+        if (!st.grid[fy][fx].isBuildable()) return -1;
+    }
+
+    var extra: [GRID_SIZE]bool = .{false} ** GRID_SIZE;
+    for ([_][2]i32{ .{ 0, 0 }, .{ 1, 0 }, .{ 0, 1 }, .{ 1, 1 } }) |off| {
+        const fx: usize = @intCast(gx + off[0]);
+        const fy: usize = @intCast(gy + off[1]);
+        extra[fy * constants.GRID_W + fx] = true;
+    }
+    var temp_st = st.*;
+    if (pathfinding.findRoute(&st.grid, &extra, &temp_st)) {
+        return @intCast(temp_st.flat_route_len);
+    }
+    return -1;
+}
+
 pub export fn sim_get_valid_placements(handle: *Game, out: [*]Pos, max: u32) u32 {
     const pathfinding = @import("pathfinding.zig");
     const st = &handle.state;
@@ -228,4 +262,30 @@ pub export fn sim_get_valid_placements(handle: *Game, out: [*]Pos, max: u32) u32
         }
     }
     return count;
+}
+
+// Parameter injection for balance search
+// Layout: [gem0.base_dmg, gem0.spread, gem0.base_range, gem0.base_atk_speed, gem1.base_dmg, ...]
+pub export fn sim_set_gem_params(params: [*]const f32, count: u32) void {
+    const gem_count = @min(count / 4, types.GemType.count);
+    for (0..gem_count) |i| {
+        gems.GEM_BASE[i].base_dmg = params[i * 4];
+        gems.GEM_BASE[i].spread = params[i * 4 + 1];
+        gems.GEM_BASE[i].base_range = params[i * 4 + 2];
+        gems.GEM_BASE[i].base_atk_speed = params[i * 4 + 3];
+    }
+}
+
+// Layout: [QUALITY_DMG_MULT × 5, QUALITY_RANGE_BONUS × 5, QUALITY_SPEED_BONUS × 5]
+pub export fn sim_set_quality_params(params: [*]const f32, count: u32) void {
+    _ = count;
+    for (0..5) |i| {
+        gems.QUALITY_DMG_MULT[i] = params[i];
+        gems.QUALITY_RANGE_BONUS[i] = params[i + 5];
+        gems.QUALITY_SPEED_BONUS[i] = params[i + 10];
+    }
+}
+
+pub export fn sim_reset_params() void {
+    gems.resetParams();
 }

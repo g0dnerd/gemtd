@@ -237,6 +237,54 @@ export const SPRITE_ANEMONE: PixelGrid = [
   [0,0,0,0,4,4,4,4,0,0,0,0],
 ];
 
+/** CHRYSALID (shell) — smooth oval cocoon with horizontal seam lines. */
+export const SPRITE_CHRYSALID: PixelGrid = [
+  [0,0,0,0,4,4,4,4,0,0,0,0],
+  [0,0,0,4,3,3,3,3,4,0,0,0],
+  [0,0,4,3,2,2,2,2,3,4,0,0],
+  [0,4,3,2,2,4,4,2,2,3,4,0],
+  [0,4,3,2,4,5,5,4,2,3,4,0],
+  [0,4,3,2,2,4,4,2,2,3,4,0],
+  [0,4,3,2,2,2,2,2,2,3,4,0],
+  [0,4,3,3,4,2,2,4,3,3,4,0],
+  [0,0,4,3,3,2,2,3,3,4,0,0],
+  [0,0,4,3,3,3,3,3,3,4,0,0],
+  [0,0,0,4,3,3,3,3,4,0,0,0],
+  [0,0,0,0,4,4,4,4,0,0,0,0],
+];
+
+/** CHRYSALID (awakened) — Ancient One: eldritch bloom with spreading tendrils. */
+export const SPRITE_CHRYSALID_AWAKE: PixelGrid = [
+  [3,0,0,0,5,4,4,5,0,0,0,3],
+  [0,0,0,4,1,1,1,1,4,0,0,0],
+  [0,0,4,1,1,4,4,1,1,4,0,0],
+  [0,4,1,2,4,7,7,4,2,1,4,0],
+  [4,1,2,2,2,4,4,2,2,2,1,4],
+  [4,2,2,2,2,2,2,2,2,2,2,4],
+  [4,1,3,2,5,2,2,5,2,3,1,4],
+  [0,4,3,3,2,2,2,2,3,3,4,0],
+  [4,0,4,3,4,3,3,4,3,4,0,4],
+  [0,4,0,4,0,4,4,0,4,0,4,0],
+  [4,0,0,0,0,0,0,0,0,0,0,4],
+  [0,0,0,0,0,0,0,0,0,0,0,0],
+];
+
+/** MYCOID — upright toadstool with rising spore particles. */
+export const SPRITE_MYCOID: PixelGrid = [
+  [0,0,0,2,0,0,0,0,2,0,0,0],
+  [0,0,0,0,4,4,4,4,0,0,0,0],
+  [0,0,4,4,1,1,1,1,4,4,0,0],
+  [0,4,1,1,1,2,2,1,1,1,4,0],
+  [4,1,1,2,4,5,5,4,2,1,1,4],
+  [4,2,2,2,2,2,2,2,2,2,2,4],
+  [0,4,4,2,2,2,2,2,2,4,4,0],
+  [0,0,0,4,2,2,2,2,4,0,0,0],
+  [0,0,0,4,3,2,2,3,4,0,0,0],
+  [0,0,0,4,3,3,3,3,4,0,0,0],
+  [0,0,4,3,3,3,3,3,3,4,0,0],
+  [0,0,0,4,4,4,4,4,4,0,0,0],
+];
+
 import type { CreepKind } from '../data/creeps';
 
 export const SPRITE_BY_KIND: Record<CreepKind, PixelGrid> = {
@@ -252,6 +300,8 @@ export const SPRITE_BY_KIND: Record<CreepKind, PixelGrid> = {
   gazer: SPRITE_GAZER,
   coral: SPRITE_CORAL,
   anemone: SPRITE_ANEMONE,
+  chrysalid: SPRITE_CHRYSALID,
+  mycoid: SPRITE_MYCOID,
 };
 
 /** Heart for the lives chip. */

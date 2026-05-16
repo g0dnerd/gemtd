@@ -17,7 +17,7 @@ pub const CreepArchetype = struct {
 };
 
 pub const ARCHETYPES = init: {
-    var a: [12]CreepArchetype = undefined;
+    var a: [14]CreepArchetype = undefined;
     a[@intFromEnum(types.CreepKind.normal)] = .{
         .kind = .normal, .speed = 1.6, .color = .amethyst, .hp_mult = 1.0, .bounty_mult = 1.0, .default_armor = 0, .flags = .{},
     };
@@ -53,6 +53,12 @@ pub const ARCHETYPES = init: {
     };
     a[@intFromEnum(types.CreepKind.anemone)] = .{
         .kind = .anemone, .speed = 1.5, .color = .aquamarine, .hp_mult = 1.5, .bounty_mult = 0.5, .default_armor = 0, .flags = .{},
+    };
+    a[@intFromEnum(types.CreepKind.chrysalid)] = .{
+        .kind = .chrysalid, .speed = 1.3, .color = .amethyst, .hp_mult = 1.4, .bounty_mult = 1.4, .default_armor = 0, .flags = .{},
+    };
+    a[@intFromEnum(types.CreepKind.mycoid)] = .{
+        .kind = .mycoid, .speed = 1.45, .color = .emerald, .hp_mult = 0.65, .bounty_mult = 1.3, .default_armor = 0, .flags = .{},
     };
     break :init a;
 };

@@ -26,12 +26,16 @@ pub const GemStats = struct {
     targeting: types.Targeting,
 };
 
-const QUALITY_DMG_MULT: [5]f32 = .{ 1.0, 2.2, 5.0, 11.0, 22.0 };
-const QUALITY_RANGE_BONUS: [5]f32 = .{ 0.0, 0.25, 0.5, 0.75, 1.0 };
-const QUALITY_SPEED_BONUS: [5]f32 = .{ 1.0, 1.05, 1.1, 1.18, 1.3 };
+const QUALITY_DMG_MULT_DEFAULT: [5]f32 = .{ 1.0, 2.2, 5.0, 11.0, 22.0 };
+const QUALITY_RANGE_BONUS_DEFAULT: [5]f32 = .{ 0.0, 0.25, 0.5, 0.75, 1.0 };
+const QUALITY_SPEED_BONUS_DEFAULT: [5]f32 = .{ 1.0, 1.05, 1.1, 1.18, 1.3 };
 const QUALITY_BASE_COST: [5]i32 = .{ 12, 60, 250, 1000, 4000 };
 
-pub const GEM_BASE: [types.GemType.count]GemBase = init: {
+pub var QUALITY_DMG_MULT: [5]f32 = QUALITY_DMG_MULT_DEFAULT;
+pub var QUALITY_RANGE_BONUS: [5]f32 = QUALITY_RANGE_BONUS_DEFAULT;
+pub var QUALITY_SPEED_BONUS: [5]f32 = QUALITY_SPEED_BONUS_DEFAULT;
+
+const GEM_BASE_DEFAULT: [types.GemType.count]GemBase = init: {
     var bases: [types.GemType.count]GemBase = undefined;
 
     // Ruby: splash
@@ -124,6 +128,15 @@ pub const GEM_BASE: [types.GemType.count]GemBase = init: {
 
     break :init bases;
 };
+
+pub var GEM_BASE: [types.GemType.count]GemBase = GEM_BASE_DEFAULT;
+
+pub fn resetParams() void {
+    GEM_BASE = GEM_BASE_DEFAULT;
+    QUALITY_DMG_MULT = QUALITY_DMG_MULT_DEFAULT;
+    QUALITY_RANGE_BONUS = QUALITY_RANGE_BONUS_DEFAULT;
+    QUALITY_SPEED_BONUS = QUALITY_SPEED_BONUS_DEFAULT;
+}
 
 pub fn gemStats(gem: types.GemType, quality: types.Quality) GemStats {
     const base = &GEM_BASE[@intFromEnum(gem)];

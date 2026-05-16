@@ -6,7 +6,7 @@
 
 import { GemType } from '../render/theme';
 
-export type CreepKind = 'normal' | 'fast' | 'armored' | 'air' | 'boss' | 'healer' | 'wizard' | 'tunneler' | 'vessel' | 'gazer' | 'coral' | 'anemone';
+export type CreepKind = 'normal' | 'fast' | 'armored' | 'air' | 'boss' | 'healer' | 'wizard' | 'tunneler' | 'vessel' | 'gazer' | 'coral' | 'anemone' | 'chrysalid' | 'mycoid';
 
 export interface CreepArchetype {
   kind: CreepKind;
@@ -118,6 +118,22 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     color: 'aquamarine',
     hpMult: 1.5,
     bountyMult: 0.5,
+    flags: {},
+  },
+  chrysalid: {
+    kind: 'chrysalid',
+    speed: 1.3,
+    color: 'amethyst',
+    hpMult: 1.4,
+    bountyMult: 1.4,
+    flags: {},
+  },
+  mycoid: {
+    kind: 'mycoid',
+    speed: 1.45,
+    color: 'emerald',
+    hpMult: 0.65,
+    bountyMult: 1.3,
     flags: {},
   },
 };

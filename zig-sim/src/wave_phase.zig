@@ -26,6 +26,9 @@ const WIZARD_TELEPORT_TILES: f32 = 8.0;
 const TUNNELER_COOLDOWN = 12 * SIM_HZ_INT;
 const TUNNELER_BURROW_DURATION: i32 = @intFromFloat(3.5 * SIM_HZ);
 
+const CHRYSALID_HP_THRESHOLD: f32 = 0.4;
+const CHRYSALID_SPEED_MULT: f32 = 1.5;
+
 pub const WavePhaseState = struct {
     wave: i32 = 0,
     spawned_so_far: i32 = 0,
@@ -243,6 +246,24 @@ fn advanceCreep(wps: *WavePhaseState, st: *state_mod.State, c: *state_mod.CreepS
 
     if (c.hp <= 0) {
         kill(wps, st, c, ci, rng, next_id);
+        return;
+    }
+
+    // Chrysalid awakening
+    if (c.kind == .chrysalid and !c.chrysalid_awakened) {
+        const ratio = @as(f32, @floatFromInt(c.hp)) / @as(f32, @floatFromInt(c.max_hp));
+        if (ratio <= CHRYSALID_HP_THRESHOLD) {
+            c.chrysalid_awakened = true;
+            c.speed *= CHRYSALID_SPEED_MULT;
+            c.slow_resist = 1.0;
+            c.slow_factor = 1.0;
+            c.slow_expires = 0;
+            c.stun_expires = 0;
+            c.poison_dps = 0;
+            c.poison_expires = 0;
+            c.armor_debuff_value = 0;
+            c.armor_debuff_expires = 0;
+        }
     }
 }
 
@@ -353,6 +374,8 @@ fn endWave(wps: *WavePhaseState, st: *state_mod.State) void {
         st.gold += def.bonus;
         wps.gold_earned += def.bonus;
     }
+
+    st.last_wave_stats = st.wave_stats;
 
     // Transition: check for gameover or victory, else enter build
     if (st.lives <= 0) {

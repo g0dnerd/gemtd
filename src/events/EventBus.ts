@@ -40,6 +40,7 @@ export interface GameEvents {
   'vfx:critSplash': { x: number; y: number; radiusPx: number };
   'vfx:bonusGold': { x: number; y: number };
   'vfx:freezeProc': { x: number; y: number };
+  'creep:chrysalidAwaken': { id: number };
 }
 
 type Handler<T> = (payload: T) => void;

@@ -16,7 +16,7 @@ import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
 import { OPAL_FRAME_COUNT } from "./spriteData";
 import { gemStats } from "../data/gems";
 import { COMBO_BY_NAME, comboStatsAtTier } from "../data/combos";
-import { SPRITE_BY_KIND } from "./sprites";
+import { SPRITE_BY_KIND, SPRITE_CHRYSALID_AWAKE } from "./sprites";
 import { drawPixelGrid } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX } from "./spriteData";
@@ -28,6 +28,7 @@ interface PerEntity {
   obj: Container;
   lastHpRatio?: number;
   rockBorder?: Graphics;
+  chrysalidAwakened?: boolean;
 }
 
 interface StargemFx {
@@ -514,6 +515,37 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
     entry.obj.x = c.px;
     entry.obj.y = c.py;
     entry.obj.alpha = c.burrowed ? 0.3 : 1;
+    // Chrysalid sprite swap on awakening
+    if (c.chrysalidAwakened && !entry.chrysalidAwakened) {
+      entry.chrysalidAwakened = true;
+      const palette = GEM_PALETTE[c.color];
+      const g = entry.obj.children[0] as Graphics;
+      g.clear();
+      const px = 3;
+      drawPixelGrid(
+        g,
+        SPRITE_CHRYSALID_AWAKE,
+        {
+          light: palette.light,
+          mid: palette.mid,
+          dark: palette.dark,
+          outline: 0x0a0510,
+          sparkle: THEME.ink,
+          extra: THEME.bad,
+          accent: THEME.accent,
+        },
+        px,
+        -SPRITE_CHRYSALID_AWAKE[0].length * px / 2,
+        -SPRITE_CHRYSALID_AWAKE.length * px / 2,
+      );
+      const hpBg = new Graphics();
+      hpBg.rect(-10, -22, 20, 3).fill(0x000000);
+      g.addChild(hpBg);
+      const hpBar = new Graphics();
+      hpBar.label = "hp";
+      g.addChild(hpBar);
+      entry.lastHpRatio = undefined;
+    }
     // Selection ring
     const isSelected = c.id === selectedCreepId;
     let ring = entry.obj.children.find((ch) => ch.label === "sel") as Graphics | undefined;

@@ -119,6 +119,8 @@ export interface CreepState {
   armorStacks?: { count: number; armorPer: number; decayTicks: number; lastDecayTick: number };
   /** Poison spread params — stored when stun_poison applies. */
   poisonSpread?: { count: number; radius: number };
+  /** Chrysalid awakened state — debuff-immune + speed boost. */
+  chrysalidAwakened?: boolean;
   /** Creeps to spawn when this container dies. */
   payload?: CreepPayload[];
 }

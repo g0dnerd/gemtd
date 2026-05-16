@@ -642,6 +642,7 @@ pub fn applyDamage(st: *state_mod.State, ci: usize, raw_dmg: i32, owner: *state_
 fn applyEffects(st: *state_mod.State, ci: usize, effs: *const effects_mod.EffectList, rng: *rng_mod.RNG) void {
     const c = &st.creeps[ci];
     if (!c.alive) return;
+    if (c.chrysalid_awakened) return;
     const tick = st.tick;
 
     for (effs) |e| {
