@@ -6,7 +6,7 @@
 
 import { GemType } from '../render/theme';
 
-export type CreepKind = 'normal' | 'fast' | 'armored' | 'air' | 'boss' | 'healer' | 'wizard' | 'tunneler' | 'vessel' | 'gazer' | 'coral' | 'anemone' | 'chrysalid' | 'mycoid';
+export type CreepKind = 'normal' | 'fast' | 'armored' | 'air' | 'boss' | 'healer' | 'wizard' | 'tunneler' | 'vessel' | 'gazer' | 'coral' | 'anemone' | 'chrysalid' | 'mycoid' | 'gestation';
 
 export interface CreepArchetype {
   kind: CreepKind;
@@ -145,6 +145,15 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 0.65,
     bountyMult: 1.3,
     flags: {},
-    blurb: 'Leaves a spore cloud that slows towers',
+    blurb: 'Spore pulse silences tower auras nearby',
+  },
+  gestation: {
+    kind: 'gestation',
+    speed: 0.35,
+    color: 'opal',
+    hpMult: 8.0,
+    bountyMult: 0.5,
+    flags: {},
+    blurb: 'Ruptures on death, releasing bosses',
   },
 };

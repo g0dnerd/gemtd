@@ -24,6 +24,10 @@ const TUNNELER_BURROW_DURATION = 3.5 * SIM_HZ;
 const CHRYSALID_HP_THRESHOLD = 0.4;
 const CHRYSALID_SPEED_MULT = 1.5;
 
+const MYCOID_PULSE_COOLDOWN = 4 * SIM_HZ;
+const MYCOID_PULSE_RADIUS_PX = 2.5 * TILE;
+const MYCOID_SILENCE_DURATION = 3 * SIM_HZ;
+
 export class WavePhase {
   private wave = 0;
   private spawnedSoFar = 0;
@@ -249,6 +253,9 @@ export class WavePhase {
       case 'tunneler':
         this.tunnelerAbility(c, tick);
         break;
+      case 'mycoid':
+        this.mycoidAbility(c, tick);
+        break;
     }
   }
 
@@ -290,6 +297,22 @@ export class WavePhase {
     if (c.burrowed && c.burrowed.expiresAt > tick) return;
     c.abilityCooldown = tick + TUNNELER_COOLDOWN;
     c.burrowed = { expiresAt: tick + TUNNELER_BURROW_DURATION };
+  }
+
+  private mycoidAbility(c: CreepState, tick: number): void {
+    c.abilityCooldown = tick + MYCOID_PULSE_COOLDOWN;
+    const state = this.game.state;
+    const r2 = MYCOID_PULSE_RADIUS_PX * MYCOID_PULSE_RADIUS_PX;
+    const silenceEnd = tick + MYCOID_SILENCE_DURATION;
+    for (const t of state.towers) {
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+      const dx = tx - c.px;
+      const dy = ty - c.py;
+      if (dx * dx + dy * dy > r2) continue;
+      t.silencedUntil = Math.max(t.silencedUntil ?? 0, silenceEnd);
+    }
+    this.game.bus.emit('vfx:mycoidPulse', { x: c.px, y: c.py, radiusPx: MYCOID_PULSE_RADIUS_PX });
   }
 
   private waypointPositions(): number[] {

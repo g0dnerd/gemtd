@@ -61,6 +61,8 @@ export interface TowerState {
   lastFreezeTick?: number;
   /** Creep IDs in burn aura last tick — for linger_burn exit detection. */
   burnAuraCreepIds?: number[];
+  /** Tick when aura silence expires (mycoid spore pulse). */
+  silencedUntil?: number;
 }
 
 export interface RockState {
@@ -219,6 +221,8 @@ export interface State {
     leakedThisWave: number;
     totalToSpawn: number;
   };
+  /** Creep kinds the player has already seen in the threat panel this run. */
+  seenCreepKinds: CreepKind[];
   /** Override wave definition for debug mode. */
   debugWaveDef?: WaveDef;
 }
@@ -273,5 +277,6 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     tick: 0,
     totalWaves,
     waveStats: { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 },
+    seenCreepKinds: [],
   };
 }

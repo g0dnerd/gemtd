@@ -63,7 +63,7 @@ export class Combat {
 
     // Towers fire (only during waves). Traps are handled by the Traps system.
     if (state.phase === 'wave') {
-      const auras = computeAuraMults(state.towers);
+      const auras = computeAuraMults(state.towers, tick);
       for (const t of state.towers) {
         if (t.isTrap) continue;
         const stats = effectiveStats(t);
@@ -427,6 +427,7 @@ export class Combat {
     const inBurnAura = new Set<number>();
 
     for (const src of towers) {
+      if (src.silencedUntil && src.silencedUntil > tick) continue;
       const stats = effectiveStats(src);
       const tx = (src.x + 1) * FINE_TILE;
       const ty = (src.y + 1) * FINE_TILE;
@@ -670,11 +671,12 @@ interface AuraMults {
   dmg: Map<number, number>;
 }
 
-function computeAuraMults(towers: TowerState[]): AuraMults {
+function computeAuraMults(towers: TowerState[], tick: number): AuraMults {
   const atkSpeed = new Map<number, number>();
   const dmg = new Map<number, number>();
   for (const src of towers) {
     if (src.isTrap) continue;
+    if (src.silencedUntil && src.silencedUntil > tick) continue;
     const stats = effectiveStats(src);
     for (const e of stats.effects) {
       if (e.kind !== 'aura_atkspeed' && e.kind !== 'aura_dmg') continue;
