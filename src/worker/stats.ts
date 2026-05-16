@@ -92,7 +92,7 @@ export async function handleStats(
               avg(t.total_damage) as avg_damage,
               avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave
        FROM towers t JOIN runs r ON t.run_id = r.run_id
-       WHERE 1=1 ${cv.replace("run_id", "t.run_id")}
+       WHERE t.combo_key = '' ${cv.replace("run_id", "t.run_id")}
        GROUP BY t.gem, t.quality ORDER BY avg_dmg_per_wave DESC`,
     ).bind(...cBind).all(),
 
