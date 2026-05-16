@@ -282,8 +282,10 @@ export class BuildPhase {
           return false;
         }
         const newTowerId = this.commitTransform(towers, towers[0].gem, newQ, undefined);
-        this.autoConcludeRound(newTowerId);
-        this.game.enterWave();
+        if (allDrawsPlaced(state)) {
+          this.autoConcludeRound(newTowerId);
+          this.game.enterWave();
+        }
         return true;
       }
     }
@@ -306,7 +308,7 @@ export class BuildPhase {
     const outputQ = (Math.max(...towers.map((t) => t.quality))) as Quality;
     const inputTouchedRound = state.phase === 'build' && towers.some((t) => currentRoundIds.has(t.id));
     const newTowerId = this.commitTransform(towers, combo.visualGem, outputQ, combo.key);
-    if (inputTouchedRound) {
+    if (inputTouchedRound && allDrawsPlaced(state)) {
       this.autoConcludeRound(newTowerId);
       this.game.enterWave();
     }
@@ -490,7 +492,7 @@ export class BuildPhase {
 
     this.game.selectTower(towerId);
 
-    if (!duringWave) {
+    if (!duringWave && allDrawsPlaced(state)) {
       this.autoConcludeRound(towerId);
       this.game.enterWave();
     }
