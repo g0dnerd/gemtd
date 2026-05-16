@@ -154,6 +154,6 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 8.0,
     bountyMult: 0.5,
     flags: {},
-    blurb: 'At 50% HP, enrages and silences nearby towers. Releases bosses on death',
+    blurb: 'At 50% HP, enrages. Releases bosses on death',
   },
 };

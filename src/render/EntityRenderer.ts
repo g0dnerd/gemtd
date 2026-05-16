@@ -157,8 +157,6 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
-    const silenced = !!(t.silencedUntil && t.silencedUntil > tick);
-    entry.obj.alpha = silenced ? 0.5 : 1;
     if (entry.stargemFx) animateStargemFx(entry.stargemFx, tick);
     else if (entry.fx) animateTowerFx(entry.fx, tick);
     if (entry.opalFrames) {
@@ -578,13 +576,6 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
         -SPRITE_CHRYSALID_AWAKE[0].length * px / 2,
         -SPRITE_CHRYSALID_AWAKE.length * px / 2,
       );
-      const hpBarY = -(SPRITE_CHRYSALID_AWAKE.length * px / 2 + 4);
-      const hpBg = new Graphics();
-      hpBg.rect(-10, hpBarY, 20, 3).fill(0x000000);
-      g.addChild(hpBg);
-      const hpBar = new Graphics();
-      hpBar.label = "hp";
-      g.addChild(hpBar);
       entry.lastHpRatio = undefined;
     }
     // Gestation sprite swap on enrage
@@ -601,13 +592,6 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
         -SPRITE_GESTATION_ENRAGED[0].length * px / 2,
         -SPRITE_GESTATION_ENRAGED.length * px / 2,
       );
-      const hpBarY = -(SPRITE_GESTATION_ENRAGED.length * px / 2 + 4);
-      const hpBg = new Graphics();
-      hpBg.rect(-15, hpBarY, 30, 4).fill(0x000000);
-      g.addChild(hpBg);
-      const hpBar = new Graphics();
-      hpBar.label = "hp";
-      g.addChild(hpBar);
       entry.lastHpRatio = undefined;
     }
     // Selection ring

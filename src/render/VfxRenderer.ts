@@ -120,30 +120,6 @@ export class VfxRenderer {
       this.pool.push({ kind: 'snowflake', x: e.x, y: e.y, age: 0, lifetime: 24 });
     });
 
-    bus.on('vfx:gestationPulse', (e) => {
-      this.pool.push({
-        kind: 'ring', x: e.x, y: e.y,
-        maxRadius: e.radiusPx, color: 0xc83040,
-        age: 0, lifetime: 28,
-      });
-      this.pool.push({
-        kind: 'ring', x: e.x, y: e.y,
-        maxRadius: e.radiusPx * 0.7, color: 0xe8dcd0,
-        age: 0, lifetime: 22,
-      });
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2;
-        this.pool.push({
-          kind: 'drift',
-          x: e.x, y: e.y,
-          vx: Math.cos(a) * 2.5,
-          vy: Math.sin(a) * 2.5,
-          color: 0xe8dcd0, size: 2.5,
-          age: 0, lifetime: 30,
-        });
-      }
-    });
-
     bus.on('vfx:gestationTransition', (e) => {
       this.pool.push({
         kind: 'ring', x: e.x, y: e.y,
@@ -198,7 +174,6 @@ export class VfxRenderer {
       this.drawFocusPips(state);
       this.tickAuraShimmer(state);
       this.tickCorrosion(state);
-      this.tickSilence(state);
     }
   }
 
@@ -337,32 +312,6 @@ export class VfxRenderer {
     }
   }
 
-  private tickSilence(state: State): void {
-    const g = this.gfx!;
-    for (const t of state.towers) {
-      if (!t.silencedUntil || t.silencedUntil <= state.tick) continue;
-      const tx = (t.x + 1) * FINE_TILE;
-      const ty = (t.y + 1) * FINE_TILE;
-
-      // Dark vignette overlay — semi-transparent dark circle over the tower
-      const r = FINE_TILE * 1.1;
-      g.circle(tx, ty, r).fill({ color: 0x100818, alpha: 0.35 });
-      g.circle(tx, ty, r * 0.6).fill({ color: 0x100818, alpha: 0.2 });
-
-      // Spawn rising wisps periodically
-      if (this.frame % 12 === 0) {
-        const ox = (Math.random() - 0.5) * FINE_TILE * 0.8;
-        this.pool.push({
-          kind: 'drift',
-          x: tx + ox, y: ty,
-          vx: (Math.random() - 0.5) * 0.2,
-          vy: -0.5 - Math.random() * 0.3,
-          color: 0x8040a0, size: 2,
-          age: 0, lifetime: 50,
-        });
-      }
-    }
-  }
 }
 
 function resolveEffects(t: TowerState): EffectKind[] {

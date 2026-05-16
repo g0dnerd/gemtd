@@ -394,7 +394,7 @@ export class Game {
           armor: 25,
           payload: [
             { kind: "chrysalid", count: 5, hp: 90000, bounty: 29, armor: 10 },
-            { kind: "mycoid", count: 5, hp: 90000, bounty: 29, armor: 10 },
+            { kind: "healer", count: 3, hp: 90000, bounty: 29, armor: 10 },
             // { kind: "boss", count: 5, hp: 86000, bounty: 29, armor: 20 },
             // { kind: "healer", count: 3, hp: 133000, bounty: 29, armor: 20 },
           ],
