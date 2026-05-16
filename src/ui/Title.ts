@@ -6,6 +6,7 @@
 import { GEM_TYPES } from "../render/theme";
 import { htmlGem } from "../render/htmlSprites";
 import { mountTutorialModal } from "./TutorialModal";
+import { isMuted, startMusic, toggleMute } from "./Audio";
 
 export function mountTitle(
   root: HTMLElement,
@@ -59,10 +60,29 @@ export function mountTitle(
   // Footer
   const footer = document.createElement("div");
   footer.className = "title-footer";
-  footer.textContent = "v1.4.3";
+
+  const muteBtn = document.createElement("button");
+  muteBtn.className = "title-mute-btn";
+  muteBtn.textContent = isMuted() ? "MUSIC OFF" : "MUSIC ON";
+  muteBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const nowMuted = toggleMute();
+    muteBtn.textContent = nowMuted ? "MUSIC OFF" : "MUSIC ON";
+  });
+
+  const credit = document.createElement("div");
+  credit.className = "title-credit";
+  credit.textContent = "Music by hundredsense";
+
+  const version = document.createElement("div");
+  version.textContent = "v1.4.3";
+
+  footer.append(credit, version, muteBtn);
   screen.appendChild(footer);
 
   root.appendChild(screen);
+
+  startMusic();
 
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {

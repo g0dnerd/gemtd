@@ -37,6 +37,7 @@ import {
 } from "../game/constants";
 import { WAVES, WaveDef, waveTotalCount } from "../data/waves";
 import { CREEP_ARCHETYPES, type CreepKind } from "../data/creeps";
+import { isMuted, toggleMute } from "./Audio";
 
 const TIER_LABELS = [
   "CHIPPED",
@@ -940,6 +941,17 @@ export function mountHud(
     refreshPathBtn();
   });
 
+  const SVG_SOUND_ON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 6h3l4-3v10l-4-3H2V6z" fill="currentColor"/><path d="M12 4c1.3 1.3 1.3 6.7 0 8" stroke="currentColor" stroke-width="1.5"/></svg>';
+  const SVG_SOUND_OFF = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 6h3l4-3v10l-4-3H2V6z" fill="currentColor"/><path d="M11 5l4 6M15 5l-4 6" stroke="currentColor" stroke-width="1.5"/></svg>';
+  const muteBtn = makeBtn("", () => {
+    const nowMuted = toggleMute();
+    muteBtn.innerHTML = nowMuted ? SVG_SOUND_OFF : SVG_SOUND_ON;
+    muteBtn.classList.toggle("is-on", !nowMuted);
+  });
+  muteBtn.innerHTML = isMuted() ? SVG_SOUND_OFF : SVG_SOUND_ON;
+  muteBtn.classList.add("btn-mute");
+  muteBtn.classList.toggle("is-on", !isMuted());
+
   utilsRow.append(undoBtn, speedBtn, pathBtn);
   actionBar.appendChild(utilsRow);
 
@@ -947,7 +959,7 @@ export function mountHud(
   systemRow.className = "action-bar-system";
   const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root));
   const exitBtn = makeBtn("EXIT", onExit);
-  systemRow.append(helpBtn, exitBtn);
+  systemRow.append(helpBtn, muteBtn, exitBtn);
   actionBar.appendChild(systemRow);
 
   const resetBtn = document.createElement("button");
