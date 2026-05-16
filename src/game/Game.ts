@@ -716,6 +716,7 @@ export class Game {
       this.state.towers,
       this.towerSprites,
       this.state.tick,
+      this.selectedTowerId,
     );
     renderRocks(
       this.layers.rocks,

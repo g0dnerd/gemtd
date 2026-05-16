@@ -11,7 +11,7 @@ import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
 import { activeDraw } from "../game/State";
 import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
-import { GEM_PALETTE, RUNE, THEME } from "./theme";
+import { GEM_PALETTE, type GemType, RUNE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
 import { OPAL_FRAME_COUNT } from "./spriteData";
 import { gemStats } from "../data/gems";
@@ -58,6 +58,7 @@ interface TowerEntry {
   opalFrames?: Texture[];
   /** Last rendered opal frame index. */
   opalFrame?: number;
+  selBracket?: Graphics;
 }
 
 interface TowerFx {
@@ -77,7 +78,7 @@ const projectileObjs = new Map<number, PerEntity>();
 
 const runeTextureCache = new Map<string, Texture>();
 
-export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number): void {
+export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number, selectedTowerId: number | null = null): void {
   const seen = new Set<number>();
   for (const t of towers) {
     seen.add(t.id);
@@ -147,6 +148,20 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         const sprite = towerContainer.children[0] as Sprite;
         sprite.texture = entry.opalFrames[frame];
       }
+    }
+    const isSelected = t.id === selectedTowerId;
+    if (isSelected && !entry.selBracket) {
+      const palette = GEM_PALETTE[t.gem as GemType];
+      entry.selBracket = new Graphics();
+      drawCornerBrackets(entry.selBracket, 2 * FINE_TILE, palette.light);
+      entry.obj.addChild(entry.selBracket);
+    } else if (!isSelected && entry.selBracket) {
+      entry.selBracket.destroy();
+      entry.selBracket = undefined;
+    }
+    if (entry.selBracket) {
+      const pulse = 0.6 + 0.4 * ((Math.sin((tick / SIM_HZ) * Math.PI * 2 / 1.8) + 1) / 2);
+      entry.selBracket.alpha = pulse;
     }
   }
   for (const [id, entry] of towerObjs) {
@@ -456,8 +471,9 @@ export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSp
     if (border) {
       border.clear();
       if (selected) {
-        border.rect(0, 0, 2 * FINE_TILE, 2 * FINE_TILE)
-          .stroke({ color: 0xd8f0f8, width: 2, alignment: 0.5 });
+        border.x = FINE_TILE;
+        border.y = FINE_TILE;
+        drawCornerBrackets(border, 2 * FINE_TILE, THEME.inkDim);
       }
     }
   }
@@ -741,6 +757,24 @@ function towerRange(t: TowerState): number {
     if (combo) return comboStatsAtTier(combo, t.upgradeTier ?? 0).range;
   }
   return gemStats(t.gem, t.quality).range;
+}
+
+function drawCornerBrackets(g: Graphics, size: number, color: number): void {
+  const arm = Math.round(size * 0.3);
+  const half = size / 2;
+  const w = 2;
+  // top-left
+  g.rect(-half, -half, arm, w).fill(color);
+  g.rect(-half, -half, w, arm).fill(color);
+  // top-right
+  g.rect(half - arm, -half, arm, w).fill(color);
+  g.rect(half - w, -half, w, arm).fill(color);
+  // bottom-left
+  g.rect(-half, half - w, arm, w).fill(color);
+  g.rect(-half, half - arm, w, arm).fill(color);
+  // bottom-right
+  g.rect(half - arm, half - w, arm, w).fill(color);
+  g.rect(half - w, half - arm, w, arm).fill(color);
 }
 
 function drawDashedCircle(g: Graphics, cx: number, cy: number, r: number, color: number, alpha = 0.7): void {
