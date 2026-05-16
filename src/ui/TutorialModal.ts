@@ -43,7 +43,6 @@ export function mountTutorialModal(root: HTMLElement): () => void {
   const sections: Section[] = [
     { title: "GOAL", body: goalBody() },
     { title: "BUILD", body: buildBody() },
-    { title: "MAZE", body: mazeBody() },
     { title: "COMBINE", body: combineBody() },
     ...(RUNES_ENABLED ? [{ title: "RUNES", body: runesBody() }] : []),
     { title: "KEYS", body: keysBody() },
@@ -133,15 +132,18 @@ function goalBody(): HTMLElement {
   const wrap = document.createElement("div");
   wrap.append(
     p(
-      `Survive <b>50 waves</b> of creeps. They walk from <b>Start</b> to <b>End</b> through 6 checkpoints.`,
+      `Survive <b>50 waves</b> of creeps. They walk the <b>shortest path</b> from Start to End through <b>6 checkpoints</b>. Place towers to <b>force longer detours</b> — more time in range means more damage.`,
     ),
     row(
       htmlHeart(18),
-      `Each leak costs a <b>life</b>. Lose all 50 and the run ends.`,
+      `Each leak costs a <b>life</b>. You start with <b>50</b> (or <b>1</b> in Hardcore). Lose them all and the run ends.`,
     ),
     row(
       htmlCoin(18),
-      `Kills earn <b>gold</b>. Spend it on chance-tier upgrades and combines.`,
+      `Kills earn <b>gold</b>. Spend it on chance-tier upgrades, combines, and removing rocks.`,
+    ),
+    p(
+      `A placement is <b>rejected</b> if it would block the path completely. <b>Air</b> creeps ignore the maze and fly straight between checkpoints.`,
     ),
   );
   return wrap;
@@ -167,22 +169,6 @@ function buildBody(): HTMLElement {
     ),
     p(
       `Once all 5 are placed, press <b>NEXT WAVE</b> (<kbd>SPACE</kbd>). After the wave, <b>keep one</b> tower (<kbd>K</kbd>); the other four become <b>rocks</b> that block creep paths — that's how you build your maze.`,
-    ),
-  );
-  return wrap;
-}
-
-function mazeBody(): HTMLElement {
-  const wrap = document.createElement("div");
-  wrap.append(
-    p(
-      `Creeps take the <b>shortest walkable path</b> through 6 <b>checkpoints</b>. Place towers to <b>force longer detours</b> — more time in range means more damage.`,
-    ),
-    p(
-      `A placement is <b>rejected</b> if it would fully block the path. <b>Air</b> creeps ignore the maze and fly straight between checkpoints.`,
-    ),
-    p(
-      `Each wave, 4 of your 5 gems become <b>rocks</b> when you pick a keeper. Rocks can be removed later for increasing gold cost.`,
     ),
   );
   return wrap;
@@ -501,9 +487,11 @@ function keysBody(): HTMLElement {
     ["K", "Keep hovered or selected tower"],
     ["C", "Open Combine menu"],
     ["U", "Undo last placement"],
+    ["R", "Remove selected rock"],
     ["1/2/4/8", "Sim speed"],
     ["P", "Toggle path overlay"],
-    ["R", "Restart game"],
+    ["H / ?", "Open this help screen"],
+    ["Ctrl+R", "Restart run"],
     ["ESC", "Deselect / close menu"],
   ];
   for (const [k, label] of keys) {
