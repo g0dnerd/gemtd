@@ -40,7 +40,6 @@ import {
   RUNES_ENABLED,
 } from "./constants";
 import { COMBOS, COMBO_BY_NAME, nextUpgrade } from "../data/combos";
-import type { CreepKind } from "../data/creeps";
 import { GEM_TYPES, type GemType, type Quality } from "../render/theme";
 import { Combat } from "../systems/Combat";
 import { Traps } from "../systems/Traps";
@@ -210,6 +209,7 @@ export class Game {
     this.state.speed = 1;
     this.state.totalWaves = WAVES.length;
     this.state.debugWaveDef = undefined;
+    this.state.gemWeaknesses = this.generateWeaknesses();
     // Reset grid
     this.state.grid = BASE.grid.map((row) => row.slice());
     renderGround(this.layers.ground, this.state.grid);
@@ -380,27 +380,25 @@ export class Game {
       });
     }
 
-    // Debug wave: 10 of every creep kind
-    const CREEP_KINDS: CreepKind[] = [
-      "normal",
-      "fast",
-      "armored",
-      "air",
-      "boss",
-      "healer",
-      "wizard",
-      "tunneler",
-    ];
+    // Debug wave: wave 50 gestation boss
     const debugWave: WaveDef = {
-      number: 1,
-      groups: CREEP_KINDS.filter((kind) => kind !== "wizard").map((kind) => ({
-        kind,
-        count: 10,
-        hp: 100000,
-        bounty: 10,
-        slowResist: 0,
-        armor: 50,
-      })),
+      number: 50,
+      groups: [
+        {
+          kind: "gestation",
+          count: 1,
+          hp: 4000,
+          bounty: 40,
+          slowResist: 0.6,
+          armor: 25,
+          payload: [
+            { kind: "chrysalid", count: 5, hp: 50000, bounty: 29, armor: 10 },
+            { kind: "mycoid", count: 5, hp: 50000, bounty: 29, armor: 10 },
+            // { kind: "boss", count: 5, hp: 86000, bounty: 29, armor: 20 },
+            // { kind: "healer", count: 3, hp: 133000, bounty: 29, armor: 20 },
+          ],
+        },
+      ],
       interval: 0.5,
       bonus: 100,
     };
@@ -481,7 +479,9 @@ export class Game {
     this.spawnContainerPayload(c);
   }
 
-  private spawnContainerPayload(dead: import("../game/State").CreepState): void {
+  private spawnContainerPayload(
+    dead: import("../game/State").CreepState,
+  ): void {
     if (!dead.payload) return;
     const state = this.state;
     for (const p of dead.payload) {
@@ -517,7 +517,7 @@ export class Game {
         state.creeps.push(creep);
         state.waveStats.spawnedThisWave++;
         state.waveStats.totalToSpawn++;
-        this.bus.emit('creep:spawn', { id });
+        this.bus.emit("creep:spawn", { id });
       }
     }
   }
@@ -686,6 +686,21 @@ export class Game {
   }
 
   /** Advance the sim to match elapsed wall-clock time. */
+  private generateWeaknesses(): GemType[] {
+    const combatGems = GEM_TYPES.filter(g => g !== 'opal');
+    const blocks = Math.ceil(this.state.totalWaves / combatGems.length) + 1;
+    const result: GemType[] = [];
+    for (let b = 0; b < blocks; b++) {
+      const block = [...combatGems];
+      for (let i = block.length - 1; i > 0; i--) {
+        const j = this.rng.int(i + 1);
+        [block[i], block[j]] = [block[j], block[i]];
+      }
+      result.push(...block);
+    }
+    return result;
+  }
+
   private drainAccumulator(): void {
     const now = performance.now();
     const dtMs = now - this.lastTickTime;
@@ -959,14 +974,21 @@ export class Game {
   }
 }
 
-function nearestPathPos(px: number, py: number, route: Array<{x: number; y: number}>): number {
+function nearestPathPos(
+  px: number,
+  py: number,
+  route: Array<{ x: number; y: number }>,
+): number {
   let best = 0;
   let bestD = Infinity;
   for (let i = 0; i < route.length; i++) {
     const rx = route[i].x * FINE_TILE + FINE_TILE / 2;
     const ry = route[i].y * FINE_TILE + FINE_TILE / 2;
     const d = (px - rx) ** 2 + (py - ry) ** 2;
-    if (d < bestD) { bestD = d; best = i; }
+    if (d < bestD) {
+      bestD = d;
+      best = i;
+    }
   }
   return best;
 }

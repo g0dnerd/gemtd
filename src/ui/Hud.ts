@@ -25,7 +25,7 @@ import { mountInspector, refreshInspector } from "./Inspector";
 import { mountCombineModal } from "./CombineModal";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
-import { activeDraw, allDrawsPlaced, type TowerState } from "../game/State";
+import { activeDraw, allDrawsPlaced, currentWeakness, upcomingWeaknesses, type TowerState } from "../game/State";
 import { GRID_H, GRID_W } from "../data/map";
 import {
   FINE_TILE,
@@ -69,6 +69,7 @@ const ARCHETYPE_COLORS: Record<CreepKind, string> = {
   anemone: "#b8f4ee",
   chrysalid: "#d090f0",
   mycoid: "#78e898",
+  gestation: "#c8a8a0",
 };
 
 /** Static lookup: which gem each creep archetype is weak to. */
@@ -87,6 +88,7 @@ const ARCHETYPE_WEAKNESS: Record<CreepKind, GemType> = {
   anemone: "topaz",
   chrysalid: "ruby",
   mycoid: "diamond",
+  gestation: "ruby",
 };
 
 export function mountHud(
@@ -144,6 +146,34 @@ export function mountHud(
   const goldMini = makeStatMini(htmlCoin(16), "GOLD", "100", "#ffe068");
   headerBar.append(livesMini.root, goldMini.root);
   left.appendChild(headerBar);
+
+  const weaknessBar = document.createElement("div");
+  weaknessBar.className = "px-weakness-bar";
+  weaknessBar.style.cssText = "display:flex;align-items:center;gap:6px;padding:2px 8px;font-size:11px;color:var(--px-ink-dim);";
+  left.appendChild(weaknessBar);
+
+  function refreshWeakness(): void {
+    const w = game.state.wave;
+    if (w < 1) { weaknessBar.style.display = "none"; return; }
+    weaknessBar.style.display = "flex";
+    const cur = currentWeakness(game.state);
+    const upcoming = upcomingWeaknesses(game.state, 3);
+    weaknessBar.innerHTML = "";
+    const lbl = document.createElement("span");
+    lbl.textContent = "WEAK:";
+    lbl.style.opacity = "0.6";
+    weaknessBar.appendChild(lbl);
+    if (cur) weaknessBar.appendChild(makeWeakDot(cur, true));
+    for (const g of upcoming) weaknessBar.appendChild(makeWeakDot(g, false));
+  }
+
+  function makeWeakDot(gem: GemType, active: boolean): HTMLElement {
+    const el = document.createElement("span");
+    el.textContent = gem.slice(0, 3).toUpperCase();
+    el.style.cssText = `color:var(--gem-${gem});font-weight:bold;opacity:${active ? "1" : "0.45"};`;
+    if (active) el.style.textDecoration = "underline";
+    return el;
+  }
 
   const chance = makeChancePanel(game);
   left.appendChild(chance.root);
@@ -1082,21 +1112,29 @@ export function mountHud(
     requestAnimationFrame(updateCanvasScale);
   }
 
+  const BASIC_KINDS: Set<CreepKind> = new Set(['normal', 'fast', 'armored', 'air', 'boss']);
+
   function refreshThreats(): void {
     threatsList.innerHTML = "";
     const cur = Math.max(1, game.state.wave || 1);
-    // During wave: show current + next 2; during build: also show current (the upcoming wave).
     const start = cur;
     const end = Math.min(WAVES.length, start + 2);
     for (let n = start; n <= end; n++) {
       const def = WAVES[n - 1];
       if (!def) continue;
       const isCurrent = n === cur;
-      threatsList.appendChild(makeThreatRow(def, isCurrent));
+      const newKinds: CreepKind[] = [];
+      for (const g of def.groups) {
+        if (!BASIC_KINDS.has(g.kind) && !game.state.seenCreepKinds.includes(g.kind)) {
+          newKinds.push(g.kind);
+          game.state.seenCreepKinds.push(g.kind);
+        }
+      }
+      threatsList.appendChild(makeThreatRow(def, isCurrent, newKinds));
     }
   }
 
-  function makeThreatRow(def: WaveDef, isCurrent: boolean): HTMLDivElement {
+  function makeThreatRow(def: WaveDef, isCurrent: boolean, newKinds: CreepKind[]): HTMLDivElement {
     const row = document.createElement("div");
     row.className =
       "px-panel-inset threat-row" + (isCurrent ? " is-current" : "");
@@ -1113,6 +1151,12 @@ export function mountHud(
     const primary = def.groups[0];
     arch.style.color = ARCHETYPE_COLORS[primary.kind];
     arch.textContent = def.groups.map((g) => g.kind.toUpperCase()).join(" + ");
+    if (newKinds.length > 0) {
+      const badge = document.createElement("span");
+      badge.className = "threat-new-badge";
+      badge.textContent = "NEW";
+      arch.appendChild(badge);
+    }
     const weakRow = document.createElement("div");
     weakRow.className = "threat-weak-row";
     const weakLbl = document.createElement("span");
@@ -1128,6 +1172,16 @@ export function mountHud(
     pill.appendChild(pillName);
     weakRow.append(weakLbl, pill);
     mid.append(arch, weakRow);
+    for (const kind of newKinds) {
+      const blurb = CREEP_ARCHETYPES[kind].blurb;
+      if (blurb) {
+        const desc = document.createElement("div");
+        desc.className = "threat-blurb";
+        desc.style.color = ARCHETYPE_COLORS[kind];
+        desc.textContent = blurb;
+        mid.appendChild(desc);
+      }
+    }
     row.appendChild(mid);
 
     const right = document.createElement("div");
@@ -1169,6 +1223,7 @@ export function mountHud(
 
   function tick(): void {
     refreshChips();
+    refreshWeakness();
     refreshThreats();
     refreshDraw();
     chance.refresh();

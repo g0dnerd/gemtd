@@ -225,6 +225,8 @@ export interface State {
   seenCreepKinds: CreepKind[];
   /** Override wave definition for debug mode. */
   debugWaveDef?: WaveDef;
+  /** Gem weakness rotation — shuffled blocks of 7 gem types (excludes opal). */
+  gemWeaknesses: GemType[];
 }
 
 /** The currently-active draw slot (lowest unplaced, or whatever activeDrawSlot points at). null if none. */
@@ -278,5 +280,15 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     totalWaves,
     waveStats: { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 },
     seenCreepKinds: [],
+    gemWeaknesses: [],
   };
+}
+
+export function currentWeakness(state: State): GemType | undefined {
+  return state.gemWeaknesses[state.wave - 1];
+}
+
+export function upcomingWeaknesses(state: State, count: number): GemType[] {
+  const start = state.wave;
+  return state.gemWeaknesses.slice(start, start + count);
 }

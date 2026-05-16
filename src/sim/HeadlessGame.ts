@@ -10,6 +10,7 @@ import { WAVES } from '../data/waves';
 import { COMBO_BY_NAME, nextUpgrade } from '../data/combos';
 import { Combat } from '../systems/Combat';
 import { Traps } from '../systems/Traps';
+import { GEM_TYPES, type GemType } from '../render/theme';
 import { Metrics } from './Metrics';
 import type { Game } from '../game/Game';
 import type { SimAI, GameResult } from './types';
@@ -72,8 +73,24 @@ export class HeadlessGame {
     this.state.totalKills = 0;
     this.state.speed = 1;
     this.state.grid = BASE.grid.map((row) => row.slice());
+    this.state.gemWeaknesses = this.generateWeaknesses();
     this.refreshRoute();
     this.enterBuild();
+  }
+
+  private generateWeaknesses(): GemType[] {
+    const combatGems = GEM_TYPES.filter(g => g !== 'opal');
+    const blocks = Math.ceil(this.state.totalWaves / combatGems.length) + 1;
+    const result: GemType[] = [];
+    for (let b = 0; b < blocks; b++) {
+      const block = [...combatGems];
+      for (let i = block.length - 1; i > 0; i--) {
+        const j = this.rng.int(i + 1);
+        [block[i], block[j]] = [block[j], block[i]];
+      }
+      result.push(...block);
+    }
+    return result;
   }
 
   enterBuild(): void {

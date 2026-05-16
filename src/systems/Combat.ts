@@ -332,6 +332,14 @@ export class Combat {
     if (c.vulnerability > 0) {
       dmg = Math.round(dmg * (1 + c.vulnerability));
     }
+    const state = this.game.state;
+    const weakness = state.gemWeaknesses[state.wave - 1];
+    if (weakness) {
+      const towerGem = owner.comboKey ? COMBO_BY_NAME.get(owner.comboKey)?.visualGem : owner.gem;
+      if (towerGem === weakness) {
+        dmg = Math.round(dmg * 1.5);
+      }
+    }
     owner.totalDamage += dmg;
     c.hp -= dmg;
     this.game.bus.emit('tower:hit', { id: owner.id, targetId: c.id, damage: dmg });
