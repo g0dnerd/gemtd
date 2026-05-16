@@ -152,7 +152,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   aquamarine: {
     name: 'Aquamarine',
     blurb: 'Focusing beam — damage ramps on the same target.',
-    baseDmg: 2,
+    baseDmg: 3,
     spread: 0.15,
     baseRange: 3.0,
     baseAtkSpeed: 3.0,
