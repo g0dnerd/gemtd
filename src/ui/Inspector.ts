@@ -260,7 +260,7 @@ function render(refs: InspectorRefs, game: Game): void {
     chip.className = "inspector-effect";
     const lbl = document.createElement("div");
     lbl.className = "inspector-effect-label";
-    lbl.textContent = `ON HIT · ${stats.effects[0].kind.toUpperCase()}`;
+    lbl.textContent = abilityHeader(stats.effects);
     const txt = document.createElement("div");
     txt.className = "inspector-effect-text";
     txt.textContent = stats.effects
@@ -869,6 +869,36 @@ function flagChip(text: string, variant: string): HTMLSpanElement {
   span.className = `inspector-creep-flag inspector-creep-flag-${variant}`;
   span.textContent = text;
   return span;
+}
+
+const EFFECT_DISPLAY: Record<string, string> = {
+  aura_atkspeed: "ATK SPEED",
+  aura_dmg: "DAMAGE",
+  prox_burn: "BURN",
+  prox_burn_ramp: "BURN",
+  prox_slow: "SLOW FIELD",
+  prox_armor_reduce: "ARMOR SHRED",
+  vulnerability_aura: "VULNERABILITY",
+  armor_decay_aura: "ARMOR DECAY",
+  beam_ramp: "BEAM",
+  multi_target: "MULTI-TARGET",
+  air_bonus: "AIR HUNTER",
+  trap_root: "ROOT",
+  trap_slow: "SLOW",
+  trap_dot: "DAMAGE",
+  trap_explode: "EXPLODE",
+  trap_knockback: "KNOCKBACK",
+};
+
+function abilityHeader(effects: ReturnType<typeof gemStats>["effects"]): string {
+  const kind = effects[0].kind;
+  const category =
+    kind.startsWith("trap_") ? "TRAP"
+    : kind.startsWith("aura_") || kind.startsWith("prox_") ||
+      kind === "vulnerability_aura" || kind === "armor_decay_aura" ? "AURA"
+    : "ON HIT";
+  const name = EFFECT_DISPLAY[kind] ?? kind.replace(/_/g, " ").toUpperCase();
+  return `${category} · ${name}`;
 }
 
 interface ResolvedStats {

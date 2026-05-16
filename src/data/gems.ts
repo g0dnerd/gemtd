@@ -91,7 +91,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   sapphire: {
     name: 'Sapphire',
-    blurb: 'Frostbite — slows on hit.',
+    blurb: 'Frost bolt — slows on hit.',
     baseDmg: 15,
     spread: 0.15,
     baseRange: 4.0,
