@@ -58,6 +58,10 @@ export class TelemetryCollector {
   private totalLeaks = 0;
   private cleanWaves = 0;
   private flushed = false;
+  private readonly upgradeDamage = new Map<
+    number,
+    Array<{ tier: number; damage: number; wave: number }>
+  >();
 
   constructor(game: Game) {
     this.runId = crypto.randomUUID();
@@ -191,6 +195,17 @@ export class TelemetryCollector {
         });
       }),
 
+      b.on("tower:upgrade", ({ id, tier }) => {
+        const tower = s.towers.find((t) => t.id === id);
+        if (!tower) return;
+        let records = this.upgradeDamage.get(id);
+        if (!records) {
+          records = [];
+          this.upgradeDamage.set(id, records);
+        }
+        records.push({ tier, damage: tower.totalDamage, wave: s.wave });
+      }),
+
       b.on("tower:downgrade", ({ gem, oldQuality, newQuality }) => {
         this.downgradesUsed++;
         this.events.push({
@@ -219,17 +234,21 @@ export class TelemetryCollector {
     this.flushed = true;
 
     const s = this.state;
-    const towers: TowerSnapshot[] = s.towers.map((t) => ({
-      gem: t.gem,
-      quality: t.quality,
-      comboKey: t.comboKey ?? "",
-      upgradeTier: t.upgradeTier ?? 0,
-      kills: t.kills,
-      totalDamage: t.totalDamage,
-      placedWave: t.placedWave,
-      x: t.x,
-      y: t.y,
-    }));
+    const towers: TowerSnapshot[] = [];
+    for (const t of s.towers) {
+      const snaps = this.upgradeDamage.get(t.id);
+      if (snaps && snaps.length > 0 && t.comboKey) {
+        const base = { gem: t.gem, quality: t.quality, comboKey: t.comboKey, x: t.x, y: t.y };
+        towers.push({ ...base, upgradeTier: 0, kills: 0, totalDamage: snaps[0].damage, placedWave: t.placedWave });
+        for (let i = 0; i < snaps.length - 1; i++) {
+          towers.push({ ...base, upgradeTier: snaps[i].tier, kills: 0, totalDamage: snaps[i + 1].damage - snaps[i].damage, placedWave: snaps[i].wave });
+        }
+        const last = snaps[snaps.length - 1];
+        towers.push({ ...base, upgradeTier: last.tier, kills: t.kills, totalDamage: t.totalDamage - last.damage, placedWave: last.wave });
+      } else {
+        towers.push({ gem: t.gem, quality: t.quality, comboKey: t.comboKey ?? "", upgradeTier: t.upgradeTier ?? 0, kills: t.kills, totalDamage: t.totalDamage, placedWave: t.placedWave, x: t.x, y: t.y });
+      }
+    }
 
     const header = {
       runId: this.runId,

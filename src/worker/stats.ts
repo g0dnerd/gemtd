@@ -72,7 +72,7 @@ export async function handleStats(
          FROM events WHERE event_type = 'leak' ${cv}
          GROUP BY run_id, wave
        ) e ON w.run_id = e.run_id AND w.wave = e.wave
-       WHERE 1=1 ${cv.replace(/run_id/g, "w.run_id")}
+       WHERE 1=1 ${cv.replace("run_id", "w.run_id")}
        GROUP BY w.wave ORDER BY w.wave`,
     ).bind(...cBind, ...cBind).all(),
 
@@ -80,7 +80,8 @@ export async function handleStats(
       `SELECT t.combo_key, t.upgrade_tier as tier, count(*) as count,
               avg(t.total_damage) as avg_damage,
               avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave,
-              avg(t.placed_wave) as avg_wave_built
+              avg(t.placed_wave) as avg_wave_built,
+              avg(r.wave_reached) as avg_wave_reached
        FROM towers t JOIN runs r ON t.run_id = r.run_id
        WHERE t.combo_key != '' ${cv.replace("run_id", "t.run_id")}
        GROUP BY t.combo_key, t.upgrade_tier ORDER BY t.combo_key, t.upgrade_tier`,
