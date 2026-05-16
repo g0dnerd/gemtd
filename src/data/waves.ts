@@ -15,6 +15,7 @@ export interface PayloadGroup {
   hp: number;
   bounty: number;
   slowResist?: number;
+  stunResist?: number;
   armor?: number;
   payload?: PayloadGroup[];
 }
@@ -28,6 +29,8 @@ export interface WaveGroup {
   bounty: number;
   /** 0–1. Fraction of slow effect negated (0 = full slow, 1 = immune). */
   slowResist: number;
+  /** 0–1. Fraction of stun chance negated (0 = full stun, 1 = immune). */
+  stunResist?: number;
   /** Numeric armor. Overrides archetype defaultArmor if present. */
   armor?: number;
   /** Creeps spawned when this one dies. Recursive — containers can nest. */
@@ -498,7 +501,8 @@ export const WAVES: WaveDef[] = [
         count: 1,
         hp: 400000,
         bounty: 40,
-        slowResist: 0.6,
+        slowResist: 0.7,
+        stunResist: 0.7,
         armor: 25,
         payload: [
           {

@@ -18,6 +18,7 @@ export interface CreepPayload {
   color: GemType;
   armor: number;
   slowResist: number;
+  stunResist: number;
   flags: { boss?: boolean; armored?: boolean; air?: boolean };
   payload?: CreepPayload[];
 }
@@ -92,6 +93,8 @@ export interface CreepState {
   color: GemType;
   /** 0–1. Fraction of slow effect negated (0 = full slow, 1 = immune). */
   slowResist: number;
+  /** 0–1. Fraction of stun chance negated (0 = full stun, 1 = immune). */
+  stunResist: number;
   /** Active status effects. */
   slow?: { factor: number; expiresAt: number };
   poison?: { dps: number; expiresAt: number; nextTick: number };

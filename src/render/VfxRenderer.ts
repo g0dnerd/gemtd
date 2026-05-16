@@ -198,6 +198,7 @@ export class VfxRenderer {
       this.drawFocusPips(state);
       this.tickAuraShimmer(state);
       this.tickCorrosion(state);
+      this.tickSilence(state);
     }
   }
 
@@ -333,6 +334,33 @@ export class VfxRenderer {
         color: 0xa0d840, size: 1.5,
         age: 0, lifetime: 45,
       });
+    }
+  }
+
+  private tickSilence(state: State): void {
+    const g = this.gfx!;
+    for (const t of state.towers) {
+      if (!t.silencedUntil || t.silencedUntil <= state.tick) continue;
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+
+      // Dark vignette overlay — semi-transparent dark circle over the tower
+      const r = FINE_TILE * 1.1;
+      g.circle(tx, ty, r).fill({ color: 0x100818, alpha: 0.35 });
+      g.circle(tx, ty, r * 0.6).fill({ color: 0x100818, alpha: 0.2 });
+
+      // Spawn rising wisps periodically
+      if (this.frame % 12 === 0) {
+        const ox = (Math.random() - 0.5) * FINE_TILE * 0.8;
+        this.pool.push({
+          kind: 'drift',
+          x: tx + ox, y: ty,
+          vx: (Math.random() - 0.5) * 0.2,
+          vy: -0.5 - Math.random() * 0.3,
+          color: 0x8040a0, size: 2,
+          age: 0, lifetime: 50,
+        });
+      }
     }
   }
 }

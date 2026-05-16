@@ -282,7 +282,8 @@ export class Combat {
     if (freezeChance && splashTargets.length > 0) {
       for (const c of splashTargets) {
         if (!c.alive) continue;
-        if (this.game.rng.next() < freezeChance.chance) {
+        const effectiveChance = freezeChance.chance * (1 - c.stunResist);
+        if (this.game.rng.next() < effectiveChance) {
           const expires = tick + Math.round(freezeChance.duration * SIM_HZ);
           if (!c.stun || c.stun.expiresAt < expires) {
             c.stun = { expiresAt: expires };
@@ -394,7 +395,7 @@ export class Combat {
           break;
         }
         case 'stun': {
-          if (this.game.rng.next() > e.chance) break;
+          if (this.game.rng.next() > e.chance * (1 - c.stunResist)) break;
           const expires = tick + Math.round(e.duration * SIM_HZ);
           if (!c.stun || c.stun.expiresAt < expires) {
             c.stun = { expiresAt: expires };
@@ -523,10 +524,12 @@ export class Combat {
               if (!c.alive) continue;
               const dx = c.px - tx, dy = c.py - ty;
               if (dx * dx + dy * dy > r2) continue;
+              if (this.game.rng.next() < (1 - c.stunResist)) {
               const expires = tick + stunDuration;
               if (!c.stun || c.stun.expiresAt < expires) {
                 c.stun = { expiresAt: expires };
               }
+            }
             }
             this.game.bus.emit('vfx:periodicFreeze', { x: tx, y: ty, rangePx: stats.range * TILE });
           }

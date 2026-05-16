@@ -144,6 +144,7 @@ export class WavePhase {
       armorReduction: 0,
       armor: group.armor ?? arch.defaultArmor ?? 0,
       slowResist: group.slowResist,
+      stunResist: group.stunResist ?? 0,
       flags: arch.flags,
       vulnerability: 0,
       payload: group.payload ? resolvePayload(group.payload) : undefined,
@@ -383,6 +384,7 @@ function resolvePayload(groups: PayloadGroup[]): CreepPayload[] {
       color: arch.color,
       armor: g.armor ?? arch.defaultArmor ?? 0,
       slowResist: g.slowResist ?? 0,
+      stunResist: g.stunResist ?? 0,
       flags: { ...arch.flags },
       payload: g.payload ? resolvePayload(g.payload) : undefined,
     };

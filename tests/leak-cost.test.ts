@@ -18,6 +18,7 @@ function injectLeakingCreep(game: HeadlessGame, boss = false): void {
     bounty: 1,
     color: 'amethyst',
     slowResist: 0,
+    stunResist: 0,
     armorReduction: 0,
     armor: 0,
     flags: boss ? { boss: true } : {},

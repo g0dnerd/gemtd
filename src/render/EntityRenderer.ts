@@ -155,10 +155,10 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames };
       towerObjs.set(t.id, entry);
     }
-    // Tower anchor (t.x, t.y) is the top-left fine cell of its 2×2 footprint,
-    // so the visual centre sits on the corner shared by the 4 cells.
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
+    const silenced = !!(t.silencedUntil && t.silencedUntil > tick);
+    entry.obj.alpha = silenced ? 0.5 : 1;
     if (entry.stargemFx) animateStargemFx(entry.stargemFx, tick);
     else if (entry.fx) animateTowerFx(entry.fx, tick);
     if (entry.opalFrames) {

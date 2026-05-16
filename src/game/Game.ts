@@ -387,9 +387,10 @@ export class Game {
         {
           kind: "gestation",
           count: 1,
-          hp: 400000,
+          hp: 40000,
           bounty: 40,
-          slowResist: 0.6,
+          slowResist: 0.7,
+          stunResist: 0.7,
           armor: 25,
           payload: [
             { kind: "chrysalid", count: 5, hp: 90000, bounty: 29, armor: 10 },
@@ -508,6 +509,7 @@ export class Game {
           color: p.color,
           armor: p.armor,
           slowResist: p.slowResist,
+          stunResist: p.stunResist,
           flags: p.flags,
           alive: true,
           armorReduction: 0,

@@ -191,6 +191,7 @@ export class HeadlessGame {
           color: p.color,
           armor: p.armor,
           slowResist: p.slowResist,
+          stunResist: p.stunResist,
           flags: p.flags,
           alive: true,
           armorReduction: 0,
