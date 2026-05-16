@@ -9,7 +9,7 @@ import { BASE, Cell } from '../../src/data/map';
 import { findRoute, flattenRoute, buildAirRoute } from '../../src/systems/Pathfinding';
 import { SIM_HZ } from '../../src/game/constants';
 import { WavePhase } from '../../src/controllers/WavePhase';
-import { WAVES } from '../../src/data/waves';
+import { WAVES, type WaveDef } from '../../src/data/waves';
 import { COMBOS, comboStatsAtTier } from '../../src/data/combos';
 import type { ComboRecipe } from '../../src/data/combos';
 import { gemStats, effectSummary, GEM_BASE } from '../../src/data/gems';
@@ -25,8 +25,25 @@ import type { Game } from '../../src/game/Game';
 // ── Config ────────────────────────────────────────────────────────────────
 
 const SEED = 42;
-const BENCHMARK_WAVES = [8, 10, 15, 18, 20, 22, 24, 25, 30];
+const DPS_WAVE = 0;
+const BENCHMARK_WAVES = [DPS_WAVE, 8, 10, 15, 18, 20, 22, 24, 25, 30];
 const MAX_TICKS = 60 * 60 * 20; // 20-minute safety cap (bosses are slow)
+
+function makeDpsWaveDef(): WaveDef {
+  return {
+    number: 0,
+    groups: [{
+      kind: 'normal',
+      count: 50,
+      hp: 1e12,
+      bounty: 0,
+      slowResist: 0,
+      armor: 10,
+    }],
+    interval: 0.3,
+    bonus: 0,
+  };
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -498,14 +515,19 @@ console.log(`Benchmarking ${NORMAL_GEMS.length} normal gems × ${QUALITIES.lengt
 for (const gem of NORMAL_GEMS) {
   for (const quality of QUALITIES) {
     for (const wave of BENCHMARK_WAVES) {
-      const maze = buildMaze(blueprint, wave);
+      const mazeRound = wave === DPS_WAVE ? blueprint.rounds.length : wave;
+      const maze = buildMaze(blueprint, mazeRound);
       const scenario = new BenchmarkScenario(SEED);
+      if (wave === DPS_WAVE) {
+        scenario.state.debugWaveDef = makeDpsWaveDef();
+      }
       const result = scenario.runNormalGem(maze, gem, quality, wave);
       results.push(result);
 
       const qLabel = QUALITY_NAMES[quality];
+      const waveStr = wave === DPS_WAVE ? 'DPS' : `wave ${wave}`;
       console.log(
-        `  ${qLabel} ${GEM_BASE[gem].name} wave ${wave}: ${result.totalDamage} dmg, ${result.dps} dps, ${result.kills}/${result.creepsSpawned} kills`,
+        `  ${qLabel} ${GEM_BASE[gem].name} ${waveStr}: ${result.totalDamage} dmg, ${result.dps} dps, ${result.kills}/${result.creepsSpawned} kills`,
       );
     }
   }
@@ -517,14 +539,19 @@ for (const combo of NON_RUNE_COMBOS) {
   const tiers = [0, ...combo.upgrades.map((_, i) => i + 1)];
   for (const tier of tiers) {
     for (const wave of BENCHMARK_WAVES) {
-      const maze = buildMaze(blueprint, wave);
+      const mazeRound = wave === DPS_WAVE ? blueprint.rounds.length : wave;
+      const maze = buildMaze(blueprint, mazeRound);
       const scenario = new BenchmarkScenario(SEED);
+      if (wave === DPS_WAVE) {
+        scenario.state.debugWaveDef = makeDpsWaveDef();
+      }
       const result = scenario.run(maze, combo, tier, wave);
       results.push(result);
 
       const tierLabel = tier === 0 ? 'base' : `T${tier}`;
+      const waveStr = wave === DPS_WAVE ? 'DPS' : `wave ${wave}`;
       console.log(
-        `  ${combo.name} [${tierLabel}] wave ${wave}: ${result.totalDamage} dmg, ${result.dps} dps, ${result.kills}/${result.creepsSpawned} kills`,
+        `  ${combo.name} [${tierLabel}] ${waveStr}: ${result.totalDamage} dmg, ${result.dps} dps, ${result.kills}/${result.creepsSpawned} kills`,
       );
     }
   }
@@ -533,6 +560,7 @@ for (const combo of NON_RUNE_COMBOS) {
 // ── HTML report generation ────────────────────────────────────────────────
 
 function waveLabel(w: number): string {
+  if (w === DPS_WAVE) return 'DPS Test (∞ HP, 10 Armor)';
   const def = WAVES[w - 1];
   if (!def) return `Wave ${w}`;
   const kinds = [...new Set(def.groups.map((g) => g.kind))];
