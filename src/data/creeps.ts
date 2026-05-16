@@ -133,7 +133,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     kind: 'chrysalid',
     speed: 1.3,
     color: 'amethyst',
-    hpMult: 1.4,
+    hpMult: 1.96,
     bountyMult: 1.4,
     flags: {},
     blurb: 'At low HP, awakens: debuff-immune + faster',
@@ -154,6 +154,6 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 8.0,
     bountyMult: 0.5,
     flags: {},
-    blurb: 'Ruptures on death, releasing bosses',
+    blurb: 'At 50% HP, enrages and silences nearby towers. Releases bosses on death',
   },
 };
