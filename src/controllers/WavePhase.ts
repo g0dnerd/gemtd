@@ -21,12 +21,17 @@ const WIZARD_TELEPORT_TILES = 8;
 const TUNNELER_COOLDOWN = 12 * SIM_HZ;
 const TUNNELER_BURROW_DURATION = 3.5 * SIM_HZ;
 
-const CHRYSALID_HP_THRESHOLD = 0.4;
+const CHRYSALID_HP_THRESHOLD = 0.5;
 const CHRYSALID_SPEED_MULT = 1.5;
 
 const MYCOID_PULSE_COOLDOWN = 4 * SIM_HZ;
 const MYCOID_PULSE_RADIUS_PX = 2.5 * TILE;
 const MYCOID_SILENCE_DURATION = 3 * SIM_HZ;
+
+const GESTATION_HP_THRESHOLD = 0.5;
+const GESTATION_PULSE_COOLDOWN = 6 * SIM_HZ;
+const GESTATION_PULSE_RADIUS_PX = 4 * TILE;
+const GESTATION_SILENCE_DURATION = 4 * SIM_HZ;
 
 export class WavePhase {
   private wave = 0;
@@ -210,6 +215,13 @@ export class WavePhase {
       c.armorDebuff = undefined;
       this.game.bus.emit('creep:chrysalidAwaken', { id: c.id });
     }
+
+    // Gestation enrage: at 50% HP, transform and begin pulsing
+    if (c.kind === 'gestation' && !c.gestationEnraged && c.hp / c.maxHp <= GESTATION_HP_THRESHOLD) {
+      c.gestationEnraged = true;
+      this.game.bus.emit('creep:gestationEnrage', { id: c.id });
+      this.game.bus.emit('vfx:gestationTransition', { x: c.px, y: c.py });
+    }
   }
 
   private leak(c: CreepState): void {
@@ -255,6 +267,9 @@ export class WavePhase {
         break;
       case 'mycoid':
         this.mycoidAbility(c, tick);
+        break;
+      case 'gestation':
+        this.gestationAbility(c, tick);
         break;
     }
   }
@@ -313,6 +328,23 @@ export class WavePhase {
       t.silencedUntil = Math.max(t.silencedUntil ?? 0, silenceEnd);
     }
     this.game.bus.emit('vfx:mycoidPulse', { x: c.px, y: c.py, radiusPx: MYCOID_PULSE_RADIUS_PX });
+  }
+
+  private gestationAbility(c: CreepState, tick: number): void {
+    if (!c.gestationEnraged) return;
+    c.abilityCooldown = tick + GESTATION_PULSE_COOLDOWN;
+    const state = this.game.state;
+    const r2 = GESTATION_PULSE_RADIUS_PX * GESTATION_PULSE_RADIUS_PX;
+    const silenceEnd = tick + GESTATION_SILENCE_DURATION;
+    for (const t of state.towers) {
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+      const dx = tx - c.px;
+      const dy = ty - c.py;
+      if (dx * dx + dy * dy > r2) continue;
+      t.silencedUntil = Math.max(t.silencedUntil ?? 0, silenceEnd);
+    }
+    this.game.bus.emit('vfx:gestationPulse', { x: c.px, y: c.py, radiusPx: GESTATION_PULSE_RADIUS_PX });
   }
 
   private waypointPositions(): number[] {

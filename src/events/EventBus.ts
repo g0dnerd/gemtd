@@ -41,7 +41,10 @@ export interface GameEvents {
   'vfx:bonusGold': { x: number; y: number };
   'vfx:freezeProc': { x: number; y: number };
   'creep:chrysalidAwaken': { id: number };
+  'creep:gestationEnrage': { id: number };
   'vfx:mycoidPulse': { x: number; y: number; radiusPx: number };
+  'vfx:gestationPulse': { x: number; y: number; radiusPx: number };
+  'vfx:gestationTransition': { x: number; y: number };
 }
 
 type Handler<T> = (payload: T) => void;

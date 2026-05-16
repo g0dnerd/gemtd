@@ -123,6 +123,8 @@ export interface CreepState {
   poisonSpread?: { count: number; radius: number };
   /** Chrysalid awakened state — debuff-immune + speed boost. */
   chrysalidAwakened?: boolean;
+  /** Gestation enraged state — at 50% HP, begins periodic tower-silence pulse. */
+  gestationEnraged?: boolean;
   /** Creeps to spawn when this container dies. */
   payload?: CreepPayload[];
 }

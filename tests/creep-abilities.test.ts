@@ -5,8 +5,8 @@ import { CREEP_ARCHETYPES } from '../src/data/creeps';
 import { Cell } from '../src/data/map';
 import { MAZE_BLUEPRINT } from '../src/data/maze-blueprint';
 import { computeKeeperIndices } from '../src/sim/blueprintKeeper';
-import { FINE_TILE, TILE } from '../src/game/constants';
-import type { GemType, Quality } from '../src/render/theme';
+import { FINE_TILE } from '../src/game/constants';
+import type { Quality } from '../src/render/theme';
 import type { TowerState, CreepState } from '../src/game/State';
 
 function makeWave(groups: WaveGroup[]): WaveDef {
@@ -28,24 +28,9 @@ function runWithWave(waveDef: WaveDef, fn: (game: HeadlessGame) => void): void {
   }
 }
 
-function spawnAndGetCreep(kind: string, hp: number): { game: HeadlessGame; creep: CreepState } {
-  const wave = makeWave([{ kind: kind as any, count: 1, hp, bounty: 5, slowResist: 0 }]);
-  let creep!: CreepState;
-  const game = new HeadlessGame(42);
-  game.newGame();
-  const original = WAVES[0];
-  WAVES[0] = wave;
-  game.state.wave = 1;
-  game.state.phase = 'wave';
-  (game as any).wavePhase.onEnter(1);
-  for (let i = 0; i < 60; i++) game.simStep();
-  creep = game.state.creeps.find(c => c.kind === kind)!;
-  WAVES[0] = original;
-  return { game, creep };
-}
 
 describe('chrysalid (berserker)', () => {
-  it('awakens at 40% HP: gains speed, becomes debuff-immune', () => {
+  it('awakens at 50% HP: gains speed, becomes debuff-immune', () => {
     const wave = makeWave([{ kind: 'chrysalid', count: 1, hp: 1000, bounty: 5, slowResist: 0 }]);
 
     runWithWave(wave, (game) => {
@@ -63,8 +48,8 @@ describe('chrysalid (berserker)', () => {
       c.poison = { dps: 50, expiresAt: game.state.tick + 999, nextTick: game.state.tick + 999 };
       c.armorDebuff = { value: 5, expiresAt: game.state.tick + 999 };
 
-      // Drop HP to 40% threshold
-      c.hp = Math.floor(c.maxHp * 0.4);
+      // Drop HP to 50% threshold
+      c.hp = Math.floor(c.maxHp * 0.5);
       game.simStep();
 
       expect(c.chrysalidAwakened).toBe(true);
@@ -99,14 +84,14 @@ describe('chrysalid (berserker)', () => {
     });
   });
 
-  it('does not awaken above 40% HP', () => {
+  it('does not awaken above 50% HP', () => {
     const wave = makeWave([{ kind: 'chrysalid', count: 1, hp: 1000, bounty: 5, slowResist: 0 }]);
 
     runWithWave(wave, (game) => {
       for (let i = 0; i < 60; i++) game.simStep();
 
       const c = game.state.creeps.find(cr => cr.kind === 'chrysalid')!;
-      c.hp = Math.floor(c.maxHp * 0.41);
+      c.hp = Math.floor(c.maxHp * 0.51);
       game.simStep();
 
       expect(c.chrysalidAwakened).toBeFalsy();
@@ -333,5 +318,157 @@ describe('mycoid (sapper)', () => {
 
     // After expiry, tower should no longer be silenced
     expect(state.tick).toBeGreaterThan(tower.silencedUntil!);
+  });
+});
+
+describe('gestation (final boss container)', () => {
+  const keeperIndices = computeKeeperIndices({
+    rounds: MAZE_BLUEPRINT as [number, number][][],
+  });
+  const R1_KEEPER_IDX = keeperIndices[0];
+  const R1_POSITIONS = MAZE_BLUEPRINT[0];
+
+  function setupWithTower(): HeadlessGame {
+    const game = new HeadlessGame(42);
+    game.newGame();
+    const state = game.state;
+    state.draws = [];
+    state.activeDrawSlot = null;
+
+    const [kx, ky] = R1_POSITIONS[R1_KEEPER_IDX];
+    const tower: TowerState = {
+      id: game.nextId(),
+      x: kx,
+      y: ky,
+      gem: 'opal',
+      quality: 5 as Quality,
+      lastFireTick: 0,
+      kills: 0,
+      totalDamage: 0,
+      placedWave: 1,
+    };
+    state.towers.push(tower);
+    for (let dy = 0; dy < 2; dy++)
+      for (let dx = 0; dx < 2; dx++)
+        state.grid[ky + dy][kx + dx] = Cell.Tower;
+
+    for (let i = 0; i < R1_POSITIONS.length; i++) {
+      if (i === R1_KEEPER_IDX) continue;
+      const [rx, ry] = R1_POSITIONS[i];
+      const rockId = game.nextId();
+      for (let dy = 0; dy < 2; dy++)
+        for (let dx = 0; dx < 2; dx++) {
+          state.grid[ry + dy][rx + dx] = Cell.Rock;
+          state.rocks.push({ x: rx + dx, y: ry + dy, id: rockId, placedAtBuildOfWave: 1 });
+        }
+    }
+
+    game.refreshRoute();
+    return game;
+  }
+
+  it('enrages at 50% HP', () => {
+    const wave = makeWave([{ kind: 'gestation', count: 1, hp: 10000, bounty: 40, slowResist: 0.6 }]);
+
+    runWithWave(wave, (game) => {
+      for (let i = 0; i < 60; i++) game.simStep();
+
+      const c = game.state.creeps.find(cr => cr.kind === 'gestation')!;
+      expect(c).toBeDefined();
+      expect(c.gestationEnraged).toBeFalsy();
+
+      c.hp = Math.floor(c.maxHp * 0.5);
+      game.simStep();
+
+      expect(c.gestationEnraged).toBe(true);
+    });
+  });
+
+  it('does not enrage above 50% HP', () => {
+    const wave = makeWave([{ kind: 'gestation', count: 1, hp: 10000, bounty: 40, slowResist: 0.6 }]);
+
+    runWithWave(wave, (game) => {
+      for (let i = 0; i < 60; i++) game.simStep();
+
+      const c = game.state.creeps.find(cr => cr.kind === 'gestation')!;
+      c.hp = Math.floor(c.maxHp * 0.51);
+      game.simStep();
+
+      expect(c.gestationEnraged).toBeFalsy();
+    });
+  });
+
+  it('enraged pulse silences nearby towers', () => {
+    const game = setupWithTower();
+    const state = game.state;
+    const tower = state.towers[0];
+    const towerPx = (tower.x + 1) * FINE_TILE;
+    const towerPy = (tower.y + 1) * FINE_TILE;
+
+    const gestation: CreepState = {
+      id: game.nextId(),
+      kind: 'gestation',
+      pathPos: 0,
+      px: towerPx + 10,
+      py: towerPy + 10,
+      hp: 5000,
+      maxHp: 10000,
+      armor: 0,
+      speed: 0.35,
+      bounty: 40,
+      color: 'opal',
+      slowResist: 0.6,
+      flags: {},
+      alive: true,
+      armorReduction: 0,
+      vulnerability: 0,
+      gestationEnraged: true,
+    };
+    state.creeps.push(gestation);
+    state.phase = 'wave';
+    state.wave = 1;
+
+    expect(tower.silencedUntil).toBeUndefined();
+
+    const wavePhase = (game as any).wavePhase;
+    wavePhase.tickAbility(gestation);
+
+    expect(tower.silencedUntil).toBeDefined();
+    expect(tower.silencedUntil!).toBeGreaterThan(state.tick);
+  });
+
+  it('pulse does not fire before enrage', () => {
+    const game = setupWithTower();
+    const state = game.state;
+    const tower = state.towers[0];
+    const towerPx = (tower.x + 1) * FINE_TILE;
+    const towerPy = (tower.y + 1) * FINE_TILE;
+
+    const gestation: CreepState = {
+      id: game.nextId(),
+      kind: 'gestation',
+      pathPos: 0,
+      px: towerPx + 10,
+      py: towerPy + 10,
+      hp: 8000,
+      maxHp: 10000,
+      armor: 0,
+      speed: 0.35,
+      bounty: 40,
+      color: 'opal',
+      slowResist: 0.6,
+      flags: {},
+      alive: true,
+      armorReduction: 0,
+      vulnerability: 0,
+    };
+    state.creeps.push(gestation);
+    state.phase = 'wave';
+    state.wave = 1;
+
+    const wavePhase = (game as any).wavePhase;
+    wavePhase.tickAbility(gestation);
+
+    expect(tower.silencedUntil).toBeUndefined();
   });
 });

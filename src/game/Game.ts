@@ -387,13 +387,13 @@ export class Game {
         {
           kind: "gestation",
           count: 1,
-          hp: 4000,
+          hp: 400000,
           bounty: 40,
           slowResist: 0.6,
           armor: 25,
           payload: [
-            { kind: "chrysalid", count: 5, hp: 50000, bounty: 29, armor: 10 },
-            { kind: "mycoid", count: 5, hp: 50000, bounty: 29, armor: 10 },
+            { kind: "chrysalid", count: 5, hp: 90000, bounty: 29, armor: 10 },
+            { kind: "mycoid", count: 5, hp: 90000, bounty: 29, armor: 10 },
             // { kind: "boss", count: 5, hp: 86000, bounty: 29, armor: 20 },
             // { kind: "healer", count: 3, hp: 133000, bounty: 29, armor: 20 },
           ],
@@ -687,7 +687,7 @@ export class Game {
 
   /** Advance the sim to match elapsed wall-clock time. */
   private generateWeaknesses(): GemType[] {
-    const combatGems = GEM_TYPES.filter(g => g !== 'opal');
+    const combatGems = GEM_TYPES.filter((g) => g !== "opal");
     const blocks = Math.ceil(this.state.totalWaves / combatGems.length) + 1;
     const result: GemType[] = [];
     for (let b = 0; b < blocks; b++) {

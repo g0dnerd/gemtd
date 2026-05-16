@@ -66,3 +66,4 @@ tools/sim-compare/results/compare*.json
 
 # Large audio source
 bgm.wav
+notes.txt

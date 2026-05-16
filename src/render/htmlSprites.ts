@@ -143,11 +143,17 @@ export function htmlCoin(size = 14): HTMLDivElement {
 }
 
 export function htmlCreep(kind: CreepKind, color: GemType, size = 36, glow = false): HTMLDivElement {
-  const palette = GEM_PALETTE[color];
-  const css: PaletteCss = {
-    light: palette.css.light,
-    mid: palette.css.mid,
-    dark: palette.css.dark,
+  const css: PaletteCss = kind === 'gestation' ? {
+    light: '#e8dcd0',
+    mid: '#b89878',
+    dark: '#1a0810',
+    outline: OUTLINE_COLOR,
+    sparkle: '#c83040',
+    extra: '#e8a8a0',
+  } : {
+    light: GEM_PALETTE[color].css.light,
+    mid: GEM_PALETTE[color].css.mid,
+    dark: GEM_PALETTE[color].css.dark,
     outline: OUTLINE_COLOR,
     sparkle: hex6(THEME.ink),
     extra: hex6(THEME.bad),

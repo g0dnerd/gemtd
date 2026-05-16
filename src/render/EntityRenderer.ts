@@ -16,7 +16,7 @@ import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
 import { OPAL_FRAME_COUNT } from "./spriteData";
 import { gemStats } from "../data/gems";
 import { COMBO_BY_NAME, comboStatsAtTier } from "../data/combos";
-import { SPRITE_BY_KIND, SPRITE_CHRYSALID_AWAKE } from "./sprites";
+import { SPRITE_BY_KIND, SPRITE_CHRYSALID_AWAKE, SPRITE_GESTATION_ENRAGED } from "./sprites";
 import { drawPixelGrid } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX } from "./spriteData";
@@ -29,6 +29,7 @@ interface PerEntity {
   lastHpRatio?: number;
   rockBorder?: Graphics;
   chrysalidAwakened?: boolean;
+  gestationEnraged?: boolean;
 }
 
 interface StargemFx {
@@ -70,6 +71,26 @@ interface TowerFx {
   haloPulse: number;
   glow: number;
 }
+
+const GESTATION_COLORS_CALM = {
+  light: 0xe8dcd0,
+  mid: 0xb89878,
+  dark: 0x1a0810,
+  outline: 0x0a0510,
+  sparkle: 0xc83040,
+  extra: 0xe8a8a0,
+  accent: 0xd8c898,
+};
+
+const GESTATION_COLORS_ENRAGED = {
+  light: 0xf8f0e0,
+  mid: 0xa88060,
+  dark: 0x1a0408,
+  outline: 0x0a0510,
+  sparkle: 0xe82030,
+  extra: 0xf0605a,
+  accent: 0xf0e0b0,
+};
 
 const towerObjs = new Map<number, TowerEntry>();
 const rockObjs = new Map<number, PerEntity>();
@@ -495,8 +516,8 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
       const palette = GEM_PALETTE[c.color];
       const sprite = SPRITE_BY_KIND[c.kind];
       const g = new Graphics();
-      const px = 3;
-      const colors = {
+      const px = c.kind === 'gestation' ? 2 : 3;
+      const colors = c.kind === 'gestation' ? GESTATION_COLORS_CALM : {
         light: palette.light,
         mid: palette.mid,
         dark: palette.dark,
@@ -514,9 +535,12 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
         -sprite.length * px / 2,
       );
 
-      // HP bar — bumped up to clear the taller 12×12 sprite (36px tall).
+      const hpBarY = -(sprite.length * px / 2 + 4);
+      const isLarge = c.kind === 'gestation';
+      const hpW = isLarge ? 30 : 20;
+      const hpH = isLarge ? 4 : 3;
       const hpBg = new Graphics();
-      hpBg.rect(-10, -22, 20, 3).fill(0x000000);
+      hpBg.rect(-hpW / 2, hpBarY, hpW, hpH).fill(0x000000);
       g.addChild(hpBg);
       const hpBar = new Graphics();
       hpBar.label = "hp";
@@ -554,8 +578,32 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
         -SPRITE_CHRYSALID_AWAKE[0].length * px / 2,
         -SPRITE_CHRYSALID_AWAKE.length * px / 2,
       );
+      const hpBarY = -(SPRITE_CHRYSALID_AWAKE.length * px / 2 + 4);
       const hpBg = new Graphics();
-      hpBg.rect(-10, -22, 20, 3).fill(0x000000);
+      hpBg.rect(-10, hpBarY, 20, 3).fill(0x000000);
+      g.addChild(hpBg);
+      const hpBar = new Graphics();
+      hpBar.label = "hp";
+      g.addChild(hpBar);
+      entry.lastHpRatio = undefined;
+    }
+    // Gestation sprite swap on enrage
+    if (c.gestationEnraged && !entry.gestationEnraged) {
+      entry.gestationEnraged = true;
+      const g = entry.obj.children[0] as Graphics;
+      g.clear();
+      const px = 2;
+      drawPixelGrid(
+        g,
+        SPRITE_GESTATION_ENRAGED,
+        GESTATION_COLORS_ENRAGED,
+        px,
+        -SPRITE_GESTATION_ENRAGED[0].length * px / 2,
+        -SPRITE_GESTATION_ENRAGED.length * px / 2,
+      );
+      const hpBarY = -(SPRITE_GESTATION_ENRAGED.length * px / 2 + 4);
+      const hpBg = new Graphics();
+      hpBg.rect(-15, hpBarY, 30, 4).fill(0x000000);
       g.addChild(hpBg);
       const hpBar = new Graphics();
       hpBar.label = "hp";
@@ -581,7 +629,13 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
       const hpBar = inner.children.find((ch) => (ch as Graphics).label === "hp") as Graphics | undefined;
       if (hpBar) {
         hpBar.clear();
-        hpBar.rect(-10, -22, 20 * ratio, 3).fill(THEME.good);
+        const sprite = SPRITE_BY_KIND[c.kind];
+        const px = c.kind === 'gestation' ? 2 : 3;
+        const hpBarY = -(sprite.length * px / 2 + 4);
+        const isLarge = c.kind === 'gestation';
+        const hpW = isLarge ? 30 : 20;
+        const hpH = isLarge ? 4 : 3;
+        hpBar.rect(-hpW / 2, hpBarY, hpW * ratio, hpH).fill(THEME.good);
       }
     }
   }

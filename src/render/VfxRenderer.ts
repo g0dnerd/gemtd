@@ -119,6 +119,61 @@ export class VfxRenderer {
     bus.on('vfx:freezeProc', (e) => {
       this.pool.push({ kind: 'snowflake', x: e.x, y: e.y, age: 0, lifetime: 24 });
     });
+
+    bus.on('vfx:gestationPulse', (e) => {
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx, color: 0xc83040,
+        age: 0, lifetime: 28,
+      });
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx * 0.7, color: 0xe8dcd0,
+        age: 0, lifetime: 22,
+      });
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        this.pool.push({
+          kind: 'drift',
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * 2.5,
+          vy: Math.sin(a) * 2.5,
+          color: 0xe8dcd0, size: 2.5,
+          age: 0, lifetime: 30,
+        });
+      }
+    });
+
+    bus.on('vfx:gestationTransition', (e) => {
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: TILE * 3, color: 0x1a0408,
+        age: 0, lifetime: 30,
+      });
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: TILE * 2, color: 0xe82030,
+        age: 0, lifetime: 24,
+      });
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: TILE * 1.2, color: 0xf8f0e0,
+        age: 0, lifetime: 18,
+      });
+      for (let i = 0; i < 16; i++) {
+        const a = (i / 16) * Math.PI * 2 + Math.random() * 0.3;
+        const speed = 1.5 + Math.random() * 2;
+        this.pool.push({
+          kind: 'drift',
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed,
+          color: i % 3 === 0 ? 0xc83040 : 0xe8dcd0,
+          size: 2 + Math.random() * 2,
+          age: 0, lifetime: 40,
+        });
+      }
+    });
   }
 
   render(layer: Container, state: State): void {

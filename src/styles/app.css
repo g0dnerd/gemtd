@@ -354,6 +354,29 @@
   color: var(--px-ink-dim);
   letter-spacing: 1px;
 }
+.threat-new-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 4px;
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-bg);
+  background: var(--px-accent);
+  letter-spacing: 0.5px;
+  vertical-align: middle;
+  animation: threat-badge-pulse 1.2s ease-in-out 3;
+}
+@keyframes threat-badge-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.threat-blurb {
+  font-family: "VT323", monospace;
+  font-size: 13px;
+  line-height: 1.1;
+  margin-top: 2px;
+  opacity: 0.85;
+}
 
 /* Chance tier panel — collapsed: LV. X moved into the panel header */
 .chance-collapsed {
