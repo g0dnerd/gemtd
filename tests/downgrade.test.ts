@@ -142,6 +142,25 @@ describe('downgrade', () => {
     expect(emitted!.newQuality).toBe(3);
   });
 
+  it('does not auto-start wave before all draws are placed', () => {
+    const h = setup();
+    const placed = placeTower(h.game, 4, 4, 'ruby', 3);
+    // 5 draws total, only 1 placed
+    h.game.state.draws = [
+      { slotId: 0, gem: 'ruby', quality: 3 as Quality, placedTowerId: placed.id },
+      { slotId: 1, gem: 'emerald', quality: 1 as Quality, placedTowerId: null },
+      { slotId: 2, gem: 'sapphire', quality: 2 as Quality, placedTowerId: null },
+      { slotId: 3, gem: 'topaz', quality: 1 as Quality, placedTowerId: null },
+      { slotId: 4, gem: 'opal', quality: 1 as Quality, placedTowerId: null },
+    ];
+    expect(h.phase.downgrade(placed.id)).toBe(true);
+    expect(placed.quality).toBe(2);
+    expect(h.game.state.downgradeUsedThisRound).toBe(true);
+    // Should NOT auto-conclude or start wave
+    expect(h.game.state.draws).toHaveLength(5);
+    expect(h.game.waveStarted).toBe(false);
+  });
+
   it('works on combined gems (just drops tier, no split)', () => {
     const h = setup();
     // Simulate a gem that was combined to Flawed (quality 2)

@@ -16,6 +16,7 @@ interface FakeGame {
   refreshRoute(): boolean;
   selectTower(id: number | null): void;
   enterWave(): void;
+  waveStarted: boolean;
 }
 
 function setup() {
@@ -38,7 +39,8 @@ function setup() {
       return true;
     },
     selectTower: (id) => { state.selectedTowerId = id; },
-    enterWave: () => {},
+    enterWave: () => { game.waveStarted = true; },
+    waveStarted: false,
   };
   const phase = new BuildPhase(game as unknown as import('../src/game/Game').Game);
   game.refreshRoute();
@@ -109,6 +111,25 @@ describe('combine: level-up (current round)', () => {
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(false);
+  });
+
+  it('does not auto-start wave before all draws are placed', () => {
+    const h = setup();
+    const ts = [
+      placeTower(h.game, 4, 4, 'ruby', 1),
+      placeTower(h.game, 4, 6, 'ruby', 1),
+    ];
+    h.game.state.draws = [
+      { slotId: 0, gem: 'ruby', quality: 1 as any, placedTowerId: ts[0].id },
+      { slotId: 1, gem: 'ruby', quality: 1 as any, placedTowerId: ts[1].id },
+      { slotId: 2, gem: 'emerald', quality: 1 as any, placedTowerId: null },
+      { slotId: 3, gem: 'topaz', quality: 1 as any, placedTowerId: null },
+      { slotId: 4, gem: 'opal', quality: 1 as any, placedTowerId: null },
+    ];
+    expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers[0].quality).toBe(2);
+    expect(h.game.waveStarted).toBe(false);
+    expect(h.game.state.draws).toHaveLength(5);
   });
 
   it('refuses level-up at perfect quality', () => {

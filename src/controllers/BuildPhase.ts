@@ -281,8 +281,9 @@ export class BuildPhase {
           this.game.bus.emit('toast', { kind: 'error', text: 'Level-up requires current-round towers only' });
           return false;
         }
+        const shouldConclude = allDrawsPlaced(state);
         const newTowerId = this.commitTransform(towers, towers[0].gem, newQ, undefined);
-        if (allDrawsPlaced(state)) {
+        if (shouldConclude) {
           this.autoConcludeRound(newTowerId);
           this.game.enterWave();
         }
@@ -308,7 +309,7 @@ export class BuildPhase {
     const outputQ = (Math.max(...towers.map((t) => t.quality))) as Quality;
     const inputTouchedRound = state.phase === 'build' && towers.some((t) => currentRoundIds.has(t.id));
     const newTowerId = this.commitTransform(towers, combo.visualGem, outputQ, combo.key);
-    if (inputTouchedRound && allDrawsPlaced(state)) {
+    if (inputTouchedRound) {
       this.autoConcludeRound(newTowerId);
       this.game.enterWave();
     }
