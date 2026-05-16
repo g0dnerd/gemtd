@@ -20,6 +20,8 @@ export interface CreepArchetype {
   bountyMult: number;
   defaultArmor?: number;
   flags: { boss?: boolean; armored?: boolean; air?: boolean };
+  /** Short ability description shown in threat panel on first appearance. */
+  blurb?: string;
 }
 
 export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
@@ -43,9 +45,9 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     kind: 'armored',
     speed: 1.2,
     color: 'opal',
-    hpMult: 1.6,
+    hpMult: 1.49,
     bountyMult: 1.2,
-    defaultArmor: 7,
+    defaultArmor: 12,
     flags: { armored: true },
   },
   air: {
@@ -71,6 +73,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 0.9,
     bountyMult: 1.5,
     flags: {},
+    blurb: 'Periodically heals nearby creeps',
   },
   wizard: {
     kind: 'wizard',
@@ -79,46 +82,52 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 1.0,
     bountyMult: 1.5,
     flags: {},
+    blurb: 'Teleports nearby creeps forward',
   },
   tunneler: {
     kind: 'tunneler',
     speed: 1.65,
     color: 'topaz',
-    hpMult: 0.8,
+    hpMult: 1.2,
     bountyMult: 1.3,
     flags: {},
+    blurb: 'Burrows underground, untargetable',
   },
   vessel: {
     kind: 'vessel',
-    speed: 1.3,
+    speed: 0.55,
     color: 'topaz',
-    hpMult: 1.8,
+    hpMult: 4.5,
     bountyMult: 0.5,
     flags: {},
+    blurb: 'Releases smaller creeps on death',
   },
   gazer: {
     kind: 'gazer',
-    speed: 1.4,
+    speed: 0.6,
     color: 'amethyst',
-    hpMult: 1.6,
+    hpMult: 4.0,
     bountyMult: 0.5,
     flags: {},
+    blurb: 'Releases smaller creeps on death',
   },
   coral: {
     kind: 'coral',
-    speed: 1.1,
+    speed: 0.45,
     color: 'emerald',
-    hpMult: 2.0,
+    hpMult: 5.0,
     bountyMult: 0.5,
     flags: {},
+    blurb: 'Releases smaller creeps on death',
   },
   anemone: {
     kind: 'anemone',
-    speed: 1.5,
+    speed: 0.6,
     color: 'aquamarine',
-    hpMult: 1.5,
+    hpMult: 4.0,
     bountyMult: 0.5,
     flags: {},
+    blurb: 'Releases smaller creeps on death',
   },
   chrysalid: {
     kind: 'chrysalid',
@@ -127,6 +136,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 1.4,
     bountyMult: 1.4,
     flags: {},
+    blurb: 'At low HP, awakens: debuff-immune + faster',
   },
   mycoid: {
     kind: 'mycoid',
@@ -135,5 +145,6 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 0.65,
     bountyMult: 1.3,
     flags: {},
+    blurb: 'Leaves a spore cloud that slows towers',
   },
 };
