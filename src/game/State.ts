@@ -228,6 +228,8 @@ export interface State {
   };
   /** Creep kinds the player has already seen in the threat panel this run. */
   seenCreepKinds: CreepKind[];
+  /** Per-wave record of which special kinds were new when that wave first appeared in the threat panel. */
+  newKindsByWave: Record<number, CreepKind[]>;
   /** Override wave definition for debug mode. */
   debugWaveDef?: WaveDef;
   /** Gem weakness rotation — shuffled blocks of 7 gem types (excludes opal). */
@@ -285,6 +287,7 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     totalWaves,
     waveStats: { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 },
     seenCreepKinds: [],
+    newKindsByWave: {},
     gemWeaknesses: [],
   };
 }

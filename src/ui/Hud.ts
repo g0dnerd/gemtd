@@ -1077,14 +1077,17 @@ export function mountHud(
       const def = WAVES[n - 1];
       if (!def) continue;
       const isCurrent = n === cur;
-      const newKinds: CreepKind[] = [];
-      for (const g of def.groups) {
-        if (!BASIC_KINDS.has(g.kind) && !game.state.seenCreepKinds.includes(g.kind)) {
-          newKinds.push(g.kind);
-          game.state.seenCreepKinds.push(g.kind);
+      if (!(n in game.state.newKindsByWave)) {
+        const newKinds: CreepKind[] = [];
+        for (const g of def.groups) {
+          if (!BASIC_KINDS.has(g.kind) && !game.state.seenCreepKinds.includes(g.kind)) {
+            newKinds.push(g.kind);
+            game.state.seenCreepKinds.push(g.kind);
+          }
         }
+        game.state.newKindsByWave[n] = newKinds;
       }
-      threatsList.appendChild(makeThreatRow(def, isCurrent, newKinds));
+      threatsList.appendChild(makeThreatRow(def, isCurrent, game.state.newKindsByWave[n]));
     }
   }
 

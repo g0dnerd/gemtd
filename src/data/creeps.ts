@@ -4,9 +4,24 @@
  * scales HP & gold per wave.
  */
 
-import { GemType } from '../render/theme';
+import { GemType } from "../render/theme";
 
-export type CreepKind = 'normal' | 'fast' | 'armored' | 'air' | 'boss' | 'healer' | 'wizard' | 'tunneler' | 'vessel' | 'gazer' | 'coral' | 'anemone' | 'chrysalid' | 'mycoid' | 'gestation';
+export type CreepKind =
+  | "normal"
+  | "fast"
+  | "armored"
+  | "air"
+  | "boss"
+  | "healer"
+  | "wizard"
+  | "tunneler"
+  | "vessel"
+  | "gazer"
+  | "coral"
+  | "anemone"
+  | "chrysalid"
+  | "mycoid"
+  | "gestation";
 
 export interface CreepArchetype {
   kind: CreepKind;
@@ -26,134 +41,133 @@ export interface CreepArchetype {
 
 export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
   normal: {
-    kind: 'normal',
+    kind: "normal",
     speed: 1.6,
-    color: 'amethyst',
+    color: "amethyst",
     hpMult: 1.0,
     bountyMult: 1.0,
     flags: {},
   },
   fast: {
-    kind: 'fast',
+    kind: "fast",
     speed: 2.6,
-    color: 'sapphire',
+    color: "sapphire",
     hpMult: 0.7,
     bountyMult: 1.1,
     flags: {},
   },
   armored: {
-    kind: 'armored',
+    kind: "armored",
     speed: 1.2,
-    color: 'opal',
+    color: "opal",
     hpMult: 1.49,
     bountyMult: 1.2,
     defaultArmor: 12,
     flags: { armored: true },
   },
   air: {
-    kind: 'air',
+    kind: "air",
     speed: 1.7,
-    color: 'diamond',
+    color: "diamond",
     hpMult: 0.6,
     bountyMult: 1.2,
     flags: { air: true },
   },
   boss: {
-    kind: 'boss',
+    kind: "boss",
     speed: 1.2,
-    color: 'ruby',
+    color: "ruby",
     hpMult: 3.5,
     bountyMult: 3.0,
     flags: { boss: true },
   },
   healer: {
-    kind: 'healer',
+    kind: "healer",
     speed: 1.55,
-    color: 'emerald',
+    color: "emerald",
     hpMult: 0.9,
     bountyMult: 1.5,
     flags: {},
-    blurb: 'Periodically heals nearby creeps',
+    blurb: "Periodically heals nearby creeps",
   },
   wizard: {
-    kind: 'wizard',
+    kind: "wizard",
     speed: 1.3,
-    color: 'sapphire',
+    color: "sapphire",
     hpMult: 1.0,
     bountyMult: 1.5,
     flags: {},
-    blurb: 'Teleports nearby creeps forward',
+    blurb: "Teleports nearby creeps forward",
   },
   tunneler: {
-    kind: 'tunneler',
+    kind: "tunneler",
     speed: 1.65,
-    color: 'topaz',
+    color: "topaz",
     hpMult: 1.2,
     bountyMult: 1.3,
     flags: {},
-    blurb: 'Burrows underground, untargetable',
+    blurb: "Burrows underground, untargetable",
   },
   vessel: {
-    kind: 'vessel',
+    kind: "vessel",
     speed: 0.55,
-    color: 'topaz',
+    color: "topaz",
     hpMult: 4.5,
     bountyMult: 0.5,
     flags: {},
-    blurb: 'Releases smaller creeps on death',
+    blurb: "Releases smaller creeps on death",
   },
   gazer: {
-    kind: 'gazer',
+    kind: "gazer",
     speed: 0.6,
-    color: 'amethyst',
+    color: "amethyst",
     hpMult: 4.0,
     bountyMult: 0.5,
     flags: {},
-    blurb: 'Releases smaller creeps on death',
+    blurb: "Releases smaller creeps on death",
   },
   coral: {
-    kind: 'coral',
+    kind: "coral",
     speed: 0.45,
-    color: 'emerald',
+    color: "emerald",
     hpMult: 5.0,
     bountyMult: 0.5,
     flags: {},
-    blurb: 'Releases smaller creeps on death',
+    blurb: "Releases smaller creeps on death",
   },
   anemone: {
-    kind: 'anemone',
+    kind: "anemone",
     speed: 0.6,
-    color: 'aquamarine',
+    color: "aquamarine",
     hpMult: 4.0,
     bountyMult: 0.5,
     flags: {},
-    blurb: 'Releases smaller creeps on death',
+    blurb: "Releases smaller creeps on death",
   },
   chrysalid: {
-    kind: 'chrysalid',
+    kind: "chrysalid",
     speed: 1.3,
-    color: 'amethyst',
+    color: "amethyst",
     hpMult: 1.96,
     bountyMult: 1.4,
     flags: {},
-    blurb: 'At low HP, awakens: debuff-immune + faster',
+    blurb: "At low HP, awakens",
   },
   mycoid: {
-    kind: 'mycoid',
+    kind: "mycoid",
     speed: 1.45,
-    color: 'emerald',
+    color: "emerald",
     hpMult: 0.65,
     bountyMult: 1.3,
     flags: {},
-    blurb: 'Spore pulse silences tower auras nearby',
+    blurb: "Spore pulse silences tower auras nearby",
   },
   gestation: {
-    kind: 'gestation',
+    kind: "gestation",
     speed: 0.35,
-    color: 'opal',
+    color: "opal",
     hpMult: 8.0,
     bountyMult: 0.5,
     flags: {},
-    blurb: 'At 50% HP, enrages. Releases bosses on death',
   },
 };
