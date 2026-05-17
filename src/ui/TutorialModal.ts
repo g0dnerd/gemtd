@@ -1,9 +1,4 @@
-/**
- * In-game tutorial overlay. Re-readable from the HUD action bar.
- * Plain HTML/CSS — same modal pattern as CombineModal.
- */
-
-import { htmlGem, htmlCoin, htmlHeart } from "../render/htmlSprites";
+import { htmlCoin, htmlHeart } from "../render/htmlSprites";
 import { RUNES_ENABLED } from "../game/constants";
 
 interface Section {
@@ -23,12 +18,12 @@ export function mountTutorialModal(root: HTMLElement): () => void {
   head.className = "modal-head";
   const title = document.createElement("div");
   title.className = "title px-h";
-  title.textContent = "? HOW TO PLAY ?";
+  title.textContent = "HOW TO PLAY";
   const close = document.createElement("button");
   close.className = "px-btn";
-  close.style.fontSize = "9px";
-  close.style.padding = "6px 10px";
-  close.textContent = "X";
+  close.style.fontSize = "8px";
+  close.style.padding = "5px 8px";
+  close.textContent = "✕";
   head.append(title, close);
   card.appendChild(head);
 
@@ -68,13 +63,14 @@ export function mountTutorialModal(root: HTMLElement): () => void {
   }
 
   const footer = document.createElement("div");
-  footer.className = "cost-actions";
+  footer.className = "modal-head";
   const hint = document.createElement("div");
   hint.className = "tutorial-hint";
-  hint.textContent = "Press ESC or click outside to close.";
+  hint.textContent = "ESC or click outside to close";
   const okBtn = document.createElement("button");
   okBtn.className = "px-btn px-btn-primary";
   okBtn.style.fontSize = "9px";
+  okBtn.style.padding = "8px 16px";
   okBtn.textContent = "GOT IT";
   footer.append(hint, okBtn);
   card.appendChild(footer);
@@ -115,35 +111,55 @@ function p(html: string): HTMLDivElement {
   return d;
 }
 
-function row(left: HTMLElement, text: string): HTMLDivElement {
+function note(html: string): HTMLDivElement {
   const d = document.createElement("div");
-  d.className = "tutorial-row";
-  const l = document.createElement("div");
-  l.className = "tutorial-row-icon";
-  l.appendChild(left);
-  const r = document.createElement("div");
-  r.className = "tutorial-p";
-  r.innerHTML = text;
-  d.append(l, r);
+  d.className = "tutorial-note";
+  d.innerHTML = html;
   return d;
+}
+
+function stepList(
+  items: Array<{ marker: HTMLElement | string; html: string }>,
+): HTMLElement {
+  const ol = document.createElement("ol");
+  ol.className = "tutorial-step-list";
+  for (const item of items) {
+    const li = document.createElement("li");
+    li.className = "tutorial-step-item";
+    const iconEl = document.createElement("span");
+    if (typeof item.marker === "string") {
+      iconEl.className = "tutorial-step-marker";
+      iconEl.textContent = item.marker;
+    } else {
+      iconEl.className = "tutorial-step-icon";
+      iconEl.appendChild(item.marker);
+    }
+    const text = document.createElement("span");
+    text.innerHTML = item.html;
+    li.append(iconEl, text);
+    ol.appendChild(li);
+  }
+  return ol;
 }
 
 function goalBody(): HTMLElement {
   const wrap = document.createElement("div");
   wrap.append(
     p(
-      `Survive <b>50 waves</b> of creeps. They walk the <b>shortest path</b> from Start to End through <b>6 checkpoints</b>. Place towers to <b>force longer detours</b> — more time in range means more damage.`,
+      `Survive <b>50 waves</b> of creeps. They follow the <b>shortest path</b> through 6 checkpoints. Place towers to create <b>longer detours</b> — more time in range means more damage.`,
     ),
-    row(
-      htmlHeart(18),
-      `Each leak costs a <b>life</b>. You start with <b>50</b> (or <b>1</b> in Hardcore). Lose them all and the run ends.`,
-    ),
-    row(
-      htmlCoin(18),
-      `Kills earn <b>gold</b>. Spend it on chance-tier upgrades, combines, and removing rocks.`,
-    ),
-    p(
-      `A placement is <b>rejected</b> if it would block the path completely. <b>Air</b> creeps ignore the maze and fly straight between checkpoints.`,
+    stepList([
+      {
+        marker: htmlHeart(18),
+        html: `Each leak costs a <b>life</b>. You start with <b>50</b> (or <b>1</b> in Hardcore). Lose them all and the run ends.`,
+      },
+      {
+        marker: htmlCoin(18),
+        html: `Kills earn <b>gold</b> for chance-tier upgrades, combines, and rock removal.`,
+      },
+    ]),
+    note(
+      `A placement is rejected if it would block the path entirely. <b>Air</b> creeps fly straight between checkpoints and ignore the maze.`,
     ),
   );
   return wrap;
@@ -153,22 +169,24 @@ function buildBody(): HTMLElement {
   const wrap = document.createElement("div");
   wrap.append(
     p(
-      `Each build phase: upgrade your <b>chance tier</b> if you like, then press <b>START PLACEMENT</b> (<kbd>SPACE</kbd>) to roll <b>5 random gems</b>.`,
+      `Each build phase you can upgrade your <b>chance tier</b>, then press <kbd>SPACE</kbd> to roll <b>5 random gems</b>.`,
     ),
-    row(
-      htmlGem("emerald", 22, true),
-      `<b>PLACE</b> — select a draw slot, then click a grass tile.`,
-    ),
-    row(
-      htmlGem("sapphire", 22),
-      `<b>CYCLE</b> — <kbd>TAB</kbd> cycles unplaced slots.`,
-    ),
-    row(
-      htmlGem("topaz", 22),
-      `<b>UNDO</b> — <kbd>U</kbd> reverses placements.`,
-    ),
-    p(
-      `Once all 5 are placed, press <b>NEXT WAVE</b> (<kbd>SPACE</kbd>). After the wave, <b>keep one</b> tower (<kbd>K</kbd>); the other four become <b>rocks</b> that block creep paths — that's how you build your maze.`,
+    stepList([
+      {
+        marker: "1",
+        html: `<b>Place</b> — select a draw slot, click a grass tile.`,
+      },
+      {
+        marker: "2",
+        html: `<b>Cycle</b> — <kbd>TAB</kbd> to switch between unplaced slots.`,
+      },
+      {
+        marker: "3",
+        html: `<b>Undo</b> — <kbd>U</kbd> to reverse your last placement.`,
+      },
+    ]),
+    note(
+      `Once all 5 are placed, press <kbd>SPACE</kbd> to start the wave. After it ends, <b>keep one</b> tower (<kbd>K</kbd>) — the other four become <b>rocks</b>. That's how you build your maze.`,
     ),
   );
   return wrap;
@@ -178,16 +196,20 @@ function combineBody(): HTMLElement {
   const wrap = document.createElement("div");
   wrap.append(
     p(
-      `<b>Right-click</b> a placed gem to open the <b>radial menu</b> — it shows Keep, Combine (level up), and Special (recipe) actions for that tower.`,
+      `<b>Right-click</b> a placed gem to open the <b>radial menu</b> with Keep, Combine, and Special actions.`,
     ),
-    p(
-      `<b>Level up:</b> 2 same gems → +1 quality; 4 same gems → +2 quality (Chipped → Flawed → Normal → Flawless → Perfect).`,
-    ),
-    p(
-      `<b>Recipes:</b> specific gem + quality combos form a <b>special tower</b>. Check the RECIPES panel for all combinations.`,
-    ),
-    p(
-      `Only <b>kept</b> towers from previous rounds are eligible for recipes. The full ★ COMBINE menu (<kbd>C</kbd>) lets you pick towers manually.`,
+    stepList([
+      {
+        marker: "↑",
+        html: `<b>Level up:</b> 2 same gems → +1 quality. 4 same gems → +2 quality.<br><span style="color:var(--px-ink-dim);font-size:13px">Chipped → Flawed → Normal → Flawless → Perfect</span>`,
+      },
+      {
+        marker: "⚗",
+        html: `<b>Recipes:</b> specific gem + quality combos form a <b>special tower</b>. See the RECIPES panel for all combinations.`,
+      },
+    ]),
+    note(
+      `Only <b>kept</b> towers from previous rounds are eligible. The full combine menu (<kbd>C</kbd>) lets you pick towers manually.`,
     ),
   );
   return wrap;
@@ -203,276 +225,304 @@ function runesBody(): HTMLElement {
     p(`<b>Rune of Damage</b> — deals burst damage on contact.`),
     p(`<b>Rune of Teleportation</b> — knocks creeps back along the path.`),
     p(`<b>Rune of Slow</b> — applies a heavy slow.`),
-    p(
+    note(
       `Runes have a cooldown between triggers. Place them on the creep path for maximum effect.`,
     ),
   );
   return wrap;
 }
 
+type ChangeTag = "new" | "buff" | "nerf" | "bal" | "fix";
+
+interface ChangeNote {
+  tag: ChangeTag;
+  text: string;
+}
+
+interface VersionEntry {
+  ver: string;
+  notes: Array<ChangeNote | string>;
+}
+
+const TAG_LABELS: Record<ChangeTag, string> = {
+  new: "NEW",
+  buff: "BUFF",
+  nerf: "NERF",
+  bal: "BAL",
+  fix: "FIX",
+};
+
 function changesBody(): HTMLElement {
   const wrap = document.createElement("div");
 
-  const versions: Array<{ ver: string; notes: string[] }> = [
+  const versions: VersionEntry[] = [
     {
       ver: "1.4.3",
       notes: [
-        "<b>Buff</b> — Venomous Emerald: poison DPS 90 → 112, death spread 2 → 5 targets (radius 2.5 → 2).",
-        "<b>Buff</b> — Solar Core: prox burn ramp DPS 95 → 105.",
-        "<b>Nerf</b> — Ancient Bloodstone: max damage 540 → 500, splash radius 2.5 → 2.",
-        "<b>Buff</b> — Lucky Asian Jade: crit 10% → 15%, stun 3% → 8%, bonus gold 5% → 10%.",
+        { tag: "buff", text: "Venomous Emerald: poison DPS 90 → 112, death spread 2 → 5 targets." },
+        { tag: "buff", text: "Solar Core: prox burn ramp DPS 95 → 105." },
+        { tag: "nerf", text: "Ancient Bloodstone: max damage 540 → 500, splash radius 2.5 → 2." },
+        { tag: "buff", text: "Lucky Asian Jade: crit 10% → 15%, stun 3% → 8%, bonus gold 5% → 10%." },
       ],
     },
     {
       ver: "1.4.2",
       notes: [
-        "<b>Balance</b> — reduce wave 30 healer count (3 → 2) and HP (−30%).",
+        { tag: "bal", text: "Wave 30 healer count 3 → 2, HP −30%." },
       ],
     },
     {
       ver: "1.4.1",
       notes: [
-        "<b>Balance</b> — nerf wave 40 boss HP (−30%) and healer HP (−40%).",
+        { tag: "bal", text: "Wave 40 boss HP −30%, healer HP −40%." },
       ],
     },
     {
       ver: "1.4.0",
       notes: [
-        "<b>New</b> — Container creeps: 4 new kinds (Vessel, Gazer, Coral, Anemone) that split into smaller creeps on death.",
-        "&nbsp;&nbsp;Container waves at 15, 25, 35, 45 with increasing nesting depth (1–4 layers).",
+        { tag: "new", text: "Container creeps: 4 new types (Vessel, Gazer, Coral, Anemone) that split into smaller creeps on death." },
+        "Container waves at 15, 25, 35, 45 with 1–4 nesting layers.",
       ],
     },
     {
       ver: "1.3.4",
-      notes: ["<b>Balance</b> — slightly buff Ruby's damage scaling curve."],
+      notes: [
+        { tag: "bal", text: "Slightly buff Ruby's damage scaling curve." },
+      ],
     },
     {
       ver: "1.3.3",
       notes: [
-        "<b>Balance</b> — Ruby damage nerfed ~15–40% (scaling by tier), hitting Flawless/Perfect hardest.",
-        "<b>Balance</b> — Wave 40 boss and healer HP reduced by 20%.",
+        { tag: "nerf", text: "Ruby damage −15–40% (Flawless/Perfect hit hardest)." },
+        { tag: "bal", text: "Wave 40 boss + healer HP −20%." },
       ],
     },
     {
       ver: "1.3.2",
       notes: [
-        "<b>Balance</b> — Star Ruby range reduced by 35% across all tiers.",
-        "<b>Balance</b> — Wave 24 air creep armor reduced from 3 to 2.",
+        { tag: "bal", text: "Star Ruby range reduced by 35% across all tiers." },
+        { tag: "bal", text: "Wave 24 air creep armor reduced from 3 to 2." },
       ],
     },
     {
       ver: "1.3.1",
       notes: [
-        "<b>Balance</b> — Air units move 15% slower (2.0 → 1.7 tiles/s).",
-        "<b>Fix</b> — Wave preview now shows actual HP after archetype multiplier.",
+        { tag: "bal", text: "Air units move 15% slower (2.0 → 1.7 tiles/s)." },
+        { tag: "fix", text: "Wave preview now shows actual HP after archetype multiplier." },
       ],
     },
     {
       ver: "1.3.0",
-      notes: ["<b>Balance</b> — Healer buffs no longer stack."],
+      notes: [
+        { tag: "bal", text: "Healer buffs no longer stack." },
+      ],
     },
     {
       ver: "1.2.8",
       notes: [
-        "<b>Buff</b> — Lucky Asian Jade damage range +50% (200–300 → 300–450).",
+        { tag: "buff", text: "Lucky Asian Jade damage range +50% (200–300 → 300–450)." },
       ],
     },
     {
       ver: "1.2.7",
       notes: [
-        "<b>Nerf</b> — Wave 34 air creep HP reduced by 20%.",
-        "<b>Nerf</b> — Pink Diamond base damage reduced (350–450 → 250–350).",
-        "<b>Nerf</b> — Living Diamond cost increased (175 → 250) and damage reduced.",
-        "<b>Buff</b> — Silver Knight damage increased (120–160 → 320–360).",
-        "<b>Nerf</b> — Solar Core death nova reduced (10% → 8% max HP).",
-        "<b>Buff</b> — Red Crystal Facet damage increased (120–200 → 160–250).",
-        "<b>Buff</b> — Rose Quartz Crystal damage increased (160–250 → 240–300).",
+        { tag: "nerf", text: "Wave 34 air creep HP reduced by 20%." },
+        { tag: "nerf", text: "Pink Diamond base damage reduced (350–450 → 250–350)." },
+        { tag: "nerf", text: "Living Diamond cost increased (175 → 250) and damage reduced." },
+        { tag: "buff", text: "Silver Knight damage increased (120–160 → 320–360)." },
+        { tag: "nerf", text: "Solar Core death nova reduced (10% → 8% max HP)." },
+        { tag: "buff", text: "Red Crystal Facet damage increased (120–200 → 160–250)." },
+        { tag: "buff", text: "Rose Quartz Crystal damage increased (160–250 → 240–300)." },
       ],
     },
     {
       ver: "1.2.6",
       notes: [
-        "<b>Balance</b> — Nerfed Ancient Bloodstone damage (400–620 → 320–540).",
-        "<b>Balance</b> — Nerfed Solar Core death nova (15% → 10% max HP).",
+        { tag: "nerf", text: "Ancient Bloodstone damage (400–620 → 320–540)." },
+        { tag: "nerf", text: "Solar Core death nova (15% → 10% max HP)." },
       ],
     },
     {
       ver: "1.2.5",
       notes: [
-        "<b>Balance</b> — Remove poison from base Bloodstone (splash-only now).",
-        "<b>Balance</b> — Nerf diamond crit at higher qualities: reduced chance scaling (+3%/tier instead of +5%) and multiplier (1.8× at Normal+).",
+        { tag: "bal", text: "Remove poison from base Bloodstone (splash-only now)." },
+        { tag: "nerf", text: "Diamond crit at higher qualities: reduced chance scaling (+3%/tier instead of +5%) and multiplier (1.8× at Normal+)." },
       ],
     },
     {
       ver: "1.2.4",
       notes: [
-        "<b>Infra</b> — Anonymous telemetry for balance tuning (no personal data collected).",
+        { tag: "new", text: "Anonymous telemetry for balance tuning (no personal data collected)." },
       ],
     },
     {
       ver: "1.2.3",
-      notes: ["<b>Balance</b> — Nerfed wave 15 air creep HP (1710 → 1510)."],
+      notes: [
+        { tag: "bal", text: "Nerfed wave 15 air creep HP (1710 → 1510)." },
+      ],
     },
     {
       ver: "1.2.2",
       notes: [
-        "<b>Balance</b> — Remove poison from Ancient Bloodstone entirely.",
-        "<b>Balance</b> — Buff stargem damage floor and ceiling by 200 each.",
+        { tag: "bal", text: "Remove poison from Ancient Bloodstone entirely." },
+        { tag: "buff", text: "Buff stargem damage floor and ceiling by 200 each." },
       ],
     },
     {
       ver: "1.2.1",
       notes: [
-        "<b>Fix</b> — Wave bonus gold is now only awarded when no creeps leak.",
+        { tag: "fix", text: "Wave bonus gold is now only awarded when no creeps leak." },
       ],
     },
     {
       ver: "1.2.0",
       notes: [
-        "<b>Stats</b> — top 5 damage-dealing towers shown on game over screen.",
+        { tag: "new", text: "Top 5 damage-dealing towers shown on game over screen." },
       ],
     },
     {
       ver: "1.1.0",
       notes: [
-        "<b>Balance</b> — boss wave bounties reduced by 40% across all boss waves (10, 20, 30, 40, 50).",
-        "<b>Balance</b> — armor now scales across all ground creep waves from wave 11 onward, increasing overall mid-to-late difficulty.",
-        "<b>Balance</b> — air waves nerfed slightly (fewer creeps, lower HP) but compensated with armor; difficulty shifts toward ground waves.",
+        { tag: "bal", text: "Boss wave bounties reduced by 40% across all boss waves (10, 20, 30, 40, 50)." },
+        { tag: "bal", text: "Armor now scales across all ground creep waves from wave 11 onward." },
+        { tag: "bal", text: "Air waves nerfed slightly but compensated with armor; difficulty shifts toward ground waves." },
       ],
     },
     {
       ver: "1.0.0",
       notes: [
-        "<b>Armor system</b> — numeric armor replaces the armored flag. WC3 damage formula: positive armor reduces damage, negative amplifies. Armor progresses across all 50 waves.",
-        "<b>Special gem upgrade rework</b> — all 9 combo upgrade tiers replaced with identity-defining mechanics:",
-        "&nbsp;&nbsp;Black Opal → <b>Void Opal</b>: vulnerability aura (+20% damage taken).",
-        "&nbsp;&nbsp;Bloodstone → <b>Bloodfire Opal</b>: crit splash, 35% crit ×3.",
-        "&nbsp;&nbsp;Dark Emerald → <b>Venomous Emerald</b>: poison + plague spread on death.",
-        "&nbsp;&nbsp;Gold → <b>Pharaoh's Gold</b>: crit splash + proximity armor shred.",
-        "&nbsp;&nbsp;Pink Diamond → <b>Living Diamond</b>: focus crit (+3%/hit) + execute below 25% HP.",
-        "&nbsp;&nbsp;Silver → <b>Frosted Silver</b>: freeze chance. <b>Silver Knight</b>: periodic nova + freeze.",
-        "&nbsp;&nbsp;Star Ruby → <b>Plasma Star</b>: ramping burn. <b>Solar Core</b>: armor-piercing burn + death nova.",
-        "&nbsp;&nbsp;Yellow Sapphire → <b>Blizzard Sapphire</b>: periodic freeze + frostbite bonus.",
-        "&nbsp;&nbsp;Paraiba → stacking armor shred. <b>Ancient Paraiba</b>: enhanced shred (-3/hit, 8 stacks).",
-        "&nbsp;&nbsp;Uranium → <b>Leaking Uranium</b>: armor decay aura + linger burn.",
-        "<b>Balance</b> — Silver T1 buffed: damage 20-26 → 24-31, atk speed 1.1 → 1.25, slow 0.8 → 0.75.",
-        "<b>Balance</b> — Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit.",
-        "<b>Balance</b> — Yellow Sapphire base damage 80-120 → 120-180, slow 25% for 2.5 s.",
-        "<b>Balance</b> — Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled.",
-        "<b>Balance</b> — Lucky Asian Jade damage/poison/crit significantly buffed.",
-        "<b>Balance</b> — Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers.",
-        "<b>Balance</b> — Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP.",
-        "<b>Balance</b> — Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks.",
-        "<b>Waves</b> — reverted to 50 waves. Armor progression added across all waves: armored creeps start at 7 armor (wave 5), normals/fast gain 1-5, bosses gain 5 from wave 30.",
-        "<b>Creep inspector</b> — click a creep to see HP bar, speed, bounty, active debuffs, and flags.",
-        "<b>Sprites</b> — T2 gem sprite redesigned as asymmetric crystal cluster. New sprites and palettes for Silver, Star Ruby, Gold, Black Opal, Paraiba Tourmaline, and others across upgrade tiers.",
-        "<b>Hardcore mode</b> — restyled with skull & bone theme; checkpoint banners replaced with carved waystones.",
-        "<b>Debug</b> — Ctrl+0 on title screen starts a debug game with all gems and combos pre-placed.",
+        { tag: "new", text: "Armor system — numeric armor replaces the armored flag. WC3 damage formula." },
+        { tag: "new", text: "Special gem upgrade rework — all 9 combo upgrade tiers replaced with identity-defining mechanics." },
+        { tag: "bal", text: "Silver T1 buffed: damage 20–26 → 24–31, atk speed 1.1 → 1.25." },
+        { tag: "bal", text: "Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit." },
+        { tag: "bal", text: "Yellow Sapphire base damage 80–120 → 120–180, slow 25% for 2.5s." },
+        { tag: "bal", text: "Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled." },
+        { tag: "buff", text: "Lucky Asian Jade damage/poison/crit significantly buffed." },
+        { tag: "bal", text: "Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers." },
+        { tag: "bal", text: "Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP." },
+        { tag: "bal", text: "Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks." },
+        { tag: "new", text: "50-wave format with armor progression across all waves." },
+        { tag: "new", text: "Creep inspector — click a creep to see HP, speed, bounty, debuffs." },
+        { tag: "new", text: "Redesigned T2 gem sprites and palettes for most gem types." },
+        { tag: "new", text: "Hardcore mode restyled with skull & bone theme." },
       ],
     },
     {
       ver: "0.12.0",
       notes: [
-        "<b>Balance</b> — First chance tier upgrade cost reduced: 30 g → 25 g.",
-        "<b>Balance</b> — Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14 000 → 9 000.",
+        { tag: "bal", text: "First chance tier upgrade cost reduced: 30g → 25g." },
+        { tag: "bal", text: "Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14k → 9k." },
       ],
     },
     {
       ver: "0.11.0",
       notes: [
-        "<b>Runes disabled</b> — runes temporarily disabled due to UX/balance issues.",
+        { tag: "bal", text: "Runes temporarily disabled due to UX/balance issues." },
       ],
     },
     {
       ver: "0.10.0",
       notes: [
-        "<b>Multi-target</b> — Malachite now fires independent projectiles at multiple enemies instead of chain lightning.",
-        "<b>Proximity burn</b> — Star Ruby and Uranium radiate passive damage to all nearby enemies.",
-        "<b>Proximity slow</b> — Uranium slows all enemies in range without attacking.",
-        "<b>Armor shred</b> — Gold applies an armor reduction debuff on hit.",
-        "<b>Bonus gold</b> — Lucky Asian Jade has a 5% chance to double kill bounty.",
-        "<b>Black Opal</b> — Now grants a damage aura instead of attack speed aura.",
+        { tag: "new", text: "Malachite now fires independent projectiles at multiple enemies." },
+        { tag: "new", text: "Star Ruby and Uranium radiate passive damage to all nearby enemies." },
+        { tag: "new", text: "Uranium slows all enemies in range without attacking." },
+        { tag: "new", text: "Gold applies an armor reduction debuff on hit." },
+        { tag: "new", text: "Lucky Asian Jade has a 5% chance to double kill bounty." },
+        { tag: "new", text: "Black Opal now grants a damage aura instead of attack speed aura." },
       ],
     },
     {
       ver: "0.9.0",
       notes: [
-        "<b>Downgrade</b> — new action: reduce a gem's tier by 1 to keep it. One use per round; auto-starts the wave.",
+        { tag: "new", text: "Downgrade — reduce a gem's tier by 1 to keep it. One use per round." },
       ],
     },
     {
       ver: "0.8.2",
       notes: [
-        "<b>Balance</b> — Nerfed healer buff: duration 3 s → 2 s, heal rate 0.1 %/tick → 0.075 %/tick.",
+        { tag: "nerf", text: "Healer buff: duration 3s → 2s, heal rate 0.1%/tick → 0.075%/tick." },
       ],
     },
     {
       ver: "0.8.1",
       notes: [
-        "<b>Balance</b> — Mighty Malachite nerfed: damage 100-150→70-100, chain falloff 1.0→0.85.",
-        "<b>Balance</b> — Star Ruby line buffed: damage and poison up across all tiers.",
-        "<b>Balance</b> — Lucky Asian Jade line nerfed: splash falloff 0.6→0.5, poison 80→50 / 120→80.",
-        "<b>Balance</b> — Boss W10 HP 3500→3000, W11 healers HP 1000→800, W50 healers 5→2.",
+        { tag: "nerf", text: "Mighty Malachite: damage 100–150 → 70–100, chain falloff 1.0 → 0.85." },
+        { tag: "buff", text: "Star Ruby line: damage and poison up across all tiers." },
+        { tag: "nerf", text: "Lucky Asian Jade: splash falloff 0.6 → 0.5, poison 80 → 50 / 120 → 80." },
+        { tag: "bal", text: "Boss W10 HP 3500 → 3000, W11 healers HP 1000 → 800, W50 healers 5 → 2." },
       ],
     },
     {
       ver: "0.8.0",
       notes: [
-        "<b>Balance</b> — Diamond nerfed: base damage 30→25, crit multiplier 2.5→2.0.",
-        "<b>Balance</b> — Sapphire buffed: base damage 12→15.",
-        "<b>Balance</b> — Emerald buffed: base damage 10→13, poison DPS 8→11.",
-        "<b>Balance</b> — Aquamarine buffed: base range 2.5→3.0.",
+        { tag: "nerf", text: "Diamond: base damage 30 → 25, crit multiplier 2.5 → 2.0." },
+        { tag: "buff", text: "Sapphire: base damage 12 → 15." },
+        { tag: "buff", text: "Emerald: base damage 10 → 13, poison DPS 8 → 11." },
+        { tag: "buff", text: "Aquamarine: base range 2.5 → 3.0." },
       ],
     },
     {
       ver: "0.7.2",
       notes: [
-        "<b>Fix</b> — special combine with 1 current-round gem now works correctly.",
+        { tag: "fix", text: "Special combine with 1 current-round gem now works correctly." },
       ],
     },
     {
       ver: "0.7.0",
       notes: [
-        "<b>Aquamarine rework</b> — ramping beam replaces rapid-fire projectiles.",
+        { tag: "new", text: "Aquamarine rework — ramping beam replaces rapid-fire projectiles." },
       ],
     },
     {
       ver: "0.6.1",
       notes: [
-        "<b>Amethyst rework</b> — targets all units with air damage bonus.",
+        { tag: "new", text: "Amethyst rework — targets all units with air damage bonus." },
       ],
     },
     {
       ver: "0.6.0",
       notes: [
-        "<b>Hardcore + Creative mode</b> — new game modes.",
-        "<b>Runes</b> — walkable trap towers triggered by creep proximity (Holding, Damage, Teleportation, Slow).",
-        "<b>Tower kill leveling</b> — towers gain +5% damage per 10 kills.",
-        "<b>8× speed mode</b> — press <kbd>8</kbd> to fast-forward.",
-        "<b>Healer, Wizard, Tunneler</b> — new creep types and wave groups.",
-        "<b>Radial menu</b> — right-click towers for Keep / Combine / Special.",
-        "<b>Path overlay</b> — press <kbd>P</kbd> to see the creep route.",
-        '<b>Recipe hints</b> — tower inspector shows "Forges Into" recipes.',
-        "<b>Stargem</b> — apex gem from 4× Perfect same-type recipe.",
-        "<b>Balance</b> — increased aura/proximity radii, bosses cost 8 lives.",
+        { tag: "new", text: "Hardcore + Creative mode." },
+        { tag: "new", text: "Runes — walkable trap towers triggered by creep proximity." },
+        { tag: "new", text: "Tower kill leveling — towers gain +5% damage per 10 kills." },
+        { tag: "new", text: "8× speed mode — press <kbd>8</kbd> to fast-forward." },
+        { tag: "new", text: "Healer, Wizard, Tunneler creep types and wave groups." },
+        { tag: "new", text: "Radial menu — right-click towers for Keep / Combine / Special." },
+        { tag: "new", text: "Path overlay — press <kbd>P</kbd> to see the creep route." },
+        { tag: "new", text: "Recipe hints — tower inspector shows “Forges Into” recipes." },
+        { tag: "new", text: "Stargem — apex gem from 4× Perfect same-type recipe." },
+        { tag: "bal", text: "Increased aura/proximity radii, bosses cost 8 lives." },
       ],
     },
   ];
 
   for (const { ver, notes } of versions) {
+    const section = document.createElement("div");
     const hdr = document.createElement("div");
-    hdr.className = "tutorial-p changelog-ver";
-    hdr.innerHTML = `<b>v${ver}</b>`;
-    wrap.appendChild(hdr);
+    hdr.className = "changelog-ver";
+    hdr.textContent = `v${ver}`;
+    section.appendChild(hdr);
     const list = document.createElement("ul");
     list.className = "changelog-list";
     for (const n of notes) {
       const li = document.createElement("li");
-      li.className = "tutorial-p changelog-item";
-      li.innerHTML = n;
+      li.className = "changelog-item";
+      if (typeof n === "string") {
+        li.style.paddingLeft = "28px";
+        li.innerHTML = n;
+      } else {
+        const tag = document.createElement("span");
+        tag.className = `changelog-tag changelog-tag-${n.tag}`;
+        tag.textContent = TAG_LABELS[n.tag];
+        li.appendChild(tag);
+        const span = document.createElement("span");
+        span.innerHTML = n.text;
+        li.appendChild(span);
+      }
       list.appendChild(li);
     }
-    wrap.appendChild(list);
+    section.appendChild(list);
+    wrap.appendChild(section);
   }
   return wrap;
 }
@@ -481,25 +531,37 @@ function keysBody(): HTMLElement {
   const wrap = document.createElement("div");
   const grid = document.createElement("div");
   grid.className = "tutorial-keys";
-  const keys: Array<[string, string]> = [
+
+  type KeyEntry = [string, string] | "sep";
+  const keys: KeyEntry[] = [
     ["SPACE", "Start placement / next wave"],
     ["TAB", "Cycle draw slot (Shift = back)"],
     ["K", "Keep hovered or selected tower"],
     ["C", "Open Combine menu"],
+    "sep",
     ["U", "Undo last placement"],
     ["R", "Remove selected rock"],
-    ["1/2/4/8", "Sim speed"],
     ["P", "Toggle path overlay"],
-    ["H / ?", "Open this help screen"],
+    "sep",
+    ["1/2/4/8", "Sim speed"],
+    ["H / ?", "This help screen"],
     ["Ctrl+R", "Restart run"],
     ["ESC", "Deselect / close menu"],
   ];
-  for (const [k, label] of keys) {
+  for (const entry of keys) {
+    if (entry === "sep") {
+      const sep = document.createElement("div");
+      sep.className = "tutorial-key-sep";
+      grid.appendChild(sep);
+      continue;
+    }
+    const [k, label] = entry;
     const r = document.createElement("div");
     r.className = "tutorial-key-row";
     const kb = document.createElement("kbd");
     kb.textContent = k;
     const lbl = document.createElement("div");
+    lbl.className = "tutorial-key-label";
     lbl.textContent = label;
     r.append(kb, lbl);
     grid.appendChild(r);

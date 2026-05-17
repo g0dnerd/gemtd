@@ -19,15 +19,38 @@ import type { GemType, Quality } from "./theme";
 // ===== Opal iridescent fleck overlay =====================================
 
 const OPAL_FLECKS: Record<Quality, [number, number][]> = {
-  1: [[4, 8], [4, 4]],
-  2: [[3, 3], [5, 4], [4, 6]],
-  3: [[2, 2], [4, 4], [5, 3], [3, 5]],
-  4: [[3, 1], [4, 2], [2, 4], [5, 4]],
-  5: [[4, 1], [3, 3], [5, 5], [2, 6], [6, 3]],
+  1: [
+    [4, 8],
+    [4, 4],
+  ],
+  2: [
+    [3, 3],
+    [5, 4],
+    [4, 6],
+  ],
+  3: [
+    [2, 2],
+    [4, 4],
+    [5, 3],
+    [3, 5],
+  ],
+  4: [
+    [3, 1],
+    [4, 2],
+    [2, 4],
+    [5, 4],
+  ],
+  5: [
+    [4, 1],
+    [3, 3],
+    [5, 5],
+    [2, 6],
+    [6, 3],
+  ],
 };
 
 export function applyOpalFlecks(grid: PixelGrid, q: Quality): number[][] {
-  const next = grid.map(row => row.slice());
+  const next = grid.map((row) => row.slice());
   for (const [x, y] of OPAL_FLECKS[q]) {
     const cell = next[y]?.[x];
     if (cell !== undefined && cell !== 0 && cell !== 4) next[y][x] = 5;
@@ -36,7 +59,7 @@ export function applyOpalFlecks(grid: PixelGrid, q: Quality): number[][] {
 }
 
 export const OPAL_FLECK_COLOR = 0x7cf0c8;
-export const OPAL_FLECK_CSS = '#7cf0c8';
+export const OPAL_FLECK_CSS = "#7cf0c8";
 export const OPAL_FRAME_COUNT = 8;
 
 export function opalFleckHue(frame: number): number {
@@ -48,7 +71,11 @@ export function opalFleckHue(frame: number): number {
     const k = (n + h * 12) % 12;
     return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1);
   };
-  return (Math.round(f(0) * 255) << 16) | (Math.round(f(8) * 255) << 8) | Math.round(f(4) * 255);
+  return (
+    (Math.round(f(0) * 255) << 16) |
+    (Math.round(f(8) * 255) << 8) |
+    Math.round(f(4) * 255)
+  );
 }
 
 // ===== Tier silhouettes (10×10) =========================================
@@ -673,20 +700,22 @@ const YELLOW_SAPPH_T2: PixelGrid = [
 export type SpecialTier = 1 | 2 | 3;
 
 /** Per-tier grids for all specials. T1 is the base grid in SPECIAL_SPRITES. */
-export const SPECIAL_TIER_GRIDS: Partial<Record<string, Partial<Record<2 | 3, PixelGrid>>>> = {
+export const SPECIAL_TIER_GRIDS: Partial<
+  Record<string, Partial<Record<2 | 3, PixelGrid>>>
+> = {
   pink_diamond: { 2: PINK_HEART_WINGED, 3: PINK_HEART_APEX },
-  bloodstone:   { 2: BLOOD_CRACKED,     3: BLOOD_APEX },
-  uranium:      { 2: URANIUM_LEAKING,   3: URANIUM_APEX },
-  dark_emerald: { 2: DARK_EM_RUNE,      3: DARK_EM_APEX },
-  black_opal:   { 2: BLACK_OPAL_BINARY, 3: BLACK_OPAL_APEX },
-  star_ruby:    { 2: STAR_RUBY_REFINED,  3: STAR_RUBY_APEX },
-  silver:       { 2: SILVER_REFINED,     3: SILVER_APEX },
-  malachite:    { 2: MALACHITE_REFINED,  3: MALACHITE_APEX },
-  jade:         { 2: JADE_REFINED,       3: JADE_APEX },
-  gold:         { 2: GOLD_REFINED,       3: GOLD_APEX },
-  red_crystal:        { 2: RED_CRYSTAL_T2,    3: RED_CRYSTAL_T3 },
+  bloodstone: { 2: BLOOD_CRACKED, 3: BLOOD_APEX },
+  uranium: { 2: URANIUM_LEAKING, 3: URANIUM_APEX },
+  dark_emerald: { 2: DARK_EM_RUNE, 3: DARK_EM_APEX },
+  black_opal: { 2: BLACK_OPAL_BINARY, 3: BLACK_OPAL_APEX },
+  star_ruby: { 2: STAR_RUBY_REFINED, 3: STAR_RUBY_APEX },
+  silver: { 2: SILVER_REFINED, 3: SILVER_APEX },
+  malachite: { 2: MALACHITE_REFINED, 3: MALACHITE_APEX },
+  jade: { 2: JADE_REFINED, 3: JADE_APEX },
+  gold: { 2: GOLD_REFINED, 3: GOLD_APEX },
+  red_crystal: { 2: RED_CRYSTAL_T2, 3: RED_CRYSTAL_T3 },
   paraiba_tourmaline: { 2: PARAIBA_T2, 3: PARAIBA_T3 },
-  yellow_sapphire:    { 2: YELLOW_SAPPH_T2 },
+  yellow_sapphire: { 2: YELLOW_SAPPH_T2 },
 };
 
 const STARGEM: PixelGrid = [
@@ -707,67 +736,67 @@ const STARGEM: PixelGrid = [
 // ===== Rune (trap) tablet sprites ============================================
 // 14x14 stone tablet with 8x8 glyphs. Palette: 1=stoneLight 2=stoneMid 3=stoneDark 4=outline 5=glyph
 const RUNE_TABLET: PixelGrid = [
-  [0,4,4,4,4,4,4,4,4,4,4,4,4,0],
-  [4,3,1,1,2,2,2,2,2,2,1,1,3,4],
-  [4,1,2,2,2,2,2,2,2,2,2,2,1,4],
-  [4,1,2,3,3,3,3,3,3,3,3,2,1,4],
-  [4,2,2,3,2,2,2,2,2,2,3,2,2,4],
-  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
-  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
-  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
-  [4,2,2,3,2,0,0,0,0,2,3,2,2,4],
-  [4,2,2,3,2,2,2,2,2,2,3,2,2,4],
-  [4,1,2,3,3,3,3,3,3,3,3,2,1,4],
-  [4,1,2,2,2,2,2,2,2,2,2,2,1,4],
-  [4,3,1,1,2,2,2,2,2,2,1,1,3,4],
-  [0,4,4,4,4,4,4,4,4,4,4,4,4,0],
+  [0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0],
+  [4, 3, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 3, 4],
+  [4, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 4],
+  [4, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 4],
+  [4, 2, 2, 3, 2, 2, 2, 2, 2, 2, 3, 2, 2, 4],
+  [4, 2, 2, 3, 2, 0, 0, 0, 0, 2, 3, 2, 2, 4],
+  [4, 2, 2, 3, 2, 0, 0, 0, 0, 2, 3, 2, 2, 4],
+  [4, 2, 2, 3, 2, 0, 0, 0, 0, 2, 3, 2, 2, 4],
+  [4, 2, 2, 3, 2, 0, 0, 0, 0, 2, 3, 2, 2, 4],
+  [4, 2, 2, 3, 2, 2, 2, 2, 2, 2, 3, 2, 2, 4],
+  [4, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 2, 1, 4],
+  [4, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 4],
+  [4, 3, 1, 1, 2, 2, 2, 2, 2, 2, 1, 1, 3, 4],
+  [0, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 0],
 ];
 
 const RUNE_GLYPHS: Record<string, readonly (readonly number[])[]> = {
   holding: [
-    [0,0,0,1,1,0,0,0],
-    [0,1,1,1,1,1,1,0],
-    [0,0,0,1,1,0,0,0],
-    [0,0,0,1,1,0,0,0],
-    [0,0,0,1,1,0,0,0],
-    [0,0,0,1,1,0,0,0],
-    [0,1,1,1,1,1,1,0],
-    [0,0,0,1,1,0,0,0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
   ],
   damage: [
-    [0,0,0,0,1,1,1,0],
-    [0,0,0,1,1,1,0,0],
-    [0,0,1,1,1,0,0,0],
-    [0,1,1,1,1,1,0,0],
-    [0,0,1,1,1,1,1,0],
-    [0,0,0,1,1,1,0,0],
-    [0,0,1,1,1,0,0,0],
-    [0,1,1,0,0,0,0,0],
+    [0, 0, 0, 0, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0],
+    [0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 1, 1, 1, 1, 1, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0],
+    [0, 0, 0, 1, 1, 1, 0, 0],
+    [0, 0, 1, 1, 1, 0, 0, 0],
+    [0, 1, 1, 0, 0, 0, 0, 0],
   ],
   teleport: [
-    [0,0,1,1,1,1,0,0],
-    [0,1,0,0,0,0,1,0],
-    [1,0,0,1,1,1,0,1],
-    [1,0,1,0,0,1,0,1],
-    [1,0,1,1,0,1,0,1],
-    [1,0,0,0,0,1,0,0],
-    [0,1,0,0,0,0,0,0],
-    [0,0,1,1,1,1,1,0],
+    [0, 0, 1, 1, 1, 1, 0, 0],
+    [0, 1, 0, 0, 0, 0, 1, 0],
+    [1, 0, 0, 1, 1, 1, 0, 1],
+    [1, 0, 1, 0, 0, 1, 0, 1],
+    [1, 0, 1, 1, 0, 1, 0, 1],
+    [1, 0, 0, 0, 0, 1, 0, 0],
+    [0, 1, 0, 0, 0, 0, 0, 0],
+    [0, 0, 1, 1, 1, 1, 1, 0],
   ],
   slow: [
-    [0,0,0,1,1,0,0,0],
-    [1,0,1,1,1,1,0,1],
-    [0,1,0,1,1,0,1,0],
-    [1,1,1,1,1,1,1,1],
-    [1,1,1,1,1,1,1,1],
-    [0,1,0,1,1,0,1,0],
-    [1,0,1,1,1,1,0,1],
-    [0,0,0,1,1,0,0,0],
+    [0, 0, 0, 1, 1, 0, 0, 0],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [0, 1, 0, 1, 1, 0, 1, 0],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [1, 1, 1, 1, 1, 1, 1, 1],
+    [0, 1, 0, 1, 1, 0, 1, 0],
+    [1, 0, 1, 1, 1, 1, 0, 1],
+    [0, 0, 0, 1, 1, 0, 0, 0],
   ],
 };
 
 function buildRuneGrid(glyphKey: string): PixelGrid {
-  const base = RUNE_TABLET.map(row => [...row]);
+  const base = RUNE_TABLET.map((row) => [...row]);
   const glyph = RUNE_GLYPHS[glyphKey];
   for (let y = 0; y < 8; y++) {
     for (let x = 0; x < 8; x++) {
@@ -779,127 +808,269 @@ function buildRuneGrid(glyphKey: string): PixelGrid {
   return base;
 }
 
-const RUNE_HOLDING_GRID = buildRuneGrid('holding');
-const RUNE_DAMAGE_GRID = buildRuneGrid('damage');
-const RUNE_TELEPORT_GRID = buildRuneGrid('teleport');
-const RUNE_SLOW_GRID = buildRuneGrid('slow');
+const RUNE_HOLDING_GRID = buildRuneGrid("holding");
+const RUNE_DAMAGE_GRID = buildRuneGrid("damage");
+const RUNE_TELEPORT_GRID = buildRuneGrid("teleport");
+const RUNE_SLOW_GRID = buildRuneGrid("slow");
 
 export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
   star_ruby: {
     grid: STAR_RUBY,
-    palette: { light: hex("#ff9090"), mid: hex("#e8384c"), dark: hex("#5c0810"), sparkle: hex("#ffe8a0") },
+    palette: {
+      light: hex("#ff9090"),
+      mid: hex("#e8384c"),
+      dark: hex("#5c0810"),
+      sparkle: hex("#ffe8a0"),
+    },
     visualGem: "ruby",
   },
   silver: {
     grid: SILVER,
-    palette: { light: hex("#ffffff"), mid: hex("#c8d8e0"), dark: hex("#5070a0"), sparkle: hex("#d0f0ff") },
-    visualGem: "diamond",
+    palette: {
+      light: hex("#ffffff"),
+      mid: hex("#c8d8e0"),
+      dark: hex("#5070a0"),
+      sparkle: hex("#d0f0ff"),
+    },
+    visualGem: "sapphire",
   },
   malachite: {
     grid: MALACHITE,
-    palette: { light: hex("#a8f0a0"), mid: hex("#38c860"), dark: hex("#0c4818"), sparkle: hex("#fff8d8") },
+    palette: {
+      light: hex("#a8f0a0"),
+      mid: hex("#38c860"),
+      dark: hex("#0c4818"),
+      sparkle: hex("#fff8d8"),
+    },
     visualGem: "emerald",
   },
   jade: {
     grid: JADE,
-    palette: { light: hex("#c8f0d8"), mid: hex("#58c898"), dark: hex("#1c5848"), sparkle: hex("#ffffff") },
+    palette: {
+      light: hex("#c8f0d8"),
+      mid: hex("#58c898"),
+      dark: hex("#1c5848"),
+      sparkle: hex("#ffffff"),
+    },
     visualGem: "emerald",
   },
   gold: {
     grid: GOLD,
-    palette: { light: hex("#fff0a0"), mid: hex("#f0c038"), dark: hex("#80501c"), sparkle: hex("#ffffff") },
-    visualGem: "topaz",
+    palette: {
+      light: hex("#fff0a0"),
+      mid: hex("#f0c038"),
+      dark: hex("#80501c"),
+      sparkle: hex("#ffffff"),
+    },
+    visualGem: "amethyst",
   },
   dark_emerald: {
     grid: DARK_EMERALD,
-    palette: { light: hex("#88e8a0"), mid: hex("#1c8838"), dark: hex("#08200c"), sparkle: hex("#a0ffd8") },
+    palette: {
+      light: hex("#88e8a0"),
+      mid: hex("#1c8838"),
+      dark: hex("#08200c"),
+      sparkle: hex("#a0ffd8"),
+    },
     visualGem: "emerald",
   },
   pink_diamond: {
     grid: PINK_DIAMOND,
-    palette: { light: hex("#ffd8e8"), mid: hex("#f088c0"), dark: hex("#882048"), sparkle: hex("#ffffff") },
-    visualGem: "ruby",
+    palette: {
+      light: hex("#ffd8e8"),
+      mid: hex("#f088c0"),
+      dark: hex("#882048"),
+      sparkle: hex("#ffffff"),
+    },
+    visualGem: "diamond",
   },
   black_opal: {
     grid: BLACK_OPAL,
-    palette: { light: hex("#a8c8f0"), mid: hex("#3848a8"), dark: hex("#0c0820"), sparkle: hex("#f0a8ff") },
+    palette: {
+      light: hex("#a8c8f0"),
+      mid: hex("#3848a8"),
+      dark: hex("#0c0820"),
+      sparkle: hex("#f0a8ff"),
+    },
     visualGem: "opal",
   },
   uranium: {
     grid: URANIUM,
-    palette: { light: hex("#d8ffa0"), mid: hex("#88d048"), dark: hex("#284820"), sparkle: hex("#ffffa0") },
+    palette: {
+      light: hex("#d8ffa0"),
+      mid: hex("#88d048"),
+      dark: hex("#284820"),
+      sparkle: hex("#ffffa0"),
+    },
     visualGem: "topaz",
   },
   bloodstone: {
     grid: BLOODSTONE,
-    palette: { light: hex("#ff8068"), mid: hex("#c8202c"), dark: hex("#380808"), sparkle: hex("#ffe060") },
+    palette: {
+      light: hex("#ff8068"),
+      mid: hex("#c8202c"),
+      dark: hex("#380808"),
+      sparkle: hex("#ffe060"),
+    },
     visualGem: "ruby",
   },
   stargem: {
     grid: STARGEM,
-    palette: { light: hex("#cfd8ff"), mid: hex("#6478b8"), dark: hex("#0d1132"), sparkle: hex("#ffffff") },
+    palette: {
+      light: hex("#cfd8ff"),
+      mid: hex("#6478b8"),
+      dark: hex("#0d1132"),
+      sparkle: hex("#ffffff"),
+    },
     visualGem: "diamond",
   },
   red_crystal: {
     grid: RED_CRYSTAL_T1,
-    palette: { light: hex("#ff8898"), mid: hex("#e02858"), dark: hex("#601830"), sparkle: hex("#ffd0e0") },
+    palette: {
+      light: hex("#ff8898"),
+      mid: hex("#e02858"),
+      dark: hex("#601830"),
+      sparkle: hex("#ffd0e0"),
+    },
     visualGem: "amethyst",
   },
   paraiba_tourmaline: {
     grid: PARAIBA_T1,
-    palette: { light: hex("#a8ffe8"), mid: hex("#00d8c8"), dark: hex("#0a4858"), sparkle: hex("#ffffff") },
+    palette: {
+      light: hex("#a8ffe8"),
+      mid: hex("#00d8c8"),
+      dark: hex("#0a4858"),
+      sparkle: hex("#ffffff"),
+    },
     visualGem: "aquamarine",
   },
   yellow_sapphire: {
     grid: YELLOW_SAPPH_T1,
-    palette: { light: hex("#ffe890"), mid: hex("#f0b830"), dark: hex("#805018"), sparkle: hex("#ffffff") },
+    palette: {
+      light: hex("#ffe890"),
+      mid: hex("#f0b830"),
+      dark: hex("#805018"),
+      sparkle: hex("#ffffff"),
+    },
     visualGem: "sapphire",
   },
   rune_holding: {
     grid: RUNE_HOLDING_GRID,
-    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#fff0a8") },
+    palette: {
+      light: hex("#cdb78a"),
+      mid: hex("#8a6e44"),
+      dark: hex("#3a2a1a"),
+      sparkle: hex("#fff0a8"),
+    },
     visualGem: "topaz",
   },
   rune_damage: {
     grid: RUNE_DAMAGE_GRID,
-    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#ffd0a8") },
+    palette: {
+      light: hex("#cdb78a"),
+      mid: hex("#8a6e44"),
+      dark: hex("#3a2a1a"),
+      sparkle: hex("#ffd0a8"),
+    },
     visualGem: "diamond",
   },
   rune_teleport: {
     grid: RUNE_TELEPORT_GRID,
-    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#e8b8ff") },
+    palette: {
+      light: hex("#cdb78a"),
+      mid: hex("#8a6e44"),
+      dark: hex("#3a2a1a"),
+      sparkle: hex("#e8b8ff"),
+    },
     visualGem: "aquamarine",
   },
   rune_slow: {
     grid: RUNE_SLOW_GRID,
-    palette: { light: hex("#cdb78a"), mid: hex("#8a6e44"), dark: hex("#3a2a1a"), sparkle: hex("#d0f4ff") },
+    palette: {
+      light: hex("#cdb78a"),
+      mid: hex("#8a6e44"),
+      dark: hex("#3a2a1a"),
+      sparkle: hex("#d0f4ff"),
+    },
     visualGem: "sapphire",
   },
 };
 
 /** Per-tier palette overrides (only needed when a tier changes palette). */
-export const SPECIAL_TIER_PALETTES: Partial<Record<string, Partial<Record<2 | 3, SpecialPalette>>>> = {
+export const SPECIAL_TIER_PALETTES: Partial<
+  Record<string, Partial<Record<2 | 3, SpecialPalette>>>
+> = {
   red_crystal: {
-    3: { light: hex("#ffd8e8"), mid: hex("#f078a8"), dark: hex("#883858"), sparkle: hex("#ffffff") },
+    3: {
+      light: hex("#ffd8e8"),
+      mid: hex("#f078a8"),
+      dark: hex("#883858"),
+      sparkle: hex("#ffffff"),
+    },
   },
   black_opal: {
-    2: { light: hex("#a8c8f0"), mid: hex("#3848a8"), dark: hex("#0c0820"), sparkle: hex("#d070ff") },
-    3: { light: hex("#a8c8f0"), mid: hex("#3848a8"), dark: hex("#0c0820"), sparkle: hex("#b040e0") },
+    2: {
+      light: hex("#a8c8f0"),
+      mid: hex("#3848a8"),
+      dark: hex("#0c0820"),
+      sparkle: hex("#d070ff"),
+    },
+    3: {
+      light: hex("#a8c8f0"),
+      mid: hex("#3848a8"),
+      dark: hex("#0c0820"),
+      sparkle: hex("#b040e0"),
+    },
   },
   gold: {
-    3: { light: hex("#fff0a0"), mid: hex("#e8a030"), dark: hex("#80501c"), sparkle: hex("#ffe8a0") },
+    3: {
+      light: hex("#fff0a0"),
+      mid: hex("#e8a030"),
+      dark: hex("#80501c"),
+      sparkle: hex("#ffe8a0"),
+    },
   },
   silver: {
-    2: { light: hex("#ffffff"), mid: hex("#b0d8f0"), dark: hex("#5070a0"), sparkle: hex("#c8eeff") },
-    3: { light: hex("#ffffff"), mid: hex("#a0d0f0"), dark: hex("#4060a0"), sparkle: hex("#a8e8ff") },
+    2: {
+      light: hex("#ffffff"),
+      mid: hex("#b0d8f0"),
+      dark: hex("#5070a0"),
+      sparkle: hex("#c8eeff"),
+    },
+    3: {
+      light: hex("#ffffff"),
+      mid: hex("#a0d0f0"),
+      dark: hex("#4060a0"),
+      sparkle: hex("#a8e8ff"),
+    },
   },
   star_ruby: {
-    2: { light: hex("#ff9090"), mid: hex("#e8384c"), dark: hex("#5c0810"), sparkle: hex("#fff0c0") },
-    3: { light: hex("#ffa870"), mid: hex("#e8384c"), dark: hex("#5c0810"), sparkle: hex("#fffff0") },
+    2: {
+      light: hex("#ff9090"),
+      mid: hex("#e8384c"),
+      dark: hex("#5c0810"),
+      sparkle: hex("#fff0c0"),
+    },
+    3: {
+      light: hex("#ffa870"),
+      mid: hex("#e8384c"),
+      dark: hex("#5c0810"),
+      sparkle: hex("#fffff0"),
+    },
   },
   paraiba_tourmaline: {
-    2: { light: hex("#a8ffe8"), mid: hex("#00d8c8"), dark: hex("#0a4858"), sparkle: hex("#e0ffff") },
-    3: { light: hex("#b8fff0"), mid: hex("#00e8d0"), dark: hex("#1a3838"), sparkle: hex("#f0ffff") },
+    2: {
+      light: hex("#a8ffe8"),
+      mid: hex("#00d8c8"),
+      dark: hex("#0a4858"),
+      sparkle: hex("#e0ffff"),
+    },
+    3: {
+      light: hex("#b8fff0"),
+      mid: hex("#00e8d0"),
+      dark: hex("#1a3838"),
+      sparkle: hex("#f0ffff"),
+    },
   },
 };
 
@@ -921,19 +1092,110 @@ export interface SpecialFx {
 }
 
 export const SPECIAL_FX: Record<string, SpecialFx> = {
-  bloodstone:   { glow: hex("#ff5040"), halo: 0.7,  pulse: 2.4, orbit: false, aura: false, ground: null },
-  pink_diamond: { glow: hex("#ff80c0"), halo: 0.55, pulse: 1.8, orbit: true,  aura: false, ground: null },
-  uranium:      { glow: hex("#c0ff60"), halo: 0.85, pulse: 1.2, orbit: false, aura: true,  ground: hex("#446618") },
-  black_opal:   { glow: hex("#a0a0ff"), halo: 0.6,  pulse: 3.0, orbit: true,  aura: true,  ground: null },
-  jade:         { glow: hex("#80e8b0"), halo: 0.35, pulse: 3.0, orbit: false, aura: false, ground: null },
-  malachite:    { glow: hex("#a0e878"), halo: 0.4,  pulse: 2.4, orbit: false, aura: false, ground: null },
-  star_ruby:    { glow: hex("#ffa040"), halo: 0.55, pulse: 2.0, orbit: false, aura: false, ground: null },
-  gold:         { glow: hex("#ffd840"), halo: 0.6,  pulse: 2.4, orbit: false, aura: false, ground: null },
-  silver:       { glow: hex("#e0e8f0"), halo: 0.4,  pulse: 2.4, orbit: false, aura: false, ground: null },
-  dark_emerald:       { glow: hex("#28e0a0"), halo: 0.5,  pulse: 1.6, orbit: false, aura: false, ground: null },
-  red_crystal:        { glow: hex("#ff5478"), halo: 0.55, pulse: 2.2, orbit: true,  aura: false, ground: null },
-  paraiba_tourmaline: { glow: hex("#3cf0e0"), halo: 0.7,  pulse: 1.8, orbit: false, aura: false, ground: hex("#0a4858") },
-  yellow_sapphire:    { glow: hex("#ffd048"), halo: 0.7,  pulse: 1.9, orbit: false, aura: false, ground: null },
+  bloodstone: {
+    glow: hex("#ff5040"),
+    halo: 0.7,
+    pulse: 2.4,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  pink_diamond: {
+    glow: hex("#ff80c0"),
+    halo: 0.55,
+    pulse: 1.8,
+    orbit: true,
+    aura: false,
+    ground: null,
+  },
+  uranium: {
+    glow: hex("#c0ff60"),
+    halo: 0.85,
+    pulse: 1.2,
+    orbit: false,
+    aura: true,
+    ground: hex("#446618"),
+  },
+  black_opal: {
+    glow: hex("#a0a0ff"),
+    halo: 0.6,
+    pulse: 3.0,
+    orbit: true,
+    aura: true,
+    ground: null,
+  },
+  jade: {
+    glow: hex("#80e8b0"),
+    halo: 0.35,
+    pulse: 3.0,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  malachite: {
+    glow: hex("#a0e878"),
+    halo: 0.4,
+    pulse: 2.4,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  star_ruby: {
+    glow: hex("#ffa040"),
+    halo: 0.55,
+    pulse: 2.0,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  gold: {
+    glow: hex("#ffd840"),
+    halo: 0.6,
+    pulse: 2.4,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  silver: {
+    glow: hex("#e0e8f0"),
+    halo: 0.4,
+    pulse: 2.4,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  dark_emerald: {
+    glow: hex("#28e0a0"),
+    halo: 0.5,
+    pulse: 1.6,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  red_crystal: {
+    glow: hex("#ff5478"),
+    halo: 0.55,
+    pulse: 2.2,
+    orbit: true,
+    aura: false,
+    ground: null,
+  },
+  paraiba_tourmaline: {
+    glow: hex("#3cf0e0"),
+    halo: 0.7,
+    pulse: 1.8,
+    orbit: false,
+    aura: false,
+    ground: hex("#0a4858"),
+  },
+  yellow_sapphire: {
+    glow: hex("#ffd048"),
+    halo: 0.7,
+    pulse: 1.9,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
 };
 
 // ===== Rocks (16×16, tile-filling) =======================================
@@ -1034,13 +1296,19 @@ export const ROCK_GRIDS: Record<RockKind, PixelGrid> = {
 export const ROCK_PALETTES: Record<RockKind, RockPalette> = {
   boulder: { light: hex("#a09080"), mid: hex("#7a6a5a"), dark: hex("#3a2a20") },
   mossy: {
-    light: hex("#a09080"), mid: hex("#7a6a5a"), dark: hex("#3a2a20"),
-    sparkle: hex("#5c8848"), extra: hex("#3a6028"),
+    light: hex("#a09080"),
+    mid: hex("#7a6a5a"),
+    dark: hex("#3a2a20"),
+    sparkle: hex("#5c8848"),
+    extra: hex("#3a6028"),
   },
   cracked: { light: hex("#a89888"), mid: hex("#807060"), dark: hex("#3a2a20") },
   crystal: {
-    light: hex("#a09080"), mid: hex("#7a6a5a"), dark: hex("#3a2a20"),
-    sparkle: hex("#a8e8f0"), extra: hex("#3878e8"),
+    light: hex("#a09080"),
+    mid: hex("#7a6a5a"),
+    dark: hex("#3a2a20"),
+    sparkle: hex("#a8e8f0"),
+    extra: hex("#3878e8"),
   },
 };
 

@@ -1264,14 +1264,14 @@
 }
 .tutorial-tabs {
   display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
+  gap: 3px;
 }
 .tutorial-tab {
   font-size: 8px;
-  padding: 8px 10px;
+  padding: 7px 0;
   flex: 1;
   min-width: 0;
+  text-align: center;
 }
 .tutorial-tab-active {
   background: var(--px-accent);
@@ -1282,27 +1282,22 @@
     0 0 0 2px var(--px-border-dark);
 }
 .tutorial-body {
-  font-family: "VT323", monospace;
-  font-size: 18px;
-  line-height: 1.25;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
   color: var(--px-ink);
-  min-height: 220px;
-  max-height: 320px;
+  min-height: 240px;
+  max-height: 340px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
+  padding: 14px 16px;
 }
-.tutorial-p {
-  font-family: "VT323", monospace;
-  font-size: 17px;
-  line-height: 1.25;
-  color: var(--px-ink);
-}
-.tutorial-p b {
+.tutorial-body b {
   color: var(--px-accent);
 }
-.tutorial-p kbd,
+.tutorial-body kbd,
 .tutorial-key-row kbd {
   display: inline-block;
   font-family: "Press Start 2P", monospace;
@@ -1315,6 +1310,62 @@
     inset -1px -1px 0 0 var(--px-border-dark),
     0 0 0 1px var(--px-border-dark);
   margin: 0 2px;
+  vertical-align: baseline;
+}
+.tutorial-p {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--px-ink);
+}
+.tutorial-note {
+  font-size: 13px;
+  color: var(--px-ink-dim);
+  line-height: 1.5;
+  padding-left: 4px;
+  border-left: 2px solid var(--px-panel-2);
+  margin-top: 2px;
+}
+.tutorial-note b {
+  color: var(--px-accent);
+}
+.tutorial-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tutorial-step-item {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 15px;
+  line-height: 1.5;
+}
+.tutorial-step-marker {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--px-panel-2);
+  color: var(--px-accent);
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 1px 1px 0 0 #7c66a4,
+    inset -1px -1px 0 0 var(--px-border-dark);
+  margin-top: 2px;
+}
+.tutorial-step-icon {
+  flex-shrink: 0;
+  width: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
 }
 .tutorial-row {
   display: flex;
@@ -1329,40 +1380,76 @@
 }
 .tutorial-keys {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 6px 14px;
+  grid-template-columns: auto 1fr;
+  gap: 8px 14px;
+  align-items: center;
 }
 .tutorial-key-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
+  display: contents;
+}
+.tutorial-key-row kbd {
+  text-align: center;
+  min-width: 46px;
+}
+.tutorial-key-label {
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--px-ink);
+}
+.tutorial-key-sep {
+  grid-column: 1 / -1;
+  height: 1px;
+  background: var(--px-panel-2);
+  opacity: 0.5;
 }
 .tutorial-hint {
-  font-family: "VT323", monospace;
-  font-size: 14px;
-  color: var(--px-ink-dim);
+  font-size: 13px;
+  color: var(--px-ink-dimmer);
 }
 
 .changelog-ver {
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--px-accent);
+  padding-bottom: 4px;
+  border-bottom: 1px solid rgba(240, 160, 64, 0.15);
+  margin-bottom: 2px;
 }
 .changelog-list {
-  margin: 2px 0 8px 0;
-  padding-left: 18px;
+  margin: 0 0 12px 0;
+  padding-left: 0;
   list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 .changelog-item {
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.45;
+  padding-left: 16px;
   position: relative;
-  padding-left: 4px;
 }
 .changelog-item::before {
   content: "▸";
   position: absolute;
-  left: -14px;
+  left: 2px;
   color: var(--px-accent);
+  font-size: 12px;
 }
+.changelog-tag {
+  display: inline-block;
+  font-family: "Press Start 2P", monospace;
+  font-size: 6px;
+  padding: 2px 4px;
+  margin-right: 4px;
+  vertical-align: middle;
+  letter-spacing: 0.3px;
+}
+.changelog-tag-new { background: var(--px-good); color: var(--px-border-dark); }
+.changelog-tag-buff { background: var(--px-info); color: var(--px-border-dark); }
+.changelog-tag-nerf { background: var(--px-bad); color: var(--px-ink); }
+.changelog-tag-fix { background: var(--px-ink-dim); color: var(--px-border-dark); }
+.changelog-tag-bal { background: var(--px-accent); color: var(--px-border-dark); }
 
 /* Toast notifications */
 .toast-stack {
