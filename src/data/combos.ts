@@ -361,10 +361,10 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "sapphire", quality: 1 },
     ],
     stats: {
-      dmgMin: 24,
+      dmgMin: 26,
       dmgMax: 31,
       range: 3.5,
-      atkSpeed: 1.25,
+      atkSpeed: 1.3,
       effects: [
         { kind: "splash", radius: 1.2, falloff: 0.5 },
         { kind: "slow", factor: 0.75, duration: 1.5 },

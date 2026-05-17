@@ -580,7 +580,7 @@ export class Game {
     this.blueprintMode = !this.blueprintMode;
     if (this.blueprintMode && !this.blueprint) {
       const { default: data } =
-        await import("../../tools/maze_optimizer/blueprint_v5.json");
+        await import("../../tools/maze_optimizer/blueprint_air.json");
       const bp = data as unknown as Blueprint;
       bp.keeperIndices = computeKeeperIndices(bp);
       this.blueprint = bp;

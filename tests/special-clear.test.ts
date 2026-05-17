@@ -5,6 +5,7 @@ import { MAZE_BLUEPRINT } from '../src/data/maze-blueprint';
 import { computeKeeperIndices } from '../src/sim/blueprintKeeper';
 import { Cell } from '../src/data/map';
 import type { GemType, Quality } from '../src/render/theme';
+import { GEM_TYPES } from '../src/render/theme';
 import type { TowerState } from '../src/game/State';
 
 const keeperIndices = computeKeeperIndices({
@@ -22,11 +23,14 @@ const R1_POSITIONS = MAZE_BLUEPRINT[0];
 function setupR1Combo(
   comboKey: string,
   visualGem: GemType,
+  weakness?: GemType,
 ): { game: HeadlessGame; metrics: Metrics } {
   const game = new HeadlessGame(42);
   const metrics = new Metrics(game.bus, game.state);
   game.newGame();
   const state = game.state;
+
+  if (weakness) state.gemWeaknesses[0] = weakness;
 
   // Clear the auto-rolled draws — we're setting up manually
   state.draws = [];
@@ -67,28 +71,30 @@ function setupR1Combo(
   return { game, metrics };
 }
 
+const combatGems = GEM_TYPES.filter((g) => g !== 'opal');
+
 describe('special gem wave 1 clear', () => {
-  it('Silver clears wave 1 from the R1 keeper position', () => {
-    const { game, metrics } = setupR1Combo('silver', 'diamond');
+  for (const w of combatGems) {
+    it(`Silver clears wave 1 (weakness=${w})`, () => {
+      const { game, metrics } = setupR1Combo('silver', 'sapphire', w);
+      game.runWave();
+      const [w1] = metrics.waveSummaries();
+      expect(w1).toBeDefined();
+      expect(w1.leaked).toBe(0);
+      expect(w1.killed).toBe(13);
+      metrics.detach();
+    });
+  }
 
-    game.runWave();
-
-    const [w1] = metrics.waveSummaries();
-    expect(w1).toBeDefined();
-    expect(w1.leaked).toBe(0);
-    expect(w1.killed).toBe(13);
-    metrics.detach();
-  });
-
-  it('Malachite clears wave 1 from the R1 keeper position', () => {
-    const { game, metrics } = setupR1Combo('malachite', 'emerald');
-
-    game.runWave();
-
-    const [w1] = metrics.waveSummaries();
-    expect(w1).toBeDefined();
-    expect(w1.leaked).toBe(0);
-    expect(w1.killed).toBe(13);
-    metrics.detach();
-  });
+  for (const w of combatGems) {
+    it(`Malachite clears wave 1 (weakness=${w})`, () => {
+      const { game, metrics } = setupR1Combo('malachite', 'emerald', w);
+      game.runWave();
+      const [w1] = metrics.waveSummaries();
+      expect(w1).toBeDefined();
+      expect(w1.leaked).toBe(0);
+      expect(w1.killed).toBe(13);
+      metrics.detach();
+    });
+  }
 });
