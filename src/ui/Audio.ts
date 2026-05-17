@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'gemtd-music-muted';
+const STORAGE_KEY = 'gemtd:music-muted';
 
 let audio: HTMLAudioElement | null = null;
 let muted = localStorage.getItem(STORAGE_KEY) === '1';

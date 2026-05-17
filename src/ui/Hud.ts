@@ -904,7 +904,7 @@ export function mountHud(
     pendingTapTile = null;
     game.cmdUndo();
   });
-  const speedBtn = makeBtn("1×", () => {
+  const speedBtn = makeBtn(`${game.state.speed}×`, () => {
     const idx = SPEEDS.indexOf(game.state.speed as SpeedMultiplier);
     const nextSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
     game.setSpeed(nextSpeed);

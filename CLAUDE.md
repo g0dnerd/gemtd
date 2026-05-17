@@ -76,6 +76,10 @@ PixiJS v8 with pixel-art settings (`antialias: false`, `roundPixels: true`). `Bo
 
 `src/game/rng.ts` — seeded PRNG used for draws and combat rolls. Use `game.rng`, not `Math.random()`, anywhere that affects gameplay.
 
+### localStorage
+
+All keys use the format `gemtd:<kebab-case>`. Current keys: `gemtd:music-muted`, `gemtd:path-viz`, `gemtd:sim-speed`. Wrap writes in `try/catch` for private-browsing mode.
+
 ## Tooling beyond the game
 
 ### Headless sim + AI players (`src/sim/`)

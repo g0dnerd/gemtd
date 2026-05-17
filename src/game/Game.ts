@@ -27,6 +27,7 @@ import {
   START_GOLD,
   START_LIVES,
   SIM_DT,
+  SPEEDS,
   type SpeedMultiplier,
 } from "./constants";
 import { BuildPhase } from "../controllers/BuildPhase";
@@ -143,8 +144,10 @@ export class Game {
 
     this.towerSprites = new TowerSpriteCache(this.app.renderer, this.bus);
 
-    const storedPathViz = localStorage.getItem("gemtd:pathViz");
+    const storedPathViz = localStorage.getItem("gemtd:path-viz");
     if (storedPathViz !== null) this.pathVizEnabled = storedPathViz === "1";
+
+    this.state.speed = this.loadStoredSpeed();
 
     this.buildPhase = new BuildPhase(this);
     this.wavePhase = new WavePhase(this);
@@ -209,7 +212,7 @@ export class Game {
     this.state.hardcore = startLives === 1;
     this.state.gold = START_GOLD;
     this.state.totalKills = 0;
-    this.state.speed = 1;
+    this.state.speed = this.loadStoredSpeed();
     this.state.totalWaves = WAVES.length;
     this.state.debugWaveDef = undefined;
     this.state.gemWeaknesses = this.generateWeaknesses();
@@ -255,7 +258,7 @@ export class Game {
     this.state.hardcore = false;
     this.state.gold = 99999;
     this.state.totalKills = 0;
-    this.state.speed = 1;
+    this.state.speed = this.loadStoredSpeed();
     this.state.totalWaves = 1;
     this.state.grid = BASE.grid.map((row) => row.slice());
     this.state.waveStats = {
@@ -564,7 +567,7 @@ export class Game {
   togglePathViz(): void {
     this.pathVizEnabled = !this.pathVizEnabled;
     try {
-      localStorage.setItem("gemtd:pathViz", this.pathVizEnabled ? "1" : "0");
+      localStorage.setItem("gemtd:path-viz", this.pathVizEnabled ? "1" : "0");
     } catch {
       /* private mode */
     }
@@ -675,6 +678,20 @@ export class Game {
 
   setSpeed(s: SpeedMultiplier): void {
     this.state.speed = s;
+    try {
+      localStorage.setItem("gemtd:sim-speed", String(s));
+    } catch { /* private mode */ }
+  }
+
+  private loadStoredSpeed(): number {
+    try {
+      const v = localStorage.getItem("gemtd:sim-speed");
+      if (v !== null) {
+        const n = Number(v);
+        if (SPEEDS.includes(n as SpeedMultiplier)) return n;
+      }
+    } catch { /* private mode */ }
+    return 1;
   }
 
   /** Center the board container in the canvas host. */
