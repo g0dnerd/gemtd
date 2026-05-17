@@ -73,6 +73,7 @@ def build_all_snapshots(data):
     snapshots = []
 
     grid = build_base_layout()
+    all_keepers: list[tuple[int, int]] = []
     keepers: set[tuple[int, int]] = set()
     segments = find_route(grid)
     flat_route = flatten_route(segments) if segments else []
@@ -109,9 +110,10 @@ def build_all_snapshots(data):
         route_set = set(flat_route)
 
         if placed:
-            keeper_idx, _ = select_keeper(
-                placed, route_set, r_idx in AIR_ROUNDS
+            keeper_idx = select_keeper(
+                placed, route_set, r_idx in AIR_ROUNDS, all_keepers
             )
+            all_keepers.append(placed[keeper_idx])
             for i, (px, py) in enumerate(placed):
                 if i == keeper_idx:
                     keepers.add((px, py))

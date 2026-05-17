@@ -88,22 +88,40 @@ def select_keeper(
     placed: list[tuple[int, int]],
     route_set: set[tuple[int, int]],
     is_air_round: bool,
+    existing_keepers: list[tuple[int, int]] | None = None,
     air_keeper_ratio: float = 2.0,
-) -> tuple[int, int]:
-    """Pick the keeper tower index and its ground exposure."""
+) -> int:
+    """Pick the keeper that adds the most new route coverage beyond existing keepers."""
+    covered_ground: set[tuple[int, int]] = set()
+    covered_air: set[tuple[int, int]] = set()
+    for kx, ky in (existing_keepers or []):
+        cx, cy = kx + 1, ky + 1
+        for dx, dy in RANGE_OFFSETS:
+            cell = (cx + dx, cy + dy)
+            if cell in route_set:
+                covered_ground.add(cell)
+            if is_air_round and cell in AIR_ROUTE:
+                covered_air.add(cell)
+
     best_idx = 0
     best_score = -1.0
-    best_ground = 0
     for i, (px, py) in enumerate(placed):
-        ground = exposure_at(px, py, route_set)
-        score = float(ground)
+        cx, cy = px + 1, py + 1
+        new_ground = 0
+        new_air = 0
+        for dx, dy in RANGE_OFFSETS:
+            cell = (cx + dx, cy + dy)
+            if cell in route_set and cell not in covered_ground:
+                new_ground += 1
+            if is_air_round and cell in AIR_ROUTE and cell not in covered_air:
+                new_air += 1
+        score = float(new_ground)
         if is_air_round:
-            score += air_keeper_ratio * air_exposure_at(px, py)
+            score += air_keeper_ratio * new_air
         if score > best_score:
             best_score = score
             best_idx = i
-            best_ground = ground
-    return best_idx, best_ground
+    return best_idx
 
 
 # Spiral offsets for repair_position, sorted by Manhattan distance
@@ -138,8 +156,7 @@ def repair_position(
 def evaluate(
     chromosome: list[list[tuple[int, int]]],
     base_grid: np.ndarray,
-    exposure_weight: float = 0.15,
-    air_exposure_weight: float = 5.0,
+    air_exposure_weight: float = 3.0,
     air_keeper_ratio: float = 2.0,
 ) -> dict:
     grid = copy_grid(base_grid)
@@ -147,12 +164,14 @@ def evaluate(
     total_exposure = 0
     total_air_exposure = 0
     invalid_count = 0
+    all_keepers: list[tuple[int, int]] = []
 
     segments = find_route(grid)
     if segments is None:
         return {
             "fitness": -999999,
             "path_length": 0,
+            "cumulative_path": 0,
             "exposure_total": 0,
             "air_exposure_total": 0,
             "validity_penalty": -999999,
@@ -207,14 +226,17 @@ def evaluate(
 
         if placed:
             is_air = round_idx in AIR_ROUNDS
-            keeper_idx, keeper_ground_exp = select_keeper(
-                placed, route_set, is_air, air_keeper_ratio
+            keeper_idx = select_keeper(
+                placed, route_set, is_air, all_keepers, air_keeper_ratio
             )
-            total_exposure += max(0, keeper_ground_exp)
+            all_keepers.append(placed[keeper_idx])
+
+            round_exposure = sum(exposure_at(kx, ky, route_set) for kx, ky in all_keepers)
+            total_exposure += round_exposure
+
             if is_air:
-                total_air_exposure += air_exposure_at(
-                    placed[keeper_idx][0], placed[keeper_idx][1]
-                )
+                round_air = sum(air_exposure_at(kx, ky) for kx, ky in all_keepers)
+                total_air_exposure += round_air
 
             for i, (px, py) in enumerate(placed):
                 if i != keeper_idx:
@@ -227,8 +249,7 @@ def evaluate(
     validity_penalty = -(100 * invalid_count + 10 * invalid_count * invalid_count) if invalid_count else 0
 
     fitness = (
-        cumulative_path
-        + exposure_weight * total_exposure
+        total_exposure
         + air_exposure_weight * total_air_exposure
         + validity_penalty
     )
@@ -248,7 +269,6 @@ def evaluate_with_traps(
     chromosome: list[list[tuple[int, int]]],
     trap_positions: list[tuple[int, int]],
     base_grid: np.ndarray,
-    exposure_weight: float = 0.1,
     trap_weight: float = 5.0,
 ) -> dict:
     """Evaluate a maze layout that includes trap placements on the path.
@@ -267,7 +287,7 @@ def evaluate_with_traps(
             placed_traps.append((tx, ty))
 
     # Run normal tower evaluation on the grid (traps are walkable, so routing works)
-    result = evaluate(chromosome, grid, exposure_weight)
+    result = evaluate(chromosome, grid)
 
     # Score trap placements by route overlap
     if result["fitness"] <= -999999:

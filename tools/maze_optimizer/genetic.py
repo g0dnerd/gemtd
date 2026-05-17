@@ -31,8 +31,6 @@ from fitness import (
     KEEPER_R2,
     AIR_ROUNDS,
     evaluate,
-    exposure_at,
-    exposure_at_flat,
     air_exposure_at,
     select_keeper,
 )
@@ -40,21 +38,18 @@ from fitness import (
 Chromosome = list[list[tuple[int, int]]]
 
 _worker_base_grid: np.ndarray | None = None
-_worker_exposure_weight: float = 0.15
-_worker_air_exposure_weight: float = 5.0
+_worker_air_exposure_weight: float = 3.0
 _worker_air_keeper_ratio: float = 2.0
 
 
 def _init_worker(
     base_grid: np.ndarray,
-    exposure_weight: float,
     air_exposure_weight: float,
     air_keeper_ratio: float,
 ) -> None:
-    global _worker_base_grid, _worker_exposure_weight
+    global _worker_base_grid
     global _worker_air_exposure_weight, _worker_air_keeper_ratio
     _worker_base_grid = base_grid
-    _worker_exposure_weight = exposure_weight
     _worker_air_exposure_weight = air_exposure_weight
     _worker_air_keeper_ratio = air_keeper_ratio
 
@@ -63,7 +58,6 @@ def _evaluate_wrapper(chromosome: Chromosome) -> dict:
     return evaluate(
         chromosome,
         _worker_base_grid,  # type: ignore[arg-type]
-        _worker_exposure_weight,
         _worker_air_exposure_weight,
         _worker_air_keeper_ratio,
     )
@@ -101,6 +95,8 @@ def create_greedy_individual(
     w_maze = 3.0 + rng.uniform(-noise, noise)
 
     w_air = 1.0 + rng.uniform(-noise, noise)
+
+    all_keepers: list[tuple[int, int]] = []
 
     for round_idx in range(NUM_ROUNDS):
         is_air = round_idx in AIR_ROUNDS
@@ -168,9 +164,10 @@ def create_greedy_individual(
         chromosome.append(positions)
 
         if positions:
-            keeper_idx, _ = select_keeper(
-                positions, set(flat_route), is_air
+            keeper_idx = select_keeper(
+                positions, set(flat_route), is_air, all_keepers
             )
+            all_keepers.append(positions[keeper_idx])
             for i, (px, py) in enumerate(positions):
                 if i != keeper_idx:
                     place_tower(grid, px, py, Cell.Rock)
@@ -188,6 +185,8 @@ def create_random_individual(
     assert segments is not None
     flat_route = flatten_route(segments)
     route_set = set(flat_route)
+
+    all_keepers: list[tuple[int, int]] = []
 
     for round_idx in range(NUM_ROUNDS):
         is_air = round_idx in AIR_ROUNDS
@@ -229,9 +228,10 @@ def create_random_individual(
         chromosome.append(positions)
 
         if positions:
-            keeper_idx, _ = select_keeper(
-                positions, set(flat_route), is_air
+            keeper_idx = select_keeper(
+                positions, set(flat_route), is_air, all_keepers
             )
+            all_keepers.append(positions[keeper_idx])
             for i, (px, py) in enumerate(positions):
                 if i != keeper_idx:
                     place_tower(grid, px, py, Cell.Rock)
@@ -298,6 +298,8 @@ def _replay_to_round(
     route_set = set(flat_route)
     cell_seg = build_cell_to_seg(segments)
 
+    all_keepers: list[tuple[int, int]] = []
+
     for r in range(target_round):
         positions = chromosome[r]
         placed: list[tuple[int, int]] = []
@@ -319,9 +321,10 @@ def _replay_to_round(
                     cell_seg = build_cell_to_seg(segments)
 
         if placed:
-            keeper_idx, _ = select_keeper(
-                placed, route_set, r in AIR_ROUNDS
+            keeper_idx = select_keeper(
+                placed, route_set, r in AIR_ROUNDS, all_keepers
             )
+            all_keepers.append(placed[keeper_idx])
             for i, (px, py) in enumerate(placed):
                 if i != keeper_idx:
                     place_tower(grid, px, py, Cell.Rock)
@@ -502,13 +505,12 @@ def local_search(
     base_grid: np.ndarray,
     rng: random.Random,
     iterations: int = 50,
-    exposure_weight: float = 0.15,
-    air_exposure_weight: float = 5.0,
+    air_exposure_weight: float = 3.0,
     air_keeper_ratio: float = 2.0,
 ) -> tuple[Chromosome, float]:
     """Hill-climbing on a single individual."""
     best = [list(r) for r in individual]
-    best_result = evaluate(best, base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio)
+    best_result = evaluate(best, base_grid, air_exposure_weight, air_keeper_ratio)
     best_fitness = best_result["fitness"]
     best = best_result["chromosome"]
 
@@ -521,7 +523,7 @@ def local_search(
             max(PLACE_MIN, min(PLACE_MAX_X, x + rng.randint(-5, 5))),
             max(PLACE_MIN, min(PLACE_MAX_Y, y + rng.randint(-5, 5))),
         )
-        result = evaluate(candidate, base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio)
+        result = evaluate(candidate, base_grid, air_exposure_weight, air_keeper_ratio)
         if result["fitness"] > best_fitness:
             best_fitness = result["fitness"]
             best = result["chromosome"]
@@ -540,8 +542,7 @@ def evaluate_population(
     population: list[Chromosome],
     base_grid: np.ndarray,
     cores: int | None,
-    exposure_weight: float = 0.15,
-    air_exposure_weight: float = 5.0,
+    air_exposure_weight: float = 3.0,
     air_keeper_ratio: float = 2.0,
     cache: dict | None = None,
 ) -> list[dict]:
@@ -566,14 +567,14 @@ def evaluate_population(
 
     if cores == 1:
         fresh = [
-            evaluate(ind, base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio)
+            evaluate(ind, base_grid, air_exposure_weight, air_keeper_ratio)
             for ind in uncached_chroms
         ]
     else:
         with Pool(
             cores,
             initializer=_init_worker,
-            initargs=(base_grid, exposure_weight, air_exposure_weight, air_keeper_ratio),
+            initargs=(base_grid, air_exposure_weight, air_keeper_ratio),
         ) as pool:
             fresh = pool.map(_evaluate_wrapper, uncached_chroms)
 
@@ -603,8 +604,7 @@ def run_ga(
     elite_pct: float = 0.05,
     cores: int | None = None,
     seed: int = 42,
-    exposure_weight: float = 0.15,
-    air_exposure_weight: float = 5.0,
+    air_exposure_weight: float = 3.0,
     air_keeper_ratio: float = 2.0,
 ) -> dict:
     if base_grid is None:
@@ -613,7 +613,7 @@ def run_ga(
     rng = random.Random(seed)
 
     print(f"GA params: pop={population_size}, gen={generations}, tourn={tournament_size}, "
-          f"exp_w={exposure_weight}, air_w={air_exposure_weight}, air_kr={air_keeper_ratio}, cores={cores}")
+          f"air_w={air_exposure_weight}, air_kr={air_keeper_ratio}, cores={cores}")
     print("Initializing population...")
 
     t0 = time.time()
@@ -624,7 +624,7 @@ def run_ga(
 
     print("Evaluating initial population...")
     t0 = time.time()
-    results = evaluate_population(population, base_grid, cores, exposure_weight, air_exposure_weight, air_keeper_ratio, fitness_cache)
+    results = evaluate_population(population, base_grid, cores, air_exposure_weight, air_keeper_ratio, fitness_cache)
     print(f"Initial evaluation in {time.time() - t0:.1f}s")
 
     population = [r["chromosome"] for r in results]
@@ -638,8 +638,7 @@ def run_ga(
     r0 = results[best_idx]
     print(
         f"Gen 0: best={best_fitness:.1f} avg={sum(fitness_scores) / len(fitness_scores):.1f} "
-        f"path={r0['path_length']} cum={r0['cumulative_path']} "
-        f"exp={r0['exposure_total']} air={r0['air_exposure_total']}"
+        f"path={r0['path_length']} exp={r0['exposure_total']} air={r0['air_exposure_total']}"
     )
 
     elite_count = max(1, int(population_size * elite_pct))
@@ -685,7 +684,7 @@ def run_ga(
 
         t0 = time.time()
         results = evaluate_population(
-            population, base_grid, cores, exposure_weight, air_exposure_weight, air_keeper_ratio,
+            population, base_grid, cores, air_exposure_weight, air_keeper_ratio,
             fitness_cache,
         )
         eval_time = time.time() - t0
@@ -709,7 +708,6 @@ def run_ga(
                 idx = ranked[li] if li < len(ranked) else 0
                 ls_chrom, ls_fit = local_search(
                     population[idx], base_grid, rng, iterations=100,
-                    exposure_weight=exposure_weight,
                     air_exposure_weight=air_exposure_weight,
                     air_keeper_ratio=air_keeper_ratio,
                 )
@@ -719,7 +717,7 @@ def run_ga(
                     if ls_fit > best_fitness:
                         best_fitness = ls_fit
                         best_result = evaluate(
-                            ls_chrom, base_grid, exposure_weight,
+                            ls_chrom, base_grid,
                             air_exposure_weight, air_keeper_ratio,
                         )
                         stagnation = 0
@@ -728,8 +726,7 @@ def run_ga(
             ri = results[gen_best_idx]
             print(
                 f"Gen {gen}: best={gen_best:.1f} avg={gen_avg:.1f} "
-                f"path={ri['path_length']} cum={ri['cumulative_path']} "
-                f"exp={ri['exposure_total']} air={ri['air_exposure_total']} "
+                f"path={ri['path_length']} exp={ri['exposure_total']} air={ri['air_exposure_total']} "
                 f"pen={ri['validity_penalty']} stag={stagnation} mut={effective_mutation:.2f} ({eval_time:.1f}s)"
             )
 
