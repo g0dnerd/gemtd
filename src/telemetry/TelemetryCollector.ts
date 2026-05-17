@@ -283,6 +283,16 @@ export class TelemetryCollector {
 
   private send(payload: Record<string, unknown>): void {
     const body = JSON.stringify(payload);
+
+    if (__DEV__) {
+      fetch("http://localhost:3456/api/telemetry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }).catch(() => {});
+      return;
+    }
+
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/telemetry", body);
     } else {
