@@ -150,7 +150,7 @@ export const WAVES: WaveDef[] = [
         ],
       },
     ],
-    interval: 0.8,
+    interval: 2.5,
     bonus: 12,
   },
   w(16, "fast", 22, 3420, 3, 0.4, 12, 0, 2),
@@ -230,7 +230,7 @@ export const WAVES: WaveDef[] = [
         ],
       },
     ],
-    interval: 1.0,
+    interval: 2.5,
     bonus: 19,
   },
   wm(
@@ -331,7 +331,7 @@ export const WAVES: WaveDef[] = [
         ],
       },
     ],
-    interval: 1.2,
+    interval: 2.5,
     bonus: 29,
   },
   wm(
@@ -450,7 +450,7 @@ export const WAVES: WaveDef[] = [
         ],
       },
     ],
-    interval: 1.5,
+    interval: 2.5,
     bonus: 29,
   },
   wm(
