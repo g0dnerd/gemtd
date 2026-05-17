@@ -54,6 +54,7 @@ def main() -> None:
         seed=args.seed,
         air_exposure_weight=args.air_exposure_weight,
         air_keeper_ratio=args.air_keeper_ratio,
+        checkpoint_path=args.output,
     )
 
     output = {

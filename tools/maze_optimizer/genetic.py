@@ -1,3 +1,4 @@
+import json
 import random
 import time
 from multiprocessing import Pool
@@ -594,6 +595,18 @@ def evaluate_population(
     return [cached_results[i] for i in range(len(population))]
 
 
+def _write_checkpoint(result: dict, path: str) -> None:
+    output = {
+        "fitness": result["fitness"],
+        "path_length": result["path_length"],
+        "exposure_total": result["exposure_total"],
+        "air_exposure_total": result["air_exposure_total"],
+        "rounds": result["chromosome"],
+    }
+    with open(path, "w") as f:
+        json.dump(output, f, indent=2)
+
+
 def run_ga(
     base_grid: np.ndarray | None = None,
     population_size: int = 200,
@@ -606,6 +619,7 @@ def run_ga(
     seed: int = 42,
     air_exposure_weight: float = 3.0,
     air_keeper_ratio: float = 2.0,
+    checkpoint_path: str | None = None,
 ) -> dict:
     if base_grid is None:
         base_grid = build_base_layout()
@@ -644,94 +658,105 @@ def run_ga(
     elite_count = max(1, int(population_size * elite_pct))
     ls_count = min(5, elite_count)
 
-    for gen in range(1, generations + 1):
-        ranked = sorted(range(len(population)), key=lambda i: -fitness_scores[i])
+    try:
+        for gen in range(1, generations + 1):
+            ranked = sorted(range(len(population)), key=lambda i: -fitness_scores[i])
 
-        new_population: list[Chromosome] = [
-            [list(r) for r in population[i]] for i in ranked[:elite_count]
-        ]
+            new_population: list[Chromosome] = [
+                [list(r) for r in population[i]] for i in ranked[:elite_count]
+            ]
 
-        # Adaptive mutation rate
-        effective_mutation = mutation_rate * (1.0 + stagnation / 25.0)
+            # Adaptive mutation rate
+            effective_mutation = mutation_rate * (1.0 + stagnation / 25.0)
 
-        # Immigration on stagnation
-        if stagnation > 0 and stagnation % 10 == 0:
-            immigrant_count = max(1, population_size // 20)
-            for _ in range(immigrant_count):
-                new_population.append(
-                    create_greedy_individual(base_grid, rng, noise=2.0)
+            # Immigration on stagnation
+            if stagnation > 0 and stagnation % 10 == 0:
+                immigrant_count = max(1, population_size // 20)
+                for _ in range(immigrant_count):
+                    new_population.append(
+                        create_greedy_individual(base_grid, rng, noise=2.0)
+                    )
+
+            while len(new_population) < population_size:
+                parent_a = tournament_select(
+                    population, fitness_scores, tournament_size, rng
+                )
+                parent_b = tournament_select(
+                    population, fitness_scores, tournament_size, rng
                 )
 
-        while len(new_population) < population_size:
-            parent_a = tournament_select(
-                population, fitness_scores, tournament_size, rng
-            )
-            parent_b = tournament_select(
-                population, fitness_scores, tournament_size, rng
-            )
+                if rng.random() < crossover_rate:
+                    child = crossover(parent_a, parent_b, rng)
+                else:
+                    child = [list(round_pos) for round_pos in parent_a]
 
-            if rng.random() < crossover_rate:
-                child = crossover(parent_a, parent_b, rng)
+                if rng.random() < effective_mutation:
+                    mutate(child, rng, base_grid)
+
+                new_population.append(child)
+
+            population = new_population[:population_size]
+
+            t0 = time.time()
+            results = evaluate_population(
+                population, base_grid, cores, air_exposure_weight, air_keeper_ratio,
+                fitness_cache,
+            )
+            eval_time = time.time() - t0
+
+            population = [r["chromosome"] for r in results]
+            fitness_scores = [r["fitness"] for r in results]
+
+            gen_best = max(fitness_scores)
+            gen_avg = sum(fitness_scores) / len(fitness_scores)
+            gen_best_idx = fitness_scores.index(gen_best)
+
+            if gen_best > best_fitness:
+                best_fitness = gen_best
+                best_result = results[gen_best_idx]
+                stagnation = 0
             else:
-                child = [list(round_pos) for round_pos in parent_a]
+                stagnation += 1
 
-            if rng.random() < effective_mutation:
-                mutate(child, rng, base_grid)
+            if gen % 5 == 0:
+                for li in range(ls_count):
+                    idx = ranked[li] if li < len(ranked) else 0
+                    ls_chrom, ls_fit = local_search(
+                        population[idx], base_grid, rng, iterations=100,
+                        air_exposure_weight=air_exposure_weight,
+                        air_keeper_ratio=air_keeper_ratio,
+                    )
+                    if ls_fit > fitness_scores[idx]:
+                        population[idx] = ls_chrom
+                        fitness_scores[idx] = ls_fit
+                        if ls_fit > best_fitness:
+                            best_fitness = ls_fit
+                            best_result = evaluate(
+                                ls_chrom, base_grid,
+                                air_exposure_weight, air_keeper_ratio,
+                            )
+                            stagnation = 0
 
-            new_population.append(child)
-
-        population = new_population[:population_size]
-
-        t0 = time.time()
-        results = evaluate_population(
-            population, base_grid, cores, air_exposure_weight, air_keeper_ratio,
-            fitness_cache,
-        )
-        eval_time = time.time() - t0
-
-        population = [r["chromosome"] for r in results]
-        fitness_scores = [r["fitness"] for r in results]
-
-        gen_best = max(fitness_scores)
-        gen_avg = sum(fitness_scores) / len(fitness_scores)
-        gen_best_idx = fitness_scores.index(gen_best)
-
-        if gen_best > best_fitness:
-            best_fitness = gen_best
-            best_result = results[gen_best_idx]
-            stagnation = 0
-        else:
-            stagnation += 1
-
-        if gen % 5 == 0:
-            for li in range(ls_count):
-                idx = ranked[li] if li < len(ranked) else 0
-                ls_chrom, ls_fit = local_search(
-                    population[idx], base_grid, rng, iterations=100,
-                    air_exposure_weight=air_exposure_weight,
-                    air_keeper_ratio=air_keeper_ratio,
+            if gen % 5 == 0 or stagnation == 0:
+                ri = results[gen_best_idx]
+                print(
+                    f"Gen {gen}: best={gen_best:.1f} avg={gen_avg:.1f} "
+                    f"path={ri['path_length']} exp={ri['exposure_total']} air={ri['air_exposure_total']} "
+                    f"pen={ri['validity_penalty']} stag={stagnation} mut={effective_mutation:.2f} ({eval_time:.1f}s)"
                 )
-                if ls_fit > fitness_scores[idx]:
-                    population[idx] = ls_chrom
-                    fitness_scores[idx] = ls_fit
-                    if ls_fit > best_fitness:
-                        best_fitness = ls_fit
-                        best_result = evaluate(
-                            ls_chrom, base_grid,
-                            air_exposure_weight, air_keeper_ratio,
-                        )
-                        stagnation = 0
 
-        if gen % 5 == 0 or stagnation == 0:
-            ri = results[gen_best_idx]
-            print(
-                f"Gen {gen}: best={gen_best:.1f} avg={gen_avg:.1f} "
-                f"path={ri['path_length']} exp={ri['exposure_total']} air={ri['air_exposure_total']} "
-                f"pen={ri['validity_penalty']} stag={stagnation} mut={effective_mutation:.2f} ({eval_time:.1f}s)"
-            )
+            if checkpoint_path and gen % 500 == 0:
+                _write_checkpoint(best_result, checkpoint_path)
+                print(f"  Checkpoint saved to {checkpoint_path} (gen {gen})")
 
-        if stagnation >= 150:
-            print(f"Converged after {gen} generations (150 without improvement)")
-            break
+            if stagnation >= 150:
+                print(f"Converged after {gen} generations (150 without improvement)")
+                break
+
+    except KeyboardInterrupt:
+        print(f"\nInterrupted at gen {gen}.")
+        if checkpoint_path:
+            _write_checkpoint(best_result, checkpoint_path)
+            print(f"Checkpoint saved to {checkpoint_path}")
 
     return best_result
