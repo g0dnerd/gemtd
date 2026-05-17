@@ -49,7 +49,8 @@ export type EffectKind =
   | { kind: 'death_spread'; count: number; radius: number }
   | { kind: 'stacking_armor_reduce'; perHit: number; maxStacks: number; decayInterval: number }
   | { kind: 'armor_decay_aura'; armorPerSec: number; radius: number; maxReduction: number }
-  | { kind: 'linger_burn'; duration: number };
+  | { kind: 'linger_burn'; duration: number }
+  | { kind: 'stun_bonus_dmg'; multiplier: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -352,6 +353,8 @@ export function effectSummary(e: EffectKind): string {
       return `-${e.armorPerSec} armor/s · ${e.radius.toFixed(1)} tiles`;
     case 'linger_burn':
       return `Linger burn ${e.duration}s`;
+    case 'stun_bonus_dmg':
+      return `×${e.multiplier} dmg to stunned`;
     case 'none':
       return '';
   }

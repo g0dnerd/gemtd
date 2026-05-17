@@ -193,6 +193,12 @@ export class Combat {
       dmg = Math.round(dmg * (1 + execute.dmgBonus));
     }
 
+    // Stun bonus: extra damage to stunned creeps
+    const stunBonus = stats.effects.find((e): e is Extract<EffectKind, { kind: 'stun_bonus_dmg' }> => e.kind === 'stun_bonus_dmg');
+    if (stunBonus && target.stun && target.stun.expiresAt > state.tick) {
+      dmg = Math.round(dmg * stunBonus.multiplier);
+    }
+
     const proj: ProjectileState = {
       id: this.game.nextId(),
       fromX, fromY,

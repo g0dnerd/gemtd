@@ -136,8 +136,11 @@ const ALL_COMBOS: ComboRecipe[] = [
       dmgMax: 320,
       range: 4.5,
       atkSpeed: 1.1,
-      effects: [{ kind: "stun", chance: 0.125, duration: 1.0 }],
-      blurb: "12.5% chance to stun for 1 sec.",
+      effects: [
+        { kind: "stun", chance: 0.175, duration: 1.0 },
+        { kind: "stun_bonus_dmg", multiplier: 2.0 },
+      ],
+      blurb: "17.5% stun 1s. 2x dmg to stunned.",
       targeting: "all",
     },
     upgrades: [
@@ -150,11 +153,12 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 4.75,
           atkSpeed: 1.2,
           effects: [
-            { kind: "stun", chance: 0.18, duration: 2.0 },
+            { kind: "stun", chance: 0.23, duration: 2.0 },
+            { kind: "stun_bonus_dmg", multiplier: 2.0 },
             { kind: "poison", dps: 240, duration: 5 },
             { kind: "death_spread", count: 5, radius: 2 },
           ],
-          blurb: "18% stun. Poison 240/s 5s. Plague spreads on death.",
+          blurb: "23% stun. 2x dmg to stunned. Poison 240/s 5s. Plague on death.",
           targeting: "all",
         },
       },
