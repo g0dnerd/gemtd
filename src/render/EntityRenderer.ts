@@ -57,6 +57,8 @@ interface TowerEntry {
   stargemFx?: StargemFx;
   /** Pre-cached 8-frame textures for opal shimmer animation. */
   opalFrames?: Texture[];
+  /** The Sprite inside the tower container whose texture is swapped for opal animation. */
+  opalSprite?: Sprite;
   /** Last rendered opal frame index. */
   opalFrame?: number;
   selBracket?: Graphics;
@@ -152,20 +154,19 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         }
       }
       layer.addChild(obj);
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames };
+      const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
     if (entry.stargemFx) animateStargemFx(entry.stargemFx, tick);
     else if (entry.fx) animateTowerFx(entry.fx, tick);
-    if (entry.opalFrames) {
+    if (entry.opalFrames && entry.opalSprite) {
       const frame = Math.floor(tick / 27) % OPAL_FRAME_COUNT;
       if (frame !== entry.opalFrame) {
         entry.opalFrame = frame;
-        const towerContainer = entry.obj.children[entry.obj.children.length - 1] as Container;
-        const sprite = towerContainer.children[0] as Sprite;
-        sprite.texture = entry.opalFrames[frame];
+        entry.opalSprite.texture = entry.opalFrames[frame];
       }
     }
     const isSelected = t.id === selectedTowerId;
