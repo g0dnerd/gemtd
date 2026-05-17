@@ -361,7 +361,7 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "sapphire", quality: 1 },
     ],
     stats: {
-      dmgMin: 26,
+      dmgMin: 28,
       dmgMax: 31,
       range: 3.5,
       atkSpeed: 1.3,

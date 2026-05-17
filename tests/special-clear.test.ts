@@ -23,14 +23,15 @@ const R1_POSITIONS = MAZE_BLUEPRINT[0];
 function setupR1Combo(
   comboKey: string,
   visualGem: GemType,
-  weakness?: GemType,
+  weakness: GemType,
+  seed = 42,
 ): { game: HeadlessGame; metrics: Metrics } {
-  const game = new HeadlessGame(42);
+  const game = new HeadlessGame(seed);
   const metrics = new Metrics(game.bus, game.state);
   game.newGame();
   const state = game.state;
 
-  if (weakness) state.gemWeaknesses[0] = weakness;
+  state.gemWeaknesses[0] = weakness;
 
   // Clear the auto-rolled draws — we're setting up manually
   state.draws = [];
@@ -72,29 +73,34 @@ function setupR1Combo(
 }
 
 const combatGems = GEM_TYPES.filter((g) => g !== 'opal');
+const SEED_COUNT = 20;
 
 describe('special gem wave 1 clear', () => {
   for (const w of combatGems) {
-    it(`Silver clears wave 1 (weakness=${w})`, () => {
-      const { game, metrics } = setupR1Combo('silver', 'sapphire', w);
-      game.runWave();
-      const [w1] = metrics.waveSummaries();
-      expect(w1).toBeDefined();
-      expect(w1.leaked).toBe(0);
-      expect(w1.killed).toBe(13);
-      metrics.detach();
+    it(`Silver clears wave 1 across ${SEED_COUNT} seeds (weakness=${w})`, () => {
+      for (let seed = 0; seed < SEED_COUNT; seed++) {
+        const { game, metrics } = setupR1Combo('silver', 'sapphire', w, seed);
+        game.runWave();
+        const [w1] = metrics.waveSummaries();
+        expect(w1, `seed=${seed}`).toBeDefined();
+        expect(w1.leaked, `seed=${seed} weakness=${w}`).toBe(0);
+        expect(w1.killed, `seed=${seed} weakness=${w}`).toBe(13);
+        metrics.detach();
+      }
     });
   }
 
   for (const w of combatGems) {
-    it(`Malachite clears wave 1 (weakness=${w})`, () => {
-      const { game, metrics } = setupR1Combo('malachite', 'emerald', w);
-      game.runWave();
-      const [w1] = metrics.waveSummaries();
-      expect(w1).toBeDefined();
-      expect(w1.leaked).toBe(0);
-      expect(w1.killed).toBe(13);
-      metrics.detach();
+    it(`Malachite clears wave 1 across ${SEED_COUNT} seeds (weakness=${w})`, () => {
+      for (let seed = 0; seed < SEED_COUNT; seed++) {
+        const { game, metrics } = setupR1Combo('malachite', 'emerald', w, seed);
+        game.runWave();
+        const [w1] = metrics.waveSummaries();
+        expect(w1, `seed=${seed}`).toBeDefined();
+        expect(w1.leaked, `seed=${seed} weakness=${w}`).toBe(0);
+        expect(w1.killed, `seed=${seed} weakness=${w}`).toBe(13);
+        metrics.detach();
+      }
     });
   }
 });
