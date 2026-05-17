@@ -13,6 +13,7 @@
     "sim:run": "npx tsx tools/sim-compare/cli.ts run",
     "sim:compare": "npx tsx tools/sim-compare/cli.ts compare",
     "sim:history": "npx tsx tools/sim-compare/cli.ts history",
+    "wave-difficulty": "npx tsx tools/wave-difficulty.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy"
   },
