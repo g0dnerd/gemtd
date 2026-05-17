@@ -401,9 +401,9 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             { kind: "splash", radius: 1.8, falloff: 0.5 },
             { kind: "slow", factor: 0.55, duration: 2.0 },
-            { kind: "periodic_nova", everyN: 7 },
+            { kind: "periodic_nova", everyN: 9 },
           ],
-          blurb: "Wide splash. 45% slow. Nova every 7th attack.",
+          blurb: "Wide splash. 45% slow. Nova every 9th attack.",
           targeting: "all",
         },
       },
