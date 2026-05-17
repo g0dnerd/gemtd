@@ -62,6 +62,7 @@ interface TowerEntry {
   /** Last rendered opal frame index. */
   opalFrame?: number;
   selBracket?: Graphics;
+  hoverBracket?: Graphics;
 }
 
 interface TowerFx {
@@ -101,7 +102,7 @@ const projectileObjs = new Map<number, PerEntity>();
 
 const runeTextureCache = new Map<string, Texture>();
 
-export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number, selectedTowerId: number | null = null): void {
+export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number, selectedTowerId: number | null = null, hoveredTowerId: number | null = null): void {
   const seen = new Set<number>();
   for (const t of towers) {
     seen.add(t.id);
@@ -182,6 +183,17 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     if (entry.selBracket) {
       const pulse = 0.6 + 0.4 * ((Math.sin((tick / SIM_HZ) * Math.PI * 2 / 1.8) + 1) / 2);
       entry.selBracket.alpha = pulse;
+    }
+    const isHovered = !isSelected && t.id === hoveredTowerId;
+    if (isHovered && !entry.hoverBracket) {
+      const palette = GEM_PALETTE[t.gem as GemType];
+      entry.hoverBracket = new Graphics();
+      drawCornerBrackets(entry.hoverBracket, 2 * FINE_TILE, palette.light);
+      entry.hoverBracket.alpha = 0.45;
+      entry.obj.addChild(entry.hoverBracket);
+    } else if (!isHovered && entry.hoverBracket) {
+      entry.hoverBracket.destroy();
+      entry.hoverBracket = undefined;
     }
   }
   for (const [id, entry] of towerObjs) {

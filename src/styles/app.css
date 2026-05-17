@@ -634,6 +634,74 @@
   padding: 12px 4px;
 }
 
+/* Tower damage leaderboard */
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  transition: background-color 0.1s, border-color 0.1s;
+}
+.lb-sprite {
+  flex-shrink: 0;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lb-row:hover {
+  border-color: rgba(244, 228, 193, 0.15);
+}
+.lb-rank {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-ink-dim);
+  width: 14px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.lb-name {
+  font-family: "VT323", monospace;
+  font-size: 18px;
+  line-height: 1;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.lb-pct {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 28px;
+}
+.lb-val {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink);
+  text-align: right;
+  flex-shrink: 0;
+  min-width: 36px;
+}
+.lb-more {
+  font-family: "VT323", monospace;
+  font-size: 13px;
+  color: var(--px-ink-dim);
+  text-align: center;
+  padding: 4px;
+  opacity: 0.7;
+}
+
 /* Creep inspector */
 .inspector-hero-frame-creep {
   width: 48px;

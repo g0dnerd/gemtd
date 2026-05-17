@@ -22,6 +22,7 @@ import { SIM_HZ } from "../game/constants";
 export interface InspectorRefs {
   root: HTMLElement;
   body: HTMLDivElement;
+  title: HTMLDivElement;
   refresh: (g: Game) => void;
   lastFingerprint: string;
 }
@@ -44,6 +45,7 @@ export function mountInspector(game: Game): InspectorRefs {
   const refs: InspectorRefs = {
     root,
     body,
+    title,
     refresh: (g: Game) => render(refs, g),
     lastFingerprint: "",
   };
@@ -89,7 +91,12 @@ function fingerprint(game: Game): string {
   const id = game.selectedTowerId;
   const tower =
     id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
-  if (!tower) return `none|${game.state.phase}`;
+  if (!tower) {
+    const dmgFp = game.state.towers
+      .map((t) => `${t.id}:${Math.floor(t.totalDamage)}`)
+      .join(",");
+    return `lb|${game.state.phase}|${dmgFp}`;
+  }
   const isCurrentDraw = game.state.draws.some(
     (d) => d.placedTowerId === tower.id,
   );
@@ -125,12 +132,14 @@ function render(refs: InspectorRefs, game: Game): void {
   if (game.selectedCreepId !== null) {
     const creep = game.state.creeps.find((c) => c.id === game.selectedCreepId);
     if (creep && creep.alive) {
+      refs.title.textContent = "SELECTED · CREEP";
       renderCreep(body, creep, game);
       return;
     }
   }
 
   if (game.selectedRockId !== null) {
+    refs.title.textContent = "SELECTED · ROCK";
     renderRock(body, game, game.selectedRockId);
     return;
   }
@@ -139,12 +148,12 @@ function render(refs: InspectorRefs, game: Game): void {
   const tower =
     id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) {
-    const empty = document.createElement("div");
-    empty.className = "inspector-empty";
-    empty.textContent = "Click a tower or rock to inspect.";
-    body.appendChild(empty);
+    refs.title.textContent = "TOWER DAMAGE";
+    renderLeaderboard(body, game);
     return;
   }
+
+  refs.title.textContent = "SELECTED · TOWER";
 
   const stats = effectiveStatsFor(tower);
 
@@ -371,6 +380,116 @@ function render(refs: InspectorRefs, game: Game): void {
   comboRow.append(combineBtn, specialBtn);
   actions.append(comboRow);
   body.appendChild(actions);
+}
+
+function towerDisplayName(t: TowerState): string {
+  if (t.comboKey) {
+    const combo = COMBO_BY_NAME.get(t.comboKey);
+    if (!combo) return t.comboKey;
+    const tier = t.upgradeTier ?? 0;
+    if (tier > 0 && combo.upgrades[tier - 1]) return combo.upgrades[tier - 1].name;
+    return combo.name;
+  }
+  return `${QUALITY_NAMES[t.quality]} ${GEM_PALETTE[t.gem].name}`;
+}
+
+function formatDamage(d: number): string {
+  if (d >= 1_000_000) return `${(d / 1_000_000).toFixed(1)}M`;
+  if (d >= 1_000) return `${(d / 1_000).toFixed(1)}k`;
+  return String(Math.round(d));
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function lbGemColors(gem: GemType): { text: string; fill: string; fillAlpha: number; borderAlpha: number } {
+  switch (gem) {
+    case 'ruby': return { text: '#ff6878', fill: '#ff6878', fillAlpha: 0.20, borderAlpha: 0.30 };
+    case 'sapphire': return { text: '#a0c8ff', fill: '#5898ff', fillAlpha: 0.22, borderAlpha: 0.30 };
+    case 'emerald': return { text: '#78e898', fill: '#50e878', fillAlpha: 0.20, borderAlpha: 0.30 };
+    case 'topaz': return { text: '#ffe068', fill: '#ffe068', fillAlpha: 0.18, borderAlpha: 0.28 };
+    case 'amethyst': return { text: '#d090f0', fill: '#d090f0', fillAlpha: 0.20, borderAlpha: 0.30 };
+    case 'opal': return { text: '#c0d0e0', fill: '#8898b8', fillAlpha: 0.28, borderAlpha: 0.35 };
+    case 'diamond': return { text: '#e8f8ff', fill: '#80d0f0', fillAlpha: 0.24, borderAlpha: 0.30 };
+    case 'aquamarine': return { text: '#b8f4ee', fill: '#7fe6e1', fillAlpha: 0.20, borderAlpha: 0.30 };
+  }
+}
+
+function renderLeaderboard(body: HTMLDivElement, game: Game): void {
+  const towers = game.state.towers
+    .filter((t) => t.totalDamage > 0)
+    .sort((a, b) => b.totalDamage - a.totalDamage);
+
+  if (towers.length === 0) {
+    const empty = document.createElement("div");
+    empty.className = "inspector-empty";
+    empty.textContent = "No tower damage yet.";
+    body.appendChild(empty);
+    return;
+  }
+
+  const maxDmg = towers[0].totalDamage;
+  const totalDmg = towers.reduce((sum, t) => sum + t.totalDamage, 0);
+  const list = document.createElement("div");
+  list.className = "lb-list";
+
+  const limit = Math.min(towers.length, 8);
+  for (let i = 0; i < limit; i++) {
+    const t = towers[i];
+    const c = lbGemColors(t.gem);
+    const barPct = (t.totalDamage / maxDmg) * 100;
+    const sharePct = totalDmg > 0 ? (t.totalDamage / totalDmg) * 100 : 0;
+
+    const row = document.createElement("div");
+    row.className = "lb-row";
+    row.style.backgroundImage = `linear-gradient(to right, ${hexToRgba(c.fill, c.fillAlpha)} ${barPct}%, transparent ${barPct}%)`;
+    row.style.borderBottom = `1px solid ${hexToRgba(c.fill, c.borderAlpha)}`;
+    row.addEventListener("click", () => game.selectTower(t.id));
+    row.addEventListener("mouseenter", () => { game.hoveredTowerId = t.id; });
+    row.addEventListener("mouseleave", () => { game.hoveredTowerId = null; });
+
+    const rank = document.createElement("div");
+    rank.className = "lb-rank";
+    rank.textContent = String(i + 1);
+
+    const sprite = document.createElement("div");
+    sprite.className = "lb-sprite";
+    sprite.appendChild(
+      t.comboKey
+        ? htmlSpecial(t.comboKey, 18, false, t.upgradeTier ?? 0)
+        : htmlGemTier(t.gem, t.quality as Quality, 18, false),
+    );
+
+    const nameEl = document.createElement("div");
+    nameEl.className = "lb-name";
+    nameEl.style.color = c.text;
+    nameEl.textContent = towerDisplayName(t);
+
+    const pctEl = document.createElement("div");
+    pctEl.className = "lb-pct";
+    pctEl.style.color = c.text;
+    pctEl.textContent = `${Math.round(sharePct)}%`;
+
+    const val = document.createElement("div");
+    val.className = "lb-val";
+    val.textContent = formatDamage(t.totalDamage);
+
+    row.append(rank, sprite, nameEl, pctEl, val);
+    list.appendChild(row);
+  }
+
+  body.appendChild(list);
+
+  if (towers.length > limit) {
+    const more = document.createElement("div");
+    more.className = "lb-more";
+    more.textContent = `+ ${towers.length - limit} more`;
+    body.appendChild(more);
+  }
 }
 
 function setComboButton(

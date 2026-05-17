@@ -117,6 +117,9 @@ export class Game {
   /** Currently selected tower (if any). null otherwise. */
   selectedTowerId: number | null = null;
 
+  /** Tower hovered in leaderboard — shows a subtle highlight on the board. */
+  hoveredTowerId: number | null = null;
+
   /** Currently selected rock anchor id (mutually exclusive with selectedTowerId). */
   selectedRockId: number | null = null;
 
@@ -594,6 +597,7 @@ export class Game {
   selectTower(id: number | null): void {
     this.selectedTowerId = id;
     this.state.selectedTowerId = id;
+    this.hoveredTowerId = null;
     if (id !== null) {
       this.selectedRockId = null;
       this.state.selectedRockId = null;
@@ -734,6 +738,7 @@ export class Game {
       this.towerSprites,
       this.state.tick,
       this.selectedTowerId,
+      this.hoveredTowerId,
     );
     renderRocks(
       this.layers.rocks,
