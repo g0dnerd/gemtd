@@ -9,7 +9,6 @@ import type { Application } from "pixi.js";
 import { Game } from "../game/Game";
 import {
   GEM_PALETTE,
-  GemType,
   QUALITY_NAMES,
   TIER_COLORS,
 } from "../render/theme";
@@ -25,7 +24,7 @@ import { mountInspector, refreshInspector } from "./Inspector";
 import { mountCombineModal } from "./CombineModal";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
-import { activeDraw, allDrawsPlaced, currentWeakness, upcomingWeaknesses, type TowerState } from "../game/State";
+import { activeDraw, allDrawsPlaced, type TowerState } from "../game/State";
 import { GRID_H, GRID_W } from "../data/map";
 import {
   FINE_TILE,
@@ -72,24 +71,7 @@ const ARCHETYPE_COLORS: Record<CreepKind, string> = {
   gestation: "#c8a8a0",
 };
 
-/** Static lookup: which gem each creep archetype is weak to. */
-const ARCHETYPE_WEAKNESS: Record<CreepKind, GemType> = {
-  normal: "ruby",
-  fast: "topaz",
-  armored: "emerald",
-  air: "sapphire",
-  boss: "amethyst",
-  healer: "ruby",
-  wizard: "topaz",
-  tunneler: "diamond",
-  vessel: "ruby",
-  gazer: "sapphire",
-  coral: "emerald",
-  anemone: "topaz",
-  chrysalid: "ruby",
-  mycoid: "diamond",
-  gestation: "ruby",
-};
+
 
 export function mountHud(
   root: HTMLElement,
@@ -146,34 +128,6 @@ export function mountHud(
   const goldMini = makeStatMini(htmlCoin(16), "GOLD", "100", "#ffe068");
   headerBar.append(livesMini.root, goldMini.root);
   left.appendChild(headerBar);
-
-  const weaknessBar = document.createElement("div");
-  weaknessBar.className = "px-weakness-bar";
-  weaknessBar.style.cssText = "display:flex;align-items:center;gap:6px;padding:2px 8px;font-size:11px;color:var(--px-ink-dim);";
-  left.appendChild(weaknessBar);
-
-  function refreshWeakness(): void {
-    const w = game.state.wave;
-    if (w < 1) { weaknessBar.style.display = "none"; return; }
-    weaknessBar.style.display = "flex";
-    const cur = currentWeakness(game.state);
-    const upcoming = upcomingWeaknesses(game.state, 3);
-    weaknessBar.innerHTML = "";
-    const lbl = document.createElement("span");
-    lbl.textContent = "WEAK:";
-    lbl.style.opacity = "0.6";
-    weaknessBar.appendChild(lbl);
-    if (cur) weaknessBar.appendChild(makeWeakDot(cur, true));
-    for (const g of upcoming) weaknessBar.appendChild(makeWeakDot(g, false));
-  }
-
-  function makeWeakDot(gem: GemType, active: boolean): HTMLElement {
-    const el = document.createElement("span");
-    el.textContent = gem.slice(0, 3).toUpperCase();
-    el.style.cssText = `color:var(--gem-${gem});font-weight:bold;opacity:${active ? "1" : "0.45"};`;
-    if (active) el.style.textDecoration = "underline";
-    return el;
-  }
 
   const chance = makeChancePanel(game);
   left.appendChild(chance.root);
@@ -1157,21 +1111,25 @@ export function mountHud(
       badge.textContent = "NEW";
       arch.appendChild(badge);
     }
-    const weakRow = document.createElement("div");
-    weakRow.className = "threat-weak-row";
-    const weakLbl = document.createElement("span");
-    weakLbl.className = "threat-weak-lbl";
-    weakLbl.textContent = "WEAK";
-    const weakGem = ARCHETYPE_WEAKNESS[primary.kind];
-    const pill = document.createElement("span");
-    pill.className = "threat-weak-pill";
-    pill.appendChild(htmlGem(weakGem, 12));
-    const pillName = document.createElement("span");
-    pillName.className = "threat-weak-name";
-    pillName.textContent = GEM_PALETTE[weakGem].name.toUpperCase();
-    pill.appendChild(pillName);
-    weakRow.append(weakLbl, pill);
-    mid.append(arch, weakRow);
+    const weakGem = game.state.gemWeaknesses[def.number - 1];
+    if (weakGem) {
+      const weakRow = document.createElement("div");
+      weakRow.className = "threat-weak-row";
+      const weakLbl = document.createElement("span");
+      weakLbl.className = "threat-weak-lbl";
+      weakLbl.textContent = "WEAK";
+      const pill = document.createElement("span");
+      pill.className = "threat-weak-pill";
+      pill.appendChild(htmlGem(weakGem, 12));
+      const pillName = document.createElement("span");
+      pillName.className = "threat-weak-name";
+      pillName.textContent = GEM_PALETTE[weakGem].name.toUpperCase();
+      pill.appendChild(pillName);
+      weakRow.append(weakLbl, pill);
+      mid.append(arch, weakRow);
+    } else {
+      mid.appendChild(arch);
+    }
     for (const kind of newKinds) {
       const blurb = CREEP_ARCHETYPES[kind].blurb;
       if (blurb) {
@@ -1223,7 +1181,6 @@ export function mountHud(
 
   function tick(): void {
     refreshChips();
-    refreshWeakness();
     refreshThreats();
     refreshDraw();
     chance.refresh();

@@ -288,12 +288,3 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     gemWeaknesses: [],
   };
 }
-
-export function currentWeakness(state: State): GemType | undefined {
-  return state.gemWeaknesses[state.wave - 1];
-}
-
-export function upcomingWeaknesses(state: State, count: number): GemType[] {
-  const start = state.wave;
-  return state.gemWeaknesses.slice(start, start + count);
-}
