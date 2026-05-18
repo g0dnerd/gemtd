@@ -75,7 +75,7 @@ export class Traps {
         state.totalKills++;
         state.waveStats.killedThisWave++;
         const { pathProgress, ticksAlive } = creepDeathMetrics(creep, state);
-        this.game.bus.emit('creep:die', { id: creep.id, bounty: creep.bounty, pathProgress, ticksAlive });
+        this.game.bus.emit('creep:die', { id: creep.id, kind: creep.kind, bounty: creep.bounty, pathProgress, ticksAlive });
         this.game.bus.emit('gold:change', { gold: state.gold });
         this.game.handleCreepDeath(creep);
         return;
@@ -125,7 +125,7 @@ export class Traps {
             state.totalKills++;
             state.waveStats.killedThisWave++;
             const { pathProgress, ticksAlive } = creepDeathMetrics(other, state);
-            this.game.bus.emit('creep:die', { id: other.id, bounty: other.bounty, pathProgress, ticksAlive });
+            this.game.bus.emit('creep:die', { id: other.id, kind: other.kind, bounty: other.bounty, pathProgress, ticksAlive });
             this.game.bus.emit('gold:change', { gold: state.gold });
             this.game.handleCreepDeath(other);
           }

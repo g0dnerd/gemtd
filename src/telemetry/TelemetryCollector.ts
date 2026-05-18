@@ -1,6 +1,7 @@
 import type { Game } from "../game/Game";
 import type { State } from "../game/State";
 import type { EventBus } from "../events/EventBus";
+import type { CreepKind } from "../data/creeps";
 
 interface WaveSnapshot {
   wave: number;
@@ -19,6 +20,32 @@ interface WaveSnapshot {
   avgPathProgress: number;
   maxPathProgress: number;
   avgTicksToKill: number;
+  avgTowerQuality: number;
+  gemTypeCount: number;
+  maxUpgradeTier: number;
+}
+
+interface CreepKindBucket {
+  spawned: number;
+  kills: number;
+  leaks: number;
+  pathProgressSum: number;
+  maxPathProgress: number;
+  ticksToKillSum: number;
+  totalHpSpawned: number;
+}
+
+interface WaveCreepStat extends CreepKindBucket {
+  wave: number;
+  creepKind: CreepKind;
+}
+
+interface WaveGemDamage {
+  wave: number;
+  gem: string;
+  isCombo: boolean;
+  damage: number;
+  kills: number;
 }
 
 interface TowerSnapshot {
@@ -53,6 +80,8 @@ export class TelemetryCollector {
   private readonly unsubs: Array<() => void> = [];
   private readonly waves: WaveSnapshot[] = [];
   private readonly events: TelemetryEvent[] = [];
+  private readonly waveCreepStats: WaveCreepStat[] = [];
+  private readonly waveGemDamage: WaveGemDamage[] = [];
 
   private waveStartTick = 0;
   private towerDamageAtWaveStart = 0;
@@ -68,6 +97,8 @@ export class TelemetryCollector {
     number,
     Array<{ tier: number; damage: number; wave: number }>
   >();
+  private readonly kindBuckets = new Map<CreepKind, CreepKindBucket>();
+  private readonly towerWaveStart = new Map<number, { damage: number; kills: number }>();
 
   constructor(game: Game) {
     this.runId = crypto.randomUUID();
@@ -96,6 +127,11 @@ export class TelemetryCollector {
         this.pathProgressSum = 0;
         this.maxKillPathProgress = 0;
         this.ticksToKillSum = 0;
+        this.kindBuckets.clear();
+        this.towerWaveStart.clear();
+        for (const t of s.towers) {
+          this.towerWaveStart.set(t.id, { damage: t.totalDamage, kills: t.kills });
+        }
 
         const kept = s.keptTowerIdThisRound;
         if (kept !== null) {
@@ -116,20 +152,55 @@ export class TelemetryCollector {
         }
       }),
 
-      b.on("creep:die", ({ pathProgress, ticksAlive }) => {
+      b.on("creep:spawn", ({ kind, maxHp }) => {
+        const bucket = this.getKindBucket(kind);
+        bucket.spawned++;
+        bucket.totalHpSpawned += maxHp;
+      }),
+
+      b.on("creep:die", ({ kind, pathProgress, ticksAlive }) => {
         this.pathProgressSum += pathProgress;
         this.maxKillPathProgress = Math.max(this.maxKillPathProgress, pathProgress);
         this.ticksToKillSum += ticksAlive;
+        const bucket = this.getKindBucket(kind);
+        bucket.kills++;
+        bucket.pathProgressSum += pathProgress;
+        bucket.maxPathProgress = Math.max(bucket.maxPathProgress, pathProgress);
+        bucket.ticksToKillSum += ticksAlive;
       }),
 
-      b.on("creep:leak", () => {
+      b.on("creep:leak", ({ kind, hp, liveCost }) => {
         this.pathProgressSum += 1.0;
+        const bucket = this.getKindBucket(kind);
+        bucket.leaks++;
+        bucket.pathProgressSum += 1.0;
+        bucket.maxPathProgress = 1.0;
+        this.events.push({
+          type: "leak",
+          wave: s.wave,
+          gold: s.gold,
+          gem: "",
+          quality: 0,
+          cost: liveCost,
+          chanceTier: s.chanceTier,
+          detail: kind,
+          value1: hp,
+        });
       }),
 
       b.on("wave:end", () => {
         const ws = s.waveStats;
         const totalDamageNow = s.towers.reduce(
           (sum, t) => sum + t.totalDamage,
+          0,
+        );
+
+        const avgTowerQuality = s.towers.length > 0
+          ? s.towers.reduce((sum, t) => sum + t.quality, 0) / s.towers.length
+          : 0;
+        const gemTypes = new Set(s.towers.map((t) => t.gem));
+        const maxUpgradeTier = s.towers.reduce(
+          (max, t) => Math.max(max, t.upgradeTier ?? 0),
           0,
         );
 
@@ -156,7 +227,44 @@ export class TelemetryCollector {
             : 0,
           maxPathProgress: this.maxKillPathProgress,
           avgTicksToKill: ws.killedThisWave > 0 ? Math.round(this.ticksToKillSum / ws.killedThisWave) : 0,
+          avgTowerQuality,
+          gemTypeCount: gemTypes.size,
+          maxUpgradeTier,
         });
+
+        for (const [kind, bucket] of this.kindBuckets) {
+          this.waveCreepStats.push({
+            wave: s.wave,
+            creepKind: kind,
+            spawned: bucket.spawned,
+            kills: bucket.kills,
+            leaks: bucket.leaks,
+            pathProgressSum: bucket.pathProgressSum,
+            maxPathProgress: bucket.maxPathProgress,
+            ticksToKillSum: bucket.ticksToKillSum,
+            totalHpSpawned: bucket.totalHpSpawned,
+          });
+        }
+
+        const gemDmg = new Map<string, WaveGemDamage>();
+        for (const t of s.towers) {
+          const snap = this.towerWaveStart.get(t.id);
+          const dmgDelta = t.totalDamage - (snap?.damage ?? t.totalDamage);
+          const killsDelta = t.kills - (snap?.kills ?? t.kills);
+          if (dmgDelta <= 0 && killsDelta <= 0) continue;
+          const isCombo = !!t.comboKey;
+          const key = `${t.gem}:${isCombo ? 1 : 0}`;
+          const existing = gemDmg.get(key);
+          if (existing) {
+            existing.damage += dmgDelta;
+            existing.kills += killsDelta;
+          } else {
+            gemDmg.set(key, { wave: s.wave, gem: t.gem, isCombo, damage: dmgDelta, kills: killsDelta });
+          }
+        }
+        for (const entry of gemDmg.values()) {
+          this.waveGemDamage.push(entry);
+        }
 
         this.totalLeaks += ws.leakedThisWave;
         if (ws.leakedThisWave === 0) this.cleanWaves++;
@@ -205,20 +313,6 @@ export class TelemetryCollector {
         });
       }),
 
-      b.on("creep:leak", ({ kind, hp, liveCost }) => {
-        this.events.push({
-          type: "leak",
-          wave: s.wave,
-          gold: s.gold,
-          gem: "",
-          quality: 0,
-          cost: liveCost,
-          chanceTier: s.chanceTier,
-          detail: kind,
-          value1: hp,
-        });
-      }),
-
       b.on("tower:upgrade", ({ id, tier }) => {
         const tower = s.towers.find((t) => t.id === id);
         if (!tower) return;
@@ -251,6 +345,15 @@ export class TelemetryCollector {
         }
       }),
     );
+  }
+
+  private getKindBucket(kind: CreepKind): CreepKindBucket {
+    let bucket = this.kindBuckets.get(kind);
+    if (!bucket) {
+      bucket = { spawned: 0, kills: 0, leaks: 0, pathProgressSum: 0, maxPathProgress: 0, ticksToKillSum: 0, totalHpSpawned: 0 };
+      this.kindBuckets.set(kind, bucket);
+    }
+    return bucket;
   }
 
   private flush(outcome: "gameover" | "victory"): void {
@@ -302,6 +405,8 @@ export class TelemetryCollector {
       waves: this.waves,
       towers,
       events: this.events,
+      waveCreepStats: this.waveCreepStats,
+      waveGemDamage: this.waveGemDamage,
     });
   }
 

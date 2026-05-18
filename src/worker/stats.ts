@@ -47,6 +47,10 @@ export async function handleStats(
     deathsByWave,
     versionRows,
     wavePressure,
+    creepKindProgress,
+    creepKindSummary,
+    gemDamageByWave,
+    gemDamageSummary,
   ] = await Promise.all([
     db.prepare(
       `SELECT count(*) as total_runs, avg(wave_reached) as avg_wave,
@@ -144,9 +148,47 @@ export async function handleStats(
       `SELECT wave, avg(avg_path_progress) as avg_path_progress,
               avg(max_path_progress) as avg_max_path_progress,
               avg(avg_ticks_to_kill) as avg_ticks_to_kill,
+              avg(avg_tower_quality) as avg_quality,
+              avg(gem_type_count) as avg_gem_types,
+              avg(max_upgrade_tier) as avg_max_tier,
               count(*) as runs
        FROM waves WHERE 1=1 ${cv}
        GROUP BY wave ORDER BY wave`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave, creep_kind, avg(avg_path_progress) as avg_progress,
+              avg(max_path_progress) as avg_max_progress,
+              avg(avg_ticks_to_kill) as avg_ticks,
+              sum(leaks) as total_leaks, sum(spawned) as total_spawned,
+              sum(kills) as total_kills, count(*) as runs
+       FROM wave_creep_stats WHERE 1=1 ${cv}
+       GROUP BY wave, creep_kind ORDER BY wave, creep_kind`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT creep_kind, sum(spawned) as total_spawned,
+              sum(kills) as total_kills, sum(leaks) as total_leaks,
+              avg(avg_path_progress) as avg_progress,
+              avg(avg_ticks_to_kill) as avg_ticks,
+              sum(total_hp_spawned) as total_hp
+       FROM wave_creep_stats WHERE 1=1 ${cv}
+       GROUP BY creep_kind ORDER BY total_leaks DESC`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave, gem, is_combo, sum(damage) as total_damage,
+              sum(kills) as total_kills, count(*) as runs
+       FROM wave_gem_damage WHERE 1=1 ${cv}
+       GROUP BY wave, gem, is_combo ORDER BY wave, gem`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT gem, is_combo, sum(damage) as total_damage,
+              sum(kills) as total_kills,
+              avg(damage) as avg_damage_per_run_wave
+       FROM wave_gem_damage WHERE 1=1 ${cv}
+       GROUP BY gem, is_combo ORDER BY total_damage DESC`,
     ).bind(...cBind).all(),
   ]);
 
@@ -167,5 +209,9 @@ export async function handleStats(
     leaksByKind: leaksByKind.results,
     deathsByWave: deathsByWave.results,
     wavePressure: wavePressure.results,
+    creepKindProgress: creepKindProgress.results,
+    creepKindSummary: creepKindSummary.results,
+    gemDamageByWave: gemDamageByWave.results,
+    gemDamageSummary: gemDamageSummary.results,
   });
 }

@@ -11,8 +11,8 @@ export interface GameEvents {
   'phase:enter': { phase: 'title' | 'build' | 'wave' | 'gameover' | 'victory' };
   'wave:start': { wave: number };
   'wave:end': { wave: number; lifeLost: number; goldEarned: number };
-  'creep:spawn': { id: number };
-  'creep:die': { id: number; bounty: number; pathProgress: number; ticksAlive: number };
+  'creep:spawn': { id: number; kind: CreepKind; maxHp: number };
+  'creep:die': { id: number; kind: CreepKind; bounty: number; pathProgress: number; ticksAlive: number };
   'creep:leak': { id: number; kind: CreepKind; hp: number; maxHp: number; liveCost: number; ticksAlive: number };
   'tower:placed': { id: number; x: number; y: number; gem: GemType; quality: Quality };
   'tower:fire': { id: number; targetId: number };

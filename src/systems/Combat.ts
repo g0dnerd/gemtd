@@ -366,7 +366,7 @@ export class Combat {
       state.totalKills++;
       state.waveStats.killedThisWave++;
       const { pathProgress, ticksAlive } = creepDeathMetrics(c, state);
-      this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty, pathProgress, ticksAlive });
+      this.game.bus.emit('creep:die', { id: c.id, kind: c.kind, bounty: c.bounty, pathProgress, ticksAlive });
       this.game.bus.emit('gold:change', { gold: state.gold });
       this.game.handleCreepDeath(c);
     }

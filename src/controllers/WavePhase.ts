@@ -152,7 +152,7 @@ export class WavePhase {
     this.game.state.creeps.push(creep);
     this.spawnedSoFar++;
     this.game.state.waveStats.spawnedThisWave++;
-    this.game.bus.emit('creep:spawn', { id });
+    this.game.bus.emit('creep:spawn', { id, kind: arch.kind, maxHp: hp });
   }
 
   private advanceCreep(c: CreepState): void {
@@ -252,7 +252,7 @@ export class WavePhase {
     state.waveStats.killedThisWave++;
     this.goldEarned += c.bounty;
     const { pathProgress, ticksAlive } = creepDeathMetrics(c, state);
-    this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty, pathProgress, ticksAlive });
+    this.game.bus.emit('creep:die', { id: c.id, kind: c.kind, bounty: c.bounty, pathProgress, ticksAlive });
     this.game.bus.emit('gold:change', { gold: state.gold });
     this.game.handleCreepDeath(c);
   }

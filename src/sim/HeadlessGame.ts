@@ -201,7 +201,7 @@ export class HeadlessGame {
         state.creeps.push(creep);
         state.waveStats.spawnedThisWave++;
         state.waveStats.totalToSpawn++;
-        this.bus.emit('creep:spawn', { id });
+        this.bus.emit('creep:spawn', { id, kind: p.kind, maxHp: p.hp });
       }
     }
   }

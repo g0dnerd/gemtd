@@ -11,6 +11,8 @@ const TABLES: Record<string, string[]> = {
     "run_id", "wave", "lives", "gold", "kills", "leaks", "spawned",
     "duration_ticks", "chance_tier", "tower_count", "rock_count",
     "combo_count", "keeper_quality", "total_damage",
+    "avg_path_progress", "max_path_progress", "avg_ticks_to_kill",
+    "avg_tower_quality", "gem_type_count", "max_upgrade_tier",
   ],
   towers: [
     "run_id", "gem", "quality", "combo_key", "upgrade_tier", "kills",
@@ -19,6 +21,14 @@ const TABLES: Record<string, string[]> = {
   events: [
     "run_id", "event_type", "gem", "detail", "wave", "gold", "quality",
     "cost", "chance_tier", "value1",
+  ],
+  wave_creep_stats: [
+    "run_id", "wave", "creep_kind", "spawned", "kills", "leaks",
+    "avg_path_progress", "max_path_progress", "avg_ticks_to_kill",
+    "total_hp_spawned",
+  ],
+  wave_gem_damage: [
+    "run_id", "wave", "gem", "is_combo", "damage", "kills",
   ],
 };
 

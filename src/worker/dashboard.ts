@@ -22,6 +22,8 @@ export function handleDashboard(secret: string): Response {
     --radius: 8px;
     --radius-lg: 12px;
     --sidebar-w: 196px;
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   }
   *, *::before, *::after { box-sizing: border-box; }
   html { -webkit-text-size-adjust: 100%; }
@@ -53,9 +55,12 @@ export function handleDashboard(secret: string): Response {
     display: block; padding: 7px 20px; font-size: 13px;
     color: var(--muted); cursor: pointer;
     border-left: 2px solid transparent;
-    transition: color 0.1s, background 0.1s;
+    transition: color 0.15s ease-out, background 0.15s ease-out, border-left-color 0.15s ease-out;
   }
-  .sidebar-nav a:hover { color: var(--fg); background: var(--fg-soft); }
+  .sidebar-nav a:active { transform: scale(0.98); }
+  @media (hover: hover) and (pointer: fine) {
+    .sidebar-nav a:hover { color: var(--fg); background: var(--fg-soft); }
+  }
   .sidebar-nav a.active {
     color: var(--accent); border-left-color: var(--accent);
     background: var(--accent-soft);
@@ -73,7 +78,9 @@ export function handleDashboard(secret: string): Response {
   .sidebar-footer a {
     font-size: 12px; color: var(--muted); cursor: pointer; padding: 4px 0;
   }
-  .sidebar-footer a:hover { color: var(--accent); }
+  @media (hover: hover) and (pointer: fine) {
+    .sidebar-footer a:hover { color: var(--accent); }
+  }
 
   .main {
     flex: 1; display: flex; flex-direction: column;
@@ -96,7 +103,7 @@ export function handleDashboard(secret: string): Response {
   }
   .version-picker { display: flex; align-items: center; gap: 0; }
   .version-picker select:first-child {
-    border-radius: var(--radius) 0 0 var(--radius); border-right: none;
+    border-radius: var(--radius) 0 0 var(--radius);
     font-family: var(--font-body); font-size: 12px; font-weight: 500;
     color: var(--muted); padding: 6px 10px; min-width: 80px;
   }
@@ -108,17 +115,38 @@ export function handleDashboard(secret: string): Response {
     border: 1px solid color-mix(in oklch, var(--accent) 25%, transparent);
     border-radius: var(--radius); padding: 6px 14px;
     font-size: 13px; font-weight: 500;
+    transition: background 0.15s ease-out, border-color 0.15s ease-out, transform 0.16s ease-out;
   }
-  .topbar-controls button:hover {
-    background: color-mix(in oklch, var(--accent) 20%, transparent);
+  .topbar-controls button:active { transform: scale(0.97); }
+  @media (hover: hover) and (pointer: fine) {
+    .topbar-controls button:hover {
+      background: color-mix(in oklch, var(--accent) 20%, transparent);
+    }
   }
 
   .content {
     flex: 1; overflow-y: auto; padding: 24px 28px 60px;
-    scroll-behavior: smooth;
+    scroll-behavior: smooth; scroll-padding-top: 12px;
   }
 
-  .dash-section { margin-bottom: 44px; }
+  .dash-section {
+    margin-bottom: 44px; scroll-margin-top: 12px;
+    opacity: 0; transform: translateY(6px);
+    animation: sectionIn 0.3s var(--ease-out) forwards;
+  }
+  .dash-section:nth-child(1) { animation-delay: 0ms; }
+  .dash-section:nth-child(2) { animation-delay: 40ms; }
+  .dash-section:nth-child(3) { animation-delay: 80ms; }
+  .dash-section:nth-child(4) { animation-delay: 120ms; }
+  .dash-section:nth-child(5) { animation-delay: 160ms; }
+  .dash-section:nth-child(6) { animation-delay: 200ms; }
+  .dash-section:nth-child(7) { animation-delay: 240ms; }
+  .dash-section:nth-child(8) { animation-delay: 280ms; }
+  .dash-section:nth-child(9) { animation-delay: 320ms; }
+  .dash-section:nth-child(10) { animation-delay: 360ms; }
+  @keyframes sectionIn {
+    to { opacity: 1; transform: translateY(0); }
+  }
   .dash-section:last-child { margin-bottom: 0; }
   .section-header {
     display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
@@ -139,7 +167,14 @@ export function handleDashboard(secret: string): Response {
   .kpi-card {
     background: var(--surface); border: 1px solid var(--border);
     border-radius: var(--radius); padding: 14px 18px;
+    opacity: 0; transform: translateY(4px);
+    animation: sectionIn 0.25s var(--ease-out) forwards;
   }
+  .kpi-card:nth-child(1) { animation-delay: 0ms; }
+  .kpi-card:nth-child(2) { animation-delay: 30ms; }
+  .kpi-card:nth-child(3) { animation-delay: 60ms; }
+  .kpi-card:nth-child(4) { animation-delay: 90ms; }
+  .kpi-card:nth-child(5) { animation-delay: 120ms; }
   .kpi-label {
     font-size: 10px; font-weight: 600; text-transform: uppercase;
     letter-spacing: 0.06em; color: var(--muted); margin-bottom: 2px;
@@ -185,7 +220,9 @@ export function handleDashboard(secret: string): Response {
     border-bottom: 1px solid var(--border);
     cursor: pointer; user-select: none; white-space: nowrap;
   }
-  .data-table th:hover { color: var(--fg); }
+  @media (hover: hover) and (pointer: fine) {
+    .data-table th:hover { color: var(--fg); }
+  }
   .data-table th .sort-arrow {
     opacity: 0.3; margin-left: 3px; font-size: 9px;
   }
@@ -194,7 +231,9 @@ export function handleDashboard(secret: string): Response {
     padding: 7px 14px;
     border-bottom: 1px solid color-mix(in oklch, var(--border) 40%, transparent);
   }
-  .data-table tbody tr:hover td { background: var(--fg-soft); }
+  @media (hover: hover) and (pointer: fine) {
+    .data-table tbody tr:hover td { background: var(--fg-soft); }
+  }
   .data-table .num {
     font-family: var(--font-mono); font-variant-numeric: tabular-nums;
     text-align: right;
@@ -211,7 +250,8 @@ export function handleDashboard(secret: string): Response {
     border-radius: 2px; overflow: hidden; min-width: 60px;
   }
   .bar-cell .bar-fill {
-    height: 100%; border-radius: 2px; transition: width 0.3s ease;
+    height: 100%; width: 100%; border-radius: 2px;
+    transform-origin: left; transition: transform 0.3s var(--ease-out);
   }
 
   .quality-badge {
@@ -236,7 +276,11 @@ export function handleDashboard(secret: string): Response {
   }
   .pill-accent { background: var(--accent-soft); color: var(--accent); }
 
-  .loading-msg { color: var(--muted); padding: 60px 20px; text-align: center; font-size: 13px; }
+  .loading-msg {
+    color: var(--muted); padding: 60px 20px; text-align: center; font-size: 13px;
+    transition: opacity 0.15s ease-out;
+  }
+  .loading-msg.fade-out { opacity: 0; }
   .error-msg {
     color: #f87171; padding: 16px 20px; font-size: 13px;
     background: rgba(248,113,113,0.06); border: 1px solid rgba(248,113,113,0.15);
@@ -245,8 +289,16 @@ export function handleDashboard(secret: string): Response {
 
   .content::-webkit-scrollbar { width: 6px; }
   .content::-webkit-scrollbar-track { background: transparent; }
-  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  .content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; transition: background 0.15s ease; }
   .content::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 </head>
 <body>
@@ -260,9 +312,11 @@ export function handleDashboard(secret: string): Response {
     <a data-target="pressure">Wave Pressure</a>
     <a data-target="waves">Wave Progression</a>
     <a data-target="creeps">Creep Balance</a>
+    <a data-target="creep-breakdown">Creep Kind Breakdown</a>
     <div class="nav-group">Towers</div>
     <a data-target="combos">Combos</a>
     <a data-target="gems">Gem Effectiveness</a>
+    <a data-target="gem-curves">Gem Damage Curves</a>
     <a data-target="keepers">Keeper Choices</a>
     <div class="nav-group">Economy</div>
     <a data-target="economy">Gold &amp; Chance</a>
@@ -271,6 +325,8 @@ export function handleDashboard(secret: string): Response {
     <a id="exp-runs">Export runs (CSV)</a>
     <a id="exp-towers">Export towers (CSV)</a>
     <a id="exp-events">Export events (CSV)</a>
+    <a id="exp-wave_creep_stats">Export creep stats (CSV)</a>
+    <a id="exp-wave_gem_damage">Export gem damage (CSV)</a>
   </div>
 </aside>
 <div class="main">
@@ -337,11 +393,15 @@ const AXIS_OPTS = {
   grid: { color: C.grid, drawBorder: false },
   ticks: { color: C.gridLabel, font: { size: 10, family: "ui-monospace, 'SF Mono', monospace" }, padding: 6 },
 };
+const WAVE_X = { ...AXIS_OPTS, title: { display: true, text: 'Wave', color: C.gridLabel, font: { size: 10 } } };
+const PCT_Y = { ...AXIS_OPTS, min: 0, max: 1, ticks: { ...AXIS_OPTS.ticks, callback: v => (v * 100).toFixed(0) + '%' } };
+const BOTTOM_LEGEND = { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: C.gridLabel } };
 
 const creepColors = {
   boss: C.red, armored: C.violet, air: C.blue, fast: C.amber,
-  healer: C.green, vessel: C.coral, wizard: C.violet, tunneler: C.teal,
-  normal: C.muted, gazer: C.rose, coral: C.blue, anemone: C.green,
+  healer: C.green, vessel: C.coral, wizard: '#a78bfa', tunneler: C.teal,
+  normal: C.muted, gazer: C.rose, coral: '#38bdf8', anemone: '#2dd4bf',
+  chrysalid: '#c084fc', mycoid: '#86efac', gestation: '#94a3b8',
 };
 
 Chart.defaults.color = C.gridLabel;
@@ -360,6 +420,7 @@ Chart.defaults.elements.point.radius = 0;
 Chart.defaults.elements.point.hoverRadius = 4;
 Chart.defaults.elements.line.tension = 0.3;
 Chart.defaults.elements.line.borderWidth = 2;
+Chart.defaults.animation = { duration: 150 };
 
 let allVersions = [];
 let activeCharts = [];
@@ -450,7 +511,7 @@ function versionParams(params) {
 function updateExportLinks() {
   const params = { secret: SECRET, format: 'csv' };
   versionParams(params);
-  ['runs', 'towers', 'events'].forEach(ds => {
+  ['runs', 'towers', 'events', 'wave_creep_stats', 'wave_gem_damage'].forEach(ds => {
     const el = document.getElementById('exp-' + ds);
     if (el) el.href = base + '/export' + qs({ ...params, dataset: ds });
   });
@@ -511,6 +572,17 @@ function render(data) {
   h += '<div class="chart-panel" style="grid-column:1/-1"><h3>Lives Lost by Creep Type</h3><div class="chart-wrap"><canvas id="chart-creep-danger"></canvas></div></div>';
   h += '</div></section>';
 
+  // Creep Kind Breakdown
+  h += '<section class="dash-section" id="creep-breakdown"><div class="section-header"><h2>Creep Kind Breakdown</h2></div>';
+  h += '<div class="chart-grid cols-2">';
+  h += '<div class="chart-panel"><h3>Avg Path Progress by Creep Kind</h3><div class="chart-wrap"><canvas id="chart-kind-progress"></canvas></div></div>';
+  h += '<div class="chart-panel"><h3>Leaks by Creep Kind per Wave</h3><div class="chart-wrap"><canvas id="chart-kind-leaks"></canvas></div></div>';
+  h += '</div>';
+  h += '<div class="table-panel" style="margin-top:12px"><div class="table-panel-header"><h3>Creep kind aggregate stats</h3><span class="pill pill-accent">Sortable</span></div>';
+  h += '<table class="data-table" id="table-creep-kinds"><thead><tr>';
+  h += '<th>Kind</th><th class="num">Spawned</th><th class="num">Killed</th><th class="num">Leaked</th><th class="num">Leak Rate</th><th class="num">Avg Progress</th><th class="num">Avg TTK</th>';
+  h += '</tr></thead><tbody></tbody></table></div></section>';
+
   // Combos
   h += '<section class="dash-section" id="combos"><div class="section-header"><h2>Combo Effectiveness</h2></div>';
   h += '<div class="table-panel"><div class="table-panel-header"><h3>Damage output by combo and tier</h3><span class="pill pill-accent">Sortable</span></div>';
@@ -523,6 +595,17 @@ function render(data) {
   h += '<div class="table-panel"><div class="table-panel-header"><h3>Tower damage by gem type and quality</h3><span class="pill pill-accent">Sortable</span></div>';
   h += '<table class="data-table" id="table-gems"><thead><tr>';
   h += '<th>Gem</th><th>Quality</th><th class="num">Count</th><th class="num">Avg Dmg/Wave</th><th>Avg Total Dmg</th>';
+  h += '</tr></thead><tbody></tbody></table></div></section>';
+
+  // Gem Damage Curves
+  h += '<section class="dash-section" id="gem-curves"><div class="section-header"><h2>Gem Damage Curves</h2></div>';
+  h += '<div class="chart-grid cols-2">';
+  h += '<div class="chart-panel"><h3>Damage Share by Gem Type</h3><div class="chart-wrap"><canvas id="chart-gem-share"></canvas></div></div>';
+  h += '<div class="chart-panel"><h3>Combo vs Base Gem Damage</h3><div class="chart-wrap"><canvas id="chart-combo-share"></canvas></div></div>';
+  h += '</div>';
+  h += '<div class="table-panel" style="margin-top:12px"><div class="table-panel-header"><h3>Gem damage by game phase</h3><span class="pill pill-accent">Sortable</span></div>';
+  h += '<table class="data-table" id="table-gem-phase"><thead><tr>';
+  h += '<th>Gem</th><th>Type</th><th class="num">Early (1\\u201315)</th><th class="num">Mid (16\\u201330)</th><th class="num">Late (31+)</th><th class="num">Total</th>';
   h += '</tr></thead><tbody></tbody></table></div></section>';
 
   // Keepers
@@ -551,6 +634,8 @@ function render(data) {
 
   renderComboTable(data.combos || [], avgWave);
   renderGemTable(data.gemDps || []);
+  renderCreepKindTable(data.creepKindSummary || []);
+  renderGemPhaseTable(data.gemDamageByWave || []);
   renderKeeperTable(data.keeperChoices || []);
   renderChanceTable(data.chanceTiming || []);
   makeSortable();
@@ -614,7 +699,7 @@ function createCharts(data, total) {
     }));
   }
 
-  // Wave pressure — path progress
+  // Wave pressure — path progress (with board state overlay)
   if (data.wavePressure && data.wavePressure.length) {
     activeCharts.push(new Chart(document.getElementById('chart-path-progress'), {
       type: 'line',
@@ -630,6 +715,12 @@ function createCharts(data, total) {
           data: data.wavePressure.map(r => Number(r.avg_max_path_progress)),
           borderColor: C.red, backgroundColor: 'transparent',
           borderDash: [4, 3], pointHoverBackgroundColor: C.red,
+        }, {
+          label: 'Avg Tower Quality',
+          data: data.wavePressure.map(r => r.avg_quality != null ? Number(r.avg_quality) / 5 : null),
+          borderColor: C.green, backgroundColor: 'transparent',
+          borderDash: [2, 4], borderWidth: 1.5,
+          pointRadius: 0, pointHoverRadius: 3,
         }],
       },
       options: {
@@ -810,6 +901,145 @@ function createCharts(data, total) {
     }));
   }
 
+  // Creep kind breakdown
+  if (data.creepKindProgress && data.creepKindProgress.length) {
+    const byKind = {};
+    const allWaves = new Set();
+    data.creepKindProgress.forEach(r => {
+      allWaves.add(r.wave);
+      if (!byKind[r.creep_kind]) byKind[r.creep_kind] = {};
+      byKind[r.creep_kind][r.wave] = r;
+    });
+    const waves = [...allWaves].sort((a, b) => a - b);
+    const kinds = Object.keys(byKind).sort();
+
+    activeCharts.push(new Chart(document.getElementById('chart-kind-progress'), {
+      type: 'line',
+      data: {
+        labels: waves,
+        datasets: kinds.map(kind => ({
+          label: capitalize(kind),
+          data: waves.map(w => byKind[kind][w] ? Number(byKind[kind][w].avg_progress) : null),
+          borderColor: creepColors[kind] || C.muted,
+          backgroundColor: 'transparent',
+          spanGaps: true,
+          pointHoverBackgroundColor: creepColors[kind] || C.muted,
+        })),
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, aspectRatio: 2,
+        scales: {
+          x: WAVE_X,
+          y: { ...PCT_Y, title: { display: true, text: 'Avg Path Progress', color: C.gridLabel, font: { size: 10 } } },
+        },
+        plugins: {
+          legend: BOTTOM_LEGEND,
+          tooltip: { callbacks: {
+            title: ctx => 'Wave ' + ctx[0].label,
+            label: ctx => ctx.dataset.label + ': ' + (ctx.parsed.y * 100).toFixed(1) + '%',
+          }},
+        },
+      },
+    }));
+
+    activeCharts.push(new Chart(document.getElementById('chart-kind-leaks'), {
+      type: 'bar',
+      data: {
+        labels: waves,
+        datasets: kinds.map(kind => ({
+          label: capitalize(kind),
+          data: waves.map(w => byKind[kind][w] ? Number(byKind[kind][w].total_leaks) : 0),
+          backgroundColor: (creepColors[kind] || C.muted) + '99',
+          hoverBackgroundColor: creepColors[kind] || C.muted,
+          borderWidth: 0, borderRadius: 1,
+        })),
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, aspectRatio: 2,
+        scales: {
+          x: { ...AXIS_OPTS, stacked: true },
+          y: { ...AXIS_OPTS, stacked: true, beginAtZero: true,
+            title: { display: true, text: 'Total Leaks', color: C.gridLabel, font: { size: 10 } } },
+        },
+        plugins: { legend: BOTTOM_LEGEND },
+      },
+    }));
+  }
+
+  // Gem damage curves
+  if (data.gemDamageByWave && data.gemDamageByWave.length) {
+    const byWave = {};
+    const allGems = new Set();
+    data.gemDamageByWave.forEach(r => {
+      const w = r.wave;
+      if (!byWave[w]) byWave[w] = { total: 0, gems: {}, combo: 0, base: 0 };
+      const gem = r.gem;
+      allGems.add(gem);
+      const dmg = Number(r.total_damage);
+      byWave[w].gems[gem] = (byWave[w].gems[gem] || 0) + dmg;
+      byWave[w].total += dmg;
+      if (Number(r.is_combo)) byWave[w].combo += dmg;
+      else byWave[w].base += dmg;
+    });
+    const waves = Object.keys(byWave).map(Number).sort((a, b) => a - b);
+    const gems = [...allGems].sort();
+
+    activeCharts.push(new Chart(document.getElementById('chart-gem-share'), {
+      type: 'line',
+      data: {
+        labels: waves,
+        datasets: gems.map(gem => ({
+          label: capitalize(gem),
+          data: waves.map(w => byWave[w].total > 0 ? (byWave[w].gems[gem] || 0) / byWave[w].total : 0),
+          backgroundColor: (GEM_COLORS[gem] || C.muted) + '44',
+          borderColor: GEM_COLORS[gem] || C.muted,
+          borderWidth: 1.5, fill: true,
+          pointRadius: 0, pointHoverRadius: 3,
+        })),
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, aspectRatio: 2,
+        scales: { x: WAVE_X, y: { ...PCT_Y, stacked: true } },
+        plugins: {
+          legend: BOTTOM_LEGEND,
+          tooltip: { callbacks: {
+            title: ctx => 'Wave ' + ctx[0].label,
+            label: ctx => ctx.dataset.label + ': ' + (ctx.parsed.y * 100).toFixed(1) + '%',
+          }},
+        },
+      },
+    }));
+
+    activeCharts.push(new Chart(document.getElementById('chart-combo-share'), {
+      type: 'line',
+      data: {
+        labels: waves,
+        datasets: [{
+          label: 'Combo Towers',
+          data: waves.map(w => {
+            const t = byWave[w].combo + byWave[w].base;
+            return t > 0 ? byWave[w].combo / t : 0;
+          }),
+          borderColor: C.teal, backgroundColor: C.tealSoft,
+          fill: true,
+        }, {
+          label: 'Base Gems',
+          data: waves.map(w => {
+            const t = byWave[w].combo + byWave[w].base;
+            return t > 0 ? byWave[w].base / t : 0;
+          }),
+          borderColor: C.amber, backgroundColor: C.amberSoft,
+          fill: true,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, aspectRatio: 2,
+        scales: { x: WAVE_X, y: { ...PCT_Y, stacked: true } },
+        plugins: { legend: BOTTOM_LEGEND },
+      },
+    }));
+  }
+
   // Keeper distribution
   if (data.keeperChoices && data.keeperChoices.length) {
     activeCharts.push(new Chart(document.getElementById('chart-keeper-dist'), {
@@ -869,7 +1099,7 @@ function renderComboTable(combos, globalAvgWave) {
   tbody.innerHTML = combos.map(r => {
     const tier = Number(r.tier) || 0;
     const name = comboDisplayName(r.combo_key, tier);
-    const p = maxDmg > 0 ? (Number(r.avg_damage) / maxDmg * 100) : 0;
+    const p = maxDmg > 0 ? (Number(r.avg_damage) / maxDmg) : 0;
     const badge = tier > 0
       ? ' <span class="quality-badge q' + Math.min(tier + 1, 5) + '" style="font-size:9px;margin-left:6px">\\u2605' + tier + '</span>'
       : '';
@@ -882,7 +1112,7 @@ function renderComboTable(combos, globalAvgWave) {
       '<td class="num">' + r.count + '</td>' +
       '<td class="num">' + fmtN(Math.round(Number(r.avg_dmg_per_wave))) + '</td>' +
       '<td><div class="bar-cell"><span class="bar-value">' + fmtN(Math.round(Number(r.avg_damage))) + '</span>' +
-      '<span class="bar-track"><span class="bar-fill" style="width:' + p.toFixed(1) + '%;background:' + C.teal + '"></span></span></div></td>' +
+      '<span class="bar-track"><span class="bar-fill" style="transform:scaleX(' + p.toFixed(3) + ');background:' + C.teal + '"></span></span></div></td>' +
       '<td class="num">' + Number(r.avg_wave_built).toFixed(1) + '</td>' +
       '<td class="num" style="' + deltaColor + ';font-weight:600">' + deltaStr + '</td></tr>';
   }).join('');
@@ -894,13 +1124,61 @@ function renderGemTable(gems) {
   const maxDmg = Math.max(...gems.map(r => Number(r.avg_damage)));
   const qNames = { 1: 'Chipped', 2: 'Flawed', 3: 'Normal', 4: 'Flawless', 5: 'Perfect' };
   tbody.innerHTML = gems.map(r => {
-    const p = maxDmg > 0 ? (Number(r.avg_damage) / maxDmg * 100) : 0;
+    const p = maxDmg > 0 ? (Number(r.avg_damage) / maxDmg) : 0;
     return '<tr><td><span class="kind-dot" style="background:' + (GEM_COLORS[r.gem] || C.muted) + '"></span>' + capitalize(r.gem) + '</td>' +
       '<td><span class="quality-badge q' + r.quality + '">' + (qNames[r.quality] || r.quality) + '</span></td>' +
       '<td class="num">' + r.count + '</td>' +
       '<td class="num">' + fmtN(Math.round(Number(r.avg_dmg_per_wave))) + '</td>' +
       '<td><div class="bar-cell"><span class="bar-value">' + fmtN(Math.round(Number(r.avg_damage))) + '</span>' +
-      '<span class="bar-track"><span class="bar-fill" style="width:' + p.toFixed(1) + '%;background:' + (GEM_COLORS[r.gem] || C.teal) + '"></span></span></div></td></tr>';
+      '<span class="bar-track"><span class="bar-fill" style="transform:scaleX(' + p.toFixed(3) + ');background:' + (GEM_COLORS[r.gem] || C.teal) + '"></span></span></div></td></tr>';
+  }).join('');
+}
+
+function renderCreepKindTable(kinds) {
+  const tbody = document.querySelector('#table-creep-kinds tbody');
+  if (!tbody || !kinds.length) return;
+  tbody.innerHTML = kinds.map(r => {
+    const spawned = Number(r.total_spawned);
+    const leaks = Number(r.total_leaks);
+    const leakRate = spawned > 0 ? (leaks / spawned * 100).toFixed(1) + '%' : '\\u2014';
+    return '<tr>' +
+      '<td><span class="kind-dot" style="background:' + (creepColors[r.creep_kind] || C.muted) + '"></span>' + capitalize(r.creep_kind) + '</td>' +
+      '<td class="num">' + fmtN(spawned) + '</td>' +
+      '<td class="num">' + fmtN(Number(r.total_kills)) + '</td>' +
+      '<td class="num">' + fmtN(leaks) + '</td>' +
+      '<td class="num">' + leakRate + '</td>' +
+      '<td class="num">' + (Number(r.avg_progress) * 100).toFixed(1) + '%</td>' +
+      '<td class="num">' + Math.round(Number(r.avg_ticks)) + '</td></tr>';
+  }).join('');
+}
+
+function renderGemPhaseTable(rows) {
+  const tbody = document.querySelector('#table-gem-phase tbody');
+  if (!tbody || !rows.length) return;
+  const phases = {};
+  rows.forEach(r => {
+    const gem = r.gem;
+    const isCombo = Number(r.is_combo);
+    const key = gem + '|' + isCombo;
+    if (!phases[key]) phases[key] = { gem, isCombo, early: 0, mid: 0, late: 0, total: 0 };
+    const dmg = Number(r.total_damage);
+    const w = Number(r.wave);
+    phases[key].total += dmg;
+    if (w <= 15) phases[key].early += dmg;
+    else if (w <= 30) phases[key].mid += dmg;
+    else phases[key].late += dmg;
+  });
+  const sorted = Object.values(phases).sort((a, b) => b.total - a.total);
+  tbody.innerHTML = sorted.map(r => {
+    const color = GEM_COLORS[r.gem] || C.muted;
+    const typeLabel = r.isCombo ? 'Combo' : 'Base';
+    return '<tr>' +
+      '<td><span class="kind-dot" style="background:' + color + '"></span>' + capitalize(r.gem) + '</td>' +
+      '<td>' + typeLabel + '</td>' +
+      '<td class="num">' + fmtN(Math.round(r.early)) + '</td>' +
+      '<td class="num">' + fmtN(Math.round(r.mid)) + '</td>' +
+      '<td class="num">' + fmtN(Math.round(r.late)) + '</td>' +
+      '<td class="num">' + fmtN(Math.round(r.total)) + '</td></tr>';
   }).join('');
 }
 
@@ -968,8 +1246,18 @@ async function load() {
     const data = await resp.json();
     allVersions = data.versions || [];
     populateVersions(allVersions, document.getElementById('version').value);
+    const loader = el.querySelector('.loading-msg');
+    if (loader) {
+      loader.classList.add('fade-out');
+      await new Promise(r => setTimeout(r, 150));
+    }
     render(data);
   } catch (err) {
+    const loader = el.querySelector('.loading-msg');
+    if (loader) {
+      loader.classList.add('fade-out');
+      await new Promise(r => setTimeout(r, 150));
+    }
     el.innerHTML = '<div class="error-msg">' + err.message + '</div>';
   }
 }
