@@ -205,7 +205,7 @@ function render(refs: InspectorRefs, game: Game): void {
   killTxt.className = "inspector-effect-text";
   killTxt.textContent =
     lvl > 0
-      ? `${tower.kills} kills · LV ${lvl} (+${lvl * 5}%)`
+      ? `${tower.kills} kills · LV ${lvl} (+${Math.round(0.05 * lvl / (1 + 0.03 * lvl) * 100)}%)`
       : `${tower.kills} / 10 kills to next level`;
   killChip.append(killLbl, killTxt);
   body.appendChild(killChip);
@@ -1031,7 +1031,7 @@ interface ResolvedStats {
 
 function effectiveStatsFor(t: TowerState): ResolvedStats {
   const lvl = towerLevel(t);
-  const mult = 1 + lvl * 0.05;
+  const mult = 1 + 0.05 * lvl / (1 + 0.03 * lvl);
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
