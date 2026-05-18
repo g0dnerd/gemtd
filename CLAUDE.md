@@ -42,6 +42,7 @@ Game progresses through phases in `state.phase`: `title → build → wave → c
 - `WavePhase` — spawns + steps creeps for the current wave.
 - Keeper handling (no controller file, lives on `Game`) — after each wave, player keeps **one** of the 5 placed towers; the others convert to rocks (permanent maze blockers, no refund). This is core to the genre and to the design intent (see below).
 - `Combat` (`src/systems/Combat.ts`) — runs every sim step regardless of phase; handles tower targeting/firing, projectile flight, on-hit effects.
+- `Traps` (`src/systems/Traps.ts`) — towers with `isTrap=true` don't fire projectiles; instead they trigger area effects when creeps walk within range.
 
 `Game.cmd*` methods are the public command surface UI calls into; phase controllers do the actual work.
 
@@ -54,10 +55,12 @@ Game progresses through phases in `state.phase`: `title → build → wave → c
 Everything in `src/data/` is data-only (no Pixi, no DOM):
 
 - `map.ts` — 21×17 grid layout, waypoints, `Cell` enum.
-- `gems.ts` — 7 gem types × 5 qualities. `gemStats(gem, quality)` is the canonical stat resolver; quality scales damage/range/atk-speed and effect potency.
+- `gems.ts` — 8 gem types × 5 qualities. `gemStats(gem, quality)` is the canonical stat resolver; quality scales damage/range/atk-speed and effect potency. Note: `GemType` and `Quality` types are defined in `src/render/theme.ts`, not here — `gems.ts` imports them.
 - `combos.ts` — multi-gem recipes; `findCombo` matches greedily.
 - `creeps.ts`, `waves.ts` — per-wave creep specs.
 - `maze-blueprint.ts` — blueprint consumed by `BlueprintAI` (output of the Python `maze_optimizer`).
+- `wave-difficulty.ts` — empirical wave difficulty evaluator (armor, HP, speed scoring).
+- `gemtd-reference.ts` — reference data extracted from another GemTD port, used for cross-checking.
 
 Add new gems/combos/waves here and they flow through automatically.
 
