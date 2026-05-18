@@ -1327,6 +1327,22 @@
 }
 
 /* Tutorial modal */
+.tutorial-backdrop {
+  opacity: 0;
+  transition: opacity 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.tutorial-backdrop.modal-visible {
+  opacity: 1;
+  transition: opacity 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.tutorial-backdrop .tutorial-card {
+  transform: scale(0.97);
+  transition: transform 150ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.tutorial-backdrop.modal-visible .tutorial-card {
+  transform: scale(1);
+  transition: transform 200ms cubic-bezier(0.23, 1, 0.32, 1);
+}
 .tutorial-card {
   max-width: 560px;
 }
@@ -1354,13 +1370,14 @@
   font-size: 15px;
   line-height: 1.55;
   color: var(--px-ink);
-  min-height: 240px;
-  max-height: 340px;
+  min-height: min(240px, 50vh);
+  max-height: min(340px, 60vh);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
+  transition: opacity 120ms ease, transform 120ms ease;
 }
 .tutorial-body b {
   color: var(--px-accent);
@@ -1474,6 +1491,14 @@
   font-size: 13px;
   color: var(--px-ink-dimmer);
 }
+.modal-close {
+  font-size: 8px;
+  padding: 5px 8px;
+}
+.modal-ok {
+  font-size: 9px;
+  padding: 8px 16px;
+}
 
 .changelog-ver {
   font-size: 15px;
@@ -1518,6 +1543,12 @@
 .changelog-tag-nerf { background: var(--px-bad); color: var(--px-ink); }
 .changelog-tag-fix { background: var(--px-ink-dim); color: var(--px-border-dark); }
 .changelog-tag-bal { background: var(--px-accent); color: var(--px-border-dark); }
+.changelog-show-older {
+  font-size: 7px;
+  padding: 6px 12px;
+  width: 100%;
+  margin-top: 4px;
+}
 
 /* Toast notifications */
 .toast-stack {

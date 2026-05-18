@@ -8,7 +8,7 @@ interface Section {
 
 export function mountTutorialModal(root: HTMLElement): () => void {
   const backdrop = document.createElement("div");
-  backdrop.className = "modal-backdrop";
+  backdrop.className = "modal-backdrop tutorial-backdrop";
 
   const card = document.createElement("div");
   card.className = "px-panel modal-card tutorial-card";
@@ -19,17 +19,15 @@ export function mountTutorialModal(root: HTMLElement): () => void {
   const title = document.createElement("div");
   title.className = "title px-h";
   title.textContent = "HOW TO PLAY";
-  const close = document.createElement("button");
-  close.className = "px-btn";
-  close.style.fontSize = "8px";
-  close.style.padding = "5px 8px";
-  close.textContent = "✕";
-  head.append(title, close);
+  const closeBtn = document.createElement("button");
+  closeBtn.className = "px-btn modal-close";
+  closeBtn.textContent = "✕";
+  head.append(title, closeBtn);
   card.appendChild(head);
 
-  const tabs = document.createElement("div");
-  tabs.className = "tutorial-tabs";
-  card.appendChild(tabs);
+  const tabsEl = document.createElement("div");
+  tabsEl.className = "tutorial-tabs";
+  card.appendChild(tabsEl);
 
   const body = document.createElement("div");
   body.className = "tutorial-body px-panel-inset";
@@ -45,21 +43,56 @@ export function mountTutorialModal(root: HTMLElement): () => void {
   ];
 
   let active = 0;
-  function render(): void {
-    tabs.innerHTML = "";
-    sections.forEach((s, i) => {
-      const b = document.createElement("button");
-      b.className = "px-btn tutorial-tab";
-      if (i === active) b.classList.add("tutorial-tab-active");
-      b.textContent = s.title;
-      b.addEventListener("click", () => {
-        active = i;
-        render();
-      });
-      tabs.appendChild(b);
-    });
-    body.innerHTML = "";
-    body.appendChild(sections[active].body);
+  let switching = false;
+
+  const tabButtons: HTMLButtonElement[] = sections.map((s, i) => {
+    const b = document.createElement("button");
+    b.className = "px-btn tutorial-tab";
+    if (i === 0) b.classList.add("tutorial-tab-active");
+    b.textContent = s.title;
+    b.addEventListener("click", () => switchTab(i));
+    tabsEl.appendChild(b);
+    return b;
+  });
+
+  body.appendChild(sections[0].body);
+
+  function switchTab(index: number, direction?: "left" | "right"): void {
+    if (index === active) return;
+
+    const dir = direction ?? (index > active ? "right" : "left");
+    const shift = dir === "right" ? -4 : 4;
+
+    tabButtons[active].classList.remove("tutorial-tab-active");
+    tabButtons[index].classList.add("tutorial-tab-active");
+    active = index;
+
+    if (switching) {
+      body.style.transition = "none";
+      body.innerHTML = "";
+      body.appendChild(sections[active].body);
+      body.style.opacity = "1";
+      body.style.transform = "translateX(0)";
+      void body.offsetHeight;
+      body.style.transition = "";
+      return;
+    }
+
+    switching = true;
+    body.style.opacity = "0";
+    body.style.transform = `translateX(${shift}px)`;
+
+    setTimeout(() => {
+      body.style.transition = "none";
+      body.innerHTML = "";
+      body.appendChild(sections[active].body);
+      body.style.transform = `translateX(${-shift}px)`;
+      void body.offsetHeight;
+      body.style.transition = "";
+      body.style.opacity = "1";
+      body.style.transform = "translateX(0)";
+      switching = false;
+    }, 120);
   }
 
   const footer = document.createElement("div");
@@ -68,38 +101,47 @@ export function mountTutorialModal(root: HTMLElement): () => void {
   hint.className = "tutorial-hint";
   hint.textContent = "ESC or click outside to close";
   const okBtn = document.createElement("button");
-  okBtn.className = "px-btn px-btn-primary";
-  okBtn.style.fontSize = "9px";
-  okBtn.style.padding = "8px 16px";
+  okBtn.className = "px-btn px-btn-primary modal-ok";
   okBtn.textContent = "GOT IT";
   footer.append(hint, okBtn);
   card.appendChild(footer);
 
+  let closing = false;
   function close_(): void {
-    backdrop.remove();
+    if (closing) return;
+    closing = true;
     window.removeEventListener("keydown", onKey);
+    backdrop.classList.remove("modal-visible");
+    backdrop.addEventListener("transitionend", () => backdrop.remove(), {
+      once: true,
+    });
+    setTimeout(() => {
+      if (backdrop.parentNode) backdrop.remove();
+    }, 200);
   }
 
   const onKey = (e: KeyboardEvent) => {
     if (e.key === "Escape") close_();
     else if (e.key === "ArrowRight") {
-      active = (active + 1) % sections.length;
-      render();
+      switchTab((active + 1) % sections.length, "right");
     } else if (e.key === "ArrowLeft") {
-      active = (active - 1 + sections.length) % sections.length;
-      render();
+      switchTab(
+        (active - 1 + sections.length) % sections.length,
+        "left",
+      );
     }
   };
   window.addEventListener("keydown", onKey);
 
-  close.addEventListener("click", close_);
+  closeBtn.addEventListener("click", close_);
   okBtn.addEventListener("click", close_);
   backdrop.addEventListener("click", (ev) => {
     if (ev.target === backdrop) close_();
   });
 
   root.appendChild(backdrop);
-  render();
+  void backdrop.offsetHeight;
+  backdrop.classList.add("modal-visible");
 
   return close_;
 }
@@ -252,6 +294,8 @@ const TAG_LABELS: Record<ChangeTag, string> = {
   fix: "FIX",
 };
 
+const CHANGELOG_PREVIEW = 5;
+
 function changesBody(): HTMLElement {
   const wrap = document.createElement("div");
 
@@ -259,16 +303,16 @@ function changesBody(): HTMLElement {
     {
       ver: "1.4.3",
       notes: [
-        { tag: "buff", text: "Venomous Emerald: poison DPS 90 → 112, death spread 2 → 5 targets." },
-        { tag: "buff", text: "Solar Core: prox burn ramp DPS 95 → 105." },
-        { tag: "nerf", text: "Ancient Bloodstone: max damage 540 → 500, splash radius 2.5 → 2." },
-        { tag: "buff", text: "Lucky Asian Jade: crit 10% → 15%, stun 3% → 8%, bonus gold 5% → 10%." },
+        { tag: "buff", text: "Venomous Emerald: poison DPS 90 → 112, death spread 2 → 5 targets." },
+        { tag: "buff", text: "Solar Core: prox burn ramp DPS 95 → 105." },
+        { tag: "nerf", text: "Ancient Bloodstone: max damage 540 → 500, splash radius 2.5 → 2." },
+        { tag: "buff", text: "Lucky Asian Jade: crit 10% → 15%, stun 3% → 8%, bonus gold 5% → 10%." },
       ],
     },
     {
       ver: "1.4.2",
       notes: [
-        { tag: "bal", text: "Wave 30 healer count 3 → 2, HP −30%." },
+        { tag: "bal", text: "Wave 30 healer count 3 → 2, HP −30%." },
       ],
     },
     {
@@ -307,7 +351,7 @@ function changesBody(): HTMLElement {
     {
       ver: "1.3.1",
       notes: [
-        { tag: "bal", text: "Air units move 15% slower (2.0 → 1.7 tiles/s)." },
+        { tag: "bal", text: "Air units move 15% slower (2.0 → 1.7 tiles/s)." },
         { tag: "fix", text: "Wave preview now shows actual HP after archetype multiplier." },
       ],
     },
@@ -320,26 +364,26 @@ function changesBody(): HTMLElement {
     {
       ver: "1.2.8",
       notes: [
-        { tag: "buff", text: "Lucky Asian Jade damage range +50% (200–300 → 300–450)." },
+        { tag: "buff", text: "Lucky Asian Jade damage range +50% (200–300 → 300–450)." },
       ],
     },
     {
       ver: "1.2.7",
       notes: [
         { tag: "nerf", text: "Wave 34 air creep HP reduced by 20%." },
-        { tag: "nerf", text: "Pink Diamond base damage reduced (350–450 → 250–350)." },
-        { tag: "nerf", text: "Living Diamond cost increased (175 → 250) and damage reduced." },
-        { tag: "buff", text: "Silver Knight damage increased (120–160 → 320–360)." },
-        { tag: "nerf", text: "Solar Core death nova reduced (10% → 8% max HP)." },
-        { tag: "buff", text: "Red Crystal Facet damage increased (120–200 → 160–250)." },
-        { tag: "buff", text: "Rose Quartz Crystal damage increased (160–250 → 240–300)." },
+        { tag: "nerf", text: "Pink Diamond base damage reduced (350–450 → 250–350)." },
+        { tag: "nerf", text: "Living Diamond cost increased (175 → 250) and damage reduced." },
+        { tag: "buff", text: "Silver Knight damage increased (120–160 → 320–360)." },
+        { tag: "nerf", text: "Solar Core death nova reduced (10% → 8% max HP)." },
+        { tag: "buff", text: "Red Crystal Facet damage increased (120–200 → 160–250)." },
+        { tag: "buff", text: "Rose Quartz Crystal damage increased (160–250 → 240–300)." },
       ],
     },
     {
       ver: "1.2.6",
       notes: [
-        { tag: "nerf", text: "Ancient Bloodstone damage (400–620 → 320–540)." },
-        { tag: "nerf", text: "Solar Core death nova (15% → 10% max HP)." },
+        { tag: "nerf", text: "Ancient Bloodstone damage (400–620 → 320–540)." },
+        { tag: "nerf", text: "Solar Core death nova (15% → 10% max HP)." },
       ],
     },
     {
@@ -358,7 +402,7 @@ function changesBody(): HTMLElement {
     {
       ver: "1.2.3",
       notes: [
-        { tag: "bal", text: "Nerfed wave 15 air creep HP (1710 → 1510)." },
+        { tag: "bal", text: "Nerfed wave 15 air creep HP (1710 → 1510)." },
       ],
     },
     {
@@ -393,14 +437,14 @@ function changesBody(): HTMLElement {
       notes: [
         { tag: "new", text: "Armor system — numeric armor replaces the armored flag. WC3 damage formula." },
         { tag: "new", text: "Special gem upgrade rework — all 9 combo upgrade tiers replaced with identity-defining mechanics." },
-        { tag: "bal", text: "Silver T1 buffed: damage 20–26 → 24–31, atk speed 1.1 → 1.25." },
-        { tag: "bal", text: "Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit." },
-        { tag: "bal", text: "Yellow Sapphire base damage 80–120 → 120–180, slow 25% for 2.5s." },
-        { tag: "bal", text: "Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled." },
+        { tag: "bal", text: "Silver T1 buffed: damage 20–26 → 24–31, atk speed 1.1 → 1.25." },
+        { tag: "bal", text: "Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit." },
+        { tag: "bal", text: "Yellow Sapphire base damage 80–120 → 120–180, slow 25% for 2.5s." },
+        { tag: "bal", text: "Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled." },
         { tag: "buff", text: "Lucky Asian Jade damage/poison/crit significantly buffed." },
-        { tag: "bal", text: "Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers." },
-        { tag: "bal", text: "Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP." },
-        { tag: "bal", text: "Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks." },
+        { tag: "bal", text: "Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers." },
+        { tag: "bal", text: "Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP." },
+        { tag: "bal", text: "Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks." },
         { tag: "new", text: "50-wave format with armor progression across all waves." },
         { tag: "new", text: "Creep inspector — click a creep to see HP, speed, bounty, debuffs." },
         { tag: "new", text: "Redesigned T2 gem sprites and palettes for most gem types." },
@@ -410,8 +454,8 @@ function changesBody(): HTMLElement {
     {
       ver: "0.12.0",
       notes: [
-        { tag: "bal", text: "First chance tier upgrade cost reduced: 30g → 25g." },
-        { tag: "bal", text: "Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14k → 9k." },
+        { tag: "bal", text: "First chance tier upgrade cost reduced: 30g → 25g." },
+        { tag: "bal", text: "Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14k → 9k." },
       ],
     },
     {
@@ -440,25 +484,25 @@ function changesBody(): HTMLElement {
     {
       ver: "0.8.2",
       notes: [
-        { tag: "nerf", text: "Healer buff: duration 3s → 2s, heal rate 0.1%/tick → 0.075%/tick." },
+        { tag: "nerf", text: "Healer buff: duration 3s → 2s, heal rate 0.1%/tick → 0.075%/tick." },
       ],
     },
     {
       ver: "0.8.1",
       notes: [
-        { tag: "nerf", text: "Mighty Malachite: damage 100–150 → 70–100, chain falloff 1.0 → 0.85." },
+        { tag: "nerf", text: "Mighty Malachite: damage 100–150 → 70–100, chain falloff 1.0 → 0.85." },
         { tag: "buff", text: "Star Ruby line: damage and poison up across all tiers." },
-        { tag: "nerf", text: "Lucky Asian Jade: splash falloff 0.6 → 0.5, poison 80 → 50 / 120 → 80." },
-        { tag: "bal", text: "Boss W10 HP 3500 → 3000, W11 healers HP 1000 → 800, W50 healers 5 → 2." },
+        { tag: "nerf", text: "Lucky Asian Jade: splash falloff 0.6 → 0.5, poison 80 → 50 / 120 → 80." },
+        { tag: "bal", text: "Boss W10 HP 3500 → 3000, W11 healers HP 1000 → 800, W50 healers 5 → 2." },
       ],
     },
     {
       ver: "0.8.0",
       notes: [
-        { tag: "nerf", text: "Diamond: base damage 30 → 25, crit multiplier 2.5 → 2.0." },
-        { tag: "buff", text: "Sapphire: base damage 12 → 15." },
-        { tag: "buff", text: "Emerald: base damage 10 → 13, poison DPS 8 → 11." },
-        { tag: "buff", text: "Aquamarine: base range 2.5 → 3.0." },
+        { tag: "nerf", text: "Diamond: base damage 30 → 25, crit multiplier 2.5 → 2.0." },
+        { tag: "buff", text: "Sapphire: base damage 12 → 15." },
+        { tag: "buff", text: "Emerald: base damage 10 → 13, poison DPS 8 → 11." },
+        { tag: "buff", text: "Aquamarine: base range 2.5 → 3.0." },
       ],
     },
     {
@@ -496,6 +540,7 @@ function changesBody(): HTMLElement {
     },
   ];
 
+  const versionEls: HTMLElement[] = [];
   for (const { ver, notes } of versions) {
     const section = document.createElement("div");
     const hdr = document.createElement("div");
@@ -523,7 +568,25 @@ function changesBody(): HTMLElement {
     }
     section.appendChild(list);
     wrap.appendChild(section);
+    versionEls.push(section);
   }
+
+  if (versions.length > CHANGELOG_PREVIEW) {
+    for (let i = CHANGELOG_PREVIEW; i < versionEls.length; i++) {
+      versionEls[i].hidden = true;
+    }
+    const showOlder = document.createElement("button");
+    showOlder.className = "px-btn changelog-show-older";
+    showOlder.textContent = `SHOW ${versions.length - CHANGELOG_PREVIEW} OLDER`;
+    showOlder.addEventListener("click", () => {
+      for (let i = CHANGELOG_PREVIEW; i < versionEls.length; i++) {
+        versionEls[i].hidden = false;
+      }
+      showOlder.remove();
+    });
+    wrap.appendChild(showOlder);
+  }
+
   return wrap;
 }
 
