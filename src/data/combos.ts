@@ -280,8 +280,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "aquamarine", quality: 1 },
     ],
     stats: {
-      dmgMin: 14,
-      dmgMax: 22,
+      dmgMin: 17,
+      dmgMax: 24,
       range: 3.5,
       atkSpeed: 1.4,
       effects: [{ kind: "multi_target", count: 3 }],
@@ -365,10 +365,10 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "sapphire", quality: 1 },
     ],
     stats: {
-      dmgMin: 28,
-      dmgMax: 31,
+      dmgMin: 34,
+      dmgMax: 37,
       range: 3.5,
-      atkSpeed: 1.3,
+      atkSpeed: 1.5,
       effects: [
         { kind: "splash", radius: 1.2, falloff: 0.5 },
         { kind: "slow", factor: 0.75, duration: 1.5 },
@@ -412,7 +412,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "diamond",
+    visualGem: "sapphire",
   },
   {
     key: "star_ruby",
