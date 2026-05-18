@@ -273,6 +273,7 @@
   grid-template-columns: 32px 1fr auto;
   align-items: center;
   gap: 10px;
+  transition: box-shadow 150ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .threat-row.is-current {
   box-shadow:
@@ -364,11 +365,6 @@
   background: var(--px-accent);
   letter-spacing: 0.5px;
   vertical-align: middle;
-  animation: threat-badge-pulse 1.2s ease-in-out 3;
-}
-@keyframes threat-badge-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
 }
 .threat-blurb {
   font-family: "VT323", monospace;
@@ -418,8 +414,8 @@
   font-size: 8px;
   padding: 7px 10px;
   transition:
-    box-shadow 120ms ease-out,
-    opacity 120ms ease-out;
+    box-shadow 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 120ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .chance-upgrade.is-affordable:not(:disabled) {
   box-shadow:
@@ -560,6 +556,15 @@
     0 0 0 2px var(--px-border-dark);
   border-left: 2px solid var(--px-accent);
   cursor: pointer;
+  transition: border-left-color 120ms ease, transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+@media (hover: hover) and (pointer: fine) {
+  .inspector-combo:hover {
+    border-left-color: var(--px-accent-hi);
+  }
+}
+.inspector-combo:active {
+  transform: scale(0.98);
 }
 .inspector-combo-frame {
   flex: 0 0 auto;
@@ -603,8 +608,9 @@
 .inspector-actions .px-btn {
   font-size: 9px;
   transition:
-    box-shadow 120ms ease-out,
-    opacity 120ms ease-out;
+    box-shadow 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 120ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .inspector-action-keep {
   width: 100%;
@@ -648,7 +654,7 @@
   cursor: pointer;
   border-radius: 3px;
   border: 1px solid transparent;
-  transition: background-color 0.1s, border-color 0.1s;
+  transition: background-color 100ms ease, border-color 100ms ease;
 }
 .lb-sprite {
   flex-shrink: 0;
@@ -657,8 +663,10 @@
   align-items: center;
   justify-content: center;
 }
-.lb-row:hover {
-  border-color: rgba(244, 228, 193, 0.15);
+@media (hover: hover) and (pointer: fine) {
+  .lb-row:hover {
+    border-color: rgba(244, 228, 193, 0.15);
+  }
 }
 .lb-rank {
   font-family: "Press Start 2P", monospace;
@@ -901,6 +909,7 @@
   gap: 6px;
   padding: 9px 8px;
   font-size: 10px;
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 100ms cubic-bezier(0.23, 1, 0.32, 1), filter 100ms ease;
 }
 .btn-path-viz svg {
   width: 12px;
@@ -953,6 +962,10 @@
   padding: 0;
   cursor: pointer;
   background: var(--px-bg);
+  transition: transform 100ms cubic-bezier(0.23, 1, 0.32, 1), opacity 100ms ease;
+}
+.draw-cell:active {
+  transform: scale(0.95);
 }
 .draw-cell::before {
   content: "";
@@ -1023,16 +1036,6 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 0 2px var(--px-border-dark);
-  animation: keepPulse 2.4s ease-in-out infinite;
-}
-@keyframes keepPulse {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.06);
-  }
 }
 
 /* Modal overlay */
@@ -1641,82 +1644,25 @@
 /* Combine / Special button "satisfiable" highlight.
    The button glows green when at least one same-gem same-quality pair
    exists this round; blue when at least one recipe is buildable. */
-@keyframes comboPulse {
-  0%,
-  100% {
-    box-shadow:
-      inset 2px 2px 0 0 var(--px-accent-hi),
-      inset -2px -2px 0 0 var(--px-accent-lo),
-      0 0 0 2px var(--px-border-dark),
-      0 0 0 4px var(--px-good),
-      0 0 14px 2px rgba(88, 200, 80, 0.65);
-  }
-  50% {
-    box-shadow:
-      inset 2px 2px 0 0 var(--px-accent-hi),
-      inset -2px -2px 0 0 var(--px-accent-lo),
-      0 0 0 2px var(--px-border-dark),
-      0 0 0 4px var(--px-good),
-      0 0 22px 6px rgba(88, 200, 80, 0.95);
-  }
-}
-@keyframes comboPulseSpecial {
-  0%,
-  100% {
-    box-shadow:
-      inset 2px 2px 0 0 var(--px-accent-hi),
-      inset -2px -2px 0 0 var(--px-accent-lo),
-      0 0 0 2px var(--px-border-dark),
-      0 0 0 4px var(--px-info),
-      0 0 14px 2px rgba(120, 168, 248, 0.65);
-  }
-  50% {
-    box-shadow:
-      inset 2px 2px 0 0 var(--px-accent-hi),
-      inset -2px -2px 0 0 var(--px-accent-lo),
-      0 0 0 2px var(--px-border-dark),
-      0 0 0 4px var(--px-info),
-      0 0 22px 6px rgba(120, 168, 248, 0.95);
-  }
-}
-@keyframes comboShimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(200%);
-  }
-}
 .combo-active {
   position: relative;
   background: var(--px-accent) !important;
   color: var(--px-border-dark) !important;
-  animation: comboPulse 1.6s ease-in-out infinite;
-  overflow: hidden;
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-accent-hi),
+    inset -2px -2px 0 0 var(--px-accent-lo),
+    0 0 0 2px var(--px-border-dark),
+    0 0 0 4px var(--px-good),
+    0 0 16px 3px rgba(88, 200, 80, 0.75);
+  transition: box-shadow 200ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .combo-active.special {
-  animation: comboPulseSpecial 1.6s ease-in-out infinite;
-}
-.combo-active::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 30%;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.55) 50%,
-    transparent 100%
-  );
-  animation: comboShimmer 2.2s ease-in-out infinite;
-  pointer-events: none;
-}
-.combo-active:disabled {
-  animation: none;
-}
-.combo-active:disabled::after {
-  display: none;
+  box-shadow:
+    inset 2px 2px 0 0 var(--px-accent-hi),
+    inset -2px -2px 0 0 var(--px-accent-lo),
+    0 0 0 2px var(--px-border-dark),
+    0 0 0 4px var(--px-info),
+    0 0 16px 3px rgba(120, 168, 248, 0.75);
 }
 .badge-count {
   display: inline-block;
@@ -1796,34 +1742,36 @@
   pointer-events: none;
 }
 .radial-glow-ring {
-  animation: radialGlow 1.6s ease-in-out infinite;
-}
-@keyframes radialGlow {
-  0%,
-  100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 1;
-  }
+  opacity: 0.75;
 }
 /* ===== Pattern #3: Draw panel hover-to-keep ===== */
-.draw-cell.placed-non-keep:hover {
-  opacity: 1;
-  box-shadow:
-    inset 2px 2px 0 0 var(--px-border-dark),
-    inset -2px -2px 0 0 var(--px-panel-2),
-    0 0 0 2px var(--px-good);
+@media (hover: hover) and (pointer: fine) {
+  .draw-cell.placed-non-keep:hover {
+    opacity: 1;
+    box-shadow:
+      inset 2px 2px 0 0 var(--px-border-dark),
+      inset -2px -2px 0 0 var(--px-panel-2),
+      0 0 0 2px var(--px-good);
+  }
+  .draw-cell.placed-non-keep:hover .draw-keep-hover {
+    opacity: 1;
+  }
+  .draw-cell.placed-non-keep:hover .draw-keep-tip {
+    opacity: 1;
+    transform: translate(-50%, -4px);
+  }
 }
 .draw-cell.placed-non-keep .draw-keep-hover {
   position: absolute;
   inset: 2px;
   background: rgba(88, 200, 80, 0.12);
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
   z-index: 4;
+  opacity: 0;
+  transition: opacity 80ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 .draw-cell.placed-non-keep .draw-keep-hover .star {
   font-family: "Press Start 2P", monospace;
@@ -1831,14 +1779,11 @@
   color: var(--px-good);
   text-shadow: 0 0 6px rgba(88, 200, 80, 0.7);
 }
-.draw-cell.placed-non-keep:hover .draw-keep-hover {
-  display: flex;
-}
 .draw-cell.placed-non-keep .draw-keep-tip {
   position: absolute;
   bottom: 100%;
   left: 50%;
-  transform: translate(-50%, -4px);
+  transform: translate(-50%, -2px);
   font-family: "Press Start 2P", monospace;
   font-size: 7px;
   background: var(--px-panel-2);
@@ -1849,12 +1794,10 @@
     inset 2px 2px 0 0 #7c66a4,
     inset -2px -2px 0 0 var(--px-border-dark);
   white-space: nowrap;
-  display: none;
   z-index: 5;
   pointer-events: none;
-}
-.draw-cell.placed-non-keep:hover .draw-keep-tip {
-  display: block;
+  opacity: 0;
+  transition: opacity 100ms cubic-bezier(0.23, 1, 0.32, 1), transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* ===== Pattern #5: Shift+click place-and-keep ===== */
