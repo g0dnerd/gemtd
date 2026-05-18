@@ -19,10 +19,12 @@ const WIZARD_RADIUS_PX = 3 * TILE;
 const WIZARD_TELEPORT_TILES = 8;
 
 const TUNNELER_COOLDOWN = 12 * SIM_HZ;
-const TUNNELER_BURROW_DURATION = 3.5 * SIM_HZ;
+const TUNNELER_BURROW_DURATION = 4.5 * SIM_HZ;
+const TUNNELER_BURROW_SPEED_MULT = 1.5;
 
 const CHRYSALID_HP_THRESHOLD = 0.5;
-const CHRYSALID_SPEED_MULT = 1.5;
+const CHRYSALID_SPEED_MULT = 1.8;
+const CHRYSALID_AWAKEN_ARMOR = 5;
 
 const MYCOID_PULSE_COOLDOWN = 4 * SIM_HZ;
 const MYCOID_PULSE_RADIUS_PX = 2.5 * TILE;
@@ -155,6 +157,9 @@ export class WavePhase {
   private advanceCreep(c: CreepState): void {
     if (c.stun && c.stun.expiresAt > this.game.state.tick) return;
     let speed = c.speed;
+    if (c.burrowed && c.burrowed.expiresAt > this.game.state.tick) {
+      speed *= TUNNELER_BURROW_SPEED_MULT;
+    }
     if (c.slow && c.slow.expiresAt > this.game.state.tick) {
       speed *= c.slow.factor;
     }
@@ -206,6 +211,7 @@ export class WavePhase {
     if (c.kind === 'chrysalid' && !c.chrysalidAwakened && c.hp / c.maxHp <= CHRYSALID_HP_THRESHOLD) {
       c.chrysalidAwakened = true;
       c.speed *= CHRYSALID_SPEED_MULT;
+      c.armor += CHRYSALID_AWAKEN_ARMOR;
       c.slowResist = 1;
       c.slow = undefined;
       c.stun = undefined;

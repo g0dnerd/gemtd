@@ -155,10 +155,10 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             { kind: "stun", chance: 0.23, duration: 2.0 },
             { kind: "stun_bonus_dmg", multiplier: 2.0 },
-            { kind: "poison", dps: 240, duration: 5 },
+            { kind: "poison", dps: 340, duration: 5 },
             { kind: "death_spread", count: 5, radius: 2 },
           ],
-          blurb: "23% stun. 2x dmg to stunned. Poison 240/s 5s. Plague on death.",
+          blurb: "23% stun. 2x dmg to stunned. Poison 340/s 5s. Plague on death.",
           targeting: "all",
         },
       },
@@ -195,7 +195,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 4.0,
           atkSpeed: 1.0,
           effects: [
-            { kind: "crit", chance: 0.28, multiplier: 3.5 },
+            { kind: "crit", chance: 0.18, multiplier: 2.5 },
             { kind: "crit_splash", radius: 1.5, falloff: 0.5 },
             {
               kind: "prox_armor_reduce",
@@ -204,7 +204,7 @@ const ALL_COMBOS: ComboRecipe[] = [
               targets: "ground",
             },
           ],
-          blurb: "28% crit ×3.5. Crit splashes. -6 armor to ground.",
+          blurb: "18% crit ×2.5. Crit splashes. -6 armor to ground.",
           targeting: "all",
         },
       },
@@ -346,10 +346,10 @@ const ALL_COMBOS: ComboRecipe[] = [
           atkSpeed: 1.1,
           effects: [
             { kind: "crit", chance: 0.12, multiplier: 6 },
-            { kind: "focus_crit", pctPerHit: 0.04, maxBonus: 0.20 },
+            { kind: "focus_crit", pctPerHit: 0.07, maxBonus: 0.21 },
             { kind: "execute", dmgBonus: 0.5, hpThreshold: 0.25 },
           ],
-          blurb: "12% crit ×6. Focus: +4% crit/hit. Execute below 25% HP.",
+          blurb: "12% crit ×6. Focus: +7% crit/hit. Execute below 25% HP.",
           targeting: "ground",
         },
       },

@@ -182,8 +182,8 @@ const QUALITY_DMG_MULT: Record<Quality, number> = {
   1: 1.0,
   2: 2.2,
   3: 5.0,
-  4: 11.0,
-  5: 22.0,
+  4: 9.0,
+  5: 17.0,
 };
 
 const QUALITY_RANGE_BONUS: Record<Quality, number> = {

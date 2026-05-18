@@ -53,7 +53,7 @@ describe('chrysalid (berserker)', () => {
       game.simStep();
 
       expect(c.chrysalidAwakened).toBe(true);
-      expect(c.speed).toBe(originalSpeed * 1.5);
+      expect(c.speed).toBe(originalSpeed * 1.8);
       expect(c.slowResist).toBe(1);
       // Debuffs cleared
       expect(c.slow).toBeUndefined();
@@ -131,7 +131,7 @@ describe('chrysalid (berserker)', () => {
       game.simStep();
 
       const awakenedSpeed = c.speed;
-      expect(awakenedSpeed).toBe(baseSpeed * 1.5);
+      expect(awakenedSpeed).toBe(baseSpeed * 1.8);
 
       // Drop HP further — should not double-awaken
       c.hp = Math.floor(c.maxHp * 0.1);

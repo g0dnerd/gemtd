@@ -382,11 +382,15 @@ function comboDisplayName(key, tier) {
   return names[Math.min(tier, names.length - 1)];
 }
 function semverCmp(a, b) {
-  const pa = a.split('.').map(Number);
-  const pb = b.split('.').map(Number);
+  const stripPre = (v) => v.replace(/-.*$/, '');
+  const pa = stripPre(a).split('.').map(Number);
+  const pb = stripPre(b).split('.').map(Number);
   for (let i = 0; i < 3; i++) {
     if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
   }
+  const preA = a.includes('-') ? 1 : 0;
+  const preB = b.includes('-') ? 1 : 0;
+  if (preA !== preB) return preA - preB;
   return 0;
 }
 

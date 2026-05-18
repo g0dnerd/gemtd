@@ -655,7 +655,7 @@ export function towerLevel(t: TowerState): number {
 
 function effectiveStats(t: TowerState): ResolvedStats {
   const lvl = towerLevel(t);
-  const mult = 1 + lvl * 0.05;
+  const mult = 1 + 0.05 * lvl / (1 + 0.03 * lvl);
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
