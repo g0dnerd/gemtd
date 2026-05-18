@@ -1,5 +1,5 @@
 import Database from "better-sqlite3";
-import { readFileSync, mkdirSync, existsSync } from "fs";
+import { readFileSync, mkdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -9,7 +9,7 @@ const DB_DIR = join(ROOT, ".local");
 const DB_PATH = join(DB_DIR, "telemetry.db");
 
 export function openDb(): Database.Database {
-  if (!existsSync(DB_DIR)) mkdirSync(DB_DIR, { recursive: true });
+  mkdirSync(DB_DIR, { recursive: true });
 
   const db = new Database(DB_PATH);
   db.pragma("journal_mode = WAL");

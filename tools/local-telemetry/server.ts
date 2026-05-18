@@ -5,6 +5,19 @@ import { handleDashboard } from "../../src/worker/dashboard.js";
 const PORT = parseInt(process.env.TELEMETRY_PORT || "3456");
 const db = openDb();
 
+const VALID_RUN = "mode NOT IN ('debug', 'creative') AND wave_reached > 1";
+
+function versionFilter(
+  version: string | null,
+  versions: string[] | null,
+): { clause: string; binds: string[] } {
+  if (versions && versions.length > 0)
+    return { clause: `AND version IN (${versions.map(() => "?").join(",")})`, binds: versions };
+  if (version)
+    return { clause: "AND version = ?", binds: [version] };
+  return { clause: "", binds: [] };
+}
+
 // ── helpers ──────────────────────────────────────────────────────────
 
 function cors(res: ServerResponse): void {
@@ -41,6 +54,64 @@ function readBody(req: IncomingMessage): Promise<string> {
 
 // ── POST /api/telemetry ──────────────────────────────────────────────
 
+const insertRun = db.prepare(
+  `INSERT OR IGNORE INTO runs (run_id, version, mode, outcome,
+     wave_reached, final_lives, final_gold, total_kills,
+     tower_count, combo_count, max_chance_tier, rocks_removed,
+     downgrades_used, duration_ticks, total_leaks, clean_waves)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+
+const insertWave = db.prepare(
+  `INSERT INTO waves (run_id, wave, lives, gold, kills, leaks,
+     spawned, duration_ticks, chance_tier, tower_count, rock_count,
+     combo_count, keeper_quality, total_damage)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+
+const insertTower = db.prepare(
+  `INSERT INTO towers (run_id, gem, quality, combo_key, upgrade_tier,
+     kills, total_damage, placed_wave, x, y)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+
+const insertEvent = db.prepare(
+  `INSERT INTO events (run_id, event_type, wave, gold, gem, quality,
+     cost, chance_tier, detail, value1)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+
+const ingestTx = db.transaction(
+  (runId: string, version: string, mode: string, outcome: string,
+   run: any, waves: any[], towers: any[], events: any[]) => {
+    insertRun.run(
+      runId, version, mode, outcome,
+      run.waveReached, run.finalLives, run.finalGold, run.totalKills,
+      run.towerCount, run.comboCount, run.maxChanceTier, run.rocksRemoved,
+      run.downgradesUsed, run.durationTicks, run.totalLeaks, run.cleanWaves,
+    );
+    for (const w of waves) {
+      insertWave.run(
+        runId, w.wave, w.lives, w.gold, w.kills, w.leaks,
+        w.spawned, w.durationTicks, w.chanceTier, w.towerCount, w.rockCount,
+        w.comboCount, w.keeperQuality, w.totalDamage,
+      );
+    }
+    for (const t of towers) {
+      insertTower.run(
+        runId, t.gem, t.quality, t.comboKey, t.upgradeTier,
+        t.kills, t.totalDamage, t.placedWave, t.x, t.y,
+      );
+    }
+    for (const e of events) {
+      insertEvent.run(
+        runId, e.type, e.wave, e.gold, e.gem, e.quality,
+        e.cost, e.chanceTier, e.detail, e.value1,
+      );
+    }
+  },
+);
+
 function handleIngest(req: IncomingMessage, res: ServerResponse): void {
   readBody(req).then((raw) => {
     let body: any;
@@ -51,67 +122,9 @@ function handleIngest(req: IncomingMessage, res: ServerResponse): void {
     }
 
     const { runId, version, mode, outcome, run } = body;
-    const waves: any[] = body.waves ?? [];
-    const towers: any[] = body.towers ?? [];
-    const events: any[] = body.events ?? [];
-
-    const insertRun = db.prepare(
-      `INSERT OR IGNORE INTO runs (run_id, version, mode, outcome,
-         wave_reached, final_lives, final_gold, total_kills,
-         tower_count, combo_count, max_chance_tier, rocks_removed,
-         downgrades_used, duration_ticks, total_leaks, clean_waves)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-
-    const insertWave = db.prepare(
-      `INSERT INTO waves (run_id, wave, lives, gold, kills, leaks,
-         spawned, duration_ticks, chance_tier, tower_count, rock_count,
-         combo_count, keeper_quality, total_damage)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-
-    const insertTower = db.prepare(
-      `INSERT INTO towers (run_id, gem, quality, combo_key, upgrade_tier,
-         kills, total_damage, placed_wave, x, y)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-
-    const insertEvent = db.prepare(
-      `INSERT INTO events (run_id, event_type, wave, gold, gem, quality,
-         cost, chance_tier, detail, value1)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    );
-
-    const tx = db.transaction(() => {
-      insertRun.run(
-        runId, version, mode, outcome,
-        run.waveReached, run.finalLives, run.finalGold, run.totalKills,
-        run.towerCount, run.comboCount, run.maxChanceTier, run.rocksRemoved,
-        run.downgradesUsed, run.durationTicks, run.totalLeaks, run.cleanWaves,
-      );
-      for (const w of waves) {
-        insertWave.run(
-          runId, w.wave, w.lives, w.gold, w.kills, w.leaks,
-          w.spawned, w.durationTicks, w.chanceTier, w.towerCount, w.rockCount,
-          w.comboCount, w.keeperQuality, w.totalDamage,
-        );
-      }
-      for (const t of towers) {
-        insertTower.run(
-          runId, t.gem, t.quality, t.comboKey, t.upgradeTier,
-          t.kills, t.totalDamage, t.placedWave, t.x, t.y,
-        );
-      }
-      for (const e of events) {
-        insertEvent.run(
-          runId, e.type, e.wave, e.gold, e.gem, e.quality,
-          e.cost, e.chanceTier, e.detail, e.value1,
-        );
-      }
-    });
 
     try {
-      tx();
+      ingestTx(runId, version, mode, outcome, run, body.waves ?? [], body.towers ?? [], body.events ?? []);
       console.log(`Ingested run ${runId} (${mode}, wave ${run.waveReached}, ${outcome})`);
       cors(res);
       res.writeHead(204);
@@ -128,46 +141,28 @@ function handleIngest(req: IncomingMessage, res: ServerResponse): void {
 // ── GET /api/stats ───────────────────────────────────────────────────
 
 function handleStats(url: URL, res: ServerResponse): void {
-  const version = url.searchParams.get("version") || null;
-  const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
-
-  const mf = "AND mode NOT IN ('debug', 'creative') AND wave_reached > 1";
-
-  let rv = mf;
-  let rBind: string[] = [];
-  if (versions && versions.length > 0) {
-    rv = `${mf} AND version IN (${versions.map(() => "?").join(",")})`;
-    rBind = versions;
-  } else if (version) {
-    rv = `${mf} AND version = ?`;
-    rBind = [version];
-  }
-
-  let cv = `AND run_id IN (SELECT run_id FROM runs WHERE 1=1 ${mf})`;
-  let cBind: string[] = [];
-  if (versions && versions.length > 0) {
-    const ph = versions.map(() => "?").join(",");
-    cv = `AND run_id IN (SELECT run_id FROM runs WHERE 1=1 ${mf} AND version IN (${ph}))`;
-    cBind = versions;
-  } else if (version) {
-    cv = `AND run_id IN (SELECT run_id FROM runs WHERE 1=1 ${mf} AND version = ?)`;
-    cBind = [version];
-  }
+  const vf = versionFilter(
+    url.searchParams.get("version") || null,
+    url.searchParams.get("versions")?.split(",").filter(Boolean) || null,
+  );
+  const runsWhere = `AND ${VALID_RUN} ${vf.clause}`;
+  const childWhere = (col = "run_id") =>
+    `AND ${col} IN (SELECT run_id FROM runs WHERE ${VALID_RUN} ${vf.clause})`;
 
   const overview = db.prepare(
     `SELECT count(*) as total_runs, avg(wave_reached) as avg_wave,
             avg(duration_ticks) as avg_duration_ticks, avg(total_kills) as avg_kills
-     FROM runs WHERE 1=1 ${rv}`,
-  ).get(...rBind) as any ?? {};
+     FROM runs WHERE 1=1 ${runsWhere}`,
+  ).get(...vf.binds) as any ?? {};
 
   const winRow = db.prepare(
-    `SELECT count(*) as wins FROM runs WHERE outcome = 'victory' ${rv}`,
-  ).get(...rBind) as any ?? {};
+    `SELECT count(*) as wins FROM runs WHERE outcome = 'victory' ${runsWhere}`,
+  ).get(...vf.binds) as any ?? {};
 
   const survivalCurve = db.prepare(
     `SELECT wave, count(*) as runs FROM waves
-     WHERE 1=1 ${cv} GROUP BY wave ORDER BY wave`,
-  ).all(...cBind);
+     WHERE 1=1 ${childWhere()} GROUP BY wave ORDER BY wave`,
+  ).all(...vf.binds);
 
   const leaksPerWave = db.prepare(
     `SELECT w.wave, avg(w.leaks) as avg_leaks, sum(w.leaks) as total_leaks,
@@ -176,12 +171,12 @@ function handleStats(url: URL, res: ServerResponse): void {
      FROM waves w
      LEFT JOIN (
        SELECT run_id, wave, sum(cost) as lives_lost
-       FROM events WHERE event_type = 'leak' ${cv}
+       FROM events WHERE event_type = 'leak' ${childWhere()}
        GROUP BY run_id, wave
      ) e ON w.run_id = e.run_id AND w.wave = e.wave
-     WHERE 1=1 ${cv.replace("run_id", "w.run_id")}
+     WHERE 1=1 ${childWhere("w.run_id")}
      GROUP BY w.wave ORDER BY w.wave`,
-  ).all(...cBind, ...cBind);
+  ).all(...vf.binds, ...vf.binds);
 
   const combos = db.prepare(
     `SELECT t.combo_key, t.upgrade_tier as tier, count(*) as count,
@@ -190,60 +185,60 @@ function handleStats(url: URL, res: ServerResponse): void {
             avg(t.placed_wave) as avg_wave_built,
             avg(r.wave_reached) as avg_wave_reached
      FROM towers t JOIN runs r ON t.run_id = r.run_id
-     WHERE t.combo_key != '' ${cv.replace("run_id", "t.run_id")}
+     WHERE t.combo_key != '' ${childWhere("t.run_id")}
      GROUP BY t.combo_key, t.upgrade_tier ORDER BY t.combo_key, t.upgrade_tier`,
-  ).all(...cBind);
+  ).all(...vf.binds);
 
   const gemDps = db.prepare(
     `SELECT t.gem, t.quality, count(*) as count,
             avg(t.total_damage) as avg_damage,
             avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave
      FROM towers t JOIN runs r ON t.run_id = r.run_id
-     WHERE t.combo_key = '' ${cv.replace("run_id", "t.run_id")}
+     WHERE t.combo_key = '' ${childWhere("t.run_id")}
      GROUP BY t.gem, t.quality ORDER BY avg_dmg_per_wave DESC`,
-  ).all(...cBind);
+  ).all(...vf.binds);
 
   const chanceTiming = db.prepare(
     `SELECT chance_tier as tier, avg(wave) as avg_wave,
             avg(gold) as avg_gold, count(*) as count
-     FROM events WHERE event_type = 'chance_upgrade' ${cv}
+     FROM events WHERE event_type = 'chance_upgrade' ${childWhere()}
      GROUP BY chance_tier ORDER BY chance_tier`,
-  ).all(...cBind);
+  ).all(...vf.binds);
 
   const keeperCurve = db.prepare(
     `SELECT wave, avg(keeper_quality) as avg_keeper_quality
-     FROM waves WHERE keeper_quality > 0 ${cv}
+     FROM waves WHERE keeper_quality > 0 ${childWhere()}
      GROUP BY wave ORDER BY wave`,
-  ).all(...cBind);
+  ).all(...vf.binds);
 
   const keeperChoices = db.prepare(
     `SELECT gem, count(*) as count,
             avg(quality) as avg_quality, avg(wave) as avg_wave
-     FROM events WHERE event_type = 'keeper' ${cv}
+     FROM events WHERE event_type = 'keeper' ${childWhere()}
      GROUP BY gem ORDER BY count DESC`,
-  ).all(...cBind);
+  ).all(...vf.binds);
 
   const waveDamage = db.prepare(
     `SELECT wave, avg(total_damage) as avg_damage
-     FROM waves WHERE 1=1 ${cv}
+     FROM waves WHERE 1=1 ${childWhere()}
      GROUP BY wave ORDER BY wave`,
-  ).all(...cBind);
+  ).all(...vf.binds);
 
   const leaksByKind = db.prepare(
     `SELECT detail as creep_kind, count(*) as leak_count,
             sum(cost) as total_lives_lost, avg(cost) as avg_lives_per_leak
-     FROM events WHERE event_type = 'leak' ${cv}
+     FROM events WHERE event_type = 'leak' ${childWhere()}
      GROUP BY detail ORDER BY total_lives_lost DESC`,
-  ).all(...cBind);
+  ).all(...vf.binds);
 
   const deathsByWave = db.prepare(
     `SELECT wave_reached as wave, count(*) as deaths
-     FROM runs WHERE outcome = 'gameover' ${rv}
+     FROM runs WHERE outcome = 'gameover' ${runsWhere}
      GROUP BY wave_reached ORDER BY wave_reached`,
-  ).all(...rBind);
+  ).all(...vf.binds);
 
   const versionRows = db.prepare(
-    `SELECT DISTINCT version FROM runs WHERE 1=1 ${mf} ORDER BY version DESC`,
+    `SELECT DISTINCT version FROM runs WHERE ${VALID_RUN} ORDER BY version DESC`,
   ).all() as Array<{ version: string }>;
 
   json(res, {
@@ -290,36 +285,24 @@ function handleExport(url: URL, res: ServerResponse): void {
   const table = url.searchParams.get("dataset") || "runs";
   const format = url.searchParams.get("format") || "json";
   const limit = Math.min(parseInt(url.searchParams.get("limit") || "1000"), 10000);
-  const version = url.searchParams.get("version") || null;
-  const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
+  const vf = versionFilter(
+    url.searchParams.get("version") || null,
+    url.searchParams.get("versions")?.split(",").filter(Boolean) || null,
+  );
 
   const columns = TABLES[table];
   if (!columns) { text(res, `Invalid dataset. Valid: ${Object.keys(TABLES).join(", ")}`, 400); return; }
 
-  const mf = "mode NOT IN ('debug', 'creative') AND wave_reached > 1";
   let sql: string;
   const binds: unknown[] = [];
 
   if (table === "runs") {
-    sql = `SELECT ${columns.join(", ")} FROM runs WHERE ${mf}`;
-    if (versions && versions.length > 0) {
-      sql += ` AND version IN (${versions.map(() => "?").join(",")})`;
-      binds.push(...versions);
-    } else if (version) {
-      sql += " AND version = ?";
-      binds.push(version);
-    }
+    sql = `SELECT ${columns.join(", ")} FROM runs WHERE ${VALID_RUN} ${vf.clause}`;
+    binds.push(...vf.binds);
     sql += " ORDER BY created_at DESC LIMIT ?";
   } else {
-    const subWhere = [mf];
-    if (versions && versions.length > 0) {
-      subWhere.push(`version IN (${versions.map(() => "?").join(",")})`);
-      binds.push(...versions);
-    } else if (version) {
-      subWhere.push("version = ?");
-      binds.push(version);
-    }
-    sql = `SELECT ${columns.join(", ")} FROM ${table} WHERE run_id IN (SELECT run_id FROM runs WHERE ${subWhere.join(" AND ")})`;
+    sql = `SELECT ${columns.join(", ")} FROM ${table} WHERE run_id IN (SELECT run_id FROM runs WHERE ${VALID_RUN} ${vf.clause})`;
+    binds.push(...vf.binds);
     sql += " LIMIT ?";
   }
   binds.push(limit);
@@ -368,11 +351,11 @@ async function serveDashboard(res: ServerResponse): Promise<void> {
   res.end(html);
 }
 
-// ── GET /api/summary — quick run count for startup message ───────────
+// ── GET /api/summary ─────────────────────────────────────────────────
 
 function handleSummary(res: ServerResponse): void {
   const row = db.prepare(
-    "SELECT count(*) as total FROM runs WHERE mode NOT IN ('debug', 'creative') AND wave_reached > 1",
+    `SELECT count(*) as total FROM runs WHERE ${VALID_RUN}`,
   ).get() as { total: number };
   json(res, { total: row.total });
 }
