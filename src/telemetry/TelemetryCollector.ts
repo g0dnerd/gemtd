@@ -308,7 +308,7 @@ export class TelemetryCollector {
   private send(payload: Record<string, unknown>): void {
     const body = JSON.stringify(payload);
 
-    if (__DEV__) {
+    if (import.meta.env.DEV) {
       fetch("http://localhost:3456/api/telemetry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

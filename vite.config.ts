@@ -10,7 +10,6 @@ export default defineConfig({
   },
   define: {
     __GAME_VERSION__: JSON.stringify(pkg.version),
-    __DEV__: "import.meta.env.DEV",
   },
   server: {
     port: 5173,
