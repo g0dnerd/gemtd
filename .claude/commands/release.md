@@ -27,7 +27,7 @@ Update the version in **both** of these files:
 
 1. **`package.json`** — the `"version"` field.
 2. **`src/ui/Hud.ts`** — the line that sets `wmVer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
-3. **`src/ui/Title.ts`** — the line that sets `footer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
+3. **`src/ui/Title.ts`** — the line that sets `version.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
 
 ### 3. Changelog (skip if `none`)
 
@@ -56,9 +56,12 @@ If yes:
 
 Commit **all** uncommitted changes related to the current work — not just the version bump files. This includes any code changes the user made or asked Claude to make across the session.
 
+- **Before staging, run `git status` and check for pre-existing staged files.** If the index already contains staged changes unrelated to this session's work, unstage them with `git reset HEAD <file>` first. Only then stage the files from this session.
 - Stage all modified and new files that are part of the current work.
 - Do NOT stage unrelated untracked files or changes.
 - Write a commit message with:
-  - **Title**: under 50 characters. If a version bump was applied, e.g. `v0.9.0` or `v0.9.0 — brief summary`. If `none`, use a descriptive title summarizing the changes.
+  - **Title**: under 60 characters, lowercase. If a version bump was applied: `vX.Y.Z - short summary` (e.g. `v1.5.0 - container creeps`). If `none`, use `<area>: <verb phrase>` or a plain summary matching the repo's existing style.
   - **Body**: only if there are substantive changes beyond the version bump; keep it to 1-3 lines max.
   - End with the `Co-Authored-By` trailer.
+
+**Note:** `__GAME_VERSION__` (used in telemetry) is a Vite build-time variable that auto-syncs from `package.json` - no manual update needed there.

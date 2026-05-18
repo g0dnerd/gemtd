@@ -128,7 +128,7 @@ Reach for the `/release` skill **proactively** when a change is ready to ship (u
 
 Two patterns, both lowercase, kept short (~60 chars):
 
-- **Release commits:** `vX.Y.Z — short summary` (em-dash). Example: `v1.4.0 — container creeps`.
+- **Release commits:** `vX.Y.Z - short summary`. Example: `v1.4.0 - container creeps`.
 - **Non-release commits, one area dominates:** `<area>: <verb phrase>`. Examples: `dashboard: hierarchical version selector`, `telemetry: migrate from Analytics Engine to D1`.
 - **Cross-cutting work:** skip the area prefix and just write a plain summary.
 
