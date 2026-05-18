@@ -585,9 +585,9 @@ export class Game {
   async toggleBlueprint(): Promise<void> {
     this.blueprintMode = !this.blueprintMode;
     if (this.blueprintMode && !this.blueprint) {
-      const { default: data } =
-        await import("../../tools/maze_optimizer/blueprint_air.json");
-      const bp = data as unknown as Blueprint;
+      const bp: Blueprint = {
+        rounds: MAZE_BLUEPRINT as [number, number][][],
+      };
       bp.keeperIndices = computeKeeperIndices(bp);
       this.blueprint = bp;
     }

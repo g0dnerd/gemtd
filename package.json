@@ -14,6 +14,8 @@
     "sim:compare": "npx tsx tools/sim-compare/cli.ts compare",
     "sim:history": "npx tsx tools/sim-compare/cli.ts history",
     "telemetry:local": "tsx tools/local-telemetry/server.ts",
+    "blueprint:viz": "cd tools/maze_optimizer && uv run python visualize.py",
+    "blueprint:export": "cd tools/maze_optimizer && uv run python export_blueprint.py",
     "wave-difficulty": "npx tsx tools/wave-difficulty.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy"
