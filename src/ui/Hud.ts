@@ -1764,90 +1764,123 @@ export function mountHud(
     grid.className = "draw-grid";
     r.appendChild(grid);
 
+    let cellRefs: HTMLButtonElement[] = [];
+    let lastFingerprint = "";
+
     function refresh(): void {
-      grid.innerHTML = "";
       const draws = g.state.draws;
       const placed = draws.filter((d) => d.placedTowerId !== null).length;
       const total = draws.length || 5;
       title.textContent = `GEMS · ${placed}/${total}`;
 
-      if (draws.length === 0) {
-        for (let i = 0; i < 5; i++) {
-          const ph = document.createElement("div");
-          ph.className = "px-panel-inset draw-cell placed-non-keep";
-          ph.style.setProperty("--gem-glow", GEM_PALETTE.diamond.css.mid);
-          const phHost = document.createElement("div");
-          phHost.className = "draw-sprite-host";
-          phHost.appendChild(htmlGemTier("diamond", 3, 22));
-          ph.appendChild(phHost);
-          grid.appendChild(ph);
-        }
-        const keeperSet = g.state.designatedKeepTowerId !== null;
-        if (g.state.phase === "build" && keeperSet) {
-          tag.textContent = "★ READY";
-          tag.style.color = "var(--px-accent)";
-        } else {
-          tag.textContent = g.state.phase === "wave" ? "IN WAVE" : "";
-          tag.style.color = "var(--px-ink-dim)";
-        }
-        return;
-      }
+      const fp =
+        draws.length === 0
+          ? `empty:${g.state.phase}:${g.state.designatedKeepTowerId}`
+          : draws
+              .map((d) => `${d.slotId}:${d.placedTowerId}`)
+              .join("|") + `:k${g.state.designatedKeepTowerId}`;
 
-      let keepDraw: (typeof draws)[number] | null = null;
-      for (const d of draws) {
-        const cell = document.createElement("button");
-        cell.className = "px-panel-inset draw-cell";
-        const isActive =
-          d.slotId === g.state.activeDrawSlot && d.placedTowerId === null;
-        const isPlaced = d.placedTowerId !== null;
-        const isKeep =
-          isPlaced && d.placedTowerId === g.state.designatedKeepTowerId;
-        if (isPlaced && !isKeep) cell.classList.add("placed-non-keep");
-        if (isKeep) {
-          cell.classList.add("is-keep");
-          keepDraw = d;
-        } else if (isActive) {
-          cell.classList.add("is-active");
-        }
-        cell.style.setProperty("--gem-glow", GEM_PALETTE[d.gem].css.mid);
-        const host = document.createElement("div");
-        host.className = "draw-sprite-host";
-        host.appendChild(htmlGemTier(d.gem, d.quality, 22, d.quality > 2));
-        cell.appendChild(host);
-        const q = document.createElement("div");
-        q.className = "draw-quality";
-        q.textContent = `L${d.quality}`;
-        cell.appendChild(q);
-        if (isKeep) {
-          const star = document.createElement("div");
-          star.className = "draw-keep-badge";
-          star.textContent = "★";
-          cell.appendChild(star);
-        }
-        // Pattern #3: hover overlay for placed non-keep cells
-        if (isPlaced && !isKeep) {
-          const hoverOverlay = document.createElement("div");
-          hoverOverlay.className = "draw-keep-hover";
-          hoverOverlay.innerHTML = '<span class="star">★</span>';
-          cell.appendChild(hoverOverlay);
-          const tip = document.createElement("div");
-          tip.className = "draw-keep-tip";
-          tip.textContent = "CLICK · KEEP";
-          cell.appendChild(tip);
-        }
-        cell.title = isPlaced
-          ? "Click to mark as keep"
-          : "Click to select slot";
-        cell.addEventListener("click", () => {
-          if (isPlaced && d.placedTowerId !== null) {
-            g.cmdDesignateKeep(d.placedTowerId);
-          } else {
-            g.cmdSetActiveSlot(d.slotId);
+      if (fp !== lastFingerprint) {
+        lastFingerprint = fp;
+        cellRefs = [];
+        grid.innerHTML = "";
+
+        if (draws.length === 0) {
+          for (let i = 0; i < 5; i++) {
+            const ph = document.createElement("div");
+            ph.className = "px-panel-inset draw-cell placed-non-keep";
+            ph.style.setProperty("--gem-glow", GEM_PALETTE.diamond.css.mid);
+            const phHost = document.createElement("div");
+            phHost.className = "draw-sprite-host";
+            phHost.appendChild(htmlGemTier("diamond", 3, 22));
+            ph.appendChild(phHost);
+            grid.appendChild(ph);
           }
-        });
-        grid.appendChild(cell);
+          const keeperSet = g.state.designatedKeepTowerId !== null;
+          if (g.state.phase === "build" && keeperSet) {
+            tag.textContent = "★ READY";
+            tag.style.color = "var(--px-accent)";
+          } else {
+            tag.textContent = g.state.phase === "wave" ? "IN WAVE" : "";
+            tag.style.color = "var(--px-ink-dim)";
+          }
+          return;
+        }
+
+        for (const d of draws) {
+          const cell = document.createElement("button");
+          cell.className = "px-panel-inset draw-cell";
+          const isActive =
+            d.slotId === g.state.activeDrawSlot && d.placedTowerId === null;
+          const isPlaced = d.placedTowerId !== null;
+          const isKeep =
+            isPlaced && d.placedTowerId === g.state.designatedKeepTowerId;
+          if (isPlaced && !isKeep) cell.classList.add("placed-non-keep");
+          if (isKeep) {
+            cell.classList.add("is-keep");
+          } else if (isActive) {
+            cell.classList.add("is-active");
+          }
+          cell.style.setProperty("--gem-glow", GEM_PALETTE[d.gem].css.mid);
+          const host = document.createElement("div");
+          host.className = "draw-sprite-host";
+          host.appendChild(htmlGemTier(d.gem, d.quality, 22, d.quality > 2));
+          cell.appendChild(host);
+          const q = document.createElement("div");
+          q.className = "draw-quality";
+          q.textContent = `L${d.quality}`;
+          cell.appendChild(q);
+          if (isKeep) {
+            const star = document.createElement("div");
+            star.className = "draw-keep-badge";
+            star.textContent = "★";
+            cell.appendChild(star);
+          }
+          if (isPlaced && !isKeep) {
+            const hoverOverlay = document.createElement("div");
+            hoverOverlay.className = "draw-keep-hover";
+            hoverOverlay.innerHTML = '<span class="star">★</span>';
+            cell.appendChild(hoverOverlay);
+            const tip = document.createElement("div");
+            tip.className = "draw-keep-tip";
+            tip.textContent = "CLICK · KEEP";
+            cell.appendChild(tip);
+          }
+          cell.title = isPlaced
+            ? "Click to mark as keep"
+            : "Click to select slot";
+          cell.addEventListener("click", () => {
+            if (d.placedTowerId !== null) {
+              g.cmdDesignateKeep(d.placedTowerId);
+            } else {
+              g.cmdSetActiveSlot(d.slotId);
+            }
+          });
+          cellRefs.push(cell);
+          grid.appendChild(cell);
+        }
+      } else if (draws.length > 0) {
+        for (let i = 0; i < draws.length; i++) {
+          const d = draws[i];
+          const cell = cellRefs[i];
+          if (!cell) continue;
+          const isActive =
+            d.slotId === g.state.activeDrawSlot && d.placedTowerId === null;
+          const isKeep =
+            d.placedTowerId !== null &&
+            d.placedTowerId === g.state.designatedKeepTowerId;
+          cell.classList.toggle("is-active", isActive && !isKeep);
+        }
       }
 
+      if (draws.length === 0) return;
+
+      const keepDraw =
+        draws.find(
+          (d) =>
+            d.placedTowerId !== null &&
+            d.placedTowerId === g.state.designatedKeepTowerId,
+        ) ?? null;
       const ad = activeDraw(g.state);
       if (keepDraw) {
         tag.textContent = `★ ${GEM_PALETTE[keepDraw.gem].name.toUpperCase()} · ${QUALITY_NAMES[keepDraw.quality].toUpperCase()}`;
