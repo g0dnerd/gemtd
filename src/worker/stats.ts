@@ -46,6 +46,7 @@ export async function handleStats(
     leaksByKind,
     deathsByWave,
     versionRows,
+    wavePressure,
   ] = await Promise.all([
     db.prepare(
       `SELECT count(*) as total_runs, avg(wave_reached) as avg_wave,
@@ -138,6 +139,15 @@ export async function handleStats(
     db.prepare(
       `SELECT DISTINCT version FROM runs WHERE 1=1 ${mf} ORDER BY version DESC`,
     ).all(),
+
+    db.prepare(
+      `SELECT wave, avg(avg_path_progress) as avg_path_progress,
+              avg(max_path_progress) as avg_max_path_progress,
+              avg(avg_ticks_to_kill) as avg_ticks_to_kill,
+              count(*) as runs
+       FROM waves WHERE 1=1 ${cv}
+       GROUP BY wave ORDER BY wave`,
+    ).bind(...cBind).all(),
   ]);
 
   const overview = overviewRows.results?.[0] ?? {};
@@ -156,5 +166,6 @@ export async function handleStats(
     waveDamage: waveDamage.results,
     leaksByKind: leaksByKind.results,
     deathsByWave: deathsByWave.results,
+    wavePressure: wavePressure.results,
   });
 }

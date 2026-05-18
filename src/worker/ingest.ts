@@ -76,12 +76,14 @@ export async function handleIngest(
       db.prepare(
         `INSERT INTO waves (run_id, wave, lives, gold, kills, leaks,
            spawned, duration_ticks, chance_tier, tower_count, rock_count,
-           combo_count, keeper_quality, total_damage)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           combo_count, keeper_quality, total_damage,
+           avg_path_progress, max_path_progress, avg_ticks_to_kill)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         runId, w.wave, w.lives, w.gold, w.kills, w.leaks,
         w.spawned, w.durationTicks, w.chanceTier, w.towerCount, w.rockCount,
         w.comboCount, w.keeperQuality, w.totalDamage,
+        w.avgPathProgress ?? 0, w.maxPathProgress ?? 0, w.avgTicksToKill ?? 0,
       ),
     );
   }

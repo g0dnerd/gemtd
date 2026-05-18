@@ -257,6 +257,7 @@ export function handleDashboard(secret: string): Response {
     <a data-target="overview" class="active">Overview</a>
     <div class="nav-group">Analysis</div>
     <a data-target="difficulty">Difficulty Curve</a>
+    <a data-target="pressure">Wave Pressure</a>
     <a data-target="waves">Wave Progression</a>
     <a data-target="creeps">Creep Balance</a>
     <div class="nav-group">Towers</div>
@@ -488,6 +489,13 @@ function render(data) {
   h += '<div class="chart-panel"><h3>Deaths by Wave</h3><div class="chart-wrap"><canvas id="chart-deaths"></canvas></div></div>';
   h += '</div></section>';
 
+  // Wave Pressure
+  h += '<section class="dash-section" id="pressure"><div class="section-header"><h2>Wave Pressure</h2></div>';
+  h += '<div class="chart-grid cols-2">';
+  h += '<div class="chart-panel"><h3>Avg Path Progress at Death</h3><div class="chart-wrap"><canvas id="chart-path-progress"></canvas></div></div>';
+  h += '<div class="chart-panel"><h3>Avg Ticks to Kill</h3><div class="chart-wrap"><canvas id="chart-ticks-to-kill"></canvas></div></div>';
+  h += '</div></section>';
+
   // Wave Progression
   h += '<section class="dash-section" id="waves"><div class="section-header"><h2>Wave Progression</h2></div>';
   h += '<div class="chart-grid cols-2">';
@@ -606,8 +614,69 @@ function createCharts(data, total) {
     }));
   }
 
-  // Leaks per wave
+  // Wave pressure — path progress
+  if (data.wavePressure && data.wavePressure.length) {
+    activeCharts.push(new Chart(document.getElementById('chart-path-progress'), {
+      type: 'line',
+      data: {
+        labels: data.wavePressure.map(r => r.wave),
+        datasets: [{
+          label: 'Avg Progress',
+          data: data.wavePressure.map(r => Number(r.avg_path_progress)),
+          borderColor: C.coral, backgroundColor: C.coralSoft,
+          fill: true, pointHoverBackgroundColor: C.coral,
+        }, {
+          label: 'Max Kill Progress',
+          data: data.wavePressure.map(r => Number(r.avg_max_path_progress)),
+          borderColor: C.red, backgroundColor: 'transparent',
+          borderDash: [4, 3], pointHoverBackgroundColor: C.red,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, aspectRatio: 2,
+        scales: {
+          x: { ...AXIS_OPTS, title: { display: true, text: 'Wave', color: C.gridLabel, font: { size: 10 } } },
+          y: { ...AXIS_OPTS, min: 0, max: 1, title: { display: true, text: 'Path Progress (0\\u20131)', color: C.gridLabel, font: { size: 10 } },
+            ticks: { ...AXIS_OPTS.ticks, callback: v => (v * 100).toFixed(0) + '%' } },
+        },
+        plugins: {
+          legend: { display: true, labels: { boxWidth: 12, font: { size: 10 }, color: C.gridLabel } },
+          tooltip: { callbacks: {
+            title: ctx => 'Wave ' + ctx[0].label,
+            label: ctx => ctx.dataset.label + ': ' + (ctx.parsed.y * 100).toFixed(1) + '%',
+          }},
+        },
+      },
+    }));
+
+    activeCharts.push(new Chart(document.getElementById('chart-ticks-to-kill'), {
+      type: 'line',
+      data: {
+        labels: data.wavePressure.map(r => r.wave),
+        datasets: [{
+          data: data.wavePressure.map(r => Number(r.avg_ticks_to_kill)),
+          borderColor: C.blue, backgroundColor: C.blueSoft,
+          fill: true, pointHoverBackgroundColor: C.blue,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: true, aspectRatio: 2,
+        scales: {
+          x: { ...AXIS_OPTS, title: { display: true, text: 'Wave', color: C.gridLabel, font: { size: 10 } } },
+          y: { ...AXIS_OPTS, beginAtZero: true, title: { display: true, text: 'Ticks (60 = 1s)', color: C.gridLabel, font: { size: 10 } } },
+        },
+        plugins: { tooltip: { callbacks: {
+          title: ctx => 'Wave ' + ctx[0].label,
+          label: ctx => Math.round(ctx.parsed.y) + ' ticks (' + (ctx.parsed.y / 60).toFixed(1) + 's)',
+        }}},
+      },
+    }));
+  }
+
+  // Leaks per wave (with path progress overlay)
   if (data.leaksPerWave && data.leaksPerWave.length) {
+    const pressureByWave = {};
+    if (data.wavePressure) data.wavePressure.forEach(r => { pressureByWave[r.wave] = r; });
     const canvas = document.getElementById('chart-leaks');
     const ctx2 = canvas.getContext('2d');
     const grad = ctx2.createLinearGradient(0, 0, 0, canvas.parentElement.offsetHeight || 200);
@@ -620,11 +689,36 @@ function createCharts(data, total) {
         datasets: [{
           data: data.leaksPerWave.map(r => Number(r.avg_leaks)),
           backgroundColor: grad, borderWidth: 0, borderRadius: 2,
+          yAxisID: 'y',
+        }, {
+          type: 'line', label: 'Avg Path Progress',
+          data: data.leaksPerWave.map(r => {
+            const p = pressureByWave[r.wave];
+            return p ? Number(p.avg_path_progress) : null;
+          }),
+          borderColor: C.coral, backgroundColor: 'transparent',
+          borderWidth: 1.5, pointRadius: 0, pointHoverRadius: 3,
+          yAxisID: 'y1',
         }],
       },
       options: {
         responsive: true, maintainAspectRatio: true, aspectRatio: 2,
-        scales: { x: { ...AXIS_OPTS }, y: { ...AXIS_OPTS, beginAtZero: true } },
+        scales: {
+          x: { ...AXIS_OPTS },
+          y: { ...AXIS_OPTS, beginAtZero: true, position: 'left', title: { display: true, text: 'Avg Leaks', color: C.gridLabel, font: { size: 10 } } },
+          y1: { ...AXIS_OPTS, min: 0, max: 1, position: 'right', grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Path Progress', color: C.gridLabel, font: { size: 10 } },
+            ticks: { ...AXIS_OPTS.ticks, callback: v => (v * 100).toFixed(0) + '%' } },
+        },
+        plugins: {
+          legend: { display: true, labels: { boxWidth: 10, font: { size: 10 }, color: C.gridLabel } },
+          tooltip: { callbacks: {
+            label: ctx => {
+              if (ctx.datasetIndex === 1) return 'Path: ' + (ctx.parsed.y * 100).toFixed(1) + '%';
+              return ctx.parsed.y.toFixed(2) + ' leaks';
+            },
+          }},
+        },
       },
     }));
 

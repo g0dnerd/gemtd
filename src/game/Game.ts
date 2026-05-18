@@ -521,6 +521,7 @@ export class Game {
           armorReduction: 0,
           vulnerability: 0,
           payload: p.payload,
+          spawnTick: state.tick,
         };
         state.creeps.push(creep);
         state.waveStats.spawnedThisWave++;

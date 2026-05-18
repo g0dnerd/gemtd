@@ -116,6 +116,8 @@ export interface CreepState {
   abilityCooldown?: number;
   /** Vulnerability multiplier from auras/frostbite — reset each tick. */
   vulnerability: number;
+  /** Sim tick when this creep was spawned (for ticks-to-kill telemetry). */
+  spawnTick?: number;
   /** Accumulated armor decay from Uranium radiation (persistent). */
   radiationArmor?: number;
   /** Lingering burn after leaving a burn aura. */
@@ -289,5 +291,16 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     seenCreepKinds: [],
     newKindsByWave: {},
     gemWeaknesses: [],
+  };
+}
+
+export function creepDeathMetrics(
+  c: CreepState,
+  state: State,
+): { pathProgress: number; ticksAlive: number } {
+  const route = c.flags?.air ? state.airRoute : state.flatRoute;
+  return {
+    pathProgress: route.length > 1 ? Math.min(1, c.pathPos / (route.length - 1)) : 0,
+    ticksAlive: state.tick - (c.spawnTick ?? state.tick),
   };
 }

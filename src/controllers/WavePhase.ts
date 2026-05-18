@@ -4,7 +4,7 @@
  */
 
 import { Game } from '../game/Game';
-import { CreepState, CreepPayload } from '../game/State';
+import { CreepState, CreepPayload, creepDeathMetrics } from '../game/State';
 import { CREEP_ARCHETYPES } from '../data/creeps';
 import { WAVES, type WaveDef, type PayloadGroup, waveTotalCount, groupForSpawn } from '../data/waves';
 import { FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ, TILE } from '../game/constants';
@@ -148,6 +148,7 @@ export class WavePhase {
       vulnerability: 0,
       payload: group.payload ? resolvePayload(group.payload) : undefined,
     };
+    creep.spawnTick = this.game.state.tick;
     this.game.state.creeps.push(creep);
     this.spawnedSoFar++;
     this.game.state.waveStats.spawnedThisWave++;
@@ -235,7 +236,8 @@ export class WavePhase {
     const cost = baseCost + Math.floor(waveNum / 10);
     state.lives = Math.max(0, state.lives - cost);
     state.waveStats.leakedThisWave++;
-    this.game.bus.emit('creep:leak', { id: c.id, kind: c.kind, hp: c.hp, maxHp: c.maxHp, liveCost: cost });
+    const { ticksAlive } = creepDeathMetrics(c, state);
+    this.game.bus.emit('creep:leak', { id: c.id, kind: c.kind, hp: c.hp, maxHp: c.maxHp, liveCost: cost, ticksAlive });
     this.game.bus.emit('lives:change', { lives: state.lives });
     if (state.lives <= 0) {
       this.endWave();
@@ -249,7 +251,8 @@ export class WavePhase {
     state.totalKills++;
     state.waveStats.killedThisWave++;
     this.goldEarned += c.bounty;
-    this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty });
+    const { pathProgress, ticksAlive } = creepDeathMetrics(c, state);
+    this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty, pathProgress, ticksAlive });
     this.game.bus.emit('gold:change', { gold: state.gold });
     this.game.handleCreepDeath(c);
   }

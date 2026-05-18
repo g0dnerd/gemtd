@@ -16,6 +16,9 @@ interface WaveSnapshot {
   comboCount: number;
   keeperQuality: number;
   totalDamage: number;
+  avgPathProgress: number;
+  maxPathProgress: number;
+  avgTicksToKill: number;
 }
 
 interface TowerSnapshot {
@@ -53,6 +56,9 @@ export class TelemetryCollector {
 
   private waveStartTick = 0;
   private towerDamageAtWaveStart = 0;
+  private pathProgressSum = 0;
+  private maxKillPathProgress = 0;
+  private ticksToKillSum = 0;
   private maxChanceTier = 0;
   private downgradesUsed = 0;
   private totalLeaks = 0;
@@ -87,6 +93,9 @@ export class TelemetryCollector {
           (sum, t) => sum + t.totalDamage,
           0,
         );
+        this.pathProgressSum = 0;
+        this.maxKillPathProgress = 0;
+        this.ticksToKillSum = 0;
 
         const kept = s.keptTowerIdThisRound;
         if (kept !== null) {
@@ -105,6 +114,16 @@ export class TelemetryCollector {
             });
           }
         }
+      }),
+
+      b.on("creep:die", ({ pathProgress, ticksAlive }) => {
+        this.pathProgressSum += pathProgress;
+        this.maxKillPathProgress = Math.max(this.maxKillPathProgress, pathProgress);
+        this.ticksToKillSum += ticksAlive;
+      }),
+
+      b.on("creep:leak", () => {
+        this.pathProgressSum += 1.0;
       }),
 
       b.on("wave:end", () => {
@@ -132,6 +151,11 @@ export class TelemetryCollector {
                   ?.quality ?? 0)
               : 0,
           totalDamage: totalDamageNow - this.towerDamageAtWaveStart,
+          avgPathProgress: ws.killedThisWave + ws.leakedThisWave > 0
+            ? this.pathProgressSum / (ws.killedThisWave + ws.leakedThisWave)
+            : 0,
+          maxPathProgress: this.maxKillPathProgress,
+          avgTicksToKill: ws.killedThisWave > 0 ? Math.round(this.ticksToKillSum / ws.killedThisWave) : 0,
         });
 
         this.totalLeaks += ws.leakedThisWave;

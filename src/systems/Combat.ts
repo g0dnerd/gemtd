@@ -12,7 +12,7 @@ import { Game } from '../game/Game';
 import { RNG } from '../game/rng';
 import { gemStats } from '../data/gems';
 import { COMBO_BY_NAME, comboStatsAtTier } from '../data/combos';
-import type { CreepState, ProjectileState, TowerState } from '../game/State';
+import { creepDeathMetrics, type CreepState, type ProjectileState, type TowerState } from '../game/State';
 import type { EffectKind } from '../data/gems';
 
 const PROJECTILE_PX_PER_SEC = 480;
@@ -365,7 +365,8 @@ export class Combat {
       }
       state.totalKills++;
       state.waveStats.killedThisWave++;
-      this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty });
+      const { pathProgress, ticksAlive } = creepDeathMetrics(c, state);
+      this.game.bus.emit('creep:die', { id: c.id, bounty: c.bounty, pathProgress, ticksAlive });
       this.game.bus.emit('gold:change', { gold: state.gold });
       this.game.handleCreepDeath(c);
     }

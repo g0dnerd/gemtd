@@ -16,7 +16,7 @@
 import { TILE, FINE_TILE, SIM_HZ } from '../game/constants';
 import { Game } from '../game/Game';
 import { COMBO_BY_NAME, comboStatsAtTier } from '../data/combos';
-import type { CreepState, TowerState } from '../game/State';
+import { creepDeathMetrics, type CreepState, type TowerState } from '../game/State';
 import type { EffectKind } from '../data/gems';
 
 export class Traps {
@@ -74,7 +74,8 @@ export class Traps {
         state.gold += creep.bounty;
         state.totalKills++;
         state.waveStats.killedThisWave++;
-        this.game.bus.emit('creep:die', { id: creep.id, bounty: creep.bounty });
+        const { pathProgress, ticksAlive } = creepDeathMetrics(creep, state);
+        this.game.bus.emit('creep:die', { id: creep.id, bounty: creep.bounty, pathProgress, ticksAlive });
         this.game.bus.emit('gold:change', { gold: state.gold });
         this.game.handleCreepDeath(creep);
         return;
@@ -123,7 +124,8 @@ export class Traps {
             state.gold += other.bounty;
             state.totalKills++;
             state.waveStats.killedThisWave++;
-            this.game.bus.emit('creep:die', { id: other.id, bounty: other.bounty });
+            const { pathProgress, ticksAlive } = creepDeathMetrics(other, state);
+            this.game.bus.emit('creep:die', { id: other.id, bounty: other.bounty, pathProgress, ticksAlive });
             this.game.bus.emit('gold:change', { gold: state.gold });
             this.game.handleCreepDeath(other);
           }
