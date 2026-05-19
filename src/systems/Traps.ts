@@ -84,11 +84,11 @@ export class Traps {
 
     // Trap effects
     for (const e of stats.effects) {
-      this.applyEffect(creep, e, tick, stats);
+      this.applyEffect(creep, e, tick, stats, trap);
     }
   }
 
-  private applyEffect(c: CreepState, e: EffectKind, tick: number, stats: TrapResolvedStats): void {
+  private applyEffect(c: CreepState, e: EffectKind, tick: number, stats: TrapResolvedStats, trap: TowerState): void {
     if (!c.alive) return;
     switch (e.kind) {
       case 'trap_slow': {
@@ -102,7 +102,7 @@ export class Traps {
       case 'trap_dot': {
         const expires = tick + Math.round(e.duration * SIM_HZ);
         if (!c.poison || c.poison.dps < e.dps) {
-          c.poison = { dps: e.dps, expiresAt: expires, nextTick: tick + SIM_HZ };
+          c.poison = { dps: e.dps, expiresAt: expires, nextTick: tick + SIM_HZ, ownerId: trap.id };
         } else {
           c.poison.expiresAt = expires;
         }

@@ -45,7 +45,7 @@ describe('chrysalid (berserker)', () => {
 
       // Apply debuffs before awakening (no stun — stun blocks advanceCreep entirely)
       c.slow = { factor: 0.5, expiresAt: game.state.tick + 999 };
-      c.poison = { dps: 50, expiresAt: game.state.tick + 999, nextTick: game.state.tick + 999 };
+      c.poison = { dps: 50, expiresAt: game.state.tick + 999, nextTick: game.state.tick + 999, ownerId: -1 };
       c.armorDebuff = { value: 5, expiresAt: game.state.tick + 999 };
 
       // Drop HP to 50% threshold

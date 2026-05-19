@@ -99,7 +99,7 @@ export interface CreepState {
   stunResist: number;
   /** Active status effects. */
   slow?: { factor: number; expiresAt: number };
-  poison?: { dps: number; expiresAt: number; nextTick: number };
+  poison?: { dps: number; expiresAt: number; nextTick: number; ownerId: number };
   stun?: { expiresAt: number };
   /** Proximity-aura armor reduction applied this tick (reset each step). */
   armorReduction: number;

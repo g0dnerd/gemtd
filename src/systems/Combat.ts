@@ -63,6 +63,17 @@ export class Combat {
         } else if (c.afterburn) {
           c.afterburn = undefined;
         }
+        if (c.poison && c.poison.expiresAt > tick) {
+          if (tick >= c.poison.nextTick) {
+            const owner = state.towers.find(t => t.id === c.poison!.ownerId);
+            if (owner) {
+              this.applyDamage(c, Math.max(1, Math.round(c.poison.dps)), owner);
+            } else {
+              c.hp -= c.poison.dps;
+            }
+            c.poison.nextTick = tick + SIM_HZ;
+          }
+        }
         if (c.armorStacks && c.armorStacks.count > 0) {
           if (tick - c.armorStacks.lastDecayTick >= c.armorStacks.decayTicks) {
             c.armorStacks.count--;
@@ -442,7 +453,7 @@ export class Combat {
     }
   }
 
-  private applyEffects(c: CreepState, effects: EffectKind[], _owner: TowerState): void {
+  private applyEffects(c: CreepState, effects: EffectKind[], owner: TowerState): void {
     if (!c.alive) return;
     if (c.chrysalidAwakened) return;
     const tick = this.game.state.tick;
@@ -461,7 +472,7 @@ export class Combat {
         case 'poison': {
           const expires = tick + Math.round(e.duration * SIM_HZ);
           if (!c.poison || c.poison.dps < e.dps) {
-            c.poison = { dps: e.dps, expiresAt: expires, nextTick: tick + SIM_HZ };
+            c.poison = { dps: e.dps, expiresAt: expires, nextTick: tick + SIM_HZ, ownerId: owner.id };
           } else {
             c.poison.expiresAt = expires;
           }
@@ -482,7 +493,7 @@ export class Combat {
           if (stunPoison) {
             const poisonExpires = tick + Math.round(stunPoison.duration * SIM_HZ);
             if (!c.poison || c.poison.dps < stunPoison.dps) {
-              c.poison = { dps: stunPoison.dps, expiresAt: poisonExpires, nextTick: tick + SIM_HZ };
+              c.poison = { dps: stunPoison.dps, expiresAt: poisonExpires, nextTick: tick + SIM_HZ, ownerId: owner.id };
             } else {
               c.poison.expiresAt = poisonExpires;
             }
@@ -698,7 +709,7 @@ export class Combat {
       const spreadCount = Math.min(count, candidates.length);
       for (let i = 0; i < spreadCount; i++) {
         const c = candidates[i].creep;
-        c.poison = { dps: dead.poison.dps, expiresAt: tick + 3 * SIM_HZ, nextTick: tick + SIM_HZ };
+        c.poison = { dps: dead.poison.dps, expiresAt: tick + 3 * SIM_HZ, nextTick: tick + SIM_HZ, ownerId: dead.poison.ownerId };
       }
       if (spreadCount > 0) {
         this.game.bus.emit('vfx:deathSpread', {

@@ -199,13 +199,6 @@ export class WavePhase {
       c.hp = Math.min(c.maxHp, c.hp + c.healBuff.hpPerTick);
     }
 
-    // Poison ticks
-    if (c.poison && c.poison.expiresAt > this.game.state.tick) {
-      if (this.game.state.tick >= c.poison.nextTick) {
-        c.hp -= c.poison.dps;
-        c.poison.nextTick = this.game.state.tick + 60; // 1s @ 60Hz
-      }
-    }
     if (c.hp <= 0) {
       this.kill(c);
       return;
