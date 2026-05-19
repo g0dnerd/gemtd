@@ -147,18 +147,32 @@ export function renderGround(layer: Container, grid: Cell[][]): void {
   drawCrystalShrine(layer, END.x * FINE_TILE, END.y * FINE_TILE);
 }
 
-/** Grass tile — flat fill with sparse decoration noise (no bevel grid). */
+/** Grass tile — verdant meadow with 3 alternating bases + scattered decorations. */
 function drawGrassCell(g: Graphics, cx: number, cy: number, x: number, y: number): void {
-  g.rect(cx, cy, FINE_TILE, FINE_TILE).fill(CELL.grass);
-  const n = (x * 23 + y * 41) % 29;
-  if (n === 0) {
-    g.rect(cx + 5, cy + 5, 2, 2).fill(CELL.grassTuft);
-    g.rect(cx + 7, cy + 6, 2, 2).fill(CELL.grassTuft);
-    g.rect(cx + 6, cy + 8, 2, 2).fill(CELL.grassTuft);
-  } else if (n === 11) {
-    g.rect(cx + 10, cy + 10, 2, 2).fill(CELL.grassClover);
-  } else if (n === 20) {
-    g.rect(cx + 3, cy + 11, 3, 1).fill(CELL.grassHi);
+  const bases = [CELL.grass, CELL.grassAlt1, CELL.grassAlt2];
+  g.rect(cx, cy, FINE_TILE, FINE_TILE).fill(bases[((x * 13 + y * 37) % 3 + 3) % 3]);
+
+  const n = ((x * 31 + y * 53 + (x ^ y) * 7) % 41 + 41) % 41;
+  if (n < 5) {
+    const ox = [3, 8, 5, 10, 2][n], oy = [4, 3, 8, 2, 10][n];
+    g.rect(cx + ox, cy + oy, 2, 3).fill(CELL.grassBlade);
+    g.rect(cx + ox + 3, cy + oy + 1, 2, 2).fill(CELL.grassBlade);
+  }
+  if (n === 7 || n === 24) {
+    const fx = n === 7 ? 10 : 5, fy = n === 7 ? 10 : 4;
+    g.rect(cx + fx, cy + fy, 2, 2).fill(CELL.grassFlowerYellow);
+  }
+  if (n === 14) {
+    g.rect(cx + 12, cy + 6, 2, 2).fill(CELL.grassFlowerWhite);
+  }
+  if (n === 20 || n === 35) {
+    g.rect(cx + 2, cy + (n === 20 ? 11 : 5), 4, 1).fill(CELL.grassStripe);
+  }
+  if (n === 30) {
+    g.rect(cx + 8, cy + 13, 3, 2).fill(CELL.grassPebble);
+  }
+  if (n === 38) {
+    g.rect(cx + 1, cy + 14, 2, 2).fill(CELL.grassTuft);
   }
 }
 
