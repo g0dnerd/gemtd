@@ -145,7 +145,7 @@ export class WavePhase {
       armor: group.armor ?? arch.defaultArmor ?? 0,
       slowResist: group.slowResist,
       stunResist: group.stunResist ?? 0,
-      flags: arch.flags,
+      flags: { ...arch.flags },
       vulnerability: 0,
       payload: group.payload ? resolvePayload(group.payload) : undefined,
     };
