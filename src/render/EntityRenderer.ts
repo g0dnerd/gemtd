@@ -181,8 +181,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       entry.selBracket = undefined;
     }
     if (entry.selBracket) {
-      const pulse = 0.6 + 0.4 * ((Math.sin((tick / SIM_HZ) * Math.PI * 2 / 1.8) + 1) / 2);
-      entry.selBracket.alpha = pulse;
+      entry.selBracket.alpha = 1;
     }
     const isHovered = !isSelected && t.id === hoveredTowerId;
     if (isHovered && !entry.hoverBracket) {
