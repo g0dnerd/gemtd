@@ -184,6 +184,23 @@ export function flattenRoute(segments: Point[][]): Point[] {
 }
 
 /** Straight-line route through waypoints for air creeps (Bresenham-style). */
+export function nearestPathPos(
+  px: number,
+  py: number,
+  route: Point[],
+  fineTile: number,
+): number {
+  let best = 0;
+  let bestD = Infinity;
+  for (let i = 0; i < route.length; i++) {
+    const rx = route[i].x * fineTile + fineTile / 2;
+    const ry = route[i].y * fineTile + fineTile / 2;
+    const d = (px - rx) ** 2 + (py - ry) ** 2;
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
 export function buildAirRoute(waypoints: readonly Waypoint[] = WAYPOINTS): Point[] {
   const out: Point[] = [];
   for (let i = 0; i < waypoints.length - 1; i++) {

@@ -64,6 +64,8 @@ export interface TowerState {
   burnAuraCreepIds?: number[];
   /** Tick when aura silence expires (mycoid spore pulse). */
   silencedUntil?: number;
+  /** Eruption pressure stacks — persists between waves. */
+  pressureStacks?: number;
 }
 
 export interface RockState {
@@ -126,8 +128,12 @@ export interface CreepState {
   armorStacks?: { count: number; armorPer: number; decayTicks: number; lastDecayTick: number };
   /** Poison spread params — stored when stun_poison applies. */
   poisonSpread?: { count: number; radius: number };
+  /** Afterburn DoT from eruption (short/intense, distinct from poison). */
+  afterburn?: { dps: number; expiresAt: number; nextTick: number; ownerId: number };
   /** Chrysalid awakened state — debuff-immune + speed boost. */
   chrysalidAwakened?: boolean;
+  /** Chrysalid dodge counter — ignores every Nth hit when awakened. */
+  chrysalidHitCounter?: number;
   /** Gestation enraged state — at 50% HP, begins periodic tower-silence pulse. */
   gestationEnraged?: boolean;
   /** Creeps to spawn when this container dies. */
@@ -151,6 +157,8 @@ export interface ProjectileState {
   alive: boolean;
   /** Set when the projectile was a critical hit — triggers crit_splash on impact. */
   wasCrit?: boolean;
+  /** Set when this is the Nth demote shot — grounds air targets on impact. */
+  isDemoteShot?: boolean;
 }
 
 export interface DrawOffer {

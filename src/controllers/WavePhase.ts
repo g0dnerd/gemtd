@@ -10,9 +10,9 @@ import { WAVES, type WaveDef, type PayloadGroup, waveTotalCount, groupForSpawn }
 import { FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ, TILE } from '../game/constants';
 
 const HEALER_INTERVAL = 5 * SIM_HZ;
-const HEALER_RADIUS_PX = 3 * TILE;
+const HEALER_RADIUS_PX = 3.5 * TILE;
 const HEALER_BUFF_DURATION = 2 * SIM_HZ;
-const HEALER_HEAL_PCT = 0.00075;
+const HEALER_HEAL_PCT = 0.00095;
 
 const WIZARD_COOLDOWN = 12 * SIM_HZ;
 const WIZARD_RADIUS_PX = 3 * TILE;
@@ -20,11 +20,12 @@ const WIZARD_TELEPORT_TILES = 8;
 
 const TUNNELER_COOLDOWN = 12 * SIM_HZ;
 const TUNNELER_BURROW_DURATION = 4.5 * SIM_HZ;
-const TUNNELER_BURROW_SPEED_MULT = 1.5;
+const TUNNELER_BURROW_SPEED_MULT = 1.0;
+const TUNNELER_BURROW_HEAL_PER_TICK = 0.0005;
 
 const CHRYSALID_HP_THRESHOLD = 0.5;
-const CHRYSALID_SPEED_MULT = 1.8;
-const CHRYSALID_AWAKEN_ARMOR = 5;
+const CHRYSALID_SPEED_MULT = 1.6;
+const CHRYSALID_AWAKEN_ARMOR = 10;
 
 const MYCOID_PULSE_COOLDOWN = 4 * SIM_HZ;
 const MYCOID_PULSE_RADIUS_PX = 2.5 * TILE;
@@ -160,6 +161,7 @@ export class WavePhase {
     let speed = c.speed;
     if (c.burrowed && c.burrowed.expiresAt > this.game.state.tick) {
       speed *= TUNNELER_BURROW_SPEED_MULT;
+      c.hp = Math.min(c.maxHp, c.hp + Math.max(1, Math.round(c.maxHp * TUNNELER_BURROW_HEAL_PER_TICK)));
     }
     if (c.slow && c.slow.expiresAt > this.game.state.tick) {
       speed *= c.slow.factor;
@@ -190,6 +192,7 @@ export class WavePhase {
     if (c.burrowed && c.burrowed.expiresAt <= this.game.state.tick) c.burrowed = undefined;
     if (c.healBuff && c.healBuff.expiresAt <= this.game.state.tick) c.healBuff = undefined;
     if (c.armorDebuff && c.armorDebuff.expiresAt <= this.game.state.tick) c.armorDebuff = undefined;
+    if (c.afterburn && c.afterburn.expiresAt <= this.game.state.tick) c.afterburn = undefined;
 
     // Heal buff ticks
     if (c.healBuff) {
@@ -233,7 +236,8 @@ export class WavePhase {
     const state = this.game.state;
     const waveNum = state.wave;
     const baseCost = c.flags?.boss ? 6 : 1;
-    const cost = baseCost + Math.floor(waveNum / 10);
+    const rawCost = baseCost + Math.floor(waveNum / 10);
+    const cost = c.flags?.boss ? rawCost : Math.min(4, rawCost);
     state.lives = Math.max(0, state.lives - cost);
     state.waveStats.leakedThisWave++;
     const { ticksAlive } = creepDeathMetrics(c, state);

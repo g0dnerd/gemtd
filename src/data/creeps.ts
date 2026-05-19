@@ -83,7 +83,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
   },
   healer: {
     kind: "healer",
-    speed: 1.55,
+    speed: 1.4,
     color: "emerald",
     hpMult: 0.9,
     bountyMult: 1.5,

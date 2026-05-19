@@ -8,6 +8,7 @@
  */
 
 import { TILE, FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ } from '../game/constants';
+import { nearestPathPos } from './Pathfinding';
 import { Game } from '../game/Game';
 import { RNG } from '../game/rng';
 import { gemStats } from '../data/gems';
@@ -51,6 +52,17 @@ export class Combat {
           c.lingerBurn.ticksLeft--;
           if (c.lingerBurn.ticksLeft <= 0) c.lingerBurn = undefined;
         }
+        if (c.afterburn && c.afterburn.expiresAt > tick) {
+          if (tick >= c.afterburn.nextTick) {
+            const owner = state.towers.find(t => t.id === c.afterburn!.ownerId);
+            if (owner) {
+              this.applyDamage(c, Math.max(1, Math.round(c.afterburn.dps)), owner);
+            }
+            c.afterburn.nextTick = tick + SIM_HZ;
+          }
+        } else if (c.afterburn) {
+          c.afterburn = undefined;
+        }
         if (c.armorStacks && c.armorStacks.count > 0) {
           if (tick - c.armorStacks.lastDecayTick >= c.armorStacks.decayTicks) {
             c.armorStacks.count--;
@@ -75,6 +87,7 @@ export class Combat {
         if (tick - t.lastFireTick < cooldownTicks) continue;
         const beamEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'beam_ramp' }> => e.kind === 'beam_ramp');
         const multiEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'multi_target' }> => e.kind === 'multi_target');
+        const demoteEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'demote_air' }> => e.kind === 'demote_air');
         if (multiEffect) {
           const targets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, multiEffect.count);
           if (targets.length === 0) continue;
@@ -100,6 +113,9 @@ export class Combat {
             } else {
               this.fire(t, target, stats, dmgMult);
             }
+          } else if (demoteEffect) {
+            t.attackCount = (t.attackCount ?? 0) + 1;
+            this.fire(t, target, stats, dmgMult, t.attackCount % demoteEffect.everyN === 0);
           } else if (beamEffect) {
             this.beamHit(t, target, stats, beamEffect, dmgMult);
             const hasOnHitEffects = stats.effects.some(e =>
@@ -109,6 +125,7 @@ export class Combat {
           } else {
             this.fire(t, target, stats, dmgMult);
           }
+          this.checkEruption(t, stats);
         }
       }
     }
@@ -152,7 +169,43 @@ export class Combat {
     this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
   }
 
-  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0): void {
+  private checkEruption(tower: TowerState, stats: ResolvedStats): void {
+    const eruption = stats.effects.find((e): e is Extract<EffectKind, { kind: 'eruption' }> => e.kind === 'eruption');
+    if (!eruption) return;
+    tower.pressureStacks = (tower.pressureStacks ?? 0) + 1;
+    if (tower.pressureStacks < eruption.threshold) return;
+    tower.pressureStacks = 0;
+
+    const state = this.game.state;
+    const tick = state.tick;
+    const tx = (tower.x + 1) * FINE_TILE;
+    const ty = (tower.y + 1) * FINE_TILE;
+    const maxDist = eruption.radius * TILE;
+    const maxDist2 = maxDist * maxDist;
+
+    for (const c of state.creeps) {
+      if (!c.alive || isBurrowed(c, tick)) continue;
+      const dx = c.px - tx, dy = c.py - ty;
+      const dist2 = dx * dx + dy * dy;
+      if (dist2 > maxDist2) continue;
+      const dist = Math.sqrt(dist2);
+      const t = dist / maxDist;
+      const dmgMult = 1 - (1 - eruption.falloff) * t;
+      const dmg = Math.round(eruption.damage * dmgMult);
+      this.applyDamage(c, dmg, tower);
+      if (eruption.afterburnDps && eruption.afterburnDuration) {
+        const expiresAt = tick + Math.round(eruption.afterburnDuration * SIM_HZ);
+        if (!c.afterburn || c.afterburn.dps <= eruption.afterburnDps) {
+          c.afterburn = { dps: eruption.afterburnDps, expiresAt, nextTick: tick + SIM_HZ, ownerId: tower.id };
+        } else {
+          c.afterburn.expiresAt = expiresAt;
+        }
+      }
+    }
+    this.game.bus.emit('vfx:eruption', { x: tx, y: ty, radiusPx: maxDist });
+  }
+
+  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0, demoteShot = false): void {
     const state = this.game.state;
     const fromX = (tower.x + 1) * FINE_TILE;
     const fromY = (tower.y + 1) * FINE_TILE;
@@ -211,6 +264,7 @@ export class Combat {
       color: stats.visualGem,
       alive: true,
       wasCrit: wasCrit || undefined,
+      isDemoteShot: demoteShot || undefined,
     };
     state.projectiles.push(proj);
     this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
@@ -228,6 +282,14 @@ export class Combat {
     if (target && !isBurrowed(target, tick)) {
       this.applyDamage(target, p.damage, owner);
       this.applyEffects(target, stats.effects, owner);
+      if (p.isDemoteShot && target.flags?.air) {
+        target.flags.air = false;
+        const route = state.flatRoute;
+        if (route.length > 0) {
+          target.pathPos = Math.min(nearestPathPos(target.px, target.py, route, FINE_TILE), route.length - 2);
+        }
+        this.game.bus.emit('creep:demoted', { id: target.id });
+      }
     }
 
     // Splash — collect targets for freeze_chance / stacking_armor_reduce
@@ -324,6 +386,13 @@ export class Combat {
 
   applyDamage(c: CreepState, dmg: number, owner: TowerState, ignoreArmor = false): void {
     if (!c.alive) return;
+    if (c.chrysalidAwakened) {
+      c.chrysalidHitCounter = (c.chrysalidHitCounter ?? 0) + 1;
+      if (c.chrysalidHitCounter >= 10) {
+        c.chrysalidHitCounter = 0;
+        return;
+      }
+    }
     if (!ignoreArmor) {
       let effectiveArmor = c.armor - c.armorReduction;
       if (c.armorDebuff && c.armorDebuff.expiresAt > this.game.state.tick) {
@@ -654,9 +723,18 @@ export function towerLevel(t: TowerState): number {
   return Math.floor(t.kills / 10);
 }
 
+function scaleBurnEffects(effects: EffectKind[], mult: number): EffectKind[] {
+  if (mult === 1) return effects;
+  return effects.map(e => {
+    if (e.kind === 'prox_burn') return { ...e, dps: Math.round(e.dps * mult) };
+    if (e.kind === 'prox_burn_ramp') return { ...e, dps: Math.round(e.dps * mult) };
+    return e;
+  });
+}
+
 function effectiveStats(t: TowerState): ResolvedStats {
   const lvl = towerLevel(t);
-  const mult = 1 + 0.05 * lvl / (1 + 0.03 * lvl);
+  const mult = 1 + 0.05 * lvl / (1 + 0.06 * lvl);
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
@@ -666,7 +744,7 @@ function effectiveStats(t: TowerState): ResolvedStats {
         dmgMax: Math.round(s.dmgMax * mult),
         range: s.range,
         atkSpeed: Math.round(s.atkSpeed * mult * 100) / 100,
-        effects: s.effects,
+        effects: scaleBurnEffects(s.effects, mult),
         visualGem: combo.visualGem,
         targeting: s.targeting,
       };
@@ -678,7 +756,7 @@ function effectiveStats(t: TowerState): ResolvedStats {
     dmgMax: Math.round(s.dmgMax * mult),
     range: s.range,
     atkSpeed: Math.round(s.atkSpeed * mult * 100) / 100,
-    effects: s.effects,
+    effects: scaleBurnEffects(s.effects, mult),
     visualGem: t.gem,
     targeting: s.targeting,
   };

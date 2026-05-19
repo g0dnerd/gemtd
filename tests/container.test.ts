@@ -48,13 +48,12 @@ describe('container creeps', () => {
       vessels[0].hp = 0;
       vessels[0].alive = false;
       game.handleCreepDeath(vessels[0]);
+      for (let j = 0; j < 30; j++) game.simStep();
 
       const normals = game.state.creeps.filter(c => c.kind === 'normal');
       expect(normals.length).toBe(3);
       for (const n of normals) {
         expect(n.alive).toBe(true);
-        expect(n.px).toBe(vessels[0].px);
-        expect(n.py).toBe(vessels[0].py);
       }
     });
   });
@@ -79,6 +78,7 @@ describe('container creeps', () => {
       vessel.hp = 0;
       vessel.alive = false;
       game.handleCreepDeath(vessel);
+      for (let j = 0; j < 30; j++) game.simStep();
 
       const fasts = game.state.creeps.filter(c => c.kind === 'fast');
       const expectedHp = Math.round(payloadHp * CREEP_ARCHETYPES.fast.hpMult);
@@ -110,6 +110,7 @@ describe('container creeps', () => {
       coral.hp = 0;
       coral.alive = false;
       game.handleCreepDeath(coral);
+      for (let j = 0; j < 30; j++) game.simStep();
 
       const vessels = game.state.creeps.filter(c => c.kind === 'vessel');
       expect(vessels.length).toBe(2);
@@ -121,6 +122,7 @@ describe('container creeps', () => {
       vessels[0].hp = 0;
       vessels[0].alive = false;
       game.handleCreepDeath(vessels[0]);
+      for (let j = 0; j < 30; j++) game.simStep();
 
       const normals = game.state.creeps.filter(c => c.kind === 'normal');
       expect(normals.length).toBe(2);
@@ -128,6 +130,7 @@ describe('container creeps', () => {
       vessels[1].hp = 0;
       vessels[1].alive = false;
       game.handleCreepDeath(vessels[1]);
+      for (let j = 0; j < 30; j++) game.simStep();
 
       const allNormals = game.state.creeps.filter(c => c.kind === 'normal');
       expect(allNormals.length).toBe(4);
@@ -151,17 +154,16 @@ describe('container creeps', () => {
 
       const vessel = game.state.creeps.find(c => c.kind === 'vessel')!;
       const parentPx = vessel.px;
-      const parentPy = vessel.py;
       expect(parentPx).toBeGreaterThan(0);
 
       vessel.hp = 0;
       vessel.alive = false;
       game.handleCreepDeath(vessel);
+      for (let j = 0; j < 30; j++) game.simStep();
 
       const normals = game.state.creeps.filter(c => c.kind === 'normal');
       for (const n of normals) {
-        expect(n.px).toBe(parentPx);
-        expect(n.py).toBe(parentPy);
+        expect(n.px).toBeGreaterThan(0);
       }
     });
   });
@@ -185,6 +187,7 @@ describe('container creeps', () => {
       coral.hp = 0;
       coral.alive = false;
       game.handleCreepDeath(coral);
+      for (let j = 0; j < 30; j++) game.simStep();
 
       const fast = game.state.creeps.find(c => c.kind === 'fast')!;
       expect(fast.speed).toBe(CREEP_ARCHETYPES.fast.speed);
@@ -214,6 +217,7 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessel);
 
       expect(game.state.waveStats.totalToSpawn).toBe(5);
+      for (let j = 0; j < 30; j++) game.simStep();
       expect(game.state.waveStats.spawnedThisWave).toBe(5);
     });
   });
@@ -265,5 +269,76 @@ describe('container creeps', () => {
     expect(maxDepth(WAVES[24].groups)).toBe(2);
     expect(maxDepth(WAVES[34].groups)).toBe(3);
     expect(maxDepth(WAVES[44].groups)).toBe(4);
+  });
+
+  it('payload spawns are staggered over time, not instant', () => {
+    const wave = makeContainerWave([{
+      kind: 'vessel',
+      count: 1,
+      hp: 100,
+      bounty: 2,
+      slowResist: 0,
+      payload: [
+        { kind: 'normal', count: 4, hp: 50, bounty: 1 },
+      ],
+    }]);
+
+    runWithWave(wave, (game) => {
+      for (let i = 0; i < 60; i++) game.simStep();
+
+      const vessel = game.state.creeps.find(c => c.kind === 'vessel')!;
+      vessel.hp = 0;
+      vessel.alive = false;
+      game.handleCreepDeath(vessel);
+
+      // First child spawns immediately
+      const immediateCount = game.state.creeps.filter(c => c.kind === 'normal').length;
+      expect(immediateCount).toBe(1);
+
+      // After a few ticks, more appear
+      for (let i = 0; i < 10; i++) game.simStep();
+      const afterSome = game.state.creeps.filter(c => c.kind === 'normal').length;
+      expect(afterSome).toBeGreaterThan(1);
+      expect(afterSome).toBeLessThan(4);
+
+      // After enough ticks, all are spawned
+      for (let i = 0; i < 30; i++) game.simStep();
+      const afterAll = game.state.creeps.filter(c => c.kind === 'normal').length;
+      expect(afterAll).toBe(4);
+    });
+  });
+
+  it('pending payload spawns are cleared on wave end', () => {
+    const wave = makeContainerWave([{
+      kind: 'vessel',
+      count: 1,
+      hp: 100,
+      bounty: 2,
+      slowResist: 0,
+      payload: [
+        { kind: 'normal', count: 4, hp: 50, bounty: 1 },
+      ],
+    }]);
+
+    runWithWave(wave, (game) => {
+      for (let i = 0; i < 60; i++) game.simStep();
+
+      const vessel = game.state.creeps.find(c => c.kind === 'vessel')!;
+      vessel.hp = 0;
+      vessel.alive = false;
+      game.handleCreepDeath(vessel);
+
+      // Only first child spawned immediately
+      expect(game.state.creeps.filter(c => c.kind === 'normal').length).toBe(1);
+
+      // End the wave before remaining children spawn
+      game.endWave(0, 0);
+
+      // Step more ticks — no additional normals should appear
+      for (let i = 0; i < 60; i++) game.simStep();
+      // The wave ended, phase changed — pending spawns cleared
+      const normals = game.state.creeps.filter(c => c.kind === 'normal');
+      expect(normals.length).toBe(1);
+    });
   });
 });

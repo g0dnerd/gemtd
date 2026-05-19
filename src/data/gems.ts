@@ -50,7 +50,9 @@ export type EffectKind =
   | { kind: 'stacking_armor_reduce'; perHit: number; maxStacks: number; decayInterval: number }
   | { kind: 'armor_decay_aura'; armorPerSec: number; radius: number; maxReduction: number }
   | { kind: 'linger_burn'; duration: number }
-  | { kind: 'stun_bonus_dmg'; multiplier: number };
+  | { kind: 'stun_bonus_dmg'; multiplier: number }
+  | { kind: 'eruption'; threshold: number; damage: number; radius: number; falloff: number; afterburnDps?: number; afterburnDuration?: number }
+  | { kind: 'demote_air'; everyN: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -88,7 +90,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseAtkSpeed: 1.0,
     effects: [{ kind: 'splash', radius: 1.0, falloff: 0.5 }],
     targeting: 'all',
-    qualityDmgMult: { 1: 0.9, 2: 2.0, 3: 4.5, 4: 9.0, 5: 18.0 },
+    qualityDmgMult: { 1: 0.9, 2: 2.0, 3: 4.5, 4: 8.2, 5: 16.0 },
   },
   sapphire: {
     name: 'Sapphire',
@@ -355,6 +357,13 @@ export function effectSummary(e: EffectKind): string {
       return `Linger burn ${e.duration}s`;
     case 'stun_bonus_dmg':
       return `×${e.multiplier} dmg to stunned`;
+    case 'eruption': {
+      let s = `Eruption every ${e.threshold} hits: ${e.damage} AoE r=${e.radius.toFixed(1)}`;
+      if (e.afterburnDps) s += ` + burn ${e.afterburnDps}/s ${e.afterburnDuration}s`;
+      return s;
+    }
+    case 'demote_air':
+      return `Every ${e.everyN}th hit grounds air units`;
     case 'none':
       return '';
   }

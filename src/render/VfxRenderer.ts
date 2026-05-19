@@ -120,6 +120,32 @@ export class VfxRenderer {
       this.pool.push({ kind: 'snowflake', x: e.x, y: e.y, age: 0, lifetime: 24 });
     });
 
+    bus.on('vfx:eruption', (e) => {
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx, color: 0xff5040,
+        age: 0, lifetime: 22,
+      });
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx * 0.6, color: 0xffe060,
+        age: 0, lifetime: 16,
+      });
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + Math.random() * 0.4;
+        const speed = 1.2 + Math.random() * 1.8;
+        this.pool.push({
+          kind: 'drift',
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed - 0.5,
+          color: i % 3 === 0 ? 0xffe060 : 0xff5040,
+          size: 1.5 + Math.random() * 1.5,
+          age: 0, lifetime: 30 + Math.floor(Math.random() * 10),
+        });
+      }
+    });
+
     bus.on('vfx:gestationTransition', (e) => {
       this.pool.push({
         kind: 'ring', x: e.x, y: e.y,
@@ -170,8 +196,11 @@ export class VfxRenderer {
     }
     this.pool.length = write;
 
+    this.drawPressureBars(state);
+
     if (state.phase === 'wave') {
       this.drawFocusPips(state);
+      this.tickAfterburn(state);
       this.tickAuraShimmer(state);
       this.tickCorrosion(state);
     }
@@ -292,6 +321,43 @@ export class VfxRenderer {
         vy: 0.25 + Math.random() * 0.15,
         color: 0x7858a0, size: 2,
         age: 0, lifetime: 60,
+      });
+    }
+  }
+
+  private drawPressureBars(state: State): void {
+    const g = this.gfx!;
+    for (const t of state.towers) {
+      if (t.pressureStacks == null || t.pressureStacks === 0) continue;
+      const effects = resolveEffects(t);
+      const eruption = effects.find(
+        (e): e is Extract<EffectKind, { kind: 'eruption' }> => e.kind === 'eruption',
+      );
+      if (!eruption) continue;
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE + FINE_TILE * 0.7;
+      const barW = 16;
+      const barH = 2;
+      const fill = t.pressureStacks / eruption.threshold;
+      g.rect(tx - barW / 2, ty, barW, barH).fill({ color: 0x000000, alpha: 0.5 });
+      const fillColor = fill > 0.7 ? 0xffe060 : 0xff5040;
+      g.rect(tx - barW / 2, ty, barW * fill, barH).fill({ color: fillColor, alpha: 0.85 });
+    }
+  }
+
+  private tickAfterburn(state: State): void {
+    if (this.frame % 12 !== 0) return;
+    for (const c of state.creeps) {
+      if (!c.alive || !c.afterburn) continue;
+      this.pool.push({
+        kind: 'drift',
+        x: c.px + (Math.random() - 0.5) * 6,
+        y: c.py - 4,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: -0.4 - Math.random() * 0.3,
+        color: Math.random() > 0.5 ? 0xff5040 : 0xffe060,
+        size: 1 + Math.random(),
+        age: 0, lifetime: 25,
       });
     }
   }

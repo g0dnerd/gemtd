@@ -79,12 +79,9 @@ describe('escalating leak cost', () => {
     expect(setupAndLeak(25)).toBe(3);
   });
 
-  it('waves 40-49 cost 5 lives per normal leak', () => {
-    expect(setupAndLeak(45)).toBe(5);
-  });
-
-  it('wave 50 costs 6 lives per normal leak', () => {
-    expect(setupAndLeak(50)).toBe(6);
+  it('non-boss leaks cap at 4 lives', () => {
+    expect(setupAndLeak(45)).toBe(4);
+    expect(setupAndLeak(50)).toBe(4);
   });
 
   it('boss leaks add wave scaling on top of base 6', () => {
