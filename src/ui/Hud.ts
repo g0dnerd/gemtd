@@ -1777,7 +1777,7 @@ export function mountHud(
         draws.length === 0
           ? `empty:${g.state.phase}:${g.state.designatedKeepTowerId}`
           : draws
-              .map((d) => `${d.slotId}:${d.placedTowerId}`)
+              .map((d) => `${d.gem}${d.quality}:${d.slotId}:${d.placedTowerId}`)
               .join("|") + `:k${g.state.designatedKeepTowerId}`;
 
       if (fp !== lastFingerprint) {

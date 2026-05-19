@@ -27,3 +27,4 @@ v1.5.0
 { tag: "fix", text: "Combine/downgrade during build no longer auto-starts the wave before all gems are placed." },
 { tag: "fix", text: "Expired stun/slow/poison debuffs now properly cleared from creep state." },
 { tag: "fix", text: "Opal shimmer no longer crashes when the tower is selected." },
+{ tag: "fix", text: "Draw panel now shows correct gem sprites after restarting a run." },
