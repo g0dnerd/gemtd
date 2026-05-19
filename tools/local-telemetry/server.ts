@@ -65,8 +65,10 @@ const insertRun = db.prepare(
 const insertWave = db.prepare(
   `INSERT INTO waves (run_id, wave, lives, gold, kills, leaks,
      spawned, duration_ticks, chance_tier, tower_count, rock_count,
-     combo_count, keeper_quality, total_damage)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     combo_count, keeper_quality, total_damage,
+     avg_path_progress, max_path_progress, avg_ticks_to_kill,
+     avg_tower_quality, gem_type_count, max_upgrade_tier)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 const insertTower = db.prepare(
@@ -81,9 +83,21 @@ const insertEvent = db.prepare(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
+const insertWaveCreepStat = db.prepare(
+  `INSERT INTO wave_creep_stats (run_id, wave, creep_kind, spawned, kills, leaks,
+     avg_path_progress, max_path_progress, avg_ticks_to_kill, total_hp_spawned)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+
+const insertWaveGemDamage = db.prepare(
+  `INSERT INTO wave_gem_damage (run_id, wave, gem, is_combo, damage, kills)
+   VALUES (?, ?, ?, ?, ?, ?)`,
+);
+
 const ingestTx = db.transaction(
   (runId: string, version: string, mode: string, outcome: string,
-   run: any, waves: any[], towers: any[], events: any[]) => {
+   run: any, waves: any[], towers: any[], events: any[],
+   waveCreepStats: any[], waveGemDamage: any[]) => {
     insertRun.run(
       runId, version, mode, outcome,
       run.waveReached, run.finalLives, run.finalGold, run.totalKills,
@@ -95,6 +109,8 @@ const ingestTx = db.transaction(
         runId, w.wave, w.lives, w.gold, w.kills, w.leaks,
         w.spawned, w.durationTicks, w.chanceTier, w.towerCount, w.rockCount,
         w.comboCount, w.keeperQuality, w.totalDamage,
+        w.avgPathProgress ?? 0, w.maxPathProgress ?? 0, w.avgTicksToKill ?? 0,
+        w.avgTowerQuality ?? 0, w.gemTypeCount ?? 0, w.maxUpgradeTier ?? 0,
       );
     }
     for (const t of towers) {
@@ -107,6 +123,22 @@ const ingestTx = db.transaction(
       insertEvent.run(
         runId, e.type, e.wave, e.gold, e.gem, e.quality,
         e.cost, e.chanceTier, e.detail, e.value1,
+      );
+    }
+    for (const wcs of waveCreepStats) {
+      const kills = Number(wcs.kills) || 0;
+      const leaks = Number(wcs.leaks) || 0;
+      const total = kills + leaks;
+      const avgProgress = total > 0 ? (Number(wcs.pathProgressSum) || 0) / total : 0;
+      const avgTicks = kills > 0 ? (Number(wcs.ticksToKillSum) || 0) / kills : 0;
+      insertWaveCreepStat.run(
+        runId, wcs.wave, wcs.creepKind, wcs.spawned, kills, leaks,
+        avgProgress, wcs.maxPathProgress, avgTicks, wcs.totalHpSpawned,
+      );
+    }
+    for (const wgd of waveGemDamage) {
+      insertWaveGemDamage.run(
+        runId, wgd.wave, wgd.gem, wgd.isCombo ? 1 : 0, wgd.damage, wgd.kills,
       );
     }
   },
@@ -124,7 +156,7 @@ function handleIngest(req: IncomingMessage, res: ServerResponse): void {
     const { runId, version, mode, outcome, run } = body;
 
     try {
-      ingestTx(runId, version, mode, outcome, run, body.waves ?? [], body.towers ?? [], body.events ?? []);
+      ingestTx(runId, version, mode, outcome, run, body.waves ?? [], body.towers ?? [], body.events ?? [], body.waveCreepStats ?? [], body.waveGemDamage ?? []);
       console.log(`Ingested run ${runId} (${mode}, wave ${run.waveReached}, ${outcome})`);
       cors(res);
       res.writeHead(204);
@@ -241,6 +273,53 @@ function handleStats(url: URL, res: ServerResponse): void {
     `SELECT DISTINCT version FROM runs WHERE ${VALID_RUN} ORDER BY version DESC`,
   ).all() as Array<{ version: string }>;
 
+  const wavePressure = db.prepare(
+    `SELECT wave, avg(avg_path_progress) as avg_path_progress,
+            avg(max_path_progress) as avg_max_path_progress,
+            avg(avg_ticks_to_kill) as avg_ticks_to_kill,
+            avg(avg_tower_quality) as avg_quality,
+            avg(gem_type_count) as avg_gem_types,
+            avg(max_upgrade_tier) as avg_max_tier,
+            count(*) as runs
+     FROM waves WHERE 1=1 ${childWhere()}
+     GROUP BY wave ORDER BY wave`,
+  ).all(...vf.binds);
+
+  const creepKindProgress = db.prepare(
+    `SELECT wave, creep_kind, avg(avg_path_progress) as avg_progress,
+            avg(max_path_progress) as avg_max_progress,
+            avg(avg_ticks_to_kill) as avg_ticks,
+            sum(leaks) as total_leaks, sum(spawned) as total_spawned,
+            sum(kills) as total_kills, count(*) as runs
+     FROM wave_creep_stats WHERE 1=1 ${childWhere()}
+     GROUP BY wave, creep_kind ORDER BY wave, creep_kind`,
+  ).all(...vf.binds);
+
+  const creepKindSummary = db.prepare(
+    `SELECT creep_kind, sum(spawned) as total_spawned,
+            sum(kills) as total_kills, sum(leaks) as total_leaks,
+            avg(avg_path_progress) as avg_progress,
+            avg(avg_ticks_to_kill) as avg_ticks,
+            sum(total_hp_spawned) as total_hp
+     FROM wave_creep_stats WHERE 1=1 ${childWhere()}
+     GROUP BY creep_kind ORDER BY total_leaks DESC`,
+  ).all(...vf.binds);
+
+  const gemDamageByWave = db.prepare(
+    `SELECT wave, gem, is_combo, sum(damage) as total_damage,
+            sum(kills) as total_kills, count(*) as runs
+     FROM wave_gem_damage WHERE 1=1 ${childWhere()}
+     GROUP BY wave, gem, is_combo ORDER BY wave, gem`,
+  ).all(...vf.binds);
+
+  const gemDamageSummary = db.prepare(
+    `SELECT gem, is_combo, sum(damage) as total_damage,
+            sum(kills) as total_kills,
+            avg(damage) as avg_damage_per_run_wave
+     FROM wave_gem_damage WHERE 1=1 ${childWhere()}
+     GROUP BY gem, is_combo ORDER BY total_damage DESC`,
+  ).all(...vf.binds);
+
   json(res, {
     overview: { ...overview, wins: winRow.wins ?? 0 },
     versions: versionRows.map((r) => r.version),
@@ -254,6 +333,11 @@ function handleStats(url: URL, res: ServerResponse): void {
     waveDamage,
     leaksByKind,
     deathsByWave,
+    wavePressure,
+    creepKindProgress,
+    creepKindSummary,
+    gemDamageByWave,
+    gemDamageSummary,
   });
 }
 
@@ -278,6 +362,14 @@ const TABLES: Record<string, string[]> = {
   events: [
     "run_id", "event_type", "gem", "detail", "wave", "gold", "quality",
     "cost", "chance_tier", "value1",
+  ],
+  wave_creep_stats: [
+    "run_id", "wave", "creep_kind", "spawned", "kills", "leaks",
+    "avg_path_progress", "max_path_progress", "avg_ticks_to_kill",
+    "total_hp_spawned",
+  ],
+  wave_gem_damage: [
+    "run_id", "wave", "gem", "is_combo", "damage", "kills",
   ],
 };
 

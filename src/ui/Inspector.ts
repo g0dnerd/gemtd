@@ -487,7 +487,7 @@ function renderLeaderboard(body: HTMLDivElement, game: Game): void {
   if (towers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "inspector-empty";
-    empty.textContent = "No tower damage yet.";
+    empty.textContent = "No gem damage yet.";
     body.appendChild(empty);
     return;
   }

@@ -15,16 +15,34 @@ export function openDb(): Database.Database {
   db.pragma("journal_mode = WAL");
   db.pragma("foreign_keys = ON");
 
+  const migrations = [
+    "0001_create_tables.sql",
+    "0002_wave_pressure.sql",
+    "0003_balance_telemetry.sql",
+  ];
+
+  db.exec(
+    "CREATE TABLE IF NOT EXISTS _migrations (name TEXT PRIMARY KEY)",
+  );
+
   const hasRuns = db
     .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='runs'")
     .get();
-  if (!hasRuns) {
-    const migration = readFileSync(
-      join(ROOT, "migrations/0001_create_tables.sql"),
-      "utf-8",
-    );
-    db.exec(migration);
-    console.log("Created telemetry tables");
+  if (hasRuns) {
+    db.prepare(
+      "INSERT OR IGNORE INTO _migrations (name) VALUES (?)",
+    ).run("0001_create_tables.sql");
+  }
+
+  for (const name of migrations) {
+    const applied = db
+      .prepare("SELECT 1 FROM _migrations WHERE name = ?")
+      .get(name);
+    if (applied) continue;
+    const sql = readFileSync(join(ROOT, "migrations", name), "utf-8");
+    db.exec(sql);
+    db.prepare("INSERT INTO _migrations (name) VALUES (?)").run(name);
+    console.log(`Applied migration ${name}`);
   }
 
   return db;
