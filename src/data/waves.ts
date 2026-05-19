@@ -164,13 +164,7 @@ export const WAVES: WaveDef[] = [
     ["healer", 2, 3300, 5],
   ),
   w(18, "armored", 15, 3950, 5, 0.75, 17),
-  wm(
-    19,
-    0.55,
-    17,
-    ["air", 10, 3150, 4],
-    ["fast", 6, 3525, 4, 0, 2],
-  ),
+  wm(19, 0.55, 17, ["air", 10, 3150, 4], ["fast", 6, 3525, 4, 0, 2]),
   wm(20, 1.2, 60, ["boss", 6, 13500, 12], ["healer", 2, 8000, 8]),
 
   // --- Waves 21-29: tunnelers introduced, both specials mix in, armor ramps up ---
@@ -274,12 +268,7 @@ export const WAVES: WaveDef[] = [
     ["chrysalid", 12, 22200, 2, 0.34, 8],
   ),
   w(33, "armored", 18, 28440, 2, 0.75, 14, 0.06, 38),
-  wm(
-    34,
-    0.55,
-    14,
-    ["chrysalid", 17, 28800, 2, 0.28, 9],
-  ),
+  wm(34, 0.55, 14, ["chrysalid", 17, 28800, 2, 0.28, 9]),
   {
     number: 35,
     groups: [
@@ -376,9 +365,8 @@ export const WAVES: WaveDef[] = [
     41,
     0.5,
     17,
-    ["chrysalid", 20, 24000, 2, 0.42, 14],
-    ["tunneler", 2, 21000, 2, 0.42, 14],
-    ["healer", 5, 21000, 2, 0.42, 14],
+    ["chrysalid", 18, 21600, 2, 0.42, 14],
+    ["healer", 5, 18900, 2, 0.42, 14],
   ),
   wm(
     42,
