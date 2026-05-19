@@ -34,7 +34,7 @@ export function mountInspector(game: Game): InspectorRefs {
   head.className = "panel-head";
   const title = document.createElement("div");
   title.className = "panel-h px-h";
-  title.textContent = "SELECTED · TOWER";
+  title.textContent = "SELECTED · GEM";
   head.appendChild(title);
   root.appendChild(head);
 
@@ -70,14 +70,22 @@ function fingerprint(game: Game): string {
     const c = game.state.creeps.find((cc) => cc.id === creepId);
     if (!c || !c.alive) return `none|${game.state.phase}`;
     return [
-      "creep", c.id, c.kind, c.hp, c.maxHp, c.speed, c.bounty,
+      "creep",
+      c.id,
+      c.kind,
+      c.hp,
+      c.maxHp,
+      c.speed,
+      c.bounty,
       c.slow ? `s${c.slow.factor}` : "",
       c.poison ? `p${c.poison.dps}` : "",
       c.stun ? "stun" : "",
       c.armorDebuff ? `ad${c.armorDebuff.value}` : "",
       c.healBuff ? "hb" : "",
       c.burrowed ? "bur" : "",
-      c.flags?.boss ? "B" : "", c.flags?.armored ? "A" : "", c.flags?.air ? "F" : "",
+      c.flags?.boss ? "B" : "",
+      c.flags?.armored ? "A" : "",
+      c.flags?.air ? "F" : "",
       game.state.tick,
     ].join("|");
   }
@@ -148,12 +156,12 @@ function render(refs: InspectorRefs, game: Game): void {
   const tower =
     id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) {
-    refs.title.textContent = "TOWER DAMAGE";
+    refs.title.textContent = "GEM DAMAGE";
     renderLeaderboard(body, game);
     return;
   }
 
-  refs.title.textContent = "SELECTED · TOWER";
+  refs.title.textContent = "SELECTED · GEM";
 
   const stats = effectiveStatsFor(tower);
 
@@ -205,7 +213,7 @@ function render(refs: InspectorRefs, game: Game): void {
   killTxt.className = "inspector-effect-text";
   killTxt.textContent =
     lvl > 0
-      ? `${tower.kills} kills · LV ${lvl} (+${Math.round(0.05 * lvl / (1 + 0.03 * lvl) * 100)}%)`
+      ? `${tower.kills} kills · LV ${lvl} (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)`
       : `${tower.kills} / 10 kills to next level`;
   killChip.append(killLbl, killTxt);
   body.appendChild(killChip);
@@ -332,9 +340,7 @@ function render(refs: InspectorRefs, game: Game): void {
     const dg = document.createElement("button");
     dg.className = "px-btn px-btn-bad";
     const canDowngrade =
-      isCurrentDraw &&
-      tower.quality > 1 &&
-      !game.state.downgradeUsedThisRound;
+      isCurrentDraw && tower.quality > 1 && !game.state.downgradeUsedThisRound;
     dg.disabled = !canDowngrade;
     dg.textContent = "▼ DOWNGRADE";
     if (tower.quality <= 1) {
@@ -387,7 +393,8 @@ function towerDisplayName(t: TowerState): string {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (!combo) return t.comboKey;
     const tier = t.upgradeTier ?? 0;
-    if (tier > 0 && combo.upgrades[tier - 1]) return combo.upgrades[tier - 1].name;
+    if (tier > 0 && combo.upgrades[tier - 1])
+      return combo.upgrades[tier - 1].name;
     return combo.name;
   }
   return `${QUALITY_NAMES[t.quality]} ${GEM_PALETTE[t.gem].name}`;
@@ -406,16 +413,69 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-function lbGemColors(gem: GemType): { text: string; fill: string; fillAlpha: number; borderAlpha: number } {
+function lbGemColors(gem: GemType): {
+  text: string;
+  fill: string;
+  fillAlpha: number;
+  borderAlpha: number;
+} {
   switch (gem) {
-    case 'ruby': return { text: '#ff6878', fill: '#ff6878', fillAlpha: 0.20, borderAlpha: 0.30 };
-    case 'sapphire': return { text: '#a0c8ff', fill: '#5898ff', fillAlpha: 0.22, borderAlpha: 0.30 };
-    case 'emerald': return { text: '#78e898', fill: '#50e878', fillAlpha: 0.20, borderAlpha: 0.30 };
-    case 'topaz': return { text: '#ffe068', fill: '#ffe068', fillAlpha: 0.18, borderAlpha: 0.28 };
-    case 'amethyst': return { text: '#d090f0', fill: '#d090f0', fillAlpha: 0.20, borderAlpha: 0.30 };
-    case 'opal': return { text: '#c0d0e0', fill: '#8898b8', fillAlpha: 0.28, borderAlpha: 0.35 };
-    case 'diamond': return { text: '#e8f8ff', fill: '#80d0f0', fillAlpha: 0.24, borderAlpha: 0.30 };
-    case 'aquamarine': return { text: '#b8f4ee', fill: '#7fe6e1', fillAlpha: 0.20, borderAlpha: 0.30 };
+    case "ruby":
+      return {
+        text: "#ff6878",
+        fill: "#ff6878",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
+    case "sapphire":
+      return {
+        text: "#a0c8ff",
+        fill: "#5898ff",
+        fillAlpha: 0.22,
+        borderAlpha: 0.3,
+      };
+    case "emerald":
+      return {
+        text: "#78e898",
+        fill: "#50e878",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
+    case "topaz":
+      return {
+        text: "#ffe068",
+        fill: "#ffe068",
+        fillAlpha: 0.18,
+        borderAlpha: 0.28,
+      };
+    case "amethyst":
+      return {
+        text: "#d090f0",
+        fill: "#d090f0",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
+    case "opal":
+      return {
+        text: "#c0d0e0",
+        fill: "#8898b8",
+        fillAlpha: 0.28,
+        borderAlpha: 0.35,
+      };
+    case "diamond":
+      return {
+        text: "#e8f8ff",
+        fill: "#80d0f0",
+        fillAlpha: 0.24,
+        borderAlpha: 0.3,
+      };
+    case "aquamarine":
+      return {
+        text: "#b8f4ee",
+        fill: "#7fe6e1",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
   }
 }
 
@@ -449,8 +509,12 @@ function renderLeaderboard(body: HTMLDivElement, game: Game): void {
     row.style.backgroundImage = `linear-gradient(to right, ${hexToRgba(c.fill, c.fillAlpha)} ${barPct}%, transparent ${barPct}%)`;
     row.style.borderBottom = `1px solid ${hexToRgba(c.fill, c.borderAlpha)}`;
     row.addEventListener("click", () => game.selectTower(t.id));
-    row.addEventListener("mouseenter", () => { game.hoveredTowerId = t.id; });
-    row.addEventListener("mouseleave", () => { game.hoveredTowerId = null; });
+    row.addEventListener("mouseenter", () => {
+      game.hoveredTowerId = t.id;
+    });
+    row.addEventListener("mouseleave", () => {
+      game.hoveredTowerId = null;
+    });
 
     const rank = document.createElement("div");
     rank.className = "lb-rank";
@@ -555,16 +619,28 @@ function countSpecialRecipes(game: Game, sel: TowerState): number {
 
   let n = 0;
   for (const c of COMBOS) {
-    if (selIsCurrent && matchRecipeWithMust(c, currentOnly, sel)) { n++; continue; }
-    if (!selIsCurrent && matchRecipeWithMust(c, keptOnly, sel)) { n++; continue; }
+    if (selIsCurrent && matchRecipeWithMust(c, currentOnly, sel)) {
+      n++;
+      continue;
+    }
+    if (!selIsCurrent && matchRecipeWithMust(c, keptOnly, sel)) {
+      n++;
+      continue;
+    }
     if (selIsCurrent) {
-      if (matchRecipeWithMust(c, [sel, ...keptOnly], sel)) { n++; continue; }
+      if (matchRecipeWithMust(c, [sel, ...keptOnly], sel)) {
+        n++;
+        continue;
+      }
     } else {
       const pool = [...keptOnly, ...currentOnly];
       const result = matchRecipeWithMust(c, pool, sel);
       if (result) {
         const currentCount = result.filter((id) => drawIds.has(id)).length;
-        if (currentCount <= 1) { n++; continue; }
+        if (currentCount <= 1) {
+          n++;
+          continue;
+        }
       }
     }
   }
@@ -679,9 +755,15 @@ function tryAutoCombineSpecial(game: Game): void {
     const placed = state.towers.filter((t) => !t.comboKey);
     for (const c of COMBOS) {
       const ids = matchRecipeWithMust(c, placed, sel);
-      if (ids) { game.cmdCombine(ids); return; }
+      if (ids) {
+        game.cmdCombine(ids);
+        return;
+      }
     }
-    game.bus.emit("toast", { kind: "error", text: "No recipe uses the selected gem yet" });
+    game.bus.emit("toast", {
+      kind: "error",
+      text: "No recipe uses the selected gem yet",
+    });
     return;
   }
 
@@ -698,24 +780,39 @@ function tryAutoCombineSpecial(game: Game): void {
   for (const c of COMBOS) {
     if (selIsCurrent) {
       const ids1 = matchRecipeWithMust(c, currentOnly, sel);
-      if (ids1) { game.cmdCombine(ids1); return; }
+      if (ids1) {
+        game.cmdCombine(ids1);
+        return;
+      }
     }
     if (!selIsCurrent) {
       const ids2 = matchRecipeWithMust(c, keptOnly, sel);
-      if (ids2) { game.cmdCombine(ids2); return; }
+      if (ids2) {
+        game.cmdCombine(ids2);
+        return;
+      }
     }
     if (selIsCurrent) {
       const ids3 = matchRecipeWithMust(c, [sel, ...keptOnly], sel);
-      if (ids3) { game.cmdCombine(ids3); return; }
+      if (ids3) {
+        game.cmdCombine(ids3);
+        return;
+      }
     } else {
       const result = matchRecipeWithMust(c, [...keptOnly, ...currentOnly], sel);
       if (result) {
         const currentCount = result.filter((id) => drawIds.has(id)).length;
-        if (currentCount <= 1) { game.cmdCombine(result); return; }
+        if (currentCount <= 1) {
+          game.cmdCombine(result);
+          return;
+        }
       }
     }
   }
-  game.bus.emit("toast", { kind: "error", text: "No recipe uses the selected gem yet" });
+  game.bus.emit("toast", {
+    kind: "error",
+    text: "No recipe uses the selected gem yet",
+  });
 }
 
 function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
@@ -780,9 +877,14 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
 }
 
 const CREEP_KIND_NAMES: Record<string, string> = {
-  normal: "CREEP", fast: "SWIFT", armored: "ARMORED",
-  air: "FLYER", boss: "BOSS", healer: "HEALER",
-  wizard: "WIZARD", tunneler: "TUNNELER",
+  normal: "CREEP",
+  fast: "SWIFT",
+  armored: "ARMORED",
+  air: "FLYER",
+  boss: "BOSS",
+  healer: "HEALER",
+  wizard: "WIZARD",
+  tunneler: "TUNNELER",
 };
 
 const ABILITY_DESC: Record<string, string> = {
@@ -888,8 +990,12 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
     arLbl.textContent = "ARMOR";
     const arVal = document.createElement("div");
     arVal.className = "inspector-stat-value inspector-stat-value-sec";
-    const effective = c.armor - c.armorReduction
-      - (c.armorDebuff && c.armorDebuff.expiresAt > game.state.tick ? c.armorDebuff.value : 0);
+    const effective =
+      c.armor -
+      c.armorReduction -
+      (c.armorDebuff && c.armorDebuff.expiresAt > game.state.tick
+        ? c.armorDebuff.value
+        : 0);
     if (effective !== c.armor) {
       arVal.textContent = `${effective} (base ${c.armor})`;
     } else {
@@ -917,7 +1023,11 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
   }
 
   // Active status effects
-  const effects: Array<{ label: string; text: string; kind: "debuff" | "cc" | "buff" }> = [];
+  const effects: Array<{
+    label: string;
+    text: string;
+    kind: "debuff" | "cc" | "buff";
+  }> = [];
   const tick = game.state.tick;
 
   if (c.slow) {
@@ -1009,13 +1119,18 @@ const EFFECT_DISPLAY: Record<string, string> = {
   trap_knockback: "KNOCKBACK",
 };
 
-function abilityHeader(effects: ReturnType<typeof gemStats>["effects"]): string {
+function abilityHeader(
+  effects: ReturnType<typeof gemStats>["effects"],
+): string {
   const kind = effects[0].kind;
-  const category =
-    kind.startsWith("trap_") ? "TRAP"
-    : kind.startsWith("aura_") || kind.startsWith("prox_") ||
-      kind === "vulnerability_aura" || kind === "armor_decay_aura" ? "AURA"
-    : "ON HIT";
+  const category = kind.startsWith("trap_")
+    ? "TRAP"
+    : kind.startsWith("aura_") ||
+        kind.startsWith("prox_") ||
+        kind === "vulnerability_aura" ||
+        kind === "armor_decay_aura"
+      ? "AURA"
+      : "ON HIT";
   const name = EFFECT_DISPLAY[kind] ?? kind.replace(/_/g, " ").toUpperCase();
   return `${category} · ${name}`;
 }
@@ -1031,7 +1146,7 @@ interface ResolvedStats {
 
 function effectiveStatsFor(t: TowerState): ResolvedStats {
   const lvl = towerLevel(t);
-  const mult = 1 + 0.05 * lvl / (1 + 0.03 * lvl);
+  const mult = 1 + (0.05 * lvl) / (1 + 0.03 * lvl);
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
