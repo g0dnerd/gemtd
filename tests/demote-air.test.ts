@@ -128,12 +128,12 @@ describe("red crystal demote mechanic", () => {
     expect(ground.hp).toBeLessThan(hpBefore);
   });
 
-  it("demotes air creep to ground on every 10th hit", () => {
+  it("demotes air creep to ground on every 20th hit", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     const air = makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 9;
+    tower.attackCount = 19;
 
     let demoted = false;
     bus.on("creep:demoted", () => { demoted = true; });
@@ -144,7 +144,7 @@ describe("red crystal demote mechanic", () => {
     expect(air.flags?.air).toBe(false);
   });
 
-  it("does not demote on non-10th hits", () => {
+  it("does not demote on non-20th hits", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
@@ -161,12 +161,12 @@ describe("red crystal demote mechanic", () => {
     expect(air.flags?.air).toBe(true);
   });
 
-  it("does not demote ground creeps on 10th hit", () => {
+  it("does not demote ground creeps on 20th hit", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeGroundCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 9;
+    tower.attackCount = 19;
 
     let demoted = false;
     bus.on("creep:demoted", () => { demoted = true; });
@@ -181,7 +181,7 @@ describe("red crystal demote mechanic", () => {
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     const air = makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 9;
+    tower.attackCount = 19;
 
     step(combat, state, SIM_HZ);
 
@@ -189,6 +189,50 @@ describe("red crystal demote mechanic", () => {
     // pathPos should be remapped to ground route (different from air pathPos)
     expect(air.pathPos).toBeDefined();
     expect(air.pathPos).toBeLessThan(state.flatRoute.length - 1);
+  });
+
+  it("resets attackCount to 0 after demoting an air creep", () => {
+    const { game, state } = makeFakeGame();
+    const combat = new Combat(game);
+    const tower = makeRedCrystal(game);
+    makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
+    tower.attackCount = 19;
+
+    step(combat, state, SIM_HZ);
+
+    expect(tower.attackCount).toBe(0);
+  });
+
+  it("does not reset attackCount when hitting a ground creep on 20th hit", () => {
+    const { game, state } = makeFakeGame();
+    const combat = new Combat(game);
+    const tower = makeRedCrystal(game);
+    makeGroundCreep(game, { x: 5, y: 5, hp: 500000 });
+    tower.attackCount = 19;
+
+    step(combat, state, SIM_HZ);
+
+    expect(tower.attackCount).toBeGreaterThan(0);
+  });
+
+  it("attackCount keeps incrementing after reset until next demotion", () => {
+    const { game, state, bus } = makeFakeGame();
+    const combat = new Combat(game);
+    const tower = makeRedCrystal(game);
+    makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
+    tower.attackCount = 19;
+
+    step(combat, state, SIM_HZ);
+    expect(tower.attackCount).toBe(0);
+
+    let demoteCount = 0;
+    bus.on("creep:demoted", () => { demoteCount++; });
+
+    // Step enough for several attacks but not 20 more
+    step(combat, state, SIM_HZ * 5);
+    expect(tower.attackCount).toBeGreaterThan(0);
+    expect(tower.attackCount).toBeLessThan(20);
+    expect(demoteCount).toBe(0);
   });
 
   it("damage is reduced by 15% from original values", () => {

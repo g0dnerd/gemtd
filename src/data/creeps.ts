@@ -106,7 +106,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 1.35,
     bountyMult: 1.3,
     flags: {},
-    blurb: "Burrows underground, untargetable",
+    blurb: "Burrows underground, untargetable and healing",
   },
   vessel: {
     kind: "vessel",

@@ -284,6 +284,7 @@ export class Combat {
       this.applyEffects(target, stats.effects, owner);
       if (p.isDemoteShot && target.flags?.air) {
         target.flags.air = false;
+        owner.attackCount = 0;
         const route = state.flatRoute;
         if (route.length > 0) {
           target.pathPos = Math.min(nearestPathPos(target.px, target.py, route, FINE_TILE), route.length - 2);
