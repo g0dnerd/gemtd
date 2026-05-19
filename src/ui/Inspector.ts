@@ -6,7 +6,7 @@
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
 import { htmlGemTier, htmlSpecial, htmlCreep } from "../render/htmlSprites";
-import { effectSummary, gemStats } from "../data/gems";
+import { EffectKind, gemStats } from "../data/gems";
 import {
   COMBOS,
   COMBO_BY_NAME,
@@ -165,22 +165,21 @@ function render(refs: InspectorRefs, game: Game): void {
 
   const stats = effectiveStatsFor(tower);
 
-  // Hero row
   const hero = document.createElement("div");
-  hero.className = "px-panel-inset inspector-hero";
+  hero.className = "px-panel-inset inspector-tower-hero";
   const frame = document.createElement("div");
   frame.className = "inspector-hero-frame";
   frame.appendChild(
     tower.comboKey
-      ? htmlSpecial(tower.comboKey, 28, true, tower.upgradeTier ?? 0)
-      : htmlGemTier(tower.gem, tower.quality as Quality, 28, true),
+      ? htmlSpecial(tower.comboKey, 40, true, tower.upgradeTier ?? 0)
+      : htmlGemTier(tower.gem, tower.quality as Quality, 36, true),
   );
-  const text = document.createElement("div");
-  text.className = "inspector-hero-text";
-  const name = document.createElement("div");
-  name.className = "inspector-hero-name";
-  const sub = document.createElement("span");
-  sub.className = "inspector-hero-sub";
+  const mid = document.createElement("div");
+  mid.className = "inspector-tower-hero-mid";
+  const heroName = document.createElement("div");
+  heroName.className = "inspector-tower-hero-name";
+  const heroSub = document.createElement("div");
+  heroSub.className = "inspector-tower-hero-sub";
   if (tower.comboKey) {
     const combo = COMBO_BY_NAME.get(tower.comboKey!);
     const tier = tower.upgradeTier ?? 0;
@@ -188,136 +187,82 @@ function render(refs: InspectorRefs, game: Game): void {
       combo && tier > 0 && combo.upgrades[tier - 1]
         ? combo.upgrades[tier - 1].name
         : combo?.name;
-    name.textContent = (tierName ?? "COMBO").toUpperCase();
-    const blurb =
+    heroName.textContent = (tierName ?? "COMBO").toUpperCase();
+    heroSub.textContent =
       (combo ? comboStatsAtTier(combo, tier) : null)?.blurb ??
       combo?.stats.blurb ??
       "COMBO";
-    sub.textContent = blurb;
   } else {
-    name.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
-    sub.textContent = QUALITY_NAMES[tower.quality].toUpperCase();
+    heroName.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
+    heroSub.textContent = QUALITY_NAMES[tower.quality].toUpperCase();
   }
-  text.append(name, sub);
-  hero.append(frame, text);
-  body.appendChild(hero);
-
-  // Kill level chip
+  const heroMeta = document.createElement("div");
+  heroMeta.className = "inspector-tower-hero-meta";
   const lvl = towerLevel(tower);
-  const killChip = document.createElement("div");
-  killChip.className = "inspector-effect";
-  const killLbl = document.createElement("div");
-  killLbl.className = "inspector-effect-label";
-  killLbl.textContent = "KILLS · LEVEL";
-  const killTxt = document.createElement("div");
-  killTxt.className = "inspector-effect-text";
-  killTxt.textContent =
+  heroMeta.textContent =
     lvl > 0
       ? `${tower.kills} kills · LV ${lvl} (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)`
       : `${tower.kills} / 10 kills to next level`;
-  killChip.append(killLbl, killTxt);
-  body.appendChild(killChip);
+  mid.append(heroName, heroSub, heroMeta);
+  hero.append(frame, mid);
+  body.appendChild(hero);
 
-  // Stats grid
-  const grid = document.createElement("div");
-  grid.className = "inspector-stats-grid";
+  const statsRow = document.createElement("div");
+  statsRow.className = "inspector-stats-row";
+  statsRow.appendChild(statCell("DAMAGE", `${stats.dmgMin}–${stats.dmgMax}`, true));
+  statsRow.appendChild(statCell("RANGE", stats.range.toFixed(1), false));
+  statsRow.appendChild(
+    statCell("SPEED", `${stats.atkSpeed.toFixed(2)}<small>/s</small>`, false, true),
+  );
+  body.appendChild(statsRow);
 
-  const dmg = document.createElement("div");
-  dmg.className = "px-panel-inset inspector-stat inspector-stat-dmg";
-  const dmgLabel = document.createElement("div");
-  dmgLabel.className = "inspector-stat-label";
-  dmgLabel.textContent = "DAMAGE";
-  const dmgVal = document.createElement("div");
-  dmgVal.className = "inspector-stat-value inspector-stat-value-hero";
-  dmgVal.textContent = `${stats.dmgMin} – ${stats.dmgMax}`;
-  dmg.append(dmgLabel, dmgVal);
-  grid.appendChild(dmg);
-
-  const rng = document.createElement("div");
-  rng.className = "px-panel-inset inspector-stat";
-  const rngLabel = document.createElement("div");
-  rngLabel.className = "inspector-stat-label-sm";
-  rngLabel.textContent = "RANGE";
-  const rngVal = document.createElement("div");
-  rngVal.className = "inspector-stat-value inspector-stat-value-sec";
-  rngVal.textContent = stats.range.toFixed(1);
-  rng.append(rngLabel, rngVal);
-  grid.appendChild(rng);
-
-  const spd = document.createElement("div");
-  spd.className = "px-panel-inset inspector-stat";
-  const spdLabel = document.createElement("div");
-  spdLabel.className = "inspector-stat-label-sm";
-  spdLabel.textContent = "SPEED";
-  const spdVal = document.createElement("div");
-  spdVal.className = "inspector-stat-value inspector-stat-value-sec";
-  spdVal.innerHTML = `${stats.atkSpeed.toFixed(2)}<small>/s</small>`;
-  spd.append(spdLabel, spdVal);
-  grid.appendChild(spd);
-
-  body.appendChild(grid);
-
-  // Targeting chip
+  const chiclets: ChicletData[] = [];
+  for (const eff of stats.effects) {
+    const c = effectChiclet(eff);
+    if (c) chiclets.push(c);
+  }
   if (stats.targeting !== "all") {
-    const tChip = document.createElement("div");
-    tChip.className = "inspector-effect";
-    const tLbl = document.createElement("div");
-    tLbl.className = "inspector-effect-label";
-    tLbl.textContent = "TARGET";
-    const tTxt = document.createElement("div");
-    tTxt.className = "inspector-effect-text";
-    tTxt.textContent = stats.targeting === "air" ? "AIR ONLY" : "GROUND ONLY";
-    tChip.append(tLbl, tTxt);
-    body.appendChild(tChip);
+    chiclets.push({
+      label: "TGT",
+      text: stats.targeting === "air" ? "AIR" : "GROUND",
+      tone: "tgt",
+    });
+  }
+  if (chiclets.length > 0) {
+    const grid = document.createElement("div");
+    grid.className = "inspector-chiclet-grid";
+    for (const c of chiclets) grid.appendChild(makeChicletEl(c));
+    body.appendChild(grid);
   }
 
-  // Effect chip
-  if (stats.effects.length > 0 && stats.effects[0].kind !== "none") {
-    const chip = document.createElement("div");
-    chip.className = "inspector-effect";
-    const lbl = document.createElement("div");
-    lbl.className = "inspector-effect-label";
-    lbl.textContent = abilityHeader(stats.effects);
-    const txt = document.createElement("div");
-    txt.className = "inspector-effect-text";
-    txt.textContent = stats.effects
-      .map(effectSummary)
-      .filter(Boolean)
-      .join(" · ");
-    chip.append(lbl, txt);
-    body.appendChild(chip);
-  }
-
-  // Forges-into chips
   if (!tower.comboKey) {
     const recipes = findAllCombosFor(tower.gem, tower.quality as Quality);
     for (const recipe of recipes) {
-      const chip = document.createElement("div");
-      chip.className = "inspector-combo";
-      const cFrame = document.createElement("div");
-      cFrame.className = "inspector-combo-frame";
-      cFrame.appendChild(htmlSpecial(recipe.key, 22));
-      const cText = document.createElement("div");
-      cText.className = "inspector-combo-text";
-      const cLabel = document.createElement("div");
-      cLabel.className = "inspector-combo-label";
-      cLabel.textContent = "FORGES INTO";
-      const cName = document.createElement("div");
-      cName.className = "inspector-combo-name";
-      cName.textContent = recipe.name.toUpperCase();
-      cText.append(cLabel, cName);
-      const cArrow = document.createElement("div");
-      cArrow.className = "inspector-combo-arrow";
-      cArrow.textContent = "›";
-      chip.append(cFrame, cText, cArrow);
-      chip.addEventListener("click", () => {
+      const row = document.createElement("div");
+      row.className = "inspector-forge-row";
+      const head = document.createElement("div");
+      head.className = "inspector-forge-row-head";
+      head.textContent = "FORGES INTO";
+      const rowBody = document.createElement("div");
+      rowBody.className = "inspector-forge-row-body";
+      const icon = document.createElement("div");
+      icon.className = "forge-icon";
+      icon.appendChild(htmlSpecial(recipe.key, 22));
+      const fname = document.createElement("div");
+      fname.className = "forge-name";
+      fname.textContent = recipe.name.toUpperCase();
+      const arrow = document.createElement("div");
+      arrow.className = "forge-arrow";
+      arrow.textContent = "›";
+      rowBody.append(icon, fname, arrow);
+      row.append(head, rowBody);
+      row.addEventListener("click", () => {
         game.bus.emit("focusRecipe", { key: recipe.key });
       });
-      body.appendChild(chip);
+      body.appendChild(row);
     }
   }
 
-  // Actions
   const actions = document.createElement("div");
   actions.className = "inspector-actions";
 
@@ -326,47 +271,57 @@ function render(refs: InspectorRefs, game: Game): void {
   );
   const isKeep = game.state.designatedKeepTowerId === tower.id;
   const inBuild = game.state.phase === "build";
+  const upgInfo = getUpgradeInfo(tower);
 
-  if (isCurrentDraw) {
+  const hasSecondBtn = !tower.comboKey || !!upgInfo;
+  if (isCurrentDraw && hasSecondBtn) {
+    const topRow = document.createElement("div");
+    topRow.className = "inspector-action-row";
+    const keep = document.createElement("button");
+    keep.className = "px-btn px-btn-good";
+    keep.textContent = isKeep ? "★ KEEPING" : "★ KEEP";
+    keep.disabled = !inBuild || isKeep;
+    keep.addEventListener("click", () => game.cmdDesignateKeep(tower.id));
+    topRow.appendChild(keep);
+
+    if (upgInfo) {
+      const upgBtn = document.createElement("button");
+      upgBtn.className = "px-btn px-btn-primary";
+      upgBtn.disabled = game.state.gold < upgInfo.cost;
+      upgBtn.textContent = `↑ UPGRADE ${upgInfo.cost}G`;
+      upgBtn.addEventListener("click", () => game.cmdUpgradeTower(tower.id));
+      topRow.appendChild(upgBtn);
+    } else {
+      const dg = document.createElement("button");
+      dg.className = "px-btn px-btn-bad";
+      const canDowngrade =
+        tower.quality > 1 && !game.state.downgradeUsedThisRound;
+      dg.disabled = !canDowngrade;
+      dg.textContent = "▼ DOWNGRADE";
+      if (tower.quality <= 1) dg.title = "Already lowest tier";
+      else if (game.state.downgradeUsedThisRound) dg.title = "Already downgraded this round";
+      dg.addEventListener("click", () => game.cmdDowngrade(tower.id));
+      topRow.appendChild(dg);
+    }
+    actions.appendChild(topRow);
+  } else if (isCurrentDraw) {
     const keep = document.createElement("button");
     keep.className = "px-btn px-btn-good inspector-action-keep";
     keep.textContent = isKeep ? "★ KEEPING" : "★ KEEP";
     keep.disabled = !inBuild || isKeep;
     keep.addEventListener("click", () => game.cmdDesignateKeep(tower.id));
-    actions.append(keep);
-  }
-
-  if (!tower.comboKey) {
-    const dg = document.createElement("button");
-    dg.className = "px-btn px-btn-bad";
-    const canDowngrade =
-      isCurrentDraw && tower.quality > 1 && !game.state.downgradeUsedThisRound;
-    dg.disabled = !canDowngrade;
-    dg.textContent = "▼ DOWNGRADE";
-    if (tower.quality <= 1) {
-      dg.title = "Already lowest tier";
-    } else if (game.state.downgradeUsedThisRound) {
-      dg.title = "Already downgraded this round";
-    } else if (!isCurrentDraw) {
-      dg.title = "Only current-round gems";
-    }
-    dg.addEventListener("click", () => game.cmdDowngrade(tower.id));
-    actions.append(dg);
-  }
-
-  const upgInfo = getUpgradeInfo(tower);
-  if (upgInfo) {
+    actions.appendChild(keep);
+  } else if (upgInfo) {
     const upgBtn = document.createElement("button");
-    upgBtn.className = "px-btn px-btn-good";
-    const affordable = game.state.gold >= upgInfo.cost;
-    upgBtn.disabled = !affordable;
-    upgBtn.textContent = `⬆ UPGRADE · ${upgInfo.cost}G`;
+    upgBtn.className = "px-btn px-btn-primary inspector-action-keep";
+    upgBtn.disabled = game.state.gold < upgInfo.cost;
+    upgBtn.textContent = `↑ UPGRADE · ${upgInfo.cost}G`;
     upgBtn.addEventListener("click", () => game.cmdUpgradeTower(tower.id));
-    actions.append(upgBtn);
+    actions.appendChild(upgBtn);
   }
 
   const comboRow = document.createElement("div");
-  comboRow.className = "inspector-actions-combine";
+  comboRow.className = "inspector-action-row";
 
   const combineCount = countCombinePairs(game, tower);
   const specialCount = countSpecialRecipes(game, tower);
@@ -1100,39 +1055,126 @@ function flagChip(text: string, variant: string): HTMLSpanElement {
   return span;
 }
 
-const EFFECT_DISPLAY: Record<string, string> = {
-  aura_atkspeed: "ATK SPEED",
-  aura_dmg: "DAMAGE",
-  prox_burn: "BURN",
-  prox_burn_ramp: "BURN",
-  prox_slow: "SLOW FIELD",
-  prox_armor_reduce: "ARMOR SHRED",
-  vulnerability_aura: "VULNERABILITY",
-  armor_decay_aura: "ARMOR DECAY",
-  beam_ramp: "BEAM",
-  multi_target: "MULTI-TARGET",
-  air_bonus: "AIR HUNTER",
-  trap_root: "ROOT",
-  trap_slow: "SLOW",
-  trap_dot: "DAMAGE",
-  trap_explode: "EXPLODE",
-  trap_knockback: "KNOCKBACK",
-};
+function statCell(label: string, value: string, isDmg: boolean, useHtml = false): HTMLDivElement {
+  const cell = document.createElement("div");
+  cell.className = `px-panel-inset inspector-stat-cell${isDmg ? " is-dmg" : ""}`;
+  const lbl = document.createElement("div");
+  lbl.className = "stat-lbl";
+  lbl.textContent = label;
+  const val = document.createElement("div");
+  val.className = "stat-val";
+  if (useHtml) val.innerHTML = value;
+  else val.textContent = value;
+  cell.append(lbl, val);
+  return cell;
+}
 
-function abilityHeader(
-  effects: ReturnType<typeof gemStats>["effects"],
-): string {
-  const kind = effects[0].kind;
-  const category = kind.startsWith("trap_")
-    ? "TRAP"
-    : kind.startsWith("aura_") ||
-        kind.startsWith("prox_") ||
-        kind === "vulnerability_aura" ||
-        kind === "armor_decay_aura"
-      ? "AURA"
-      : "ON HIT";
-  const name = EFFECT_DISPLAY[kind] ?? kind.replace(/_/g, " ").toUpperCase();
-  return `${category} · ${name}`;
+interface ChicletData {
+  label: string;
+  text: string;
+  tone: "aoe" | "cc" | "buff" | "debuff" | "tgt";
+}
+
+function makeChicletEl(c: ChicletData): HTMLDivElement {
+  const el = document.createElement("div");
+  el.className = `inspector-chiclet tone-${c.tone}`;
+  const lbl = document.createElement("span");
+  lbl.className = "chiclet-lbl";
+  lbl.textContent = c.label;
+  const val = document.createElement("span");
+  val.className = "chiclet-val";
+  val.textContent = c.text;
+  el.append(lbl, val);
+  return el;
+}
+
+function effectChiclet(e: EffectKind): ChicletData | null {
+  switch (e.kind) {
+    case "none":
+      return null;
+    case "splash":
+      return { label: "SPLASH", text: `r=${e.radius.toFixed(1)}${e.falloff ? ` ${Math.round(e.falloff * 100)}%` : ""}`, tone: "aoe" };
+    case "chain":
+      return { label: "CHAIN", text: `${e.bounces} bounces`, tone: "aoe" };
+    case "multi_target":
+      return { label: "MULTI", text: `${e.count} targets`, tone: "aoe" };
+    case "periodic_nova":
+      return { label: "NOVA", text: `every ${e.everyN} hits`, tone: "aoe" };
+    case "death_nova":
+      return { label: "DEATH NOVA", text: `${Math.round(e.hpPct * 100)}% HP r=${e.radius.toFixed(1)}`, tone: "aoe" };
+    case "crit_splash":
+      return { label: "CRIT AoE", text: `r=${e.radius.toFixed(1)}`, tone: "aoe" };
+    case "eruption":
+      return { label: "ERUPTION", text: `every ${e.threshold} hits`, tone: "aoe" };
+    case "trap_explode":
+      return { label: "EXPLODE", text: `r=${e.radius.toFixed(1)}`, tone: "aoe" };
+    case "slow":
+      return { label: "SLOW", text: `×${e.factor.toFixed(2)} ${e.duration}s`, tone: "cc" };
+    case "stun":
+      return { label: "STUN", text: `${Math.round(e.chance * 100)}% ${e.duration}s`, tone: "cc" };
+    case "freeze_chance":
+      return { label: "FREEZE", text: `${Math.round(e.chance * 100)}% ${e.duration}s`, tone: "cc" };
+    case "periodic_freeze":
+      return { label: "FREEZE", text: `every ${e.interval}s ${e.duration}s`, tone: "cc" };
+    case "frostbite":
+      return { label: "FROSTBITE", text: `+${Math.round(e.dmgBonus * 100)}%`, tone: "cc" };
+    case "trap_root":
+      return { label: "ROOT", text: `${e.duration}s`, tone: "cc" };
+    case "trap_slow":
+      return { label: "SLOW", text: `×${e.factor.toFixed(2)} ${e.duration}s`, tone: "cc" };
+    case "trap_knockback":
+      return { label: "KNOCKBACK", text: `${e.distance} tiles`, tone: "cc" };
+    case "prox_slow":
+      return { label: "SLOW FIELD", text: `×${e.factor.toFixed(2)} r=${e.radius.toFixed(1)}`, tone: "cc" };
+    case "demote_air":
+      return { label: "GROUND", text: `every ${e.everyN}th hit`, tone: "cc" };
+    case "crit":
+      return { label: "CRIT", text: `${Math.round(e.chance * 100)}% ×${e.multiplier}`, tone: "buff" };
+    case "aura_atkspeed":
+      return { label: "ATK SPD", text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`, tone: "buff" };
+    case "aura_dmg":
+      return { label: "DMG AURA", text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`, tone: "buff" };
+    case "beam_ramp":
+      return { label: "BEAM", text: `+${Math.round(e.rampPerHit * 100)}%/hit`, tone: "buff" };
+    case "focus_crit":
+      return { label: "FOCUS", text: `+${Math.round(e.pctPerHit * 100)}%/hit`, tone: "buff" };
+    case "execute":
+      return { label: "EXECUTE", text: `+${Math.round(e.dmgBonus * 100)}% <${Math.round(e.hpThreshold * 100)}%`, tone: "buff" };
+    case "stun_bonus_dmg":
+      return { label: "STUN DMG", text: `×${e.multiplier}`, tone: "buff" };
+    case "bonus_gold":
+      return { label: "GOLD", text: `${Math.round(e.chance * 100)}% chance`, tone: "buff" };
+    case "air_bonus":
+      return { label: "AIR BONUS", text: `×${e.multiplier.toFixed(1)}`, tone: "buff" };
+    case "true":
+      return { label: "TRUE DMG", text: `${Math.round(e.chance * 100)}%`, tone: "buff" };
+    case "poison":
+      return { label: "POISON", text: `${Math.round(e.dps)}/s ${e.duration}s`, tone: "debuff" };
+    case "armor_reduce":
+      return { label: "ARMOR BREAK", text: `-${e.value} ${e.duration}s`, tone: "debuff" };
+    case "prox_armor_reduce":
+      return { label: "ARMOR SHRED", text: `-${e.value} r=${e.radius.toFixed(1)}`, tone: "debuff" };
+    case "vulnerability_aura":
+      return { label: "VULN", text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`, tone: "debuff" };
+    case "stacking_armor_reduce":
+      return { label: "ARMOR STACK", text: `-${e.perHit}/hit max ${e.maxStacks}`, tone: "debuff" };
+    case "armor_decay_aura":
+      return { label: "ARMOR DECAY", text: `-${e.armorPerSec}/s r=${e.radius.toFixed(1)}`, tone: "debuff" };
+    case "stun_poison":
+      return { label: "VENOM", text: `${Math.round(e.dps)}/s ${e.duration}s`, tone: "debuff" };
+    case "death_spread":
+      return { label: "PLAGUE", text: `→${e.count} on death`, tone: "debuff" };
+    case "armor_pierce_burn":
+      return { label: "PIERCE", text: "ignores armor", tone: "debuff" };
+    case "linger_burn":
+      return { label: "LINGER", text: `burn ${e.duration}s`, tone: "debuff" };
+    case "trap_dot":
+      return { label: "DAMAGE", text: `${Math.round(e.dps)}/s ${e.duration}s`, tone: "debuff" };
+    case "prox_burn":
+      return { label: "BURN", text: `${Math.round(e.dps)}/s r=${e.radius.toFixed(1)}`, tone: "debuff" };
+    case "prox_burn_ramp":
+      return { label: "BURN", text: `${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s`, tone: "debuff" };
+  }
 }
 
 interface ResolvedStats {
