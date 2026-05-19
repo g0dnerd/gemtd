@@ -839,17 +839,6 @@ export function mountHud(
         banner.appendChild(blurb);
       }
 
-      const dmg = document.createElement("div");
-      dmg.className = "recipe-dmg";
-      const dmgVal = document.createElement("span");
-      dmgVal.className = "recipe-dmg-value";
-      dmgVal.textContent = `${c.stats.dmgMin}–${c.stats.dmgMax}`;
-      const dmgLbl = document.createElement("span");
-      dmgLbl.className = "recipe-dmg-label";
-      dmgLbl.textContent = "DMG";
-      dmg.append(dmgVal, dmgLbl);
-      banner.appendChild(dmg);
-
       card.appendChild(banner);
 
       const ingredients = document.createElement("div");

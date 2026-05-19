@@ -701,8 +701,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         { kind: "stun", chance: 0.15, duration: 1.2 },
         { kind: "beam_ramp", rampPerHit: 0.15, maxStacks: 25 },
       ],
-      blurb:
-        "All gem powers combined. Splash, crit, poison, slow, stun, ramping beam.",
+      blurb: "The ultimate gem.",
       targeting: "all",
     },
     upgrades: [],
