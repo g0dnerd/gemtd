@@ -1,5 +1,5 @@
 /**
- * Gem catalog: 7 gem types × 5 qualities, plus a small set of multi-gem
+ * Gem catalog: 8 gem types × 5 qualities, plus a small set of multi-gem
  * specials (defined in combos.ts).
  *
  * Stats are derived from a per-gem base stat block, scaled by quality.

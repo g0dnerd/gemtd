@@ -1,9 +1,10 @@
 /**
- * Full wave list. 70 waves. Waves 1-9 are single-type introductions.
+ * Full wave list. 50 waves (51-70 planned but not yet active).
+ * Waves 1-9 are single-type introductions.
  * Wave 11 introduces healers, wave 21 introduces tunnelers.
  * From wave 21 on, both specials mix in with increasing prominence.
  * Some waves throughout remain single-type for variety.
- * Boss waves are at 10 / 20 / 30 / 40 / 50 / 60 / 70.
+ * Boss waves are at 10 / 20 / 30 / 40 / 50.
  * Starting at wave 30, bosses are accompanied by auxiliary healers.
  */
 
