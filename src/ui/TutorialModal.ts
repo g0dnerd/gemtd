@@ -185,7 +185,7 @@ function goalBody(): HTMLElement {
   const wrap = document.createElement("div");
   wrap.append(
     p(
-      `Survive <b>50 waves</b> of creeps. They follow the <b>shortest path</b> through 6 checkpoints. Place towers to create <b>longer detours</b> — more time in range means more damage.`,
+      `Survive <b>50 waves</b> of creeps. They follow the <b>shortest path</b> through 6 checkpoints. Place towers to create <b>longer detours</b> - more time in range means more damage.`,
     ),
     stepList([
       {
@@ -213,19 +213,19 @@ function buildBody(): HTMLElement {
     stepList([
       {
         marker: "1",
-        html: `<b>Place</b> — select a draw slot, click a grass tile.`,
+        html: `<b>Place</b> - select a draw slot, click a grass tile.`,
       },
       {
         marker: "2",
-        html: `<b>Cycle</b> — <kbd>TAB</kbd> to switch between unplaced slots.`,
+        html: `<b>Cycle</b> - <kbd>TAB</kbd> to switch between unplaced slots.`,
       },
       {
         marker: "3",
-        html: `<b>Undo</b> — <kbd>U</kbd> to reverse your last placement.`,
+        html: `<b>Undo</b> - <kbd>U</kbd> to reverse your last placement.`,
       },
     ]),
     note(
-      `Once all 5 are placed, press <kbd>SPACE</kbd> to start the wave. After it ends, <b>keep one</b> tower (<kbd>K</kbd>) — the other four become <b>rocks</b>. That's how you build your maze.`,
+      `Once all 5 are placed, press <kbd>SPACE</kbd> to start the wave. After it ends, <b>keep one</b> tower (<kbd>K</kbd>) - the other four become <b>rocks</b>. That's how you build your maze.`,
     ),
   );
   return wrap;
@@ -258,12 +258,12 @@ function runesBody(): HTMLElement {
   const wrap = document.createElement("div");
   wrap.append(
     p(
-      `<b>Runes</b> are special recipe combos that act as <b>traps</b>. Unlike towers, they don't block pathing — creeps walk over them and trigger their effect.`,
+      `<b>Runes</b> are special recipe combos that act as <b>traps</b>. Unlike towers, they don't block pathing - creeps walk over them and trigger their effect.`,
     ),
-    p(`<b>Rune of Holding</b> — stuns creeps briefly.`),
-    p(`<b>Rune of Damage</b> — deals burst damage on contact.`),
-    p(`<b>Rune of Teleportation</b> — knocks creeps back along the path.`),
-    p(`<b>Rune of Slow</b> — applies a heavy slow.`),
+    p(`<b>Rune of Holding</b> - stuns creeps briefly.`),
+    p(`<b>Rune of Damage</b> - deals burst damage on contact.`),
+    p(`<b>Rune of Teleportation</b> - knocks creeps back along the path.`),
+    p(`<b>Rune of Slow</b> - applies a heavy slow.`),
     note(
       `Runes have a cooldown between triggers. Place them on the creep path for maximum effect.`,
     ),
@@ -302,7 +302,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "new",
-          text: "Chrysalid creeps (wave 31+): at 50% HP, awakens — immune to debuffs and blocks every 10th hit.",
+          text: "Chrysalid creeps (wave 31+): at 50% HP, awakens - immune to debuffs and blocks every 10th hit.",
         },
         { tag: "new", text: "Gestation boss (wave 50)" },
         {
@@ -611,11 +611,11 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "new",
-          text: "Armor system — numeric armor replaces the armored flag. WC3 damage formula.",
+          text: "Armor system - numeric armor replaces the armored flag. WC3 damage formula.",
         },
         {
           tag: "new",
-          text: "Special gem upgrade rework — all 9 combo upgrade tiers replaced with identity-defining mechanics.",
+          text: "Special gem upgrade rework - all 9 combo upgrade tiers replaced with identity-defining mechanics.",
         },
         {
           tag: "bal",
@@ -655,7 +655,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "new",
-          text: "Creep inspector — click a creep to see HP, speed, bounty, debuffs.",
+          text: "Creep inspector - click a creep to see HP, speed, bounty, debuffs.",
         },
         {
           tag: "new",
@@ -717,7 +717,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "new",
-          text: "Downgrade — reduce a gem's tier by 1 to keep it. One use per round.",
+          text: "Downgrade - reduce a gem's tier by 1 to keep it. One use per round.",
         },
       ],
     },
@@ -780,7 +780,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "new",
-          text: "Aquamarine rework — ramping beam replaces rapid-fire projectiles.",
+          text: "Aquamarine rework - ramping beam replaces rapid-fire projectiles.",
         },
       ],
     },
@@ -789,7 +789,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "new",
-          text: "Amethyst rework — targets all units with air damage bonus.",
+          text: "Amethyst rework - targets all units with air damage bonus.",
         },
       ],
     },
@@ -799,15 +799,15 @@ function changesBody(): HTMLElement {
         { tag: "new", text: "Hardcore + Creative mode." },
         {
           tag: "new",
-          text: "Runes — walkable trap towers triggered by creep proximity.",
+          text: "Runes - walkable trap towers triggered by creep proximity.",
         },
         {
           tag: "new",
-          text: "Tower kill leveling — towers gain +5% damage per 10 kills.",
+          text: "Tower kill leveling - towers gain +5% damage per 10 kills.",
         },
         {
           tag: "new",
-          text: "8× speed mode — press <kbd>8</kbd> to fast-forward.",
+          text: "8× speed mode - press <kbd>8</kbd> to fast-forward.",
         },
         {
           tag: "new",
@@ -815,19 +815,19 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "new",
-          text: "Radial menu — right-click towers for Keep / Combine / Special.",
+          text: "Radial menu - right-click towers for Keep / Combine / Special.",
         },
         {
           tag: "new",
-          text: "Path overlay — press <kbd>P</kbd> to see the creep route.",
+          text: "Path overlay - press <kbd>P</kbd> to see the creep route.",
         },
         {
           tag: "new",
-          text: "Recipe hints — tower inspector shows “Forges Into” recipes.",
+          text: "Recipe hints - tower inspector shows “Forges Into” recipes.",
         },
         {
           tag: "new",
-          text: "Stargem — apex gem from 4× Perfect same-type recipe.",
+          text: "Stargem - apex gem from 4× Perfect same-type recipe.",
         },
         {
           tag: "bal",
