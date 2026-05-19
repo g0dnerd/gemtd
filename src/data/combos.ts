@@ -534,9 +534,9 @@ const ALL_COMBOS: ComboRecipe[] = [
       range: 5.0,
       atkSpeed: 0.8,
       effects: [
-        { kind: "demote_air", everyN: 10 },
+        { kind: "demote_air", everyN: 20 },
       ],
-      blurb: "Every 10th hit grounds air units.",
+      blurb: "Every 20th hit grounds air units.",
       targeting: "all",
     },
     upgrades: [
@@ -549,9 +549,9 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 6.5,
           atkSpeed: 0.8,
           effects: [
-            { kind: "demote_air", everyN: 10 },
+            { kind: "demote_air", everyN: 20 },
           ],
-          blurb: "Every 10th hit grounds air units.",
+          blurb: "Every 20th hit grounds air units.",
           targeting: "all",
         },
       },
@@ -564,9 +564,9 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 8.0,
           atkSpeed: 0.8,
           effects: [
-            { kind: "demote_air", everyN: 10 },
+            { kind: "demote_air", everyN: 20 },
           ],
-          blurb: "Every 10th hit grounds air units.",
+          blurb: "Every 20th hit grounds air units.",
           targeting: "all",
         },
       },
