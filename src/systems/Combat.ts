@@ -340,6 +340,13 @@ export class Combat {
       }
     }
 
+    // Jade T3 crit: gold fireworks at the tower
+    if (p.wasCrit && owner.comboKey === 'jade' && (owner.upgradeTier ?? 0) >= 2) {
+      const tx = (owner.x + 1) * FINE_TILE;
+      const ty = (owner.y + 1) * FINE_TILE;
+      this.game.bus.emit('vfx:jadeCrit', { x: tx, y: ty });
+    }
+
     // Crit splash: on crit, deal splash damage around impact (no on-hit effects)
     if (p.wasCrit) {
       const critSplash = stats.effects.find((e): e is Extract<EffectKind, { kind: 'crit_splash' }> => e.kind === 'crit_splash');

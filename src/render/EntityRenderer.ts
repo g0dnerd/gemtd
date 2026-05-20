@@ -61,6 +61,8 @@ interface TowerEntry {
   opalSprite?: Sprite;
   /** Last rendered opal frame index. */
   opalFrame?: number;
+  /** Wrapper for jade combo sprite bobbing animation. */
+  jadeBobWrap?: Container;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -117,6 +119,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let fx: TowerFx | undefined;
       let sgfx: StargemFx | undefined;
       let opalFrames: Texture[] | undefined;
+      let jadeBobWrap: Container | undefined;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -149,14 +152,21 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           fx = makeSpecialFx(obj, t.comboKey);
         }
         const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
-        obj.addChild(towerSprite);
+        if (t.comboKey === 'jade') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          obj.addChild(wrap);
+          jadeBobWrap = wrap;
+        } else {
+          obj.addChild(towerSprite);
+        }
         if (t.gem === "opal" && !t.comboKey) {
           opalFrames = cache.opalFrameTextures(t.quality);
         }
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -169,6 +179,13 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         entry.opalFrame = frame;
         entry.opalSprite.texture = entry.opalFrames[frame];
       }
+    }
+    if (entry.jadeBobWrap) {
+      const sec = performance.now() / 1000;
+      const tier = entry.upgradeTier;
+      const amp = 1.5 + tier * 0.5;
+      const period = 2.0 - tier * 0.4;
+      entry.jadeBobWrap.y = -amp * (1 - Math.cos((2 * Math.PI * sec) / period)) / 2;
     }
     const isSelected = t.id === selectedTowerId;
     if (isSelected && !entry.selBracket) {

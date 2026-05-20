@@ -46,6 +46,7 @@ export interface GameEvents {
   'vfx:eruption': { x: number; y: number; radiusPx: number };
   'vfx:mycoidPulse': { x: number; y: number; radiusPx: number };
   'vfx:gestationTransition': { x: number; y: number };
+  'vfx:jadeCrit': { x: number; y: number };
 }
 
 type Handler<T> = (payload: T) => void;
