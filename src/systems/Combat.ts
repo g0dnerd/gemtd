@@ -450,7 +450,7 @@ export class Combat {
   private rollBonusGold(owner: TowerState, target: CreepState, stats: ResolvedStats): void {
     const bg = stats.effects.find((e): e is Extract<EffectKind, { kind: 'bonus_gold' }> => e.kind === 'bonus_gold');
     if (!bg || this.game.rng.next() >= bg.chance) return;
-    this.game.state.gold += target.bounty * bg.multiplier;
+    this.game.state.gold += Math.min(target.bounty * bg.multiplier, 10);
     const tx = (owner.x + 1) * FINE_TILE;
     const ty = (owner.y + 1) * FINE_TILE;
     this.game.bus.emit('vfx:bonusGold', { x: tx, y: ty });

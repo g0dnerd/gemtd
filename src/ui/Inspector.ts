@@ -1143,7 +1143,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "stun_bonus_dmg":
       return { label: "STUN DMG", text: `×${e.multiplier}`, tone: "buff" };
     case "bonus_gold":
-      return { label: "GOLD", text: `${Math.round(e.chance * 100)}% ×${e.multiplier} bounty`, tone: "buff" };
+      return { label: "GOLD", text: `${Math.round(e.chance * 100)}% ×${e.multiplier} bounty (max 10)`, tone: "buff" };
     case "air_bonus":
       return { label: "AIR BONUS", text: `×${e.multiplier.toFixed(1)}`, tone: "buff" };
     case "true":
