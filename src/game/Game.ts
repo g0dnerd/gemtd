@@ -723,7 +723,6 @@ export class Game {
       this.layers.towers,
       this.state.towers,
       this.towerSprites,
-      this.state.tick,
       this.selectedTowerId,
       this.hoveredTowerId,
     );

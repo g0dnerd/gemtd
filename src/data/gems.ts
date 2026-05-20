@@ -33,7 +33,7 @@ export type EffectKind =
   | { kind: 'prox_burn'; dps: number; radius: number }
   | { kind: 'prox_slow'; factor: number; radius: number }
   | { kind: 'armor_reduce'; value: number; duration: number }
-  | { kind: 'bonus_gold'; chance: number }
+  | { kind: 'bonus_gold'; chance: number; multiplier: number }
   | { kind: 'vulnerability_aura'; radius: number; pct: number }
   | { kind: 'crit_splash'; radius: number; falloff: number }
   | { kind: 'focus_crit'; pctPerHit: number; maxBonus: number }
@@ -241,7 +241,7 @@ function scaleEffects(effects: EffectKind[], quality: Quality, dmgScale: number)
       case 'armor_reduce':
         return { ...e, value: e.value + (quality - 1), duration: e.duration + (quality - 1) * 0.5 };
       case 'bonus_gold':
-        return { ...e, chance: Math.min(0.15, e.chance + (quality - 1) * 0.01) };
+        return { ...e, chance: Math.min(0.05, e.chance + (quality - 1) * 0.005) };
       default:
         return e;
     }
@@ -322,7 +322,7 @@ export function effectSummary(e: EffectKind): string {
     case 'armor_reduce':
       return `-${e.value} armor for ${e.duration}s`;
     case 'bonus_gold':
-      return `${Math.round(e.chance * 100)}% bonus gold`;
+      return `${Math.round(e.chance * 100)}% ×${e.multiplier} bonus gold on hit`;
     case 'vulnerability_aura':
       return `Vuln +${Math.round(e.pct * 100)}% · ${e.radius.toFixed(1)} tiles`;
     case 'crit_splash':

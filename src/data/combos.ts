@@ -268,8 +268,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Lucky Asian Jade",
         cost: 250,
         stats: {
-          dmgMin: 300,
-          dmgMax: 450,
+          dmgMin: 270,
+          dmgMax: 405,
           range: 4.25,
           atkSpeed: 1.3,
           effects: [
@@ -277,10 +277,10 @@ const ALL_COMBOS: ComboRecipe[] = [
             { kind: "slow", factor: 0.5, duration: 4.0 },
             { kind: "crit", chance: 0.12, multiplier: 6.0 },
             { kind: "stun", chance: 0.08, duration: 2.0 },
-            { kind: "bonus_gold", chance: 0.1 },
+            { kind: "bonus_gold", chance: 0.03, multiplier: 3 },
           ],
           blurb:
-            "Poison 75 dps 4s. 50% slow. Lucky crits, stuns, and bonus gold.",
+            "Poison 75 dps 4s. 50% slow. Lucky crits, stuns, and ×3 bonus gold on hit.",
           targeting: "all",
         },
       },
@@ -296,8 +296,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "aquamarine", quality: 1 },
     ],
     stats: {
-      dmgMin: 17,
-      dmgMax: 24,
+      dmgMin: 19,
+      dmgMax: 26,
       range: 3.5,
       atkSpeed: 1.4,
       effects: [{ kind: "multi_target", count: 3 }],
@@ -309,8 +309,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Vivid Malachite",
         cost: 25,
         stats: {
-          dmgMin: 30,
-          dmgMax: 46,
+          dmgMin: 33,
+          dmgMax: 51,
           range: 3.75,
           atkSpeed: 1.5,
           effects: [{ kind: "multi_target", count: 3 }],
@@ -322,8 +322,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Mighty Malachite",
         cost: 280,
         stats: {
-          dmgMin: 70,
-          dmgMax: 100,
+          dmgMin: 77,
+          dmgMax: 110,
           range: 4.0,
           atkSpeed: 1.8,
           effects: [{ kind: "multi_target", count: 10 }],
@@ -345,7 +345,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     stats: {
       dmgMin: 250,
       dmgMax: 350,
-      range: 4.5,
+      range: 4.0,
       atkSpeed: 1.0,
       effects: [{ kind: "crit", chance: 0.1, multiplier: 5.0 }],
       blurb: "10% chance for x5 crit. Ground only.",
@@ -354,11 +354,11 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Living Diamond",
-        cost: 250,
+        cost: 300,
         stats: {
           dmgMin: 300,
-          dmgMax: 520,
-          range: 4.75,
+          dmgMax: 470,
+          range: 4.5,
           atkSpeed: 1.1,
           effects: [
             { kind: "crit", chance: 0.09, multiplier: 6 },

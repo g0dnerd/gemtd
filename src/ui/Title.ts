@@ -64,7 +64,7 @@ export function mountTitle(
   const footerTop = document.createElement("div");
   footerTop.className = "title-footer-top";
   const version = document.createElement("span");
-  version.textContent = "v1.5.2";
+  version.textContent = "v1.5.3";
   footerTop.appendChild(version);
 
   const footerBottom = document.createElement("div");

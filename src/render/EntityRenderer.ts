@@ -10,7 +10,7 @@
 import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
 import { activeDraw } from "../game/State";
-import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
+import { FINE_TILE, TILE } from "../game/constants";
 import { GEM_PALETTE, type GemType, RUNE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
 import { OPAL_FRAME_COUNT } from "./spriteData";
@@ -40,7 +40,6 @@ interface StargemFx {
   crownSparks: Graphics[];
   orbitals: Container[];
   pinpricks: Graphics[];
-  shootingStars: Graphics[];
   spriteWrap: Container;
 }
 
@@ -104,7 +103,8 @@ const projectileObjs = new Map<number, PerEntity>();
 
 const runeTextureCache = new Map<string, Texture>();
 
-export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number, selectedTowerId: number | null = null, hoveredTowerId: number | null = null): void {
+export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, selectedTowerId: number | null = null, hoveredTowerId: number | null = null): void {
+  const now = performance.now();
   const seen = new Set<number>();
   for (const t of towers) {
     seen.add(t.id);
@@ -171,17 +171,17 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
-    if (entry.stargemFx) animateStargemFx(entry.stargemFx, tick);
-    else if (entry.fx) animateTowerFx(entry.fx, tick);
+    if (entry.stargemFx) animateStargemFx(entry.stargemFx, now);
+    else if (entry.fx) animateTowerFx(entry.fx, now);
     if (entry.opalFrames && entry.opalSprite) {
-      const frame = Math.floor(tick / 27) % OPAL_FRAME_COUNT;
+      const frame = Math.floor(now / 225) % OPAL_FRAME_COUNT;
       if (frame !== entry.opalFrame) {
         entry.opalFrame = frame;
         entry.opalSprite.texture = entry.opalFrames[frame];
       }
     }
     if (entry.jadeBobWrap) {
-      const sec = performance.now() / 1000;
+      const sec = now / 1000;
       const tier = entry.upgradeTier;
       const amp = 1.5 + tier * 0.5;
       const period = 2.0 - tier * 0.4;
@@ -283,8 +283,8 @@ function drawDashedRing(g: Graphics, radius: number, color: number): void {
   g.stroke({ width: 1.5, color, alpha: 0.6 });
 }
 
-function animateTowerFx(fx: TowerFx, tick: number): void {
-  const t = tick / SIM_HZ;
+function animateTowerFx(fx: TowerFx, now: number): void {
+  const t = now / 500;
   const phase = (Math.sin((t / fx.haloPulse) * Math.PI * 2) + 1) / 2;
   // Halo: pulse between 40% and 100% of peak alpha.
   fx.halo.alpha = fx.haloPeak * (0.4 + 0.6 * phase);
@@ -402,27 +402,15 @@ function makeStargemFx(parent: Container): StargemFx {
     orbitals.push(orb);
   }
 
-  // 9. Shooting stars (2 diagonal streaks)
-  const shootingStars: Graphics[] = [];
-  for (let i = 0; i < 2; i++) {
-    const ss = new Graphics();
-    ss.rect(0, 0, 16, 1.5).fill({ color: 0xffffff, alpha: 0.85 });
-    ss.rect(0, 0, 10, 1.5).fill({ color: APEX_STARGEM.accent, alpha: 0.6 });
-    ss.rotation = (20 * Math.PI) / 180;
-    ss.alpha = 0;
-    parent.addChild(ss);
-    shootingStars.push(ss);
-  }
-
-  return { ground, outerHalo, innerHalo, rayBurst, crownSparks, orbitals, pinpricks, shootingStars, spriteWrap };
+  return { ground, outerHalo, innerHalo, rayBurst, crownSparks, orbitals, pinpricks, spriteWrap };
 }
 
 const ORBITAL_PERIODS = [1.6, 2.4, 3.4, 5.0];
 const ORBITAL_DELAYS = [0, -0.4, -1.2, -2.0];
 const PIN_DELAYS = [0, 0.6, 1.2, 1.8];
 
-function animateStargemFx(fx: StargemFx, tick: number): void {
-  const t = tick / SIM_HZ;
+function animateStargemFx(fx: StargemFx, now: number): void {
+  const t = now / 500;
 
   // Sprite bob: 0 → -3 → 0 over 2.4s
   fx.spriteWrap.y = -1.5 * (1 - Math.cos((2 * Math.PI * t) / 2.4));
@@ -461,25 +449,6 @@ function animateStargemFx(fx: StargemFx, tick: number): void {
     fx.pinpricks[i].scale.set(0.7 + 0.4 * pp);
   }
 
-  // Shooting stars (2): 3.4s cycle, offset 1.7s
-  const half = TILE / 2;
-  for (let i = 0; i < 2; i++) {
-    const st = ((t - i * 1.7) % 3.4 + 3.4) % 3.4;
-    const p = st / 3.4;
-    if (p < 0.1) {
-      fx.shootingStars[i].alpha = p / 0.1;
-      fx.shootingStars[i].x = -half + (p / 0.4) * half * 3.2;
-      fx.shootingStars[i].y = -half + (p / 0.4) * half * 1.6;
-    } else if (p < 0.4) {
-      fx.shootingStars[i].alpha = 1;
-      fx.shootingStars[i].x = -half + (p / 0.4) * half * 3.2;
-      fx.shootingStars[i].y = -half + (p / 0.4) * half * 1.6;
-    } else if (p < 0.45) {
-      fx.shootingStars[i].alpha = 1 - (p - 0.4) / 0.05;
-    } else {
-      fx.shootingStars[i].alpha = 0;
-    }
-  }
 }
 
 export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSpriteCache, selectedRockId: number | null = null): void {

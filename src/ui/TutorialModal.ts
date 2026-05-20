@@ -298,6 +298,35 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.3",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Pink Diamond: range 4.5 -> 4.0.",
+        },
+        {
+          tag: "nerf",
+          text: "Living Diamond: cost 250 -> 300, dmgMax 520 -> 470, range 4.75 -> 4.5.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 50: gazers 5 -> 3, corals 3 -> 2, both HP reduced 30%.",
+        },
+        {
+          tag: "nerf",
+          text: "Lucky Asian Jade: damage -10% (300-450 -> 270-405).",
+        },
+        {
+          tag: "bal",
+          text: "Lucky Asian Jade: bonus gold now drops on hit (was on kill), chance reduced to 3%.",
+        },
+        {
+          tag: "buff",
+          text: "Malachite: +10% damage across all tiers.",
+        },
+      ],
+    },
+    {
       ver: "1.5.2",
       notes: [
         {

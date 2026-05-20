@@ -178,6 +178,7 @@ export class Combat {
     const rampMult = 1 + tower.beam.stacks * beam.rampPerHit;
     const dmg = Math.round(baseDmg * rampMult * (1 + dmgAuraMult));
     this.applyDamage(target, dmg, tower);
+    this.rollBonusGold(tower, target, stats);
     this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
   }
 
@@ -294,6 +295,7 @@ export class Combat {
     if (target && !isBurrowed(target, tick)) {
       this.applyDamage(target, p.damage, owner);
       this.applyEffects(target, stats.effects, owner);
+      this.rollBonusGold(owner, target, stats);
       if (p.isDemoteShot && target.flags?.air) {
         target.flags.air = false;
         owner.attackCount = 0;
@@ -338,13 +340,6 @@ export class Combat {
           last = next;
         }
       }
-    }
-
-    // Jade T3 crit: gold fireworks at the tower
-    if (p.wasCrit && owner.comboKey === 'jade' && (owner.upgradeTier ?? 0) >= 2) {
-      const tx = (owner.x + 1) * FINE_TILE;
-      const ty = (owner.y + 1) * FINE_TILE;
-      this.game.bus.emit('vfx:jadeCrit', { x: tx, y: ty });
     }
 
     // Crit splash: on crit, deal splash damage around impact (no on-hit effects)
@@ -443,14 +438,6 @@ export class Combat {
       owner.kills++;
       const state = this.game.state;
       state.gold += c.bounty;
-      // Bonus gold check
-      const ownerStats = effectiveStats(owner);
-      for (const e of ownerStats.effects) {
-        if (e.kind === 'bonus_gold' && this.game.rng.next() < e.chance) {
-          state.gold += c.bounty;
-          this.game.bus.emit('vfx:bonusGold', { x: c.px, y: c.py });
-        }
-      }
       state.totalKills++;
       state.waveStats.killedThisWave++;
       const { pathProgress, ticksAlive } = creepDeathMetrics(c, state);
@@ -458,6 +445,16 @@ export class Combat {
       this.game.bus.emit('gold:change', { gold: state.gold });
       this.game.handleCreepDeath(c);
     }
+  }
+
+  private rollBonusGold(owner: TowerState, target: CreepState, stats: ResolvedStats): void {
+    const bg = stats.effects.find((e): e is Extract<EffectKind, { kind: 'bonus_gold' }> => e.kind === 'bonus_gold');
+    if (!bg || this.game.rng.next() >= bg.chance) return;
+    this.game.state.gold += target.bounty * bg.multiplier;
+    const tx = (owner.x + 1) * FINE_TILE;
+    const ty = (owner.y + 1) * FINE_TILE;
+    this.game.bus.emit('vfx:bonusGold', { x: tx, y: ty });
+    this.game.bus.emit('gold:change', { gold: this.game.state.gold });
   }
 
   private applyEffects(c: CreepState, effects: EffectKind[], owner: TowerState): void {

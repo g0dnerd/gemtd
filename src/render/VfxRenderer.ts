@@ -33,14 +33,6 @@ interface TendrilFx {
   age: number; lifetime: number;
 }
 
-interface CoinParticle { x: number; y: number; vx: number; vy: number; spin: number; spinSpeed: number }
-
-interface CoinFountainFx {
-  kind: 'coinFountain';
-  particles: CoinParticle[];
-  age: number; lifetime: number;
-}
-
 interface SnowflakeFx {
   kind: 'snowflake';
   x: number; y: number;
@@ -56,16 +48,23 @@ interface DriftFx {
   age: number; lifetime: number;
 }
 
-interface FireworkParticle { x: number; y: number; vx: number; vy: number; color: number; size: number }
+interface CoinRainParticle {
+  x: number; y: number;
+  vx: number; vy: number;
+  spin: number; spinSpeed: number;
+  delay: number;
+  landed: boolean;
+  bounced: boolean;
+}
 
-interface FireworkBurstFx {
-  kind: 'fireworkBurst';
-  particles: FireworkParticle[];
-  gravity: number;
+interface CoinRainFx {
+  kind: 'coinRain';
+  particles: CoinRainParticle[];
+  landY: number;
   age: number; lifetime: number;
 }
 
-type Fx = RingFx | SnowBurstFx | TendrilFx | CoinFountainFx | SnowflakeFx | DriftFx | FireworkBurstFx;
+type Fx = RingFx | SnowBurstFx | TendrilFx | SnowflakeFx | DriftFx | CoinRainFx;
 
 export class VfxRenderer {
   private pool: Fx[] = [];
@@ -124,19 +123,21 @@ export class VfxRenderer {
     });
 
     bus.on('vfx:bonusGold', (e) => {
-      const particles: CoinParticle[] = [];
-      for (let i = 0; i < 4; i++) {
-        const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
-        const speed = 1.5 + Math.random() * 1.5;
+      const particles: CoinRainParticle[] = [];
+      for (let i = 0; i < 20; i++) {
         particles.push({
-          x: e.x, y: e.y,
-          vx: Math.cos(angle) * speed,
-          vy: Math.sin(angle) * speed,
+          x: e.x + (Math.random() - 0.5) * 20,
+          y: e.y - 20 - Math.random() * 16,
+          vx: (Math.random() - 0.5) * 0.4,
+          vy: 0.3 + Math.random() * 0.5,
           spin: Math.random() * Math.PI * 2,
-          spinSpeed: 0.15 + Math.random() * 0.2,
+          spinSpeed: 0.12 + Math.random() * 0.15,
+          delay: Math.floor(Math.random() * 18),
+          landed: false,
+          bounced: false,
         });
       }
-      this.pool.push({ kind: 'coinFountain', particles, age: 0, lifetime: 30 });
+      this.pool.push({ kind: 'coinRain', particles, landY: e.y + 6, age: 0, lifetime: 90 });
     });
 
     bus.on('vfx:freezeProc', (e) => {
@@ -165,48 +166,6 @@ export class VfxRenderer {
           color: i % 3 === 0 ? 0xffe060 : 0xff5040,
           size: 1.5 + Math.random() * 1.5,
           age: 0, lifetime: 30 + Math.floor(Math.random() * 10),
-        });
-      }
-    });
-
-    bus.on('vfx:jadeCrit', (e) => {
-      // Gold ring burst
-      this.pool.push({
-        kind: 'ring', x: e.x, y: e.y,
-        maxRadius: TILE * 1.8, color: 0xffd840,
-        age: 0, lifetime: 22,
-      });
-      // Triple gold firework bursts, staggered upward
-      for (let burst = 0; burst < 3; burst++) {
-        const bx = e.x + (burst - 1) * 8;
-        const by = e.y - 10 - burst * 6;
-        const particles: FireworkParticle[] = [];
-        const count = 10 + burst * 2;
-        for (let i = 0; i < count; i++) {
-          const a = (i / count) * Math.PI * 2 + Math.random() * 0.5;
-          const speed = 1.5 + Math.random() * 2.0;
-          const isGold = i % 3 !== 0;
-          particles.push({
-            x: bx, y: by,
-            vx: Math.cos(a) * speed,
-            vy: Math.sin(a) * speed - 1.0,
-            color: isGold ? 0xffd840 : 0x58c898,
-            size: 1.5 + Math.random() * 1.5,
-          });
-        }
-        this.pool.push({ kind: 'fireworkBurst', particles, gravity: 0.06, age: -burst * 4, lifetime: 40 });
-      }
-      // Jade sparkle shower
-      for (let i = 0; i < 6; i++) {
-        this.pool.push({
-          kind: 'drift',
-          x: e.x + (Math.random() - 0.5) * 16,
-          y: e.y - 6,
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: -0.8 - Math.random() * 0.6,
-          color: i % 2 === 0 ? 0xc8f0d8 : 0xffe880,
-          size: 1.5 + Math.random(),
-          age: 0, lifetime: 35,
         });
       }
     });
@@ -261,9 +220,10 @@ export class VfxRenderer {
     }
     this.pool.length = write;
 
-    this.drawPressureBars(state);
+    this.drawRunePips(state);
 
     this.tickJadeIdle(state);
+    this.tickToxicMist(state);
 
     if (state.phase === 'wave') {
       this.drawFocusPips(state);
@@ -312,21 +272,6 @@ export class VfxRenderer {
           .stroke({ width: 2, color: GEM_PALETTE.emerald.mid, alpha: fade * 0.8 });
         break;
       }
-      case 'coinFountain': {
-        const gravity = 0.08;
-        for (const p of fx.particles) {
-          p.vy += gravity;
-          p.x += p.vx;
-          p.y += p.vy;
-          p.spin += p.spinSpeed;
-          const squash = Math.abs(Math.cos(p.spin));
-          const rx = Math.max(0.5, 4 * squash);
-          g.ellipse(p.x, p.y, rx, 4).fill({ color: 0xffd840, alpha });
-          g.ellipse(p.x, p.y, rx, 4).stroke({ width: 1, color: 0xf0a040, alpha });
-          g.ellipse(p.x, p.y, Math.max(0.3, 2 * squash), 2).fill({ color: 0xffe880, alpha });
-        }
-        break;
-      }
       case 'snowflake': {
         const s = 0.6 + t * 0.4;
         const a = alpha * 0.9;
@@ -347,16 +292,35 @@ export class VfxRenderer {
         g.circle(fx.x, fx.y, fx.size).fill({ color: fx.color, alpha: alpha * 0.6 });
         break;
       }
-      case 'fireworkBurst': {
-        if (fx.age < 0) break;
+      case 'coinRain': {
+        const gravity = 0.12;
         for (const p of fx.particles) {
-          p.vy += fx.gravity;
-          p.vx *= 0.97;
-          p.vy *= 0.97;
-          p.x += p.vx;
-          p.y += p.vy;
-          g.circle(p.x, p.y, p.size).fill({ color: p.color, alpha: alpha * 0.8 });
-          g.circle(p.x, p.y, p.size * 0.5).fill({ color: 0xffffff, alpha: alpha * 0.5 });
+          if (fx.age < p.delay) continue;
+          if (!p.landed) {
+            p.vy += gravity;
+            p.x += p.vx;
+            p.y += p.vy;
+            p.spin += p.spinSpeed;
+            if (p.y >= fx.landY) {
+              p.y = fx.landY;
+              if (!p.bounced) {
+                p.vy = -1.2 - Math.random() * 0.6;
+                p.vx *= 0.5;
+                p.bounced = true;
+              } else {
+                p.landed = true;
+                p.vy = 0;
+                p.vx = 0;
+              }
+            }
+          }
+          const fadeStart = fx.lifetime * 0.7;
+          const coinAlpha = fx.age > fadeStart ? 1 - (fx.age - fadeStart) / (fx.lifetime - fadeStart) : 1;
+          const squash = Math.abs(Math.cos(p.spin));
+          const rx = Math.max(0.5, 3.5 * squash);
+          g.ellipse(p.x, p.y, rx, 3.5).fill({ color: 0xffd840, alpha: coinAlpha });
+          g.ellipse(p.x, p.y, rx, 3.5).stroke({ width: 0.8, color: 0xf0a040, alpha: coinAlpha });
+          g.ellipse(p.x, p.y, Math.max(0.3, 1.8 * squash), 1.8).fill({ color: 0xffe880, alpha: coinAlpha * 0.8 });
         }
         break;
       }
@@ -412,8 +376,9 @@ export class VfxRenderer {
     }
   }
 
-  private drawPressureBars(state: State): void {
+  private drawRunePips(state: State): void {
     const g = this.gfx!;
+    const now = performance.now() / 1000;
     for (const t of state.towers) {
       if (t.pressureStacks == null || t.pressureStacks === 0) continue;
       const effects = resolveEffects(t);
@@ -422,13 +387,27 @@ export class VfxRenderer {
       );
       if (!eruption) continue;
       const tx = (t.x + 1) * FINE_TILE;
-      const ty = (t.y + 1) * FINE_TILE + FINE_TILE * 0.7;
-      const barW = 16;
-      const barH = 2;
-      const fill = t.pressureStacks / eruption.threshold;
-      g.rect(tx - barW / 2, ty, barW, barH).fill({ color: 0x000000, alpha: 0.5 });
-      const fillColor = fill > 0.7 ? 0xffe060 : 0xff5040;
-      g.rect(tx - barW / 2, ty, barW * fill, barH).fill({ color: fillColor, alpha: 0.85 });
+      const ty = (t.y + 1) * FINE_TILE;
+      const count = eruption.threshold;
+      const filled = t.pressureStacks;
+      const ratio = filled / count;
+      const radius = FINE_TILE * 0.85;
+      const ps = 3;
+      const allFilled = filled >= count;
+      const pulseAlpha = allFilled ? 0.7 + 0.3 * ((Math.sin(now * 6) + 1) / 2) : 1;
+
+      for (let i = 0; i < count; i++) {
+        const angle = -Math.PI / 2 + (i / count) * Math.PI * 2;
+        const px = tx + Math.cos(angle) * radius;
+        const py = ty + Math.sin(angle) * radius;
+        const pts = [px, py - ps, px + ps, py, px, py + ps, px - ps, py];
+        if (i < filled) {
+          const color = ratio > 0.7 ? 0xffe060 : 0xff5040;
+          g.poly(pts).fill({ color, alpha: 0.9 * pulseAlpha });
+        } else {
+          g.poly(pts).stroke({ width: 1, color: 0xff5040, alpha: 0.3 });
+        }
+      }
     }
   }
 
@@ -474,22 +453,48 @@ export class VfxRenderer {
         }
       }
 
-      // T2+: periodic jade firework bursts
-      if (tier >= 1 && this.frame % 110 === 0) {
-        const particles: FireworkParticle[] = [];
-        const n = 6 + tier * 2;
-        for (let i = 0; i < n; i++) {
-          const a = (i / n) * Math.PI * 2 + Math.random() * 0.4;
-          const speed = 0.8 + Math.random() * 1.2;
-          particles.push({
-            x: tx, y: ty - 6,
-            vx: Math.cos(a) * speed,
-            vy: Math.sin(a) * speed - 0.6,
-            color: i % 3 === 0 ? 0xc8f0d8 : 0x58c898,
-            size: 1 + Math.random(),
-          });
-        }
-        this.pool.push({ kind: 'fireworkBurst', particles, gravity: 0.04, age: 0, lifetime: 32 });
+    }
+  }
+
+  private tickToxicMist(state: State): void {
+    for (const t of state.towers) {
+      if (t.comboKey !== 'dark_emerald') continue;
+      const tier = t.upgradeTier ?? 0;
+      if (tier < 1) continue;
+
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+
+      // Miasma: slow, wide, faint dark-green particles drifting around the tower
+      const miasmaInterval = tier >= 2 ? 18 : 25;
+      if (this.frame % miasmaInterval === 0) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 6 + Math.random() * 8;
+        this.pool.push({
+          kind: 'drift',
+          x: tx + Math.cos(angle) * dist,
+          y: ty + Math.sin(angle) * dist * 0.6,
+          vx: Math.cos(angle) * 0.08,
+          vy: -0.06 - Math.random() * 0.08,
+          color: 0x1c8838,
+          size: 2.5 + Math.random() * 1.5,
+          age: 0, lifetime: 70 + Math.floor(Math.random() * 40),
+        });
+      }
+
+      // Wisps: bright rising toxic fumes from the gem body
+      const wispInterval = tier >= 2 ? 8 : 12;
+      if (this.frame % wispInterval === 0) {
+        this.pool.push({
+          kind: 'drift',
+          x: tx + (Math.random() - 0.5) * 14,
+          y: ty + (Math.random() - 0.5) * 6,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -0.4 - Math.random() * 0.4,
+          color: 0x88e8a0,
+          size: 1.2 + Math.random() * 0.8,
+          age: 0, lifetime: 35 + Math.floor(Math.random() * 20),
+        });
       }
     }
   }

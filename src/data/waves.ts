@@ -475,14 +475,14 @@ export const WAVES: WaveDef[] = [
         payload: [
           {
             kind: "gazer" as CreepKind,
-            count: 5,
-            hp: 160000,
+            count: 3,
+            hp: 112000,
             bounty: 0,
             payload: [
               {
                 kind: "coral" as CreepKind,
-                count: 3,
-                hp: 80000,
+                count: 2,
+                hp: 56000,
                 bounty: 0,
                 payload: [
                   {
