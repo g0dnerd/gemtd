@@ -62,16 +62,19 @@ export function mountTitle(
   // Update nudge toast
   if (hasUnseenUpdate) {
     const toast = document.createElement("div");
-    toast.className = "title-update-toast";
+    toast.className = "title-update-toast title-toast-enter";
     const txt = document.createElement("span");
     txt.innerHTML = `v${__GAME_VERSION__} — <b>see what's new</b>`;
     const dismiss = document.createElement("button");
     dismiss.className = "title-update-dismiss";
     dismiss.textContent = "✕";
+    const dismissToast = () => {
+      toast.classList.add("title-toast-exit");
+      toast.addEventListener("transitionend", () => toast.remove(), { once: true });
+    };
     dismiss.addEventListener("click", (e) => {
       e.stopPropagation();
-      toast.classList.add("title-update-toast-out");
-      toast.addEventListener("animationend", () => toast.remove(), { once: true });
+      dismissToast();
     });
     toast.append(txt, dismiss);
     toast.addEventListener("click", () => {
@@ -79,6 +82,8 @@ export function mountTitle(
       mountTutorialModal(root, "CHANGES");
     });
     screen.appendChild(toast);
+    void toast.offsetHeight;
+    toast.classList.remove("title-toast-enter");
   }
 
   // Footer
