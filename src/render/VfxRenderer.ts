@@ -33,9 +33,11 @@ interface TendrilFx {
   age: number; lifetime: number;
 }
 
-interface CoinFx {
-  kind: 'coin';
-  x: number; y: number;
+interface CoinParticle { x: number; y: number; vx: number; vy: number; spin: number; spinSpeed: number }
+
+interface CoinFountainFx {
+  kind: 'coinFountain';
+  particles: CoinParticle[];
   age: number; lifetime: number;
 }
 
@@ -54,7 +56,7 @@ interface DriftFx {
   age: number; lifetime: number;
 }
 
-type Fx = RingFx | SnowBurstFx | TendrilFx | CoinFx | SnowflakeFx | DriftFx;
+type Fx = RingFx | SnowBurstFx | TendrilFx | CoinFountainFx | SnowflakeFx | DriftFx;
 
 export class VfxRenderer {
   private pool: Fx[] = [];
@@ -113,7 +115,19 @@ export class VfxRenderer {
     });
 
     bus.on('vfx:bonusGold', (e) => {
-      this.pool.push({ kind: 'coin', x: e.x, y: e.y, age: 0, lifetime: 24 });
+      const particles: CoinParticle[] = [];
+      for (let i = 0; i < 4; i++) {
+        const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+        const speed = 1.5 + Math.random() * 1.5;
+        particles.push({
+          x: e.x, y: e.y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          spin: Math.random() * Math.PI * 2,
+          spinSpeed: 0.15 + Math.random() * 0.2,
+        });
+      }
+      this.pool.push({ kind: 'coinFountain', particles, age: 0, lifetime: 30 });
     });
 
     bus.on('vfx:freezeProc', (e) => {
@@ -245,12 +259,19 @@ export class VfxRenderer {
           .stroke({ width: 2, color: GEM_PALETTE.emerald.mid, alpha: fade * 0.8 });
         break;
       }
-      case 'coin': {
-        const rise = t * 20;
-        const y = fx.y - rise;
-        g.circle(fx.x, y, 4).fill({ color: 0xffd840, alpha });
-        g.circle(fx.x, y, 4).stroke({ width: 1, color: 0xf0a040, alpha });
-        g.circle(fx.x, y, 2).fill({ color: 0xffe880, alpha });
+      case 'coinFountain': {
+        const gravity = 0.08;
+        for (const p of fx.particles) {
+          p.vy += gravity;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.spin += p.spinSpeed;
+          const squash = Math.abs(Math.cos(p.spin));
+          const rx = Math.max(0.5, 4 * squash);
+          g.ellipse(p.x, p.y, rx, 4).fill({ color: 0xffd840, alpha });
+          g.ellipse(p.x, p.y, rx, 4).stroke({ width: 1, color: 0xf0a040, alpha });
+          g.ellipse(p.x, p.y, Math.max(0.3, 2 * squash), 2).fill({ color: 0xffe880, alpha });
+        }
         break;
       }
       case 'snowflake': {
