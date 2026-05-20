@@ -145,6 +145,7 @@ export class WavePhase {
       armor: group.armor ?? arch.defaultArmor ?? 0,
       slowResist: group.slowResist,
       stunResist: group.stunResist ?? 0,
+      poisonResist: 0,
       flags: { ...arch.flags },
       vulnerability: 0,
       payload: group.payload ? resolvePayload(group.payload) : undefined,
@@ -204,12 +205,14 @@ export class WavePhase {
       return;
     }
 
-    // Chrysalid awakening: when HP drops below threshold, become debuff-immune + faster
+    // Chrysalid awakening: when HP drops below threshold, gain high resistances + speed boost
     if (c.kind === 'chrysalid' && !c.chrysalidAwakened && c.hp / c.maxHp <= CHRYSALID_HP_THRESHOLD) {
       c.chrysalidAwakened = true;
       c.speed *= CHRYSALID_SPEED_MULT;
       c.armor += CHRYSALID_AWAKEN_ARMOR;
-      c.slowResist = 1;
+      c.slowResist = 0.8;
+      c.stunResist = 0.8;
+      c.poisonResist = 0.8;
       c.slow = undefined;
       c.stun = undefined;
       c.poison = undefined;
@@ -369,6 +372,7 @@ function resolvePayload(groups: PayloadGroup[]): CreepPayload[] {
       armor: g.armor ?? arch.defaultArmor ?? 0,
       slowResist: g.slowResist ?? 0,
       stunResist: g.stunResist ?? 0,
+      poisonResist: 0,
       flags: { ...arch.flags },
       payload: g.payload ? resolvePayload(g.payload) : undefined,
     };

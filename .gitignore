@@ -66,3 +66,4 @@ tools/sim-compare/results/compare*.json
 .local/
 
 notes.txt
+roadmap.md

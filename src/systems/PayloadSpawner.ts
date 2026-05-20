@@ -44,6 +44,7 @@ export function spawnContainerPayload(
         armor: p.armor,
         slowResist: p.slowResist,
         stunResist: p.stunResist,
+        poisonResist: p.poisonResist,
         flags: { ...p.flags },
         alive: true,
         armorReduction: 0,

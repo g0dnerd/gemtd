@@ -65,11 +65,12 @@ export class Combat {
         }
         if (c.poison && c.poison.expiresAt > tick) {
           if (tick >= c.poison.nextTick) {
+            const poisonDmg = Math.max(1, Math.round(c.poison.dps * (1 - c.poisonResist)));
             const owner = state.towers.find(t => t.id === c.poison!.ownerId);
             if (owner) {
-              this.applyDamage(c, Math.max(1, Math.round(c.poison.dps)), owner);
+              this.applyDamage(c, poisonDmg, owner);
             } else {
-              c.hp -= c.poison.dps;
+              c.hp -= poisonDmg;
             }
             c.poison.nextTick = tick + SIM_HZ;
           }
@@ -362,9 +363,8 @@ export class Combat {
     if (freezeChance && splashTargets.length > 0) {
       for (const c of splashTargets) {
         if (!c.alive) continue;
-        const effectiveChance = freezeChance.chance * (1 - c.stunResist);
-        if (this.game.rng.next() < effectiveChance) {
-          const expires = tick + Math.round(freezeChance.duration * SIM_HZ);
+        if (this.game.rng.next() < freezeChance.chance) {
+          const expires = tick + Math.max(1, Math.round(freezeChance.duration * SIM_HZ * (1 - c.stunResist)));
           if (!c.stun || c.stun.expiresAt < expires) {
             c.stun = { expiresAt: expires };
             this.game.bus.emit('vfx:freezeProc', { x: c.px, y: c.py });
@@ -455,7 +455,6 @@ export class Combat {
 
   private applyEffects(c: CreepState, effects: EffectKind[], owner: TowerState): void {
     if (!c.alive) return;
-    if (c.chrysalidAwakened) return;
     const tick = this.game.state.tick;
     for (const e of effects) {
       switch (e.kind) {
@@ -483,8 +482,8 @@ export class Combat {
           break;
         }
         case 'stun': {
-          if (this.game.rng.next() > e.chance * (1 - c.stunResist)) break;
-          const expires = tick + Math.round(e.duration * SIM_HZ);
+          if (this.game.rng.next() > e.chance) break;
+          const expires = tick + Math.max(1, Math.round(e.duration * SIM_HZ * (1 - c.stunResist)));
           if (!c.stun || c.stun.expiresAt < expires) {
             c.stun = { expiresAt: expires };
           }
@@ -607,17 +606,15 @@ export class Combat {
           if (tick - (src.lastFreezeTick ?? 0) >= intervalTicks) {
             src.lastFreezeTick = tick;
             const r2 = (stats.range * TILE) ** 2;
-            const stunDuration = Math.round(e.duration * SIM_HZ);
             for (const c of creeps) {
               if (!c.alive) continue;
               const dx = c.px - tx, dy = c.py - ty;
               if (dx * dx + dy * dy > r2) continue;
-              if (this.game.rng.next() < (1 - c.stunResist)) {
+              const stunDuration = Math.max(1, Math.round(e.duration * SIM_HZ * (1 - c.stunResist)));
               const expires = tick + stunDuration;
               if (!c.stun || c.stun.expiresAt < expires) {
                 c.stun = { expiresAt: expires };
               }
-            }
             }
             this.game.bus.emit('vfx:periodicFreeze', { x: tx, y: ty, rangePx: stats.range * TILE });
           }

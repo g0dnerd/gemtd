@@ -240,7 +240,7 @@ function combineBody(): HTMLElement {
     stepList([
       {
         marker: "↑",
-        html: `<b>Level up:</b> 2 same gems → +1 quality. 4 same gems → +2 quality.<br><span style="color:var(--px-ink-dim);font-size:13px">Chipped → Flawed → Normal → Flawless → Perfect</span>`,
+        html: `<b>Level up:</b> 2 same gems -> +1 quality. 4 same gems -> +2 quality.<br><span style="color:var(--px-ink-dim);font-size:13px">Chipped -> Flawed -> Normal -> Flawless -> Perfect</span>`,
       },
       {
         marker: "⚗",
@@ -298,6 +298,31 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.1",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Chrysalids: awakened now have 80% resistance to slows, stuns, and poison instead of full immunity.",
+        },
+        {
+          tag: "nerf",
+          text: "Living Diamond: crit 12->9%, focus crit 7->6%/hit (max 18%), execute bonus 0.5->0.4.",
+        },
+        {
+          tag: "nerf",
+          text: "Lucky Asian Jade: crit chance 15->12%.",
+        },
+        {
+          tag: "bal",
+          text: "Wave 50: retuned coral/boss/healer counts.",
+        },
+        {
+          tag: "fix",
+          text: "Stun resistance now reduces duration instead of chance.",
+        },
+      ],
+    },
+    {
       ver: "1.5.0",
       notes: [
         {
@@ -327,11 +352,11 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Tower level-up scaling tapered: +5% per level → diminishing returns via 5%×L/(1+6%×L) formula.",
+          text: "Tower level-up scaling tapered: +5% per level -> diminishing returns via 5%×L/(1+6%×L) formula.",
         },
         {
           tag: "bal",
-          text: "Flawless/Perfect base gem damage reduced (quality multipliers: 11/22 → 9/17). Ruby retains its own curve (9/18 → 8.2/16).",
+          text: "Flawless/Perfect base gem damage reduced (quality multipliers: 11/22 -> 9/17). Ruby retains its own curve (9/18 -> 8.2/16).",
         },
         {
           tag: "bal",
@@ -351,44 +376,44 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Armored creeps: default armor 7 → 12, HP multiplier 1.6 → 1.49.",
+          text: "Armored creeps: default armor 7 -> 12, HP multiplier 1.6 -> 1.49.",
         },
         {
           tag: "bal",
-          text: "Tunneler HP multiplier 0.8 → 1.35. Burrow duration 3.5s → 2.5s, cooldown 12s → 15s.",
+          text: "Tunneler HP multiplier 0.8 -> 1.35. Burrow duration 3.5s -> 2.5s, cooldown 12s -> 15s.",
         },
         {
           tag: "nerf",
-          text: "Silver Knight: freeze removed, nova every 7th → 9th attack, damage 320–360 → 250–290.",
+          text: "Silver Knight: freeze removed, nova every 7th -> 9th attack, damage 320–360 -> 250–290.",
         },
         {
           tag: "nerf",
-          text: "Pharaoh's Gold crit reduced: 28% ×3.5 → 18% ×2.5.",
+          text: "Pharaoh's Gold crit reduced: 28% ×3.5 -> 18% ×2.5.",
         },
-        { tag: "nerf", text: "Solar Core death nova radius 2.0 → 1.0." },
+        { tag: "nerf", text: "Solar Core death nova radius 2.0 -> 1.0." },
         {
           tag: "nerf",
-          text: "Healer creeps: speed 1.55 → 1.4, HP multiplier 0.9 → 0.85.",
+          text: "Healer creeps: speed 1.55 -> 1.4, HP multiplier 0.9 -> 0.85.",
         },
         { tag: "nerf", text: "Wave 49: all creep HP reduced by 20%." },
         {
           tag: "buff",
-          text: "Stargem reworked: +splash, +15% crit ×3, poison 400 → 500/s, slow 40% → 45%, stun 12% → 15%, damage 550–750 → 600–800.",
+          text: "Stargem reworked: +splash, +15% crit ×3, poison 400 -> 500/s, slow 40% -> 45%, stun 12% -> 15%, damage 550–750 -> 600–800.",
         },
-        { tag: "buff", text: "Aquamarine base damage 2 → 3." },
+        { tag: "buff", text: "Aquamarine base damage 2 -> 3." },
         {
           tag: "buff",
-          text: "Silver base: damage 24–31 → 34–37, atk speed 1.25 → 1.5. Splash slow 20% → 25%.",
-        },
-        {
-          tag: "buff",
-          text: "Living Diamond: focus crit per hit 3% → 7%, max bonus 15% → 21%.",
+          text: "Silver base: damage 24–31 -> 34–37, atk speed 1.25 -> 1.5. Splash slow 20% -> 25%.",
         },
         {
           tag: "buff",
-          text: "Rose Quartz Crystal: range 5.5/6.0 → 6.5/8.0, armor aura radius matches.",
+          text: "Living Diamond: focus crit per hit 3% -> 7%, max bonus 15% -> 21%.",
         },
-        { tag: "buff", text: "Lucky Asian Jade: poison 50 → 75 dps." },
+        {
+          tag: "buff",
+          text: "Rose Quartz Crystal: range 5.5/6.0 -> 6.5/8.0, armor aura radius matches.",
+        },
+        { tag: "buff", text: "Lucky Asian Jade: poison 50 -> 75 dps." },
         {
           tag: "fix",
           text: "Combine/downgrade during build no longer auto-starts the wave before all gems are placed.",
@@ -416,22 +441,22 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "buff",
-          text: "Venomous Emerald: poison DPS 90 → 112, death spread 2 → 5 targets.",
+          text: "Venomous Emerald: poison DPS 90 -> 112, death spread 2 -> 5 targets.",
         },
-        { tag: "buff", text: "Solar Core: prox burn ramp DPS 95 → 105." },
+        { tag: "buff", text: "Solar Core: prox burn ramp DPS 95 -> 105." },
         {
           tag: "nerf",
-          text: "Ancient Bloodstone: max damage 540 → 500, splash radius 2.5 → 2.",
+          text: "Ancient Bloodstone: max damage 540 -> 500, splash radius 2.5 -> 2.",
         },
         {
           tag: "buff",
-          text: "Lucky Asian Jade: crit 10% → 15%, stun 3% → 8%, bonus gold 5% → 10%.",
+          text: "Lucky Asian Jade: crit 10% -> 15%, stun 3% -> 8%, bonus gold 5% -> 10%.",
         },
       ],
     },
     {
       ver: "1.4.2",
-      notes: [{ tag: "bal", text: "Wave 30 healer count 3 → 2, HP −30%." }],
+      notes: [{ tag: "bal", text: "Wave 30 healer count 3 -> 2, HP −30%." }],
     },
     {
       ver: "1.4.1",
@@ -476,7 +501,7 @@ function changesBody(): HTMLElement {
     {
       ver: "1.3.1",
       notes: [
-        { tag: "bal", text: "Air units move 15% slower (2.0 → 1.7 tiles/s)." },
+        { tag: "bal", text: "Air units move 15% slower (2.0 -> 1.7 tiles/s)." },
         {
           tag: "fix",
           text: "Wave preview now shows actual HP after archetype multiplier.",
@@ -492,7 +517,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "buff",
-          text: "Lucky Asian Jade damage range +50% (200–300 → 300–450).",
+          text: "Lucky Asian Jade damage range +50% (200–300 -> 300–450).",
         },
       ],
     },
@@ -502,35 +527,38 @@ function changesBody(): HTMLElement {
         { tag: "nerf", text: "Wave 34 air creep HP reduced by 20%." },
         {
           tag: "nerf",
-          text: "Pink Diamond base damage reduced (350–450 → 250–350).",
+          text: "Pink Diamond base damage reduced (350–450 -> 250–350).",
         },
         {
           tag: "nerf",
-          text: "Living Diamond cost increased (175 → 250) and damage reduced.",
+          text: "Living Diamond cost increased (175 -> 250) and damage reduced.",
         },
         {
           tag: "buff",
-          text: "Silver Knight damage increased (120–160 → 320–360).",
+          text: "Silver Knight damage increased (120–160 -> 320–360).",
         },
         {
           tag: "nerf",
-          text: "Solar Core death nova reduced (10% → 8% max HP).",
+          text: "Solar Core death nova reduced (10% -> 8% max HP).",
         },
         {
           tag: "buff",
-          text: "Red Crystal Facet damage increased (120–200 → 160–250).",
+          text: "Red Crystal Facet damage increased (120–200 -> 160–250).",
         },
         {
           tag: "buff",
-          text: "Rose Quartz Crystal damage increased (160–250 → 240–300).",
+          text: "Rose Quartz Crystal damage increased (160–250 -> 240–300).",
         },
       ],
     },
     {
       ver: "1.2.6",
       notes: [
-        { tag: "nerf", text: "Ancient Bloodstone damage (400–620 → 320–540)." },
-        { tag: "nerf", text: "Solar Core death nova (15% → 10% max HP)." },
+        {
+          tag: "nerf",
+          text: "Ancient Bloodstone damage (400–620 -> 320–540).",
+        },
+        { tag: "nerf", text: "Solar Core death nova (15% -> 10% max HP)." },
       ],
     },
     {
@@ -558,7 +586,7 @@ function changesBody(): HTMLElement {
     {
       ver: "1.2.3",
       notes: [
-        { tag: "bal", text: "Nerfed wave 15 air creep HP (1710 → 1510)." },
+        { tag: "bal", text: "Nerfed wave 15 air creep HP (1710 -> 1510)." },
       ],
     },
     {
@@ -619,19 +647,19 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Silver T1 buffed: damage 20–26 → 24–31, atk speed 1.1 → 1.25.",
+          text: "Silver T1 buffed: damage 20–26 -> 24–31, atk speed 1.1 -> 1.25.",
         },
         {
           tag: "bal",
-          text: "Amethyst base damage 18 → 21. Aquamarine beam ramp 0.18 → 0.21/hit.",
+          text: "Amethyst base damage 18 -> 21. Aquamarine beam ramp 0.18 -> 0.21/hit.",
         },
         {
           tag: "bal",
-          text: "Yellow Sapphire base damage 80–120 → 120–180, slow 25% for 2.5s.",
+          text: "Yellow Sapphire base damage 80–120 -> 120–180, slow 25% for 2.5s.",
         },
         {
           tag: "bal",
-          text: "Paraiba base dmgMin 60 → 120. Ancient Paraiba damage nearly doubled.",
+          text: "Paraiba base dmgMin 60 -> 120. Ancient Paraiba damage nearly doubled.",
         },
         {
           tag: "buff",
@@ -639,15 +667,15 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Uranium base burn 190 → 85/s, rebalanced around new upgrade tiers.",
+          text: "Uranium base burn 190 -> 85/s, rebalanced around new upgrade tiers.",
         },
         {
           tag: "bal",
-          text: "Solar Core burn 70 → 95/s, ramp 10% → 12%, death nova 10% → 15% HP.",
+          text: "Solar Core burn 70 -> 95/s, ramp 10% -> 12%, death nova 10% -> 15% HP.",
         },
         {
           tag: "bal",
-          text: "Silver Knight freeze 20% → 15%, nova every 4 → 7 attacks.",
+          text: "Silver Knight freeze 20% -> 15%, nova every 4 -> 7 attacks.",
         },
         {
           tag: "new",
@@ -669,11 +697,11 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "bal",
-          text: "First chance tier upgrade cost reduced: 30g → 25g.",
+          text: "First chance tier upgrade cost reduced: 30g -> 25g.",
         },
         {
           tag: "bal",
-          text: "Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14k → 9k.",
+          text: "Waves 11, 16, 18 slightly nerfed; wave 20 boss HP 14k -> 9k.",
         },
       ],
     },
@@ -726,7 +754,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "nerf",
-          text: "Healer buff: duration 3s → 2s, heal rate 0.1%/tick → 0.075%/tick.",
+          text: "Healer buff: duration 3s -> 2s, heal rate 0.1%/tick -> 0.075%/tick.",
         },
       ],
     },
@@ -735,7 +763,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "nerf",
-          text: "Mighty Malachite: damage 100–150 → 70–100, chain falloff 1.0 → 0.85.",
+          text: "Mighty Malachite: damage 100–150 -> 70–100, chain falloff 1.0 -> 0.85.",
         },
         {
           tag: "buff",
@@ -743,11 +771,11 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "nerf",
-          text: "Lucky Asian Jade: splash falloff 0.6 → 0.5, poison 80 → 50 / 120 → 80.",
+          text: "Lucky Asian Jade: splash falloff 0.6 -> 0.5, poison 80 -> 50 / 120 -> 80.",
         },
         {
           tag: "bal",
-          text: "Boss W10 HP 3500 → 3000, W11 healers HP 1000 → 800, W50 healers 5 → 2.",
+          text: "Boss W10 HP 3500 -> 3000, W11 healers HP 1000 -> 800, W50 healers 5 -> 2.",
         },
       ],
     },
@@ -756,14 +784,14 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "nerf",
-          text: "Diamond: base damage 30 → 25, crit multiplier 2.5 → 2.0.",
+          text: "Diamond: base damage 30 -> 25, crit multiplier 2.5 -> 2.0.",
         },
-        { tag: "buff", text: "Sapphire: base damage 12 → 15." },
+        { tag: "buff", text: "Sapphire: base damage 12 -> 15." },
         {
           tag: "buff",
-          text: "Emerald: base damage 10 → 13, poison DPS 8 → 11.",
+          text: "Emerald: base damage 10 -> 13, poison DPS 8 -> 11.",
         },
-        { tag: "buff", text: "Aquamarine: base range 2.5 → 3.0." },
+        { tag: "buff", text: "Aquamarine: base range 2.5 -> 3.0." },
       ],
     },
     {

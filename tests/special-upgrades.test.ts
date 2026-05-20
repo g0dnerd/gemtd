@@ -54,6 +54,7 @@ function makeCreep(
     armor: opts.armor ?? 0,
     slowResist: opts.slowResist ?? 0,
     stunResist: 0,
+    poisonResist: 0,
     vulnerability: 0,
   };
   game.state.creeps.push(creep);
@@ -352,6 +353,7 @@ describe("death_nova", () => {
       armor: 0,
       slowResist: 0,
       stunResist: 0,
+      poisonResist: 0,
       vulnerability: 0,
     };
 
@@ -393,6 +395,7 @@ describe("death_spread", () => {
       armor: 0,
       slowResist: 0,
       stunResist: 0,
+      poisonResist: 0,
       vulnerability: 0,
       poison: { dps: 80, expiresAt: game.state.tick + 3 * SIM_HZ, nextTick: game.state.tick + SIM_HZ, ownerId: -1 },
       poisonSpread: { count: 2, radius: 2.0 },
@@ -433,6 +436,7 @@ describe("death_spread", () => {
       armor: 0,
       slowResist: 0,
       stunResist: 0,
+      poisonResist: 0,
       vulnerability: 0,
       poison: { dps: 80, expiresAt: game.state.tick + 180, nextTick: game.state.tick + 60, ownerId: -1 },
       poisonSpread: { count: 2, radius: 2.0 },

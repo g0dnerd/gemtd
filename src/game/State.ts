@@ -19,6 +19,7 @@ export interface CreepPayload {
   armor: number;
   slowResist: number;
   stunResist: number;
+  poisonResist: number;
   flags: { boss?: boolean; armored?: boolean; air?: boolean };
   payload?: CreepPayload[];
 }
@@ -95,8 +96,10 @@ export interface CreepState {
   color: GemType;
   /** 0–1. Fraction of slow effect negated (0 = full slow, 1 = immune). */
   slowResist: number;
-  /** 0–1. Fraction of stun chance negated (0 = full stun, 1 = immune). */
+  /** 0–1. Fraction of stun duration negated (0 = full stun, 1 = immune). */
   stunResist: number;
+  /** 0–1. Fraction of poison damage negated (0 = full damage, 1 = immune). */
+  poisonResist: number;
   /** Active status effects. */
   slow?: { factor: number; expiresAt: number };
   poison?: { dps: number; expiresAt: number; nextTick: number; ownerId: number };
@@ -130,7 +133,7 @@ export interface CreepState {
   poisonSpread?: { count: number; radius: number };
   /** Afterburn DoT from eruption (short/intense, distinct from poison). */
   afterburn?: { dps: number; expiresAt: number; nextTick: number; ownerId: number };
-  /** Chrysalid awakened state — debuff-immune + speed boost. */
+  /** Chrysalid awakened state — high resistances + speed boost. */
   chrysalidAwakened?: boolean;
   /** Chrysalid dodge counter — ignores every Nth hit when awakened. */
   chrysalidHitCounter?: number;

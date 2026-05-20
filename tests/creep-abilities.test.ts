@@ -30,7 +30,7 @@ function runWithWave(waveDef: WaveDef, fn: (game: HeadlessGame) => void): void {
 
 
 describe('chrysalid (berserker)', () => {
-  it('awakens at 50% HP: gains speed, becomes debuff-immune', () => {
+  it('awakens at 50% HP: gains speed and high resistances', () => {
     const wave = makeWave([{ kind: 'chrysalid', count: 1, hp: 1000, bounty: 5, slowResist: 0 }]);
 
     runWithWave(wave, (game) => {
@@ -54,8 +54,10 @@ describe('chrysalid (berserker)', () => {
 
       expect(c.chrysalidAwakened).toBe(true);
       expect(c.speed).toBe(originalSpeed * 1.6);
-      expect(c.slowResist).toBe(1);
-      // Debuffs cleared
+      expect(c.slowResist).toBe(0.8);
+      expect(c.stunResist).toBe(0.8);
+      expect(c.poisonResist).toBe(0.8);
+      // Existing debuffs cleared on transformation
       expect(c.slow).toBeUndefined();
       expect(c.poison).toBeUndefined();
       expect(c.armorDebuff).toBeUndefined();
@@ -99,7 +101,7 @@ describe('chrysalid (berserker)', () => {
     });
   });
 
-  it('new effects cannot be applied after awakening', () => {
+  it('effects apply with reduced effectiveness after awakening', () => {
     const wave = makeWave([{ kind: 'chrysalid', count: 1, hp: 1000, bounty: 5, slowResist: 0 }]);
 
     runWithWave(wave, (game) => {
@@ -110,12 +112,14 @@ describe('chrysalid (berserker)', () => {
       game.simStep();
       expect(c.chrysalidAwakened).toBe(true);
 
-      // Combat's applyEffects should bail out for awakened chrysalids
       const combat = (game as any).combat;
       const fakeTower = {} as TowerState;
       combat.applyEffects(c, [{ kind: 'slow', factor: 0.5, duration: 2 }], fakeTower);
 
-      expect(c.slow).toBeUndefined();
+      // Slow applies but at 80% reduced effectiveness
+      expect(c.slow).toBeDefined();
+      // factor = 0.5 + (1 - 0.5) * 0.8 = 0.9
+      expect(c.slow!.factor).toBeCloseTo(0.9);
     });
   });
 
@@ -210,6 +214,7 @@ describe('mycoid (sapper)', () => {
       color: 'emerald',
       slowResist: 0,
       stunResist: 0,
+      poisonResist: 0,
       flags: {},
       alive: true,
       armorReduction: 0,
@@ -250,6 +255,7 @@ describe('mycoid (sapper)', () => {
       color: 'emerald',
       slowResist: 0,
       stunResist: 0,
+      poisonResist: 0,
       flags: {},
       alive: true,
       armorReduction: 0,
@@ -290,6 +296,7 @@ describe('mycoid (sapper)', () => {
       color: 'amethyst',
       slowResist: 0,
       stunResist: 0,
+      poisonResist: 0,
       flags: {},
       alive: true,
       armorReduction: 0,

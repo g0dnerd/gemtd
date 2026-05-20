@@ -94,6 +94,7 @@ function makeCreep(game: Game, opts: { armor?: number; armorReduction?: number; 
     armorDebuff: opts.armorDebuff,
     slowResist: 0,
     stunResist: 0,
+    poisonResist: 0,
     vulnerability: 0,
   };
   game.state.creeps.push(creep);
