@@ -31,13 +31,13 @@ export function mountTitle(
   // Title
   const titleH = document.createElement("div");
   titleH.className = "title-h1";
-  titleH.innerHTML = `<div class="title-name px-h">GEM<br/>TOWER<br/>DEFENSE</div>`;
+  titleH.innerHTML = `<div class="title-name px-h">FACETS</div>`;
   screen.appendChild(titleH);
 
   // Subtitle
   const sub = document.createElement("div");
   sub.className = "title-subtitle";
-  sub.innerHTML = `Dingel.<br/>Döngel.`;
+  sub.innerHTML = `A GEM TOWER DEFENSE.`;
   screen.appendChild(sub);
 
   // Menu

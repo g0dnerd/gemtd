@@ -7,11 +7,7 @@
 
 import type { Application } from "pixi.js";
 import { Game } from "../game/Game";
-import {
-  GEM_PALETTE,
-  QUALITY_NAMES,
-  TIER_COLORS,
-} from "../render/theme";
+import { GEM_PALETTE, QUALITY_NAMES, TIER_COLORS } from "../render/theme";
 import {
   htmlCoin,
   htmlGem,
@@ -71,8 +67,6 @@ const ARCHETYPE_COLORS: Record<CreepKind, string> = {
   gestation: "#c8a8a0",
 };
 
-
-
 export function mountHud(
   root: HTMLElement,
   app: Application,
@@ -101,7 +95,7 @@ export function mountHud(
   wm.className = "wm";
   const wmName = document.createElement("div");
   wmName.className = "wm-name";
-  wmName.textContent = "GEM TD";
+  wmName.textContent = "FACETS";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
   wmVer.textContent = "v1.5.3";
@@ -918,8 +912,10 @@ export function mountHud(
     refreshPathBtn();
   });
 
-  const SVG_SOUND_ON = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 6h3l4-3v10l-4-3H2V6z" fill="currentColor"/><path d="M12 4c1.3 1.3 1.3 6.7 0 8" stroke="currentColor" stroke-width="1.5"/></svg>';
-  const SVG_SOUND_OFF = '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 6h3l4-3v10l-4-3H2V6z" fill="currentColor"/><path d="M11 5l4 6M15 5l-4 6" stroke="currentColor" stroke-width="1.5"/></svg>';
+  const SVG_SOUND_ON =
+    '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 6h3l4-3v10l-4-3H2V6z" fill="currentColor"/><path d="M12 4c1.3 1.3 1.3 6.7 0 8" stroke="currentColor" stroke-width="1.5"/></svg>';
+  const SVG_SOUND_OFF =
+    '<svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" width="12" height="12"><path d="M2 6h3l4-3v10l-4-3H2V6z" fill="currentColor"/><path d="M11 5l4 6M15 5l-4 6" stroke="currentColor" stroke-width="1.5"/></svg>';
   const muteBtn = makeBtn("", () => {
     const nowMuted = toggleMute();
     muteBtn.innerHTML = nowMuted ? SVG_SOUND_OFF : SVG_SOUND_ON;
@@ -1055,7 +1051,13 @@ export function mountHud(
     requestAnimationFrame(updateCanvasScale);
   }
 
-  const BASIC_KINDS: Set<CreepKind> = new Set(['normal', 'fast', 'armored', 'air', 'boss']);
+  const BASIC_KINDS: Set<CreepKind> = new Set([
+    "normal",
+    "fast",
+    "armored",
+    "air",
+    "boss",
+  ]);
 
   function refreshThreats(): void {
     threatsList.innerHTML = "";
@@ -1069,18 +1071,27 @@ export function mountHud(
       if (!(n in game.state.newKindsByWave)) {
         const newKinds: CreepKind[] = [];
         for (const g of def.groups) {
-          if (!BASIC_KINDS.has(g.kind) && !game.state.seenCreepKinds.includes(g.kind)) {
+          if (
+            !BASIC_KINDS.has(g.kind) &&
+            !game.state.seenCreepKinds.includes(g.kind)
+          ) {
             newKinds.push(g.kind);
             game.state.seenCreepKinds.push(g.kind);
           }
         }
         game.state.newKindsByWave[n] = newKinds;
       }
-      threatsList.appendChild(makeThreatRow(def, isCurrent, game.state.newKindsByWave[n]));
+      threatsList.appendChild(
+        makeThreatRow(def, isCurrent, game.state.newKindsByWave[n]),
+      );
     }
   }
 
-  function makeThreatRow(def: WaveDef, isCurrent: boolean, newKinds: CreepKind[]): HTMLDivElement {
+  function makeThreatRow(
+    def: WaveDef,
+    isCurrent: boolean,
+    newKinds: CreepKind[],
+  ): HTMLDivElement {
     const row = document.createElement("div");
     row.className =
       "px-panel-inset threat-row" + (isCurrent ? " is-current" : "");
