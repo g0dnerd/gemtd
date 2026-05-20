@@ -12,9 +12,11 @@ export function mountTitle(
   root: HTMLElement,
   onStart: () => void,
   onStartHardcore: () => void,
+  hasUnseenUpdate = false,
 ): () => void {
   const screen = document.createElement("div");
   screen.className = "title-screen";
+  if (hasUnseenUpdate) screen.dataset.unseenUpdate = "true";
 
   // Logo row
   const logo = document.createElement("div");
@@ -57,6 +59,28 @@ export function mountTitle(
   }
   screen.appendChild(menu);
 
+  // Update nudge toast
+  if (hasUnseenUpdate) {
+    const toast = document.createElement("div");
+    toast.className = "title-update-toast";
+    const txt = document.createElement("span");
+    txt.innerHTML = `v${__GAME_VERSION__} — <b>see what's new</b>`;
+    const dismiss = document.createElement("button");
+    dismiss.className = "title-update-dismiss";
+    dismiss.textContent = "✕";
+    dismiss.addEventListener("click", (e) => {
+      e.stopPropagation();
+      toast.classList.add("title-update-toast-out");
+      toast.addEventListener("animationend", () => toast.remove(), { once: true });
+    });
+    toast.append(txt, dismiss);
+    toast.addEventListener("click", () => {
+      toast.remove();
+      mountTutorialModal(root, "CHANGES");
+    });
+    screen.appendChild(toast);
+  }
+
   // Footer
   const footer = document.createElement("div");
   footer.className = "title-footer";
@@ -64,7 +88,7 @@ export function mountTitle(
   const footerTop = document.createElement("div");
   footerTop.className = "title-footer-top";
   const version = document.createElement("span");
-  version.textContent = "v1.5.3";
+  version.textContent = `v${__GAME_VERSION__}`;
   footerTop.appendChild(version);
 
   const footerBottom = document.createElement("div");

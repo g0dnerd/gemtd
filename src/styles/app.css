@@ -129,6 +129,49 @@
   border-color: var(--px-ink-dim);
 }
 
+/* Update nudge toast */
+.title-update-toast {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: var(--px-panel);
+  border: 2px solid var(--px-good);
+  font-size: 16px;
+  color: var(--px-ink);
+  cursor: pointer;
+  animation: toastSlideIn 0.3s ease-out;
+}
+.title-update-toast:hover {
+  background: var(--px-panel-2);
+}
+.title-update-toast b {
+  color: var(--px-good);
+}
+.title-update-dismiss {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px;
+  background: none;
+  border: none;
+  color: var(--px-ink-dim);
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.title-update-dismiss:hover {
+  color: var(--px-ink);
+}
+.title-update-toast-out {
+  animation: toastSlideOut 0.2s ease-in forwards;
+}
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastSlideOut {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-8px); }
+}
+
 @keyframes gemFloat {
   0%,
   100% {

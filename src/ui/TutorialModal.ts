@@ -6,7 +6,7 @@ interface Section {
   body: HTMLElement;
 }
 
-export function mountTutorialModal(root: HTMLElement): () => void {
+export function mountTutorialModal(root: HTMLElement, initialTab?: string): () => void {
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop tutorial-backdrop";
 
@@ -42,20 +42,23 @@ export function mountTutorialModal(root: HTMLElement): () => void {
     { title: "CHANGES", body: changesBody() },
   ];
 
-  let active = 0;
+  const startIdx = initialTab
+    ? Math.max(0, sections.findIndex((s) => s.title === initialTab))
+    : 0;
+  let active = startIdx;
   let switching = false;
 
   const tabButtons: HTMLButtonElement[] = sections.map((s, i) => {
     const b = document.createElement("button");
     b.className = "px-btn tutorial-tab";
-    if (i === 0) b.classList.add("tutorial-tab-active");
+    if (i === startIdx) b.classList.add("tutorial-tab-active");
     b.textContent = s.title;
     b.addEventListener("click", () => switchTab(i));
     tabsEl.appendChild(b);
     return b;
   });
 
-  body.appendChild(sections[0].body);
+  body.appendChild(sections[startIdx].body);
 
   function switchTab(index: number, direction?: "left" | "right"): void {
     if (index === active) return;

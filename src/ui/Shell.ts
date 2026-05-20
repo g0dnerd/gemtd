@@ -9,12 +9,16 @@ import { mountTitle } from './Title';
 import { mountHud } from './Hud';
 import { mountToasts } from './Toasts';
 import { mountTweaks } from './Tweaks';
+import { mountTutorialModal } from './TutorialModal';
+import { checkVersion } from './versionCheck';
 
 export function mountUI(root: HTMLElement, app: Application, game: Game): void {
   const container = document.createElement('div');
   container.className = 'px-root';
   root.innerHTML = '';
   root.appendChild(container);
+
+  const version = checkVersion();
 
   let dispose: (() => void) | null = null;
   const showTitle = () => {
@@ -23,10 +27,12 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
     dispose = mountTitle(container, () => {
       game.newGame();
       showHud();
+      if (version.isNewPlayer) mountTutorialModal(container);
     }, () => {
       game.newGame(1);
       showHud();
-    });
+      if (version.isNewPlayer) mountTutorialModal(container);
+    }, version.hasUnseenUpdate);
   };
 
   const showHud = () => {
