@@ -67,12 +67,12 @@ export class Combat {
           if (tick >= c.poison.nextTick) {
             const poisonDmg = Math.max(1, Math.round(c.poison.dps * (1 - c.poisonResist)));
             const owner = state.towers.find(t => t.id === c.poison!.ownerId);
-            if (owner) {
-              this.applyDamage(c, poisonDmg, owner);
+            if (!owner) {
+              c.poison = undefined;
             } else {
-              c.hp -= poisonDmg;
+              this.applyDamage(c, poisonDmg, owner);
+              c.poison.nextTick = tick + SIM_HZ;
             }
-            c.poison.nextTick = tick + SIM_HZ;
           }
         }
         if (c.armorStacks && c.armorStacks.count > 0) {
