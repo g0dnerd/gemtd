@@ -322,7 +322,8 @@ export function effectSummary(e: EffectKind): string {
     case 'armor_reduce':
       return `-${e.value} armor for ${e.duration}s`;
     case 'bonus_gold':
-      return `${Math.round(e.chance * 100)}% ×${e.multiplier} bonus gold on hit`;
+      const pct = e.chance * 100;
+      return `${pct % 1 ? pct.toFixed(1) : pct}% ×${e.multiplier} bonus gold on hit`;
     case 'vulnerability_aura':
       return `Vuln +${Math.round(e.pct * 100)}% · ${e.radius.toFixed(1)} tiles`;
     case 'crit_splash':

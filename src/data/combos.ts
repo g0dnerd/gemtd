@@ -277,10 +277,10 @@ const ALL_COMBOS: ComboRecipe[] = [
             { kind: "slow", factor: 0.5, duration: 4.0 },
             { kind: "crit", chance: 0.12, multiplier: 6.0 },
             { kind: "stun", chance: 0.08, duration: 2.0 },
-            { kind: "bonus_gold", chance: 0.03, multiplier: 3 },
+            { kind: "bonus_gold", chance: 0.015, multiplier: 3 },
           ],
           blurb:
-            "Poison 75 dps 4s. 50% slow. Lucky crits, stuns, and ×3 bonus gold on hit.",
+            "Poison 75 dps 4s. 50% slow. Lucky crits, stuns, and 1.5% ×3 bonus gold on hit.",
           targeting: "all",
         },
       },

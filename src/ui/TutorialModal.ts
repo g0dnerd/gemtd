@@ -301,6 +301,15 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.4",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Lucky Asian Jade: bonus gold chance 3% -> 1.5%.",
+        },
+      ],
+    },
+    {
       ver: "1.5.3",
       notes: [
         {
