@@ -660,7 +660,7 @@ export class Game {
         if (SPEEDS.includes(n as SpeedMultiplier)) return n;
       }
     } catch { /* private mode */ }
-    return 1;
+    return 2;
   }
 
   /** Center the board container in the canvas host. */
