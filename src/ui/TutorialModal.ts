@@ -298,6 +298,15 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.2",
+      notes: [
+        {
+          tag: "buff",
+          text: "Red Crystal: air-grounding now triggers every 15 hits (was 20) at all tiers.",
+        },
+      ],
+    },
+    {
       ver: "1.5.1",
       notes: [
         {
