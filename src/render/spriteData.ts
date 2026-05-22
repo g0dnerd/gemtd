@@ -1174,7 +1174,7 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     glow: hex("#ff5478"),
     halo: 0.55,
     pulse: 2.2,
-    orbit: true,
+    orbit: false,
     aura: false,
     ground: null,
   },

@@ -121,7 +121,7 @@ export const WAVES: WaveDef[] = [
   w(5, "carapace", 11, 335, 2, 0.85, 12, 0, 12),
   w(6, "shambler", 17, 500, 2, 0.55, 12),
   w(7, "skitter", 19, 560, 2, 0.45, 12),
-  w(8, "shrike", 12, 330, 2, 0.6, 14),
+  w(8, "shrike", 12, 430, 2, 0.6, 14),
   w(9, "carapace", 13, 1000, 3, 0.85, 17, 0, 13),
   w(10, "amalgam", 4, 3000, 5, 1.2, 30),
 
@@ -250,15 +250,21 @@ export const WAVES: WaveDef[] = [
     ["skitter", 12, 21900, 2, 0.18, 4],
     ["mender", 2, 15300, 4, 0.18, 4],
   ),
-  wm(30, 1.0, 80, ["amalgam", 8, 32000, 13, 0, 5], ["mender", 2, 15400, 8, 0, 3]),
+  wm(
+    30,
+    1.0,
+    80,
+    ["amalgam", 8, 32000, 13, 0, 5],
+    ["mender", 2, 15400, 8, 0, 3],
+  ),
 
   // --- Waves 31-39: specials become regular fixtures, armor continues climbing ---
   wm(
     31,
     0.5,
     13,
-    ["chrysalid", 22, 14000, 2, 0.22, 7],
-    ["mender", 3, 12400, 2, 0.22, 7],
+    ["chrysalid", 20, 14000, 2, 0.22, 6],
+    ["mender", 2, 12400, 2, 0.22, 6],
   ),
   wm(
     32,
@@ -293,7 +299,7 @@ export const WAVES: WaveDef[] = [
                 bounty: 2,
                 payload: [
                   {
-                    kind: "burrower" as CreepKind,
+                    kind: "anemone" as CreepKind,
                     count: 3,
                     hp: 10000,
                     bounty: 2,

@@ -6,7 +6,10 @@ interface Section {
   body: HTMLElement;
 }
 
-export function mountTutorialModal(root: HTMLElement, initialTab?: string): () => void {
+export function mountTutorialModal(
+  root: HTMLElement,
+  initialTab?: string,
+): () => void {
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop tutorial-backdrop";
 
@@ -43,7 +46,10 @@ export function mountTutorialModal(root: HTMLElement, initialTab?: string): () =
   ];
 
   const startIdx = initialTab
-    ? Math.max(0, sections.findIndex((s) => s.title === initialTab))
+    ? Math.max(
+        0,
+        sections.findIndex((s) => s.title === initialTab),
+      )
     : 0;
   let active = startIdx;
   let switching = false;
@@ -301,7 +307,20 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
-      ver: "1.6.0",
+      ver: "1.5.6",
+      notes: [
+        {
+          tag: "buff",
+          text: "Wave 8 (shrike): HP 330 -> 430.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 31: chrysalids 22 -> 20, menders 3 -> 2, armor 7 -> 6.",
+        },
+      ],
+    },
+    {
+      ver: "1.5.5",
       notes: [
         {
           tag: "nerf",
@@ -309,11 +328,11 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "nerf",
-          text: "Chrysalid HP multiplier 2.16× -> 2.0×.",
+          text: "Chrysalid HP multiplier 2.16x -> 2.0x.",
         },
         {
           tag: "buff",
-          text: "Skitter HP multiplier 0.7× -> 0.95×.",
+          text: "Skitter HP multiplier 0.7x -> 0.95x.",
         },
         {
           tag: "buff",
@@ -333,7 +352,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "buff",
-          text: "Burrower HP multiplier 1.35× -> 1.65×.",
+          text: "Burrower HP multiplier 1.35x -> 1.65x.",
         },
       ],
     },
@@ -419,7 +438,7 @@ function changesBody(): HTMLElement {
         { tag: "new", text: "Gestation boss (wave 50)" },
         {
           tag: "new",
-          text: "Gem weakness system: each wave has a weakness to one gem type. Matching gems deal 1.5× damage.",
+          text: "Gem weakness system: each wave has a weakness to one gem type. Matching gems deal 1.5x damage.",
         },
         {
           tag: "new",
@@ -427,7 +446,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "new",
-          text: "Dark Emerald rework: 17.5% stun, 2× damage to stunned creeps. Venomous Emerald: 23% stun, poison 340/s, plague on death.",
+          text: "Dark Emerald rework: 17.5% stun, 2x damage to stunned creeps. Venomous Emerald: 23% stun, poison 340/s, plague on death.",
         },
         {
           tag: "new",
@@ -439,7 +458,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Tower level-up scaling tapered: +5% per level -> diminishing returns via 5%×L/(1+6%×L) formula.",
+          text: "Tower level-up scaling tapered: +5% per level -> diminishing returns via 5%xL/(1+6%xL) formula.",
         },
         {
           tag: "bal",
@@ -475,7 +494,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "nerf",
-          text: "Pharaoh's Gold crit reduced: 28% ×3.5 -> 18% ×2.5.",
+          text: "Pharaoh's Gold crit reduced: 28% x3.5 -> 18% x2.5.",
         },
         { tag: "nerf", text: "Solar Core death nova radius 2.0 -> 1.0." },
         {
@@ -485,7 +504,7 @@ function changesBody(): HTMLElement {
         { tag: "nerf", text: "Wave 49: all creep HP reduced by 20%." },
         {
           tag: "buff",
-          text: "Stargem reworked: +splash, +15% crit ×3, poison 400 -> 500/s, slow 40% -> 45%, stun 12% -> 15%, damage 550–750 -> 600–800.",
+          text: "Stargem reworked: +splash, +15% crit x3, poison 400 -> 500/s, slow 40% -> 45%, stun 12% -> 15%, damage 550–750 -> 600–800.",
         },
         { tag: "buff", text: "Aquamarine base damage 2 -> 3." },
         {
@@ -657,7 +676,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "nerf",
-          text: "Diamond crit at higher qualities: reduced chance scaling (+3%/tier instead of +5%) and multiplier (1.8× at Normal+).",
+          text: "Diamond crit at higher qualities: reduced chance scaling (+3%/tier instead of +5%) and multiplier (1.8x at Normal+).",
         },
       ],
     },
@@ -922,7 +941,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "new",
-          text: "8× speed mode - press <kbd>8</kbd> to fast-forward.",
+          text: "8x speed mode - press <kbd>8</kbd> to fast-forward.",
         },
         {
           tag: "new",
@@ -942,7 +961,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "new",
-          text: "Stargem - apex gem from 4× Perfect same-type recipe.",
+          text: "Stargem - apex gem from 4x Perfect same-type recipe.",
         },
         {
           tag: "bal",

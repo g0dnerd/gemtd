@@ -13,13 +13,14 @@ import { activeDraw } from "../game/State";
 import { FINE_TILE, TILE } from "../game/constants";
 import { GEM_PALETTE, type GemType, RUNE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
-import { OPAL_FRAME_COUNT } from "./spriteData";
+import { OPAL_FRAME_COUNT, SPECIAL_SPRITES, SPECIAL_TIER_GRIDS } from "./spriteData";
 import { gemStats } from "../data/gems";
 import { COMBO_BY_NAME, comboStatsAtTier } from "../data/combos";
 import { SPRITE_BY_KIND, SPRITE_CHRYSALID_AWAKE, SPRITE_GESTATION_ENRAGED } from "./sprites";
 import { drawPixelGrid } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX } from "./spriteData";
+import { rasterizeToTexture } from "./pixelTexture";
 import { pickRockVariant } from "./RockSprites";
 import { APEX_STARGEM } from "./theme";
 import { generateRuneTexture, runeEffectFromComboKey } from "./RuneSprites";
@@ -52,7 +53,6 @@ interface RedCrystalFx {
 
 interface MalachiteFx {
   dots: Graphics[];
-  ring?: Graphics;
   trails?: Graphics[];
   tier: number;
   color: number;
@@ -77,6 +77,10 @@ interface TowerEntry {
   opalFrame?: number;
   /** Wrapper for jade combo sprite bobbing animation. */
   jadeBobWrap?: Container;
+  /** Wrapper for bloodstone magma bob animation. */
+  bloodstoneBobWrap?: Container;
+  /** Ember-hot overlay sprite for bloodstone T2+ tint flash. */
+  bloodstoneEmberSprite?: Sprite;
   /** Red Crystal "sky watcher pulse" — upward beam(s) + optional ripple ring. */
   redCrystalFx?: RedCrystalFx;
   /** Malachite "split focus" — orbiting target dots / ring. */
@@ -115,6 +119,13 @@ const GESTATION_COLORS_ENRAGED = {
   accent: 0xf0e0b0,
 };
 
+const BLOODSTONE_EMBER_PALETTE = {
+  light: 0xffb868,
+  mid: 0xff4020,
+  dark: 0x881010,
+  sparkle: 0xffff90,
+};
+
 const towerObjs = new Map<number, TowerEntry>();
 const rockObjs = new Map<number, PerEntity>();
 const creepObjs = new Map<number, PerEntity>();
@@ -141,6 +152,8 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let jadeBobWrap: Container | undefined;
       let redCrystalFx: RedCrystalFx | undefined;
       let malachiteFx: MalachiteFx | undefined;
+      let bloodstoneBobWrap: Container | undefined;
+      let bloodstoneEmberSprite: Sprite | undefined;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -178,6 +191,23 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           wrap.addChild(towerSprite);
           obj.addChild(wrap);
           jadeBobWrap = wrap;
+        } else if (t.comboKey === 'bloodstone') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          if (tier >= 1) {
+            const spec = SPECIAL_SPRITES['bloodstone'];
+            const tierGrids = SPECIAL_TIER_GRIDS['bloodstone'];
+            const effectiveTier = Math.min(tier + 1, 3) as 2 | 3;
+            const grid = (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
+            const emberTex = rasterizeToTexture(cache.renderer, grid, BLOODSTONE_EMBER_PALETTE, 3);
+            const es = new Sprite(emberTex);
+            es.anchor.set(0.5, 0.5);
+            es.alpha = 0;
+            wrap.addChild(es);
+            bloodstoneEmberSprite = es;
+          }
+          obj.addChild(wrap);
+          bloodstoneBobWrap = wrap;
         } else {
           obj.addChild(towerSprite);
         }
@@ -193,12 +223,13 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, redCrystalFx, malachiteFx };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, redCrystalFx, malachiteFx };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
     if (entry.stargemFx) animateStargemFx(entry.stargemFx, now);
+    else if (entry.bloodstoneBobWrap) animateBloodstoneFx(entry, now);
     else if (entry.fx) animateTowerFx(entry.fx, now);
     if (entry.opalFrames && entry.opalSprite) {
       const frame = Math.floor(now / 225) % OPAL_FRAME_COUNT;
@@ -332,6 +363,31 @@ function animateTowerFx(fx: TowerFx, now: number): void {
   }
 }
 
+// ===== Bloodstone — Magma Bob ================================================
+
+function animateBloodstoneFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+  const period = tier >= 1 ? 2.0 : 2.75;
+  const amp = tier >= 1 ? 4 : 3;
+
+  const raw = Math.sin((2 * Math.PI * sec) / period);
+  const shaped = tier >= 1
+    ? (raw > 0 ? Math.pow(raw, 0.6) : -Math.pow(-raw, 2.5))
+    : (raw > 0 ? Math.pow(raw, 0.8) : -Math.pow(-raw, 1.8));
+
+  entry.bloodstoneBobWrap!.y = -shaped * amp;
+
+  if (entry.fx) {
+    const bobPhase = (shaped + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.5 * bobPhase);
+  }
+
+  if (entry.bloodstoneEmberSprite) {
+    entry.bloodstoneEmberSprite.alpha = Math.max(0, Math.pow(Math.max(0, shaped), 3));
+  }
+}
+
 // ===== Red Crystal — Sky Watcher Pulse ======================================
 
 const RC_COLOR = 0xff5478;
@@ -401,12 +457,6 @@ const ML_COLOR = 0xa0e878;
 function makeMalachiteFx(parent: Container, tier: number): MalachiteFx {
   const dots: Graphics[] = [];
   let trails: Graphics[] | undefined;
-  let ring: Graphics | undefined;
-
-  if (tier >= 2) {
-    ring = new Graphics();
-    parent.addChild(ring);
-  }
 
   if (tier >= 1) {
     trails = [];
@@ -423,7 +473,7 @@ function makeMalachiteFx(parent: Container, tier: number): MalachiteFx {
     dots.push(dot);
   }
 
-  return { dots, ring, trails, tier, color: ML_COLOR };
+  return { dots, trails, tier, color: ML_COLOR };
 }
 
 function animateMalachiteFx(fx: MalachiteFx, now: number): void {
@@ -432,14 +482,6 @@ function animateMalachiteFx(fx: MalachiteFx, now: number): void {
   const baseAng = (sec / orbitPeriod) * Math.PI * 2;
   const r = TILE * 0.5;
   const dotSize = 1.5 + fx.tier * 0.5;
-
-  if (fx.ring) {
-    fx.ring.clear();
-    const pulse = (Math.sin(sec * Math.PI * 2 / 2.0) + 1) / 2;
-    const ringR = r * (0.9 + 0.1 * pulse);
-    fx.ring.circle(0, 0, ringR)
-      .stroke({ width: 1, color: fx.color, alpha: 0.25 + 0.15 * pulse });
-  }
 
   for (let i = 0; i < 3; i++) {
     const ang = baseAng + (i / 3) * Math.PI * 2;

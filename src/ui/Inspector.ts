@@ -209,10 +209,17 @@ function render(refs: InspectorRefs, game: Game): void {
 
   const statsRow = document.createElement("div");
   statsRow.className = "inspector-stats-row";
-  statsRow.appendChild(statCell("DAMAGE", `${stats.dmgMin}–${stats.dmgMax}`, true));
+  statsRow.appendChild(
+    statCell("DAMAGE", `${stats.dmgMin}–${stats.dmgMax}`, true),
+  );
   statsRow.appendChild(statCell("RANGE", stats.range.toFixed(1), false));
   statsRow.appendChild(
-    statCell("SPEED", `${stats.atkSpeed.toFixed(2)}<small>/s</small>`, false, true),
+    statCell(
+      "SPEED",
+      `${stats.atkSpeed.toFixed(2)}<small>/s</small>`,
+      false,
+      true,
+    ),
   );
   body.appendChild(statsRow);
 
@@ -299,7 +306,8 @@ function render(refs: InspectorRefs, game: Game): void {
       dg.disabled = !canDowngrade;
       dg.textContent = "▼ DOWNGRADE";
       if (tower.quality <= 1) dg.title = "Already lowest tier";
-      else if (game.state.downgradeUsedThisRound) dg.title = "Already downgraded this round";
+      else if (game.state.downgradeUsedThisRound)
+        dg.title = "Already downgraded this round";
       dg.addEventListener("click", () => game.cmdDowngrade(tower.id));
       topRow.appendChild(dg);
     }
@@ -843,7 +851,7 @@ const CREEP_KIND_NAMES: Record<string, string> = {
 };
 
 const ABILITY_DESC: Record<string, string> = {
-  mender: "Reknits flesh of nearby allies",
+  mender: "Heals flesh of nearby allies",
   wizard: "Teleports allies forward",
   burrower: "Burrows underground, becoming untargetable",
 };
@@ -1055,7 +1063,12 @@ function flagChip(text: string, variant: string): HTMLSpanElement {
   return span;
 }
 
-function statCell(label: string, value: string, isDmg: boolean, useHtml = false): HTMLDivElement {
+function statCell(
+  label: string,
+  value: string,
+  isDmg: boolean,
+  useHtml = false,
+): HTMLDivElement {
   const cell = document.createElement("div");
   cell.className = `px-panel-inset inspector-stat-cell${isDmg ? " is-dmg" : ""}`;
   const lbl = document.createElement("div");
@@ -1093,7 +1106,11 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "none":
       return null;
     case "splash":
-      return { label: "SPLASH", text: `r=${e.radius.toFixed(1)}${e.falloff ? ` ${Math.round(e.falloff * 100)}%` : ""}`, tone: "aoe" };
+      return {
+        label: "SPLASH",
+        text: `r=${e.radius.toFixed(1)}${e.falloff ? ` ${Math.round(e.falloff * 100)}%` : ""}`,
+        tone: "aoe",
+      };
     case "chain":
       return { label: "CHAIN", text: `${e.bounces} bounces`, tone: "aoe" };
     case "multi_target":
@@ -1101,68 +1118,177 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "periodic_nova":
       return { label: "NOVA", text: `every ${e.everyN} hits`, tone: "aoe" };
     case "death_nova":
-      return { label: "DEATH NOVA", text: `${Math.round(e.hpPct * 100)}% HP r=${e.radius.toFixed(1)}`, tone: "aoe" };
+      return {
+        label: "DEATH NOVA",
+        text: `${Math.round(e.hpPct * 100)}% HP r=${e.radius.toFixed(1)}`,
+        tone: "aoe",
+      };
     case "crit_splash":
-      return { label: "CRIT AoE", text: `r=${e.radius.toFixed(1)}`, tone: "aoe" };
+      return {
+        label: "CRIT AoE",
+        text: `r=${e.radius.toFixed(1)}`,
+        tone: "aoe",
+      };
     case "eruption":
-      return { label: "ERUPTION", text: `every ${e.threshold} hits`, tone: "aoe" };
+      return {
+        label: "ERUPTION",
+        text: `every ${e.threshold} hits`,
+        tone: "aoe",
+      };
     case "trap_explode":
-      return { label: "EXPLODE", text: `r=${e.radius.toFixed(1)}`, tone: "aoe" };
+      return {
+        label: "EXPLODE",
+        text: `r=${e.radius.toFixed(1)}`,
+        tone: "aoe",
+      };
     case "slow":
-      return { label: "SLOW", text: `×${e.factor.toFixed(2)} ${e.duration}s`, tone: "cc" };
+      return {
+        label: "SLOW",
+        text: `×${e.factor.toFixed(2)} ${e.duration}s`,
+        tone: "cc",
+      };
     case "stun":
-      return { label: "STUN", text: `${Math.round(e.chance * 100)}% ${e.duration}s`, tone: "cc" };
+      return {
+        label: "STUN",
+        text: `${Math.round(e.chance * 100)}% ${e.duration}s`,
+        tone: "cc",
+      };
     case "freeze_chance":
-      return { label: "FREEZE", text: `${Math.round(e.chance * 100)}% ${e.duration}s`, tone: "cc" };
+      return {
+        label: "FREEZE",
+        text: `${Math.round(e.chance * 100)}% ${e.duration}s`,
+        tone: "cc",
+      };
     case "periodic_freeze":
-      return { label: "FREEZE", text: `every ${e.interval}s ${e.duration}s`, tone: "cc" };
+      return {
+        label: "FREEZE",
+        text: `every ${e.interval}s ${e.duration}s`,
+        tone: "cc",
+      };
     case "frostbite":
-      return { label: "FROSTBITE", text: `+${Math.round(e.dmgBonus * 100)}%`, tone: "cc" };
+      return {
+        label: "FROSTBITE",
+        text: `+${Math.round(e.dmgBonus * 100)}%`,
+        tone: "cc",
+      };
     case "trap_root":
       return { label: "ROOT", text: `${e.duration}s`, tone: "cc" };
     case "trap_slow":
-      return { label: "SLOW", text: `×${e.factor.toFixed(2)} ${e.duration}s`, tone: "cc" };
+      return {
+        label: "SLOW",
+        text: `×${e.factor.toFixed(2)} ${e.duration}s`,
+        tone: "cc",
+      };
     case "trap_knockback":
       return { label: "KNOCKBACK", text: `${e.distance} tiles`, tone: "cc" };
     case "prox_slow":
-      return { label: "SLOW FIELD", text: `×${e.factor.toFixed(2)} r=${e.radius.toFixed(1)}`, tone: "cc" };
+      return {
+        label: "SLOW FIELD",
+        text: `×${e.factor.toFixed(2)} r=${e.radius.toFixed(1)}`,
+        tone: "cc",
+      };
     case "demote_air":
       return { label: "GROUND", text: `every ${e.everyN}th hit`, tone: "cc" };
     case "crit":
-      return { label: "CRIT", text: `${Math.round(e.chance * 100)}% ×${e.multiplier}`, tone: "buff" };
+      return {
+        label: "CRIT",
+        text: `${Math.round(e.chance * 100)}% ×${e.multiplier}`,
+        tone: "buff",
+      };
     case "aura_atkspeed":
-      return { label: "ATK SPD", text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`, tone: "buff" };
+      return {
+        label: "ATK SPD",
+        text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`,
+        tone: "buff",
+      };
     case "aura_dmg":
-      return { label: "DMG AURA", text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`, tone: "buff" };
+      return {
+        label: "DMG AURA",
+        text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`,
+        tone: "buff",
+      };
     case "beam_ramp":
-      return { label: "BEAM", text: `+${Math.round(e.rampPerHit * 100)}%/hit`, tone: "buff" };
+      return {
+        label: "BEAM",
+        text: `+${Math.round(e.rampPerHit * 100)}%/hit`,
+        tone: "buff",
+      };
     case "focus_crit":
-      return { label: "FOCUS", text: `+${Math.round(e.pctPerHit * 100)}%/hit`, tone: "buff" };
+      return {
+        label: "FOCUS",
+        text: `+${Math.round(e.pctPerHit * 100)}%/hit`,
+        tone: "buff",
+      };
     case "execute":
-      return { label: "EXECUTE", text: `+${Math.round(e.dmgBonus * 100)}% <${Math.round(e.hpThreshold * 100)}%`, tone: "buff" };
+      return {
+        label: "EXECUTE",
+        text: `+${Math.round(e.dmgBonus * 100)}% <${Math.round(e.hpThreshold * 100)}%`,
+        tone: "buff",
+      };
     case "stun_bonus_dmg":
       return { label: "STUN DMG", text: `×${e.multiplier}`, tone: "buff" };
-    case "bonus_gold":
-      { const pct = e.chance * 100;
-      return { label: "GOLD", text: `${pct % 1 ? pct.toFixed(1) : pct}% ×${e.multiplier} bounty (max 10)`, tone: "buff" }; }
+    case "bonus_gold": {
+      const pct = e.chance * 100;
+      return {
+        label: "GOLD",
+        text: `${pct % 1 ? pct.toFixed(1) : pct}% ×${e.multiplier} bounty (max 10)`,
+        tone: "buff",
+      };
+    }
     case "air_bonus":
-      return { label: "AIR BONUS", text: `×${e.multiplier.toFixed(1)}`, tone: "buff" };
+      return {
+        label: "AIR BONUS",
+        text: `×${e.multiplier.toFixed(1)}`,
+        tone: "buff",
+      };
     case "true":
-      return { label: "TRUE DMG", text: `${Math.round(e.chance * 100)}%`, tone: "buff" };
+      return {
+        label: "TRUE DMG",
+        text: `${Math.round(e.chance * 100)}%`,
+        tone: "buff",
+      };
     case "poison":
-      return { label: "POISON", text: `${Math.round(e.dps)}/s ${e.duration}s`, tone: "debuff" };
+      return {
+        label: "POISON",
+        text: `${Math.round(e.dps)}/s ${e.duration}s`,
+        tone: "debuff",
+      };
     case "armor_reduce":
-      return { label: "ARMOR BREAK", text: `-${e.value} ${e.duration}s`, tone: "debuff" };
+      return {
+        label: "ARMOR BREAK",
+        text: `-${e.value} ${e.duration}s`,
+        tone: "debuff",
+      };
     case "prox_armor_reduce":
-      return { label: "ARMOR SHRED", text: `-${e.value} r=${e.radius.toFixed(1)}`, tone: "debuff" };
+      return {
+        label: "ARMOR SHRED",
+        text: `-${e.value} r=${e.radius.toFixed(1)}`,
+        tone: "debuff",
+      };
     case "vulnerability_aura":
-      return { label: "VULN", text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`, tone: "debuff" };
+      return {
+        label: "VULN",
+        text: `+${Math.round(e.pct * 100)}% r=${e.radius.toFixed(1)}`,
+        tone: "debuff",
+      };
     case "stacking_armor_reduce":
-      return { label: "ARMOR STACK", text: `-${e.perHit}/hit max ${e.maxStacks}`, tone: "debuff" };
+      return {
+        label: "ARMOR STACK",
+        text: `-${e.perHit}/hit max ${e.maxStacks}`,
+        tone: "debuff",
+      };
     case "armor_decay_aura":
-      return { label: "ARMOR DECAY", text: `-${e.armorPerSec}/s r=${e.radius.toFixed(1)}`, tone: "debuff" };
+      return {
+        label: "ARMOR DECAY",
+        text: `-${e.armorPerSec}/s r=${e.radius.toFixed(1)}`,
+        tone: "debuff",
+      };
     case "stun_poison":
-      return { label: "VENOM", text: `${Math.round(e.dps)}/s ${e.duration}s`, tone: "debuff" };
+      return {
+        label: "VENOM",
+        text: `${Math.round(e.dps)}/s ${e.duration}s`,
+        tone: "debuff",
+      };
     case "death_spread":
       return { label: "PLAGUE", text: `→${e.count} on death`, tone: "debuff" };
     case "armor_pierce_burn":
@@ -1170,11 +1296,23 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "linger_burn":
       return { label: "LINGER", text: `burn ${e.duration}s`, tone: "debuff" };
     case "trap_dot":
-      return { label: "DAMAGE", text: `${Math.round(e.dps)}/s ${e.duration}s`, tone: "debuff" };
+      return {
+        label: "DAMAGE",
+        text: `${Math.round(e.dps)}/s ${e.duration}s`,
+        tone: "debuff",
+      };
     case "prox_burn":
-      return { label: "BURN", text: `${Math.round(e.dps)}/s r=${e.radius.toFixed(1)}`, tone: "debuff" };
+      return {
+        label: "BURN",
+        text: `${Math.round(e.dps)}/s r=${e.radius.toFixed(1)}`,
+        tone: "debuff",
+      };
     case "prox_burn_ramp":
-      return { label: "BURN", text: `${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s`, tone: "debuff" };
+      return {
+        label: "BURN",
+        text: `${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s`,
+        tone: "debuff",
+      };
   }
 }
 

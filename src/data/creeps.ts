@@ -88,7 +88,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     hpMult: 0.85,
     bountyMult: 1.5,
     flags: {},
-    blurb: "Reknits flesh of nearby creeps",
+    blurb: "Heals nearby creeps",
   },
   wizard: {
     kind: "wizard",
