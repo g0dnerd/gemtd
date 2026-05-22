@@ -1,14 +1,14 @@
-import type { CreepState, State } from '../game/State';
-import type { EventBus } from '../events/EventBus';
-import { nearestPathPos } from './Pathfinding';
-import { FINE_TILE } from '../game/constants';
+import type { CreepState, State } from "../game/State";
+import type { EventBus } from "../events/EventBus";
+import { nearestPathPos } from "./Pathfinding";
+import { FINE_TILE } from "../game/constants";
 
 export interface PendingSpawn {
   creep: CreepState;
   spawnAt: number;
 }
 
-const STAGGER_TICKS = 10;
+const STAGGER_TICKS = 20;
 
 export function spawnContainerPayload(
   dead: CreepState,
@@ -56,7 +56,7 @@ export function spawnContainerPayload(
         state.creeps.push(creep);
         state.waveStats.spawnedThisWave++;
         state.waveStats.totalToSpawn++;
-        bus.emit('creep:spawn', { id, kind: p.kind, maxHp: p.hp });
+        bus.emit("creep:spawn", { id, kind: p.kind, maxHp: p.hp });
       } else {
         pending.push({ creep, spawnAt: state.tick + delay });
         state.waveStats.totalToSpawn++;
@@ -79,7 +79,11 @@ export function drainPendingSpawns(
       entry.creep.spawnTick = tick;
       state.creeps.push(entry.creep);
       state.waveStats.spawnedThisWave++;
-      bus.emit('creep:spawn', { id: entry.creep.id, kind: entry.creep.kind, maxHp: entry.creep.maxHp });
+      bus.emit("creep:spawn", {
+        id: entry.creep.id,
+        kind: entry.creep.kind,
+        maxHp: entry.creep.maxHp,
+      });
       pending[i] = pending[pending.length - 1];
       pending.pop();
     } else {

@@ -84,7 +84,6 @@ interface TowerEntry {
   /** Wrapper for silver gleam sweep + bob animation. */
   silverBobWrap?: Container;
   /** Moving gleam bar for silver idle animation. */
-  silverGleamBar?: Graphics;
   /** Bright frost overlay sprite for Silver Knight shatter pulse. */
   silverFrostSprite?: Sprite;
   ysBobWrap?: Container;
@@ -189,7 +188,6 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let bloodstoneBobWrap: Container | undefined;
       let bloodstoneEmberSprite: Sprite | undefined;
       let silverBobWrap: Container | undefined;
-      let silverGleamBar: Graphics | undefined;
       let silverFrostSprite: Sprite | undefined;
       let ysBobWrap: Container | undefined;
       let ysFrostSprite: Sprite | undefined;
@@ -260,19 +258,6 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           const sTierGrids = SPECIAL_TIER_GRIDS['silver'];
           const sEff = Math.min(tier + 1, 3) as 2 | 3;
           const sGrid = (sEff > 1 && sTierGrids?.[sEff]) || sSpec.grid;
-          const sHalfW = sGrid[0].length * 3 / 2;
-          const sHalfH = sGrid.length * 3 / 2;
-          const gleamMask = new Graphics();
-          gleamMask.rect(-sHalfW, -sHalfH, sHalfW * 2, sHalfH * 2).fill(0xffffff);
-          wrap.addChild(gleamMask);
-          const bar = new Graphics();
-          bar.rect(-1, -sHalfH, 2, sHalfH * 2).fill({ color: 0xffffff, alpha: 0.45 });
-          bar.rect(-3, -sHalfH, 2, sHalfH * 2).fill({ color: 0xd8f0ff, alpha: 0.15 });
-          bar.rect(1, -sHalfH, 2, sHalfH * 2).fill({ color: 0xd8f0ff, alpha: 0.15 });
-          bar.blendMode = 'add';
-          wrap.addChild(bar);
-          bar.mask = gleamMask;
-          silverGleamBar = bar;
           if (tier >= 2) {
             const frostTex = rasterizeToTexture(cache.renderer, sGrid, SILVER_FROST_PALETTE, 3);
             const fs = new Sprite(frostTex);
@@ -367,7 +352,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverGleamBar, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -543,24 +528,7 @@ function animateSilverFx(entry: TowerEntry, now: number): void {
   const sec = now / 1000;
   const tier = entry.upgradeTier;
 
-  const spec = SPECIAL_SPRITES['silver'];
-  const tGrids = SPECIAL_TIER_GRIDS['silver'];
-  const eff = Math.min(tier + 1, 3) as 2 | 3;
-  const grid = (eff > 1 && tGrids?.[eff]) || spec.grid;
-  const halfW = grid[0].length * 3 / 2;
-
-  // Sweep period: slower at T0, faster at T1+
-  const sweepPeriod = tier === 0 ? 3.0 : 2.0;
-  const cycle = (sec % sweepPeriod) / sweepPeriod;
-  entry.silverGleamBar!.x = -halfW - 3 + cycle * (halfW * 2 + 6);
-
-  // Gleam intensity peaks at center
-  const centerDist = Math.abs(cycle - 0.5) * 2;
-  entry.silverGleamBar!.alpha = 1 - centerDist * 0.3;
-
-  // Halo synced with sweep position
-  const sweepHaloPhase = 1 - centerDist;
-  let haloAlpha = 0.3 + 0.7 * sweepHaloPhase * 0.5;
+  let haloAlpha = 0.3;
 
   // Bob for Frosted Silver + Silver Knight (tier >= 1)
   if (tier >= 1) {
