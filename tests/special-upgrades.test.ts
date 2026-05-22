@@ -40,7 +40,7 @@ function makeCreep(
   const hp = opts.hp ?? 10000;
   const creep: CreepState = {
     id: game.nextId(),
-    kind: "normal",
+    kind: "shambler",
     pathPos: 5,
     px: (opts.x ?? 5) * FINE_TILE,
     py: (opts.y ?? 5) * FINE_TILE,
@@ -339,7 +339,7 @@ describe("death_nova", () => {
     // Dead creep (will trigger death nova)
     const deadCreep: CreepState = {
       id: game.nextId(),
-      kind: "normal",
+      kind: "shambler",
       pathPos: 5,
       px: 5 * FINE_TILE,
       py: 5 * FINE_TILE,
@@ -381,7 +381,7 @@ describe("death_spread", () => {
 
     const deadCreep: CreepState = {
       id: game.nextId(),
-      kind: "normal",
+      kind: "shambler",
       pathPos: 5,
       px: 5 * FINE_TILE,
       py: 5 * FINE_TILE,
@@ -422,7 +422,7 @@ describe("death_spread", () => {
 
     const deadCreep: CreepState = {
       id: game.nextId(),
-      kind: "normal",
+      kind: "shambler",
       pathPos: 5,
       px: 5 * FINE_TILE,
       py: 5 * FINE_TILE,

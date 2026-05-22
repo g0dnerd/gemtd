@@ -94,7 +94,7 @@ describe("balance / data integrity", () => {
   });
 
   it("boss waves are at every 10", () => {
-    const bossKinds: string[] = ["boss", "coral", "gestation"];
+    const bossKinds: string[] = ["amalgam", "coral", "gestation"];
     for (let i = 9; i < WAVES.length; i += 10) {
       expect(bossKinds).toContain(WAVES[i].groups[0].kind);
     }

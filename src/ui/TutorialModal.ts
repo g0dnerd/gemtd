@@ -301,6 +301,43 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.6.0",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Wave 47: all HP reduced by 12%.",
+        },
+        {
+          tag: "nerf",
+          text: "Chrysalid HP multiplier 2.16× -> 2.0×.",
+        },
+        {
+          tag: "buff",
+          text: "Skitter HP multiplier 0.7× -> 0.95×.",
+        },
+        {
+          tag: "buff",
+          text: "Solar Core: death nova radius 1.0 -> 1.5.",
+        },
+        {
+          tag: "bal",
+          text: "Container creeps spawn more spread out on death.",
+        },
+        {
+          tag: "nerf",
+          text: "Lucky Asian Jade: cost 250 -> 280, bonus gold chance 1.5% -> 1%.",
+        },
+        {
+          tag: "buff",
+          text: "Red Crystal line: air grounding now every 14th/13th/12th hit (was 15 at all tiers).",
+        },
+        {
+          tag: "buff",
+          text: "Burrower HP multiplier 1.35× -> 1.65×.",
+        },
+      ],
+    },
+    {
       ver: "1.5.4",
       notes: [
         {

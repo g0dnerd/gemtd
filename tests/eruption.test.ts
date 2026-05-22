@@ -34,7 +34,7 @@ function makeCreep(
   const hp = opts.hp ?? 100000;
   const creep: CreepState = {
     id: game.nextId(),
-    kind: "normal",
+    kind: "shambler",
     pathPos: 5,
     px: (opts.x ?? 5) * FINE_TILE,
     py: (opts.y ?? 5) * FINE_TILE,

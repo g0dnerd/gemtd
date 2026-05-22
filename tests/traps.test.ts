@@ -84,7 +84,7 @@ function makeCreep(game: FakeGame, px: number, py: number): CreepState {
   const id = game.nextId();
   const creep: CreepState = {
     id,
-    kind: "normal",
+    kind: "shambler",
     pathPos: 5,
     px,
     py,

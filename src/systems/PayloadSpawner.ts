@@ -8,7 +8,7 @@ export interface PendingSpawn {
   spawnAt: number;
 }
 
-const STAGGER_TICKS = 6;
+const STAGGER_TICKS = 10;
 
 export function spawnContainerPayload(
   dead: CreepState,

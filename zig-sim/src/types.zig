@@ -59,14 +59,14 @@ pub const Targeting = enum(u8) {
 };
 
 pub const CreepKind = enum(u8) {
-    normal = 0,
-    fast = 1,
-    armored = 2,
-    air = 3,
-    boss = 4,
-    healer = 5,
+    shambler = 0,
+    skitter = 1,
+    carapace = 2,
+    shrike = 3,
+    amalgam = 4,
+    mender = 5,
     wizard = 6,
-    tunneler = 7,
+    burrower = 7,
     vessel = 8,
     gazer = 9,
     coral = 10,

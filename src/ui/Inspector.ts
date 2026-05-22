@@ -832,20 +832,20 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
 }
 
 const CREEP_KIND_NAMES: Record<string, string> = {
-  normal: "CREEP",
-  fast: "SWIFT",
-  armored: "ARMORED",
-  air: "FLYER",
-  boss: "BOSS",
-  healer: "HEALER",
+  shambler: "SHAMBLER",
+  skitter: "SWIFT",
+  carapace: "CARAPACE",
+  shrike: "SHRIKE",
+  amalgam: "AMALGAM",
+  mender: "MENDER",
   wizard: "WIZARD",
-  tunneler: "TUNNELER",
+  burrower: "BURROWER",
 };
 
 const ABILITY_DESC: Record<string, string> = {
-  healer: "Heals nearby allies over time",
+  mender: "Reknits flesh of nearby allies",
   wizard: "Teleports allies forward",
-  tunneler: "Burrows underground, becoming untargetable",
+  burrower: "Burrows underground, becoming untargetable",
 };
 
 function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {

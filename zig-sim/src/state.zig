@@ -47,7 +47,7 @@ pub const TowerState = struct {
 
 pub const CreepState = struct {
     id: i32 = 0,
-    kind: types.CreepKind = .normal,
+    kind: types.CreepKind = .shambler,
     path_pos: f32 = 0,
     px: f32 = 0,
     py: f32 = 0,
@@ -137,7 +137,7 @@ pub const WaveStats = struct {
 };
 
 pub const PayloadEntry = struct {
-    kind: types.CreepKind = .normal,
+    kind: types.CreepKind = .shambler,
     count: i32 = 0,
     hp: i32 = 0,
     speed: f32 = 0,

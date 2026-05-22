@@ -1,0 +1,532 @@
+{
+  "version": 1,
+  "git": {
+    "commit": "91c0dc4b0dd851b3e75425657ffe7394e7527085",
+    "shortHash": "91c0dc4",
+    "message": "render: remove selection bracket pulse on combo gems",
+    "date": "2026-05-19T12:23:30+02:00",
+    "branch": "main",
+    "dirty": true
+  },
+  "timestamp": "2026-05-19T14:58:44.322Z",
+  "config": {
+    "trials": 10,
+    "towerLabels": [
+      "Ruby Q3",
+      "Sapphire Q3",
+      "Emerald Q3",
+      "Diamond Q3",
+      "Topaz Q3",
+      "Amethyst Q3",
+      "Aquamarine Q3",
+      "Solar Core",
+      "Uranium 235",
+      "Silver Knight",
+      "Ancient Paraiba",
+      "Rose Quartz Crystal",
+      "Mighty Malachite"
+    ]
+  },
+  "waves": [
+    {
+      "waveNum": 1,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.005545776583129097,
+      "meanMaxPathPos": 0.00635715793079821,
+      "meanTicksToComplete": 700.5,
+      "meanTotalDamage": 1930,
+      "composite": 0.007429447647382092
+    },
+    {
+      "waveNum": 2,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.006244112824026491,
+      "meanMaxPathPos": 0.007408263103802671,
+      "meanTicksToComplete": 774.7,
+      "meanTotalDamage": 2906.7,
+      "composite": 0.008431771166433583
+    },
+    {
+      "waveNum": 3,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.006930060475988942,
+      "meanMaxPathPos": 0.008182339842411762,
+      "meanTicksToComplete": 613.2,
+      "meanTotalDamage": 3008.9,
+      "composite": 0.00724869284339082
+    },
+    {
+      "waveNum": 4,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.00676076482813749,
+      "meanMaxPathPos": 0.007984323398424123,
+      "meanTicksToComplete": 807.9,
+      "meanTotalDamage": 3929,
+      "composite": 0.009067498078343247
+    },
+    {
+      "waveNum": 5,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.014782276371111038,
+      "meanMaxPathPos": 0.01711056526207618,
+      "meanTicksToComplete": 1368.2,
+      "meanTotalDamage": 6178.3,
+      "composite": 0.015903632747682386
+    },
+    {
+      "waveNum": 6,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.013957307538842773,
+      "meanMaxPathPos": 0.017043672490578834,
+      "meanTicksToComplete": 1134,
+      "meanTotalDamage": 10182.3,
+      "composite": 0.0147885787872813
+    },
+    {
+      "waveNum": 7,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.012997171039108713,
+      "meanMaxPathPos": 0.017219989722507982,
+      "meanTicksToComplete": 877.1,
+      "meanTotalDamage": 6849.5,
+      "composite": 0.011622013345739752
+    },
+    {
+      "waveNum": 8,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.06731314516129035,
+      "meanMaxPathPos": 0.0796950860215054,
+      "meanTicksToComplete": 548.1,
+      "meanTotalDamage": 3869.4,
+      "composite": 0.01899806511755772
+    },
+    {
+      "waveNum": 9,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.05656876448731285,
+      "meanMaxPathPos": 0.06683258478931355,
+      "meanTicksToComplete": 4029.8,
+      "meanTotalDamage": 20021.3,
+      "composite": 0.04990377712463213
+    },
+    {
+      "waveNum": 10,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.09228986485097976,
+      "meanMaxPathPos": 0.09813368448098973,
+      "meanTicksToComplete": 5595.1,
+      "meanTotalDamage": 41273.2,
+      "composite": 0.07540835781947218
+    },
+    {
+      "waveNum": 11,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.06568110010478942,
+      "meanMaxPathPos": 0.08326504282288388,
+      "meanTicksToComplete": 3762.9,
+      "meanTotalDamage": 41044.3,
+      "composite": 0.05476101186617017
+    },
+    {
+      "waveNum": 12,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.07741081808838873,
+      "meanMaxPathPos": 0.08511157673861144,
+      "meanTicksToComplete": 2507.6,
+      "meanTotalDamage": 35143.3,
+      "composite": 0.04516997832448272
+    },
+    {
+      "waveNum": 13,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.08115742136291226,
+      "meanMaxPathPos": 0.09359141315519338,
+      "meanTicksToComplete": 5380.5,
+      "meanTotalDamage": 50621.9,
+      "composite": 0.07373212680538607
+    },
+    {
+      "waveNum": 14,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.12492741153578449,
+      "meanMaxPathPos": 0.18452238709677543,
+      "meanTicksToComplete": 1505.1,
+      "meanTotalDamage": 14674,
+      "composite": 0.04119870492970485
+    },
+    {
+      "waveNum": 15,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.10083025193948703,
+      "meanMaxPathPos": 0.11140720045392208,
+      "meanTicksToComplete": 13546.4,
+      "meanTotalDamage": 176506.9,
+      "composite": 0.1772061769745456
+    },
+    {
+      "waveNum": 16,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.09040610377153029,
+      "meanMaxPathPos": 0.09854506149366409,
+      "meanTicksToComplete": 2926.2,
+      "meanTotalDamage": 63272.7,
+      "composite": 0.058293979462203695
+    },
+    {
+      "waveNum": 17,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.091864109432863,
+      "meanMaxPathPos": 0.1021961527920541,
+      "meanTicksToComplete": 4723.4,
+      "meanTotalDamage": 100655,
+      "composite": 0.08291348443524582
+    },
+    {
+      "waveNum": 18,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.09903001562179162,
+      "meanMaxPathPos": 0.10891138232271669,
+      "meanTicksToComplete": 6647.1,
+      "meanTotalDamage": 87362,
+      "composite": 0.09705223555934772
+    },
+    {
+      "waveNum": 19,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.17387239301634932,
+      "meanMaxPathPos": 0.2918662365591423,
+      "meanTicksToComplete": 2631.4,
+      "meanTotalDamage": 35741,
+      "composite": 0.06564347550839593
+    },
+    {
+      "waveNum": 20,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.17818669567917603,
+      "meanMaxPathPos": 0.2204367081192257,
+      "meanTicksToComplete": 14063.8,
+      "meanTotalDamage": 320181.8,
+      "composite": 0.2329296193540073
+    },
+    {
+      "waveNum": 21,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.10984096816316602,
+      "meanMaxPathPos": 0.12569520292035785,
+      "meanTicksToComplete": 5466.5,
+      "meanTotalDamage": 147148,
+      "composite": 0.10433164832319834
+    },
+    {
+      "waveNum": 22,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.11891501152214994,
+      "meanMaxPathPos": 0.13674391332894514,
+      "meanTicksToComplete": 7916.2,
+      "meanTotalDamage": 179873.6,
+      "composite": 0.13474698050072786
+    },
+    {
+      "waveNum": 23,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.13728485400101614,
+      "meanMaxPathPos": 0.15633420452210406,
+      "meanTicksToComplete": 9834.1,
+      "meanTotalDamage": 277245.8,
+      "composite": 0.17876124764358192
+    },
+    {
+      "waveNum": 24,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.23318712334401298,
+      "meanMaxPathPos": 0.49276704881719385,
+      "meanTicksToComplete": 5931.3,
+      "meanTotalDamage": 172930.7,
+      "composite": 0.13932379291352479
+    },
+    {
+      "waveNum": 25,
+      "meanLeaks": 0,
+      "meanSurvived": 3,
+      "meanAvgPathPos": 0.1196156818486536,
+      "meanMaxPathPos": 0.11973783894526106,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 136557.9,
+      "composite": 0.2307248047799531
+    },
+    {
+      "waveNum": 26,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.16248785840618943,
+      "meanMaxPathPos": 0.22228006943637307,
+      "meanTicksToComplete": 8220,
+      "meanTotalDamage": 304853.7,
+      "composite": 0.1772571718691517
+    },
+    {
+      "waveNum": 27,
+      "meanLeaks": 0,
+      "meanSurvived": 0.7,
+      "meanAvgPathPos": 0.190455034186877,
+      "meanMaxPathPos": 0.2472858755289291,
+      "meanTicksToComplete": 15842.3,
+      "meanTotalDamage": 432496.3,
+      "composite": 0.28358277616495325
+    },
+    {
+      "waveNum": 28,
+      "meanLeaks": 0,
+      "meanSurvived": 0,
+      "meanAvgPathPos": 0.19388277014539929,
+      "meanMaxPathPos": 0.23613393213786332,
+      "meanTicksToComplete": 10889.2,
+      "meanTotalDamage": 446992.5,
+      "composite": 0.2413357168471662
+    },
+    {
+      "waveNum": 29,
+      "meanLeaks": 0,
+      "meanSurvived": 2.1,
+      "meanAvgPathPos": 0.22100420648125732,
+      "meanMaxPathPos": 0.2787398752072111,
+      "meanTicksToComplete": 16552.3,
+      "meanTotalDamage": 524505.4,
+      "composite": 0.32919152634229687
+    },
+    {
+      "waveNum": 30,
+      "meanLeaks": 0,
+      "meanSurvived": 8,
+      "meanAvgPathPos": 0.25417189182509925,
+      "meanMaxPathPos": 0.279742193216839,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 563939.3,
+      "composite": 0.40228197988774184
+    },
+    {
+      "waveNum": 31,
+      "meanLeaks": 0,
+      "meanSurvived": 17.7,
+      "meanAvgPathPos": 0.398842786607185,
+      "meanMaxPathPos": 0.4840799051834777,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 799515.6,
+      "composite": 0.5633534629818144
+    },
+    {
+      "waveNum": 32,
+      "meanLeaks": 0,
+      "meanSurvived": 9.5,
+      "meanAvgPathPos": 0.33950095592301316,
+      "meanMaxPathPos": 0.5190653222455324,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 682912.2,
+      "composite": 0.4604297928584162
+    },
+    {
+      "waveNum": 33,
+      "meanLeaks": 0,
+      "meanSurvived": 18,
+      "meanAvgPathPos": 0.2852444471128215,
+      "meanMaxPathPos": 0.2874999482804116,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 422727,
+      "composite": 0.4486437250955643
+    },
+    {
+      "waveNum": 34,
+      "meanLeaks": 0,
+      "meanSurvived": 16.1,
+      "meanAvgPathPos": 0.43713955379010033,
+      "meanMaxPathPos": 0.519810394268633,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 648205.1,
+      "composite": 0.5210868012161926
+    },
+    {
+      "waveNum": 35,
+      "meanLeaks": 0,
+      "meanSurvived": 5,
+      "meanAvgPathPos": 0.12343654932192134,
+      "meanMaxPathPos": 0.12390690277490209,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 180363,
+      "composite": 0.2575412279117619
+    },
+    {
+      "waveNum": 36,
+      "meanLeaks": 0,
+      "meanSurvived": 24.4,
+      "meanAvgPathPos": 0.3720808007576615,
+      "meanMaxPathPos": 0.4794411077611385,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 748375,
+      "composite": 0.595774207449171
+    },
+    {
+      "waveNum": 37,
+      "meanLeaks": 0,
+      "meanSurvived": 22,
+      "meanAvgPathPos": 0.329531764539694,
+      "meanMaxPathPos": 0.40839485106078277,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 609074.9,
+      "composite": 0.5343050683301269
+    },
+    {
+      "waveNum": 38,
+      "meanLeaks": 6.2,
+      "meanSurvived": 4.8,
+      "meanAvgPathPos": 0.6852455623056757,
+      "meanMaxPathPos": 1,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 371270.8,
+      "composite": 0.5453161293898856
+    },
+    {
+      "waveNum": 39,
+      "meanLeaks": 0,
+      "meanSurvived": 14.6,
+      "meanAvgPathPos": 0.48709546001804194,
+      "meanMaxPathPos": 0.7005036163715126,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 710973.8,
+      "composite": 0.5354589101134739
+    },
+    {
+      "waveNum": 40,
+      "meanLeaks": 0,
+      "meanSurvived": 13,
+      "meanAvgPathPos": 0.3020317023084518,
+      "meanMaxPathPos": 0.35351504993141863,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 596829.5,
+      "composite": 0.4578173228115032
+    },
+    {
+      "waveNum": 41,
+      "meanLeaks": 0,
+      "meanSurvived": 26.5,
+      "meanAvgPathPos": 0.3777247767435424,
+      "meanMaxPathPos": 0.5126969732411208,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 735503.2,
+      "composite": 0.6095321596008832
+    },
+    {
+      "waveNum": 42,
+      "meanLeaks": 0,
+      "meanSurvived": 18.2,
+      "meanAvgPathPos": 0.5883677717775864,
+      "meanMaxPathPos": 0.7384890117899728,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 643169.5,
+      "composite": 0.5659218386916828
+    },
+    {
+      "waveNum": 43,
+      "meanLeaks": 0,
+      "meanSurvived": 20,
+      "meanAvgPathPos": 0.31518321903159136,
+      "meanMaxPathPos": 0.31926117497551304,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 363144.2,
+      "composite": 0.45482109429108686
+    },
+    {
+      "waveNum": 44,
+      "meanLeaks": 0,
+      "meanSurvived": 21.9,
+      "meanAvgPathPos": 0.39135398142767647,
+      "meanMaxPathPos": 0.5387340828782212,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 513836.4,
+      "composite": 0.5220907442640362
+    },
+    {
+      "waveNum": 45,
+      "meanLeaks": 0,
+      "meanSurvived": 2,
+      "meanAvgPathPos": 0.12748891924136102,
+      "meanMaxPathPos": 0.12755391800484955,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 74982.2,
+      "composite": 0.20934903077828831
+    },
+    {
+      "waveNum": 46,
+      "meanLeaks": 0,
+      "meanSurvived": 26,
+      "meanAvgPathPos": 0.4007908248869806,
+      "meanMaxPathPos": 0.5507870238791451,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 632676.3,
+      "composite": 0.5846494844713497
+    },
+    {
+      "waveNum": 47,
+      "meanLeaks": 0,
+      "meanSurvived": 22,
+      "meanAvgPathPos": 0.3394750588785454,
+      "meanMaxPathPos": 0.4099846404285323,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 438991.4,
+      "composite": 0.4937470902092006
+    },
+    {
+      "waveNum": 48,
+      "meanLeaks": 12,
+      "meanSurvived": 8,
+      "meanAvgPathPos": 0.8179369600424085,
+      "meanMaxPathPos": 1,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 279808.6,
+      "composite": 0.6939592821879854
+    },
+    {
+      "waveNum": 49,
+      "meanLeaks": 0,
+      "meanSurvived": 24,
+      "meanAvgPathPos": 0.4237876216704059,
+      "meanMaxPathPos": 0.5470450187594301,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 559409.3,
+      "composite": 0.555826656693725
+    },
+    {
+      "waveNum": 50,
+      "meanLeaks": 0,
+      "meanSurvived": 1,
+      "meanAvgPathPos": 0.10379589085430174,
+      "meanMaxPathPos": 0.10379589085430174,
+      "meanTicksToComplete": 18000,
+      "meanTotalDamage": 21884.5,
+      "composite": 0.1837807877554638
+    }
+  ]
+}

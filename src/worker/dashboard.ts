@@ -398,9 +398,9 @@ const PCT_Y = { ...AXIS_OPTS, min: 0, max: 1, ticks: { ...AXIS_OPTS.ticks, callb
 const BOTTOM_LEGEND = { display: true, position: 'bottom', labels: { boxWidth: 10, font: { size: 10 }, color: C.gridLabel } };
 
 const creepColors = {
-  boss: C.red, armored: C.violet, air: C.blue, fast: C.amber,
-  healer: C.green, vessel: C.coral, wizard: '#a78bfa', tunneler: C.teal,
-  normal: C.muted, gazer: C.rose, coral: '#38bdf8', anemone: '#2dd4bf',
+  amalgam: C.red, carapace: C.violet, shrike: C.blue, skitter: C.amber,
+  mender: C.green, vessel: C.coral, wizard: '#a78bfa', burrower: C.teal,
+  shambler: C.muted, gazer: C.rose, coral: '#38bdf8', anemone: '#2dd4bf',
   chrysalid: '#c084fc', mycoid: '#86efac', gestation: '#94a3b8',
 };
 
@@ -424,6 +424,7 @@ Chart.defaults.animation = { duration: 150 };
 
 let allVersions = [];
 let activeCharts = [];
+let initialLoad = true;
 
 function qs(params) {
   return '?' + new URLSearchParams({ secret: SECRET, ...params }).toString();
@@ -627,9 +628,6 @@ function render(data) {
   h += '</tr></thead><tbody></tbody></table></div></section>';
 
   el.innerHTML = h;
-
-  activeCharts.forEach(c => c.destroy());
-  activeCharts = [];
   createCharts(data, total);
 
   renderComboTable(data.combos || [], avgWave);
@@ -778,6 +776,7 @@ function createCharts(data, total) {
       data: {
         labels: data.leaksPerWave.map(r => r.wave),
         datasets: [{
+          label: 'Avg Leaks',
           data: data.leaksPerWave.map(r => Number(r.avg_leaks)),
           backgroundColor: grad, borderWidth: 0, borderRadius: 2,
           yAxisID: 'y',
@@ -1234,6 +1233,8 @@ function makeSortable() {
 }
 
 async function load() {
+  activeCharts.forEach(c => { try { c.destroy(); } catch(e) {} });
+  activeCharts = [];
   const el = document.getElementById('content');
   el.innerHTML = '<p class="loading-msg">Loading\\u2026</p>';
   const params = { secret: SECRET };
@@ -1245,6 +1246,12 @@ async function load() {
     if (!resp.ok) throw new Error(await resp.text());
     const data = await resp.json();
     allVersions = data.versions || [];
+    if (initialLoad && allVersions.length) {
+      initialLoad = false;
+      const sorted = [...allVersions].sort((a, b) => semverCmp(b, a));
+      populateVersions(allVersions, sorted[0]);
+      return load();
+    }
     populateVersions(allVersions, document.getElementById('version').value);
     const loader = el.querySelector('.loading-msg');
     if (loader) {

@@ -263,13 +263,13 @@ export class WavePhase {
     if (c.abilityCooldown && tick < c.abilityCooldown) return;
 
     switch (c.kind) {
-      case 'healer':
+      case 'mender':
         this.healerAbility(c, tick);
         break;
       case 'wizard':
         this.wizardAbility(c, tick);
         break;
-      case 'tunneler':
+      case 'burrower':
         this.tunnelerAbility(c, tick);
         break;
       case 'mycoid':

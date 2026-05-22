@@ -8,7 +8,7 @@ function injectLeakingCreep(game: HeadlessGame, boss = false): void {
   const route = game.state.flatRoute;
   const creep: CreepState = {
     id: game.nextId(),
-    kind: boss ? 'boss' : 'normal',
+    kind: boss ? 'amalgam' : 'shambler',
     pathPos: route.length - 1.001,
     px: 0,
     py: 0,

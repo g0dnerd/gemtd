@@ -31,7 +31,7 @@ describe('container creeps', () => {
       bounty: 2,
       slowResist: 0,
       payload: [
-        { kind: 'normal', count: 3, hp: 50, bounty: 1 },
+        { kind: 'shambler', count: 3, hp: 50, bounty: 1 },
       ],
     }]);
 
@@ -50,7 +50,7 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessels[0]);
       for (let j = 0; j < 30; j++) game.simStep();
 
-      const normals = game.state.creeps.filter(c => c.kind === 'normal');
+      const normals = game.state.creeps.filter(c => c.kind === 'shambler');
       expect(normals.length).toBe(3);
       for (const n of normals) {
         expect(n.alive).toBe(true);
@@ -67,7 +67,7 @@ describe('container creeps', () => {
       bounty: 2,
       slowResist: 0,
       payload: [
-        { kind: 'fast', count: 2, hp: payloadHp, bounty: 1 },
+        { kind: 'skitter', count: 2, hp: payloadHp, bounty: 1 },
       ],
     }]);
 
@@ -80,8 +80,8 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessel);
       for (let j = 0; j < 30; j++) game.simStep();
 
-      const fasts = game.state.creeps.filter(c => c.kind === 'fast');
-      const expectedHp = Math.round(payloadHp * CREEP_ARCHETYPES.fast.hpMult);
+      const fasts = game.state.creeps.filter(c => c.kind === 'skitter');
+      const expectedHp = Math.round(payloadHp * CREEP_ARCHETYPES.skitter.hpMult);
       for (const f of fasts) {
         expect(f.maxHp).toBe(expectedHp);
         expect(f.hp).toBe(expectedHp);
@@ -98,7 +98,7 @@ describe('container creeps', () => {
       slowResist: 0,
       payload: [
         { kind: 'vessel', count: 2, hp: 100, bounty: 2, payload: [
-          { kind: 'normal', count: 2, hp: 50, bounty: 1 },
+          { kind: 'shambler', count: 2, hp: 50, bounty: 1 },
         ]},
       ],
     }]);
@@ -124,7 +124,7 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessels[0]);
       for (let j = 0; j < 30; j++) game.simStep();
 
-      const normals = game.state.creeps.filter(c => c.kind === 'normal');
+      const normals = game.state.creeps.filter(c => c.kind === 'shambler');
       expect(normals.length).toBe(2);
 
       vessels[1].hp = 0;
@@ -132,7 +132,7 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessels[1]);
       for (let j = 0; j < 30; j++) game.simStep();
 
-      const allNormals = game.state.creeps.filter(c => c.kind === 'normal');
+      const allNormals = game.state.creeps.filter(c => c.kind === 'shambler');
       expect(allNormals.length).toBe(4);
     });
   });
@@ -145,7 +145,7 @@ describe('container creeps', () => {
       bounty: 2,
       slowResist: 0,
       payload: [
-        { kind: 'normal', count: 2, hp: 50, bounty: 1 },
+        { kind: 'shambler', count: 2, hp: 50, bounty: 1 },
       ],
     }]);
 
@@ -161,7 +161,7 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessel);
       for (let j = 0; j < 30; j++) game.simStep();
 
-      const normals = game.state.creeps.filter(c => c.kind === 'normal');
+      const normals = game.state.creeps.filter(c => c.kind === 'shambler');
       for (const n of normals) {
         expect(n.px).toBeGreaterThan(0);
       }
@@ -176,7 +176,7 @@ describe('container creeps', () => {
       bounty: 2,
       slowResist: 0,
       payload: [
-        { kind: 'fast', count: 1, hp: 50, bounty: 1 },
+        { kind: 'skitter', count: 1, hp: 50, bounty: 1 },
       ],
     }]);
 
@@ -189,8 +189,8 @@ describe('container creeps', () => {
       game.handleCreepDeath(coral);
       for (let j = 0; j < 30; j++) game.simStep();
 
-      const fast = game.state.creeps.find(c => c.kind === 'fast')!;
-      expect(fast.speed).toBe(CREEP_ARCHETYPES.fast.speed);
+      const fast = game.state.creeps.find(c => c.kind === 'skitter')!;
+      expect(fast.speed).toBe(CREEP_ARCHETYPES.skitter.speed);
       expect(fast.speed).not.toBe(CREEP_ARCHETYPES.coral.speed);
     });
   });
@@ -203,7 +203,7 @@ describe('container creeps', () => {
       bounty: 2,
       slowResist: 0,
       payload: [
-        { kind: 'normal', count: 4, hp: 50, bounty: 1 },
+        { kind: 'shambler', count: 4, hp: 50, bounty: 1 },
       ],
     }]);
 
@@ -224,7 +224,7 @@ describe('container creeps', () => {
 
   it('non-container creeps produce no payload on death', () => {
     const wave = makeContainerWave([{
-      kind: 'normal',
+      kind: 'shambler',
       count: 1,
       hp: 100,
       bounty: 2,
@@ -234,7 +234,7 @@ describe('container creeps', () => {
     runWithWave(wave, (game) => {
       for (let i = 0; i < 60; i++) game.simStep();
 
-      const normal = game.state.creeps.find(c => c.kind === 'normal')!;
+      const normal = game.state.creeps.find(c => c.kind === 'shambler')!;
       const countBefore = game.state.creeps.length;
       normal.hp = 0;
       normal.alive = false;
@@ -279,7 +279,7 @@ describe('container creeps', () => {
       bounty: 2,
       slowResist: 0,
       payload: [
-        { kind: 'normal', count: 4, hp: 50, bounty: 1 },
+        { kind: 'shambler', count: 4, hp: 50, bounty: 1 },
       ],
     }]);
 
@@ -292,18 +292,18 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessel);
 
       // First child spawns immediately
-      const immediateCount = game.state.creeps.filter(c => c.kind === 'normal').length;
+      const immediateCount = game.state.creeps.filter(c => c.kind === 'shambler').length;
       expect(immediateCount).toBe(1);
 
       // After a few ticks, more appear
       for (let i = 0; i < 10; i++) game.simStep();
-      const afterSome = game.state.creeps.filter(c => c.kind === 'normal').length;
+      const afterSome = game.state.creeps.filter(c => c.kind === 'shambler').length;
       expect(afterSome).toBeGreaterThan(1);
       expect(afterSome).toBeLessThan(4);
 
       // After enough ticks, all are spawned
       for (let i = 0; i < 30; i++) game.simStep();
-      const afterAll = game.state.creeps.filter(c => c.kind === 'normal').length;
+      const afterAll = game.state.creeps.filter(c => c.kind === 'shambler').length;
       expect(afterAll).toBe(4);
     });
   });
@@ -316,7 +316,7 @@ describe('container creeps', () => {
       bounty: 2,
       slowResist: 0,
       payload: [
-        { kind: 'normal', count: 4, hp: 50, bounty: 1 },
+        { kind: 'shambler', count: 4, hp: 50, bounty: 1 },
       ],
     }]);
 
@@ -329,7 +329,7 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessel);
 
       // Only first child spawned immediately
-      expect(game.state.creeps.filter(c => c.kind === 'normal').length).toBe(1);
+      expect(game.state.creeps.filter(c => c.kind === 'shambler').length).toBe(1);
 
       // End the wave before remaining children spawn
       game.endWave(0, 0);
@@ -337,7 +337,7 @@ describe('container creeps', () => {
       // Step more ticks — no additional normals should appear
       for (let i = 0; i < 60; i++) game.simStep();
       // The wave ended, phase changed — pending spawns cleared
-      const normals = game.state.creeps.filter(c => c.kind === 'normal');
+      const normals = game.state.creeps.filter(c => c.kind === 'shambler');
       expect(normals.length).toBe(1);
     });
   });

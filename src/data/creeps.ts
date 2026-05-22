@@ -7,14 +7,14 @@
 import { GemType } from "../render/theme";
 
 export type CreepKind =
-  | "normal"
-  | "fast"
-  | "armored"
-  | "air"
-  | "boss"
-  | "healer"
+  | "shambler"
+  | "skitter"
+  | "carapace"
+  | "shrike"
+  | "amalgam"
+  | "mender"
   | "wizard"
-  | "tunneler"
+  | "burrower"
   | "vessel"
   | "gazer"
   | "coral"
@@ -40,24 +40,24 @@ export interface CreepArchetype {
 }
 
 export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
-  normal: {
-    kind: "normal",
+  shambler: {
+    kind: "shambler",
     speed: 1.6,
     color: "amethyst",
     hpMult: 1.0,
     bountyMult: 1.0,
     flags: {},
   },
-  fast: {
-    kind: "fast",
+  skitter: {
+    kind: "skitter",
     speed: 2.6,
     color: "sapphire",
-    hpMult: 0.7,
+    hpMult: 0.95,
     bountyMult: 1.1,
     flags: {},
   },
-  armored: {
-    kind: "armored",
+  carapace: {
+    kind: "carapace",
     speed: 1.2,
     color: "opal",
     hpMult: 1.49,
@@ -65,30 +65,30 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     defaultArmor: 12,
     flags: { armored: true },
   },
-  air: {
-    kind: "air",
+  shrike: {
+    kind: "shrike",
     speed: 1.7,
     color: "diamond",
     hpMult: 0.6,
     bountyMult: 1.2,
     flags: { air: true },
   },
-  boss: {
-    kind: "boss",
+  amalgam: {
+    kind: "amalgam",
     speed: 1.2,
     color: "ruby",
     hpMult: 3.5,
     bountyMult: 3.0,
     flags: { boss: true },
   },
-  healer: {
-    kind: "healer",
+  mender: {
+    kind: "mender",
     speed: 1.4,
     color: "emerald",
     hpMult: 0.85,
     bountyMult: 1.5,
     flags: {},
-    blurb: "Periodically heals nearby creeps",
+    blurb: "Reknits flesh of nearby creeps",
   },
   wizard: {
     kind: "wizard",
@@ -99,14 +99,14 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     flags: {},
     blurb: "Teleports nearby creeps forward",
   },
-  tunneler: {
-    kind: "tunneler",
+  burrower: {
+    kind: "burrower",
     speed: 1.65,
     color: "topaz",
-    hpMult: 1.35,
+    hpMult: 1.65,
     bountyMult: 1.3,
     flags: {},
-    blurb: "Burrows underground, untargetable and healing",
+    blurb: "Burrows underground, untargetable and regenerating",
   },
   vessel: {
     kind: "vessel",
@@ -148,7 +148,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     kind: "chrysalid",
     speed: 1.3,
     color: "amethyst",
-    hpMult: 2.16,
+    hpMult: 2.0,
     bountyMult: 1.4,
     flags: {},
     blurb: "At low HP, awakens",

@@ -121,8 +121,8 @@ export class StrategistAI extends BlueprintAI {
     const route = state.flatRoute;
     const waveIdx = Math.min(state.wave - 1, WAVES.length - 1);
     const nextWaveDef = waveIdx + 1 < WAVES.length ? WAVES[waveIdx + 1] : null;
-    const hasAirNext = nextWaveDef?.groups.some((g) => g.kind === 'air') ?? false;
-    const isBossNext = nextWaveDef?.groups.some((g) => g.kind === 'boss') ?? false;
+    const hasAirNext = nextWaveDef?.groups.some((g) => g.kind === 'shrike') ?? false;
+    const isBossNext = nextWaveDef?.groups.some((g) => g.kind === 'amalgam') ?? false;
 
     let bestId = roundTowers[0].id;
     let bestScore = -Infinity;

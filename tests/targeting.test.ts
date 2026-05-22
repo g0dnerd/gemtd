@@ -108,11 +108,11 @@ describe('pink diamond rework stats', () => {
 
 describe('air creep archetype', () => {
   it('has reduced HP multiplier for balance', () => {
-    expect(CREEP_ARCHETYPES.air.hpMult).toBeLessThan(1.0);
+    expect(CREEP_ARCHETYPES.shrike.hpMult).toBeLessThan(1.0);
   });
 
   it('has the air flag', () => {
-    expect(CREEP_ARCHETYPES.air.flags.air).toBe(true);
+    expect(CREEP_ARCHETYPES.shrike.flags.air).toBe(true);
   });
 });
 

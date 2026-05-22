@@ -7,8 +7,8 @@ const BASELINE_SPEED = 1.5;
 const AIR_MULTIPLIER = 9.0;
 
 const ABILITY_MULTIPLIERS: Partial<Record<CreepKind, number>> = {
-  healer: 1.7,
-  tunneler: 1.5,
+  mender: 1.7,
+  burrower: 1.5,
   chrysalid: 1.6,
   wizard: 1.6,
   mycoid: 1.4,

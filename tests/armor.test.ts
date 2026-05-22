@@ -79,7 +79,7 @@ function makeFakeGame() {
 function makeCreep(game: Game, opts: { armor?: number; armorReduction?: number; armorDebuff?: CreepState["armorDebuff"] } = {}): CreepState {
   const creep: CreepState = {
     id: game.nextId(),
-    kind: "normal",
+    kind: "shambler",
     pathPos: 5,
     px: 5 * FINE_TILE,
     py: 5 * FINE_TILE,

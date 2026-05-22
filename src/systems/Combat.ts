@@ -330,6 +330,7 @@ export class Combat {
         let last = target;
         let dmg = p.damage;
         const hit = new Set<number>([target.id]);
+        const chainPoints = [{ x: target.px, y: target.py }];
         for (let i = 0; i < e.bounces; i++) {
           dmg = Math.round(dmg * e.falloff);
           const next = nearest(state.creeps, last.px, last.py, hit, stats.range * TILE, tick);
@@ -337,7 +338,11 @@ export class Combat {
           this.applyDamage(next, dmg, owner);
           this.applyEffects(next, stats.effects.filter((ee) => ee.kind !== 'chain'), owner);
           hit.add(next.id);
+          chainPoints.push({ x: next.px, y: next.py });
           last = next;
+        }
+        if (chainPoints.length > 1) {
+          this.game.bus.emit('vfx:chainPulse', { points: chainPoints });
         }
       }
     }

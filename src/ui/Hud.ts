@@ -50,14 +50,14 @@ const CHANCE_TIER_COLORS = [
 ] as const;
 
 const ARCHETYPE_COLORS: Record<CreepKind, string> = {
-  normal: "var(--px-ink)",
-  fast: "#78e898",
-  armored: "var(--px-ink-dim)",
-  air: "#78a8f8",
-  boss: "#ff6878",
-  healer: "#38c860",
+  shambler: "var(--px-ink)",
+  skitter: "#78e898",
+  carapace: "var(--px-ink-dim)",
+  shrike: "#78a8f8",
+  amalgam: "#ff6878",
+  mender: "#38c860",
   wizard: "#3878e8",
-  tunneler: "#f0c038",
+  burrower: "#f0c038",
   vessel: "#f0c038",
   gazer: "#d090f0",
   coral: "#78e898",
@@ -1052,11 +1052,11 @@ export function mountHud(
   }
 
   const BASIC_KINDS: Set<CreepKind> = new Set([
-    "normal",
-    "fast",
-    "armored",
-    "air",
-    "boss",
+    "shambler",
+    "skitter",
+    "carapace",
+    "shrike",
+    "amalgam",
   ]);
 
   function refreshThreats(): void {

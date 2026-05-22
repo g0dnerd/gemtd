@@ -43,6 +43,21 @@ interface StargemFx {
   spriteWrap: Container;
 }
 
+interface RedCrystalFx {
+  beams: Graphics[];
+  ripple?: Graphics;
+  tier: number;
+  color: number;
+}
+
+interface MalachiteFx {
+  dots: Graphics[];
+  ring?: Graphics;
+  trails?: Graphics[];
+  tier: number;
+  color: number;
+}
+
 interface TowerEntry {
   obj: Container;
   /** Cached comboKey so we can rebuild the sprite if a tower is upgraded. */
@@ -62,6 +77,10 @@ interface TowerEntry {
   opalFrame?: number;
   /** Wrapper for jade combo sprite bobbing animation. */
   jadeBobWrap?: Container;
+  /** Red Crystal "sky watcher pulse" — upward beam(s) + optional ripple ring. */
+  redCrystalFx?: RedCrystalFx;
+  /** Malachite "split focus" — orbiting target dots / ring. */
+  malachiteFx?: MalachiteFx;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -120,6 +139,8 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let sgfx: StargemFx | undefined;
       let opalFrames: Texture[] | undefined;
       let jadeBobWrap: Container | undefined;
+      let redCrystalFx: RedCrystalFx | undefined;
+      let malachiteFx: MalachiteFx | undefined;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -163,10 +184,16 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         if (t.gem === "opal" && !t.comboKey) {
           opalFrames = cache.opalFrameTextures(t.quality);
         }
+        if (t.comboKey === 'red_crystal') {
+          redCrystalFx = makeRedCrystalFx(obj, tier);
+        }
+        if (t.comboKey === 'malachite') {
+          malachiteFx = makeMalachiteFx(obj, tier);
+        }
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, redCrystalFx, malachiteFx };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -187,6 +214,8 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       const period = 2.0 - tier * 0.4;
       entry.jadeBobWrap.y = -amp * (1 - Math.cos((2 * Math.PI * sec) / period)) / 2;
     }
+    if (entry.redCrystalFx) animateRedCrystalFx(entry.redCrystalFx, now);
+    if (entry.malachiteFx) animateMalachiteFx(entry.malachiteFx, now);
     const isSelected = t.id === selectedTowerId;
     if (isSelected && !entry.selBracket) {
       const palette = GEM_PALETTE[t.gem as GemType];
@@ -300,6 +329,141 @@ function animateTowerFx(fx: TowerFx, now: number): void {
     const r = TILE * 0.55;
     fx.orbit.x = Math.cos(ang) * r;
     fx.orbit.y = Math.sin(ang) * r * 0.9;
+  }
+}
+
+// ===== Red Crystal — Sky Watcher Pulse ======================================
+
+const RC_COLOR = 0xff5478;
+
+function makeRedCrystalFx(parent: Container, tier: number): RedCrystalFx {
+  const beamCount = tier >= 1 ? 2 : 1;
+  const beams: Graphics[] = [];
+  for (let i = 0; i < beamCount; i++) {
+    const beam = new Graphics();
+    parent.addChild(beam);
+    beams.push(beam);
+  }
+  let ripple: Graphics | undefined;
+  if (tier >= 2) {
+    ripple = new Graphics();
+    parent.addChild(ripple);
+  }
+  return { beams, ripple, tier, color: RC_COLOR };
+}
+
+function animateRedCrystalFx(fx: RedCrystalFx, now: number): void {
+  const sec = now / 1000;
+  const period = 2.2;
+  const phase = (sec % period) / period;
+
+  const beamH = FINE_TILE * 0.8;
+  const beamW = 1.5;
+  const xSpread = fx.tier >= 1 ? 3 : 0;
+
+  for (let i = 0; i < fx.beams.length; i++) {
+    const beam = fx.beams[i];
+    beam.clear();
+    const offset = fx.beams.length === 1 ? 0 : (i === 0 ? -xSpread : xSpread);
+    const stagger = i * 0.3;
+    const p = ((phase + stagger) % 1);
+    const rise = p * beamH * 1.5;
+    const alpha = p < 0.5
+      ? 0.3 + 0.5 * (p / 0.5)
+      : 0.8 * (1 - (p - 0.5) / 0.5);
+    if (alpha > 0.01) {
+      const segH = beamH * (1 - p * 0.6);
+      beam.rect(offset - beamW / 2, -rise - segH, beamW, segH)
+        .fill({ color: fx.color, alpha });
+      beam.circle(offset, -rise - segH, beamW)
+        .fill({ color: 0xffffff, alpha: alpha * 0.7 });
+    }
+  }
+
+  if (fx.ripple) {
+    fx.ripple.clear();
+    const ripplePeriod = 3.0;
+    const rp = (sec % ripplePeriod) / ripplePeriod;
+    const maxR = TILE * 0.7;
+    const r = rp * maxR;
+    const alpha = 0.5 * (1 - rp);
+    if (alpha > 0.01) {
+      fx.ripple.circle(0, 0, r)
+        .stroke({ width: 1.5, color: fx.color, alpha });
+    }
+  }
+}
+
+// ===== Malachite — Split Focus ==============================================
+
+const ML_COLOR = 0xa0e878;
+
+function makeMalachiteFx(parent: Container, tier: number): MalachiteFx {
+  const dots: Graphics[] = [];
+  let trails: Graphics[] | undefined;
+  let ring: Graphics | undefined;
+
+  if (tier >= 2) {
+    ring = new Graphics();
+    parent.addChild(ring);
+  }
+
+  if (tier >= 1) {
+    trails = [];
+    for (let i = 0; i < 3; i++) {
+      const trail = new Graphics();
+      parent.addChild(trail);
+      trails.push(trail);
+    }
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const dot = new Graphics();
+    parent.addChild(dot);
+    dots.push(dot);
+  }
+
+  return { dots, ring, trails, tier, color: ML_COLOR };
+}
+
+function animateMalachiteFx(fx: MalachiteFx, now: number): void {
+  const sec = now / 1000;
+  const orbitPeriod = 3.5;
+  const baseAng = (sec / orbitPeriod) * Math.PI * 2;
+  const r = TILE * 0.5;
+  const dotSize = 1.5 + fx.tier * 0.5;
+
+  if (fx.ring) {
+    fx.ring.clear();
+    const pulse = (Math.sin(sec * Math.PI * 2 / 2.0) + 1) / 2;
+    const ringR = r * (0.9 + 0.1 * pulse);
+    fx.ring.circle(0, 0, ringR)
+      .stroke({ width: 1, color: fx.color, alpha: 0.25 + 0.15 * pulse });
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const ang = baseAng + (i / 3) * Math.PI * 2;
+    const dx = Math.cos(ang) * r;
+    const dy = Math.sin(ang) * r * 0.85;
+
+    if (fx.trails && fx.trails[i]) {
+      const trail = fx.trails[i];
+      trail.clear();
+      for (let s = 1; s <= 3; s++) {
+        const trailAng = ang - (s * 0.12);
+        const tx = Math.cos(trailAng) * r;
+        const ty = Math.sin(trailAng) * r * 0.85;
+        trail.circle(tx, ty, dotSize * 0.6)
+          .fill({ color: fx.color, alpha: 0.15 / s });
+      }
+    }
+
+    const dot = fx.dots[i];
+    dot.clear();
+    dot.circle(dx, dy, dotSize)
+      .fill({ color: fx.color, alpha: 0.7 + fx.tier * 0.1 });
+    dot.circle(dx, dy, dotSize * 0.5)
+      .fill({ color: 0xffffff, alpha: 0.5 });
   }
 }
 

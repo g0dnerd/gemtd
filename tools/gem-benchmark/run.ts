@@ -33,7 +33,7 @@ function makeDpsWaveDef(): WaveDef {
   return {
     number: 0,
     groups: [{
-      kind: 'normal',
+      kind: 'shambler',
       count: 50,
       hp: 1e12,
       bounty: 0,

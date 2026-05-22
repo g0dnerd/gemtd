@@ -64,7 +64,13 @@ interface CoinRainFx {
   age: number; lifetime: number;
 }
 
-type Fx = RingFx | SnowBurstFx | TendrilFx | SnowflakeFx | DriftFx | CoinRainFx;
+interface ChainPulseFx {
+  kind: 'chainPulse';
+  segments: Array<{ fromX: number; fromY: number; toX: number; toY: number }>;
+  age: number; lifetime: number;
+}
+
+type Fx = RingFx | SnowBurstFx | TendrilFx | SnowflakeFx | DriftFx | CoinRainFx | ChainPulseFx;
 
 export class VfxRenderer {
   private pool: Fx[] = [];
@@ -168,6 +174,18 @@ export class VfxRenderer {
           age: 0, lifetime: 30 + Math.floor(Math.random() * 10),
         });
       }
+    });
+
+    bus.on('vfx:chainPulse', (e) => {
+      const segments: ChainPulseFx['segments'] = [];
+      for (let i = 0; i < e.points.length - 1; i++) {
+        segments.push({
+          fromX: e.points[i].x, fromY: e.points[i].y,
+          toX: e.points[i + 1].x, toY: e.points[i + 1].y,
+        });
+      }
+      const lifetime = segments.length * 6 + 14;
+      this.pool.push({ kind: 'chainPulse', segments, age: 0, lifetime });
     });
 
     bus.on('vfx:gestationTransition', (e) => {
@@ -290,6 +308,36 @@ export class VfxRenderer {
         fx.x += fx.vx;
         fx.y += fx.vy;
         g.circle(fx.x, fx.y, fx.size).fill({ color: fx.color, alpha: alpha * 0.6 });
+        break;
+      }
+      case 'chainPulse': {
+        const segFrames = 4;
+        const fadeFrames = 8;
+        const dotFlashFrames = 3;
+        for (let i = 0; i < fx.segments.length; i++) {
+          const seg = fx.segments[i];
+          const segStart = i * segFrames;
+          const segAge = fx.age - segStart;
+          if (segAge < 0) continue;
+          const ext = Math.min(segAge / segFrames, 1);
+          const ex = seg.fromX + (seg.toX - seg.fromX) * ext;
+          const ey = seg.fromY + (seg.toY - seg.fromY) * ext;
+          const segFade = Math.max(0, 1 - Math.max(0, segAge - segFrames) / fadeFrames);
+          g.moveTo(seg.fromX, seg.fromY).lineTo(ex, ey)
+            .stroke({ width: 2, color: GEM_PALETTE.topaz.mid, alpha: segFade * 0.6 });
+          if (ext >= 1) {
+            const dotAge = segAge - segFrames;
+            const dotAlpha = dotAge < dotFlashFrames ? 0.7 : segFade * 0.5;
+            const dotRadius = dotAge < dotFlashFrames ? 3 : 2;
+            const dotColor = dotAge < dotFlashFrames ? GEM_PALETTE.topaz.light : GEM_PALETTE.topaz.mid;
+            g.circle(seg.toX, seg.toY, dotRadius)
+              .fill({ color: dotColor, alpha: dotAlpha });
+            if (dotAge < dotFlashFrames) {
+              g.circle(seg.toX, seg.toY, 1)
+                .fill({ color: 0xffffff, alpha: 0.6 * (1 - dotAge / dotFlashFrames) });
+            }
+          }
+        }
         break;
       }
       case 'coinRain': {

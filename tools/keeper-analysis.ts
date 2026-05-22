@@ -344,8 +344,8 @@ function runSeed(seed: number): CandidateRow[] {
 
     const waveIdx = Math.min(wave - 1, WAVES.length - 1);
     const nextWaveDef = waveIdx + 1 < WAVES.length ? WAVES[waveIdx + 1] : null;
-    const hasAirNext = nextWaveDef?.groups.some(g => g.kind === 'air') ?? false;
-    const isBossNext = nextWaveDef?.groups.some(g => g.kind === 'boss') ?? false;
+    const hasAirNext = nextWaveDef?.groups.some(g => g.kind === 'shrike') ?? false;
+    const isBossNext = nextWaveDef?.groups.some(g => g.kind === 'amalgam') ?? false;
 
     const combosFormed: string[] = [];
     for (const t of state.towers) {

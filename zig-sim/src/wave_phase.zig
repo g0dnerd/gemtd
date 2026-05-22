@@ -294,9 +294,9 @@ fn tickAbility(st: *state_mod.State, c: *state_mod.CreepState, ci: usize) void {
     if (c.ability_cooldown > tick) return;
 
     switch (c.kind) {
-        .healer => healerAbility(st, c, ci, tick),
+        .mender => healerAbility(st, c, ci, tick),
         .wizard => wizardAbility(st, c, ci, tick),
-        .tunneler => tunnelerAbility(c, tick),
+        .burrower => tunnelerAbility(c, tick),
         else => {},
     }
 }

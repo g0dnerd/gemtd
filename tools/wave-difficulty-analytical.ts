@@ -5,9 +5,9 @@ const diffs = WAVES.map((w) => ({
   wave: w.number,
   diff: waveDifficulty(w),
   kinds: w.groups.map((g) => `${g.kind}×${g.count}`).join(", "),
-  hasAir: w.groups.some((g) => g.kind === "air"),
+  hasAir: w.groups.some((g) => g.kind === "shrike"),
   isBoss: w.groups.some(
-    (g) => g.kind === "boss" || g.kind === "gestation",
+    (g) => g.kind === "amalgam" || g.kind === "gestation",
   ),
   isContainer: w.groups.some((g) =>
     ["vessel", "coral", "anemone", "gestation"].includes(g.kind),

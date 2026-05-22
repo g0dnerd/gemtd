@@ -284,7 +284,7 @@ describe('mycoid (sapper)', () => {
     const towerPy = (tower.y + 1) * FINE_TILE;
     const creep: CreepState = {
       id: game.nextId(),
-      kind: 'normal',
+      kind: 'shambler',
       pathPos: 0,
       px: towerPx,
       py: towerPy,
