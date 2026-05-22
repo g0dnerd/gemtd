@@ -242,6 +242,9 @@ export class VfxRenderer {
 
     this.tickJadeIdle(state);
     this.tickToxicMist(state);
+    this.tickGoldIdle(state);
+    this.tickUraniumThrob(state);
+    this.tickBlackOpalTendrils(state);
 
     if (state.phase === 'wave') {
       this.drawFocusPips(state);
@@ -542,6 +545,108 @@ export class VfxRenderer {
           color: 0x88e8a0,
           size: 1.2 + Math.random() * 0.8,
           age: 0, lifetime: 35 + Math.floor(Math.random() * 20),
+        });
+      }
+    }
+  }
+
+  private tickGoldIdle(state: State): void {
+    const beatPeriod = 180;
+    const beatFrame = this.frame % beatPeriod;
+
+    for (const t of state.towers) {
+      if (t.comboKey !== 'gold') continue;
+      const tier = t.upgradeTier ?? 0;
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+
+      if (beatFrame === 0) {
+        const count = 8;
+        for (let i = 0; i < count; i++) {
+          const angle = (i / count) * Math.PI * 2 + Math.random() * 0.3;
+          const speed = 0.25 + Math.random() * 0.15;
+          this.pool.push({
+            kind: 'drift',
+            x: tx + Math.cos(angle) * 2,
+            y: ty + Math.sin(angle) * 2,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            color: Math.random() > 0.5 ? 0xffd840 : 0xfff0a0,
+            size: 1.0 + Math.random() * 0.8,
+            age: 0, lifetime: 45 + Math.floor(Math.random() * 15),
+          });
+        }
+      }
+
+      if (tier >= 1 && beatFrame === 0) {
+        this.pool.push({
+          kind: 'ring', x: tx, y: ty,
+          maxRadius: TILE * 0.7, color: 0xf0c038,
+          age: 0, lifetime: 40,
+        });
+      }
+      if (tier >= 1 && beatFrame === 10) {
+        this.pool.push({
+          kind: 'ring', x: tx, y: ty,
+          maxRadius: TILE * 0.5, color: 0xffd840,
+          age: 0, lifetime: 30,
+        });
+      }
+    }
+  }
+
+  private tickUraniumThrob(state: State): void {
+    for (const t of state.towers) {
+      if (t.comboKey !== 'uranium') continue;
+      const tier = t.upgradeTier ?? 0;
+      if (tier < 1) continue;
+
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+
+      const interval = tier >= 2 ? 15 : 25;
+      if (this.frame % interval === 0) {
+        const count = tier >= 2 ? 2 : 1;
+        for (let i = 0; i < count; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = 0.15 + Math.random() * 0.25;
+          this.pool.push({
+            kind: 'drift',
+            x: tx + (Math.random() - 0.5) * 6,
+            y: ty + (Math.random() - 0.5) * 6,
+            vx: Math.cos(angle) * speed,
+            vy: Math.sin(angle) * speed,
+            color: Math.random() > 0.4 ? 0xc0ff60 : 0xffffa0,
+            size: 1 + Math.random() * 0.8,
+            age: 0, lifetime: 50 + Math.floor(Math.random() * 30),
+          });
+        }
+      }
+    }
+  }
+
+  private tickBlackOpalTendrils(state: State): void {
+    for (const t of state.towers) {
+      if (t.comboKey !== 'black_opal') continue;
+      const tier = t.upgradeTier ?? 0;
+      if (tier < 1) continue;
+
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE;
+
+      const interval = 18;
+      if (this.frame % interval === 0) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 0.12 + Math.random() * 0.18;
+        this.pool.push({
+          kind: 'drift',
+          x: tx + (Math.random() - 0.5) * 8,
+          y: ty + (Math.random() - 0.5) * 8,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          color: Math.random() > 0.5 ? 0x6040a0 : 0x4830c0,
+          size: 2 + Math.random() * 1.5,
+          age: 0, lifetime: 55 + Math.floor(Math.random() * 30),
         });
       }
     }

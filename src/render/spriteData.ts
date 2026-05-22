@@ -550,20 +550,7 @@ const JADE_APEX: PixelGrid = [
 ];
 
 // GOLD — T2: Sunfire disk with concentric sparkle ring and cardinal rays
-const GOLD_REFINED: PixelGrid = [
-  [0, 0, 5, 4, 4, 4, 4, 5, 0, 0],
-  [0, 4, 1, 1, 1, 2, 2, 2, 4, 0],
-  [5, 4, 1, 5, 5, 5, 5, 3, 4, 5],
-  [4, 1, 1, 5, 1, 2, 5, 3, 3, 4],
-  [4, 1, 5, 1, 5, 5, 2, 5, 3, 4],
-  [4, 2, 5, 2, 5, 5, 3, 5, 3, 4],
-  [4, 2, 2, 5, 2, 3, 5, 3, 3, 4],
-  [5, 4, 2, 5, 5, 5, 5, 3, 4, 5],
-  [0, 4, 2, 2, 3, 3, 3, 3, 4, 0],
-  [0, 0, 5, 4, 4, 4, 4, 5, 0, 0],
-];
-
-// GOLD — T3: Egyptian sun disk on pillar with rays
+// GOLD — T2: Egyptian sun disk on pillar with rays
 const GOLD_APEX: PixelGrid = [
   [0, 0, 0, 0, 4, 4, 4, 4, 0, 0, 0, 0],
   [0, 0, 5, 4, 1, 1, 2, 2, 4, 5, 0, 0],
@@ -710,7 +697,7 @@ export const SPECIAL_TIER_GRIDS: Partial<
   silver: { 2: SILVER_REFINED, 3: SILVER_APEX },
   malachite: { 2: MALACHITE_REFINED, 3: MALACHITE_APEX },
   jade: { 2: JADE_REFINED, 3: JADE_APEX },
-  gold: { 2: GOLD_REFINED, 3: GOLD_APEX },
+  gold: { 2: GOLD_APEX },
   red_crystal: { 2: RED_CRYSTAL_T2, 3: RED_CRYSTAL_T3 },
   paraiba_tourmaline: { 2: PARAIBA_T2, 3: PARAIBA_T3 },
   yellow_sapphire: { 2: YELLOW_SAPPH_T2 },
@@ -1021,7 +1008,7 @@ export const SPECIAL_TIER_PALETTES: Partial<
     },
   },
   gold: {
-    3: {
+    2: {
       light: hex("#fff0a0"),
       mid: hex("#e8a030"),
       dark: hex("#80501c"),
@@ -1111,15 +1098,15 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     halo: 0.85,
     pulse: 1.2,
     orbit: false,
-    aura: true,
+    aura: false,
     ground: hex("#446618"),
   },
   black_opal: {
     glow: hex("#a0a0ff"),
     halo: 0.6,
     pulse: 3.0,
-    orbit: true,
-    aura: true,
+    orbit: false,
+    aura: false,
     ground: null,
   },
   jade: {

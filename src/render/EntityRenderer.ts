@@ -81,10 +81,30 @@ interface TowerEntry {
   bloodstoneBobWrap?: Container;
   /** Ember-hot overlay sprite for bloodstone T2+ tint flash. */
   bloodstoneEmberSprite?: Sprite;
+  /** Wrapper for silver gleam sweep + bob animation. */
+  silverBobWrap?: Container;
+  /** Moving gleam bar for silver idle animation. */
+  silverGleamBar?: Graphics;
+  /** Bright frost overlay sprite for Silver Knight shatter pulse. */
+  silverFrostSprite?: Sprite;
+  ysBobWrap?: Container;
+  ysFrostSprite?: Sprite;
   /** Red Crystal "sky watcher pulse" — upward beam(s) + optional ripple ring. */
   redCrystalFx?: RedCrystalFx;
   /** Malachite "split focus" — orbiting target dots / ring. */
   malachiteFx?: MalachiteFx;
+  /** Wrapper for uranium throb bob animation. */
+  uraniumBobWrap?: Container;
+  /** Irradiated overlay sprite for uranium throb tint pulse. */
+  uraniumIrradiatedSprite?: Sprite;
+  /** Wrapper for black opal dark shimmer bob animation. */
+  blackOpalBobWrap?: Container;
+  /** Iridescent tint overlay sprite for black opal shimmer. */
+  blackOpalShimmerSprite?: Sprite;
+  /** Wrapper for star ruby corona pulse animation. */
+  starRubyBobWrap?: Container;
+  /** Hot corona overlay sprite for star ruby pulse tint. */
+  starRubyCoronaSprite?: Sprite;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -126,6 +146,20 @@ const BLOODSTONE_EMBER_PALETTE = {
   sparkle: 0xffff90,
 };
 
+const SILVER_FROST_PALETTE = {
+  light: 0xffffff,
+  mid: 0xe0f0ff,
+  dark: 0xa0c8e8,
+  sparkle: 0xffffff,
+};
+
+const YS_FROST_PALETTE = {
+  light: 0xfffff0,
+  mid: 0xffe890,
+  dark: 0xf0b830,
+  sparkle: 0xffffff,
+};
+
 const towerObjs = new Map<number, TowerEntry>();
 const rockObjs = new Map<number, PerEntity>();
 const creepObjs = new Map<number, PerEntity>();
@@ -154,6 +188,17 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let malachiteFx: MalachiteFx | undefined;
       let bloodstoneBobWrap: Container | undefined;
       let bloodstoneEmberSprite: Sprite | undefined;
+      let silverBobWrap: Container | undefined;
+      let silverGleamBar: Graphics | undefined;
+      let silverFrostSprite: Sprite | undefined;
+      let ysBobWrap: Container | undefined;
+      let ysFrostSprite: Sprite | undefined;
+      let uraniumBobWrap: Container | undefined;
+      let uraniumIrradiatedSprite: Sprite | undefined;
+      let blackOpalBobWrap: Container | undefined;
+      let blackOpalShimmerSprite: Sprite | undefined;
+      let starRubyBobWrap: Container | undefined;
+      let starRubyCoronaSprite: Sprite | undefined;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -208,6 +253,105 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           }
           obj.addChild(wrap);
           bloodstoneBobWrap = wrap;
+        } else if (t.comboKey === 'silver') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          const sSpec = SPECIAL_SPRITES['silver'];
+          const sTierGrids = SPECIAL_TIER_GRIDS['silver'];
+          const sEff = Math.min(tier + 1, 3) as 2 | 3;
+          const sGrid = (sEff > 1 && sTierGrids?.[sEff]) || sSpec.grid;
+          const sHalfW = sGrid[0].length * 3 / 2;
+          const sHalfH = sGrid.length * 3 / 2;
+          const gleamMask = new Graphics();
+          gleamMask.rect(-sHalfW, -sHalfH, sHalfW * 2, sHalfH * 2).fill(0xffffff);
+          wrap.addChild(gleamMask);
+          const bar = new Graphics();
+          bar.rect(-1, -sHalfH, 2, sHalfH * 2).fill({ color: 0xffffff, alpha: 0.45 });
+          bar.rect(-3, -sHalfH, 2, sHalfH * 2).fill({ color: 0xd8f0ff, alpha: 0.15 });
+          bar.rect(1, -sHalfH, 2, sHalfH * 2).fill({ color: 0xd8f0ff, alpha: 0.15 });
+          bar.blendMode = 'add';
+          wrap.addChild(bar);
+          bar.mask = gleamMask;
+          silverGleamBar = bar;
+          if (tier >= 2) {
+            const frostTex = rasterizeToTexture(cache.renderer, sGrid, SILVER_FROST_PALETTE, 3);
+            const fs = new Sprite(frostTex);
+            fs.anchor.set(0.5, 0.5);
+            fs.alpha = 0;
+            fs.blendMode = 'add';
+            wrap.addChild(fs);
+            silverFrostSprite = fs;
+          }
+          obj.addChild(wrap);
+          silverBobWrap = wrap;
+        } else if (t.comboKey === 'yellow_sapphire') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          if (tier >= 1) {
+            const ysSpec = SPECIAL_SPRITES['yellow_sapphire'];
+            const ysTierGrids = SPECIAL_TIER_GRIDS['yellow_sapphire'];
+            const ysEff = Math.min(tier + 1, 3) as 2 | 3;
+            const ysGrid = (ysEff > 1 && ysTierGrids?.[ysEff]) || ysSpec.grid;
+            const frostTex = rasterizeToTexture(cache.renderer, ysGrid, YS_FROST_PALETTE, 3);
+            const fs = new Sprite(frostTex);
+            fs.anchor.set(0.5, 0.5);
+            fs.alpha = 0;
+            fs.blendMode = 'add';
+            wrap.addChild(fs);
+            ysFrostSprite = fs;
+          }
+          obj.addChild(wrap);
+          ysBobWrap = wrap;
+        } else if (t.comboKey === 'uranium') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          const uSpec = SPECIAL_SPRITES['uranium'];
+          const uTierGrids = SPECIAL_TIER_GRIDS['uranium'];
+          const uEff = Math.min(tier + 1, 3) as 2 | 3;
+          const uGrid = (uEff > 1 && uTierGrids?.[uEff]) || uSpec.grid;
+          const irradTex = rasterizeToTexture(cache.renderer, uGrid, URANIUM_IRRADIATED_PALETTE, 3);
+          const is = new Sprite(irradTex);
+          is.anchor.set(0.5, 0.5);
+          is.alpha = 0;
+          is.blendMode = 'add';
+          wrap.addChild(is);
+          uraniumIrradiatedSprite = is;
+          obj.addChild(wrap);
+          uraniumBobWrap = wrap;
+        } else if (t.comboKey === 'black_opal') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          const boSpec = SPECIAL_SPRITES['black_opal'];
+          const boTierGrids = SPECIAL_TIER_GRIDS['black_opal'];
+          const boEff = Math.min(tier + 1, 3) as 2 | 3;
+          const boGrid = (boEff > 1 && boTierGrids?.[boEff]) || boSpec.grid;
+          const shimmerTex = rasterizeToTexture(cache.renderer, boGrid, BLACK_OPAL_SHIMMER_PALETTE, 3);
+          const ss = new Sprite(shimmerTex);
+          ss.anchor.set(0.5, 0.5);
+          ss.alpha = 0;
+          ss.blendMode = 'add';
+          wrap.addChild(ss);
+          blackOpalShimmerSprite = ss;
+          obj.addChild(wrap);
+          blackOpalBobWrap = wrap;
+        } else if (t.comboKey === 'star_ruby') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          if (tier >= 1) {
+            const srSpec = SPECIAL_SPRITES['star_ruby'];
+            const srTierGrids = SPECIAL_TIER_GRIDS['star_ruby'];
+            const srEff = Math.min(tier + 1, 3) as 2 | 3;
+            const srGrid = (srEff > 1 && srTierGrids?.[srEff]) || srSpec.grid;
+            const coronaTex = rasterizeToTexture(cache.renderer, srGrid, STAR_RUBY_CORONA_PALETTE, 3);
+            const cs = new Sprite(coronaTex);
+            cs.anchor.set(0.5, 0.5);
+            cs.alpha = 0;
+            cs.blendMode = 'add';
+            wrap.addChild(cs);
+            starRubyCoronaSprite = cs;
+          }
+          obj.addChild(wrap);
+          starRubyBobWrap = wrap;
         } else {
           obj.addChild(towerSprite);
         }
@@ -223,13 +367,18 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, redCrystalFx, malachiteFx };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverGleamBar, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
     entry.obj.y = (t.y + 1) * FINE_TILE;
     if (entry.stargemFx) animateStargemFx(entry.stargemFx, now);
+    else if (entry.uraniumBobWrap) animateUraniumThrobFx(entry, now);
     else if (entry.bloodstoneBobWrap) animateBloodstoneFx(entry, now);
+    else if (entry.silverBobWrap) animateSilverFx(entry, now);
+    else if (entry.ysBobWrap) animateYellowSapphireFx(entry, now);
+    else if (entry.blackOpalBobWrap) animateBlackOpalFx(entry, now);
+    else if (entry.starRubyBobWrap) animateStarRubyFx(entry, now);
     else if (entry.fx) animateTowerFx(entry.fx, now);
     if (entry.opalFrames && entry.opalSprite) {
       const frame = Math.floor(now / 225) % OPAL_FRAME_COUNT;
@@ -385,6 +534,246 @@ function animateBloodstoneFx(entry: TowerEntry, now: number): void {
 
   if (entry.bloodstoneEmberSprite) {
     entry.bloodstoneEmberSprite.alpha = Math.max(0, Math.pow(Math.max(0, shaped), 3));
+  }
+}
+
+// ===== Silver — Ice Gleam Sweep ==============================================
+
+function animateSilverFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const spec = SPECIAL_SPRITES['silver'];
+  const tGrids = SPECIAL_TIER_GRIDS['silver'];
+  const eff = Math.min(tier + 1, 3) as 2 | 3;
+  const grid = (eff > 1 && tGrids?.[eff]) || spec.grid;
+  const halfW = grid[0].length * 3 / 2;
+
+  // Sweep period: slower at T0, faster at T1+
+  const sweepPeriod = tier === 0 ? 3.0 : 2.0;
+  const cycle = (sec % sweepPeriod) / sweepPeriod;
+  entry.silverGleamBar!.x = -halfW - 3 + cycle * (halfW * 2 + 6);
+
+  // Gleam intensity peaks at center
+  const centerDist = Math.abs(cycle - 0.5) * 2;
+  entry.silverGleamBar!.alpha = 1 - centerDist * 0.3;
+
+  // Halo synced with sweep position
+  const sweepHaloPhase = 1 - centerDist;
+  let haloAlpha = 0.3 + 0.7 * sweepHaloPhase * 0.5;
+
+  // Bob for Frosted Silver + Silver Knight (tier >= 1)
+  if (tier >= 1) {
+    const bobPeriod = 2.5;
+    const bobAmp = 2;
+    entry.silverBobWrap!.y = -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  }
+
+  // Frost shatter pulse for Silver Knight (tier >= 2)
+  if (tier >= 2 && entry.silverFrostSprite) {
+    const shatterPeriod = 4.0;
+    const sc = (sec % shatterPeriod) / shatterPeriod;
+
+    let freeze = 0;
+    let scale = 1;
+    let flare = 0;
+
+    if (sc >= 0.60 && sc < 0.70) {
+      const p = (sc - 0.60) / 0.10;
+      freeze = p * p;
+    } else if (sc >= 0.70 && sc < 0.78) {
+      freeze = 1;
+    } else if (sc >= 0.78 && sc < 0.88) {
+      const p = (sc - 0.78) / 0.10;
+      freeze = 1 - p * p;
+      scale = 1 + 0.12 * Math.sin(p * Math.PI);
+      flare = (1 - p) * 0.6;
+    }
+
+    entry.silverFrostSprite.alpha = freeze * 0.5;
+    entry.silverBobWrap!.scale.set(scale);
+    haloAlpha = Math.min(1, haloAlpha + flare);
+  }
+
+  if (entry.fx) {
+    entry.fx.halo.alpha = entry.fx.haloPeak * haloAlpha;
+  }
+}
+
+// ===== Yellow Sapphire — Frost Pulse + Drift Float ==========================
+
+function animateYellowSapphireFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  let haloAlpha = 0.3;
+
+  if (tier >= 1) {
+    // T2+: compound figure-8 horizontal drift + vertical bob (snowflake-in-wind)
+    const fig8Period = 5.0;
+    const bobPeriod = 2.5;
+    const driftAmp = 1.5;
+    const bobAmp = 2.0;
+    const fig8Phase = (2 * Math.PI * sec) / fig8Period;
+    entry.ysBobWrap!.x = driftAmp * Math.sin(fig8Phase);
+    entry.ysBobWrap!.y = -(driftAmp * 0.5 * Math.sin(2 * fig8Phase) + bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod));
+
+    haloAlpha = 0.3 + 0.3 * (0.5 + 0.5 * Math.sin(fig8Phase));
+  } else {
+    // T1: rhythmic scale pulse (3s cold exhale)
+    const pulsePeriod = 3.0;
+    const phase = (sec % pulsePeriod) / pulsePeriod;
+    const pulse = Math.sin(phase * Math.PI * 2);
+    const scale = 1 + 0.04 * (0.5 + 0.5 * pulse);
+    entry.ysBobWrap!.scale.set(scale);
+
+    haloAlpha = 0.3 + 0.4 * (0.5 + 0.5 * pulse);
+  }
+
+  // Frost overlay brightens at T2+
+  if (tier >= 1 && entry.ysFrostSprite) {
+    const flashPeriod = 3.5;
+    const fp = (sec % flashPeriod) / flashPeriod;
+    const flash = Math.pow(Math.max(0, Math.sin(fp * Math.PI * 2)), 3);
+    entry.ysFrostSprite.alpha = flash * 0.35;
+  }
+
+  if (entry.fx) {
+    entry.fx.halo.alpha = entry.fx.haloPeak * haloAlpha;
+  }
+}
+
+// ===== Uranium — Radioactive Throb ============================================
+
+const URANIUM_THROB_PERIOD = 2.8;
+
+const URANIUM_IRRADIATED_PALETTE = {
+  light: 0xf0ffc0,
+  mid: 0xc0ff60,
+  dark: 0x407828,
+  sparkle: 0xffffe0,
+};
+
+const BLACK_OPAL_SHIMMER_PALETTE = {
+  light: 0xffffff,
+  mid: 0xc0c8ff,
+  dark: 0x5060b0,
+  sparkle: 0xffffff,
+};
+
+function animateUraniumThrobFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const raw = (sec % URANIUM_THROB_PERIOD) / URANIUM_THROB_PERIOD;
+
+  let throb: number;
+  if (raw < 0.3) {
+    throb = Math.pow(raw / 0.3, 0.5);
+  } else {
+    throb = 1 - Math.pow((raw - 0.3) / 0.7, 2);
+  }
+
+  const tier = entry.upgradeTier;
+  const tintAlpha = throb * (tier >= 1 ? 0.5 : 0.35);
+  entry.uraniumIrradiatedSprite!.alpha = tintAlpha;
+
+  entry.uraniumBobWrap!.scale.set(1 + throb * 0.04);
+
+  if (entry.fx) {
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.2 + 0.8 * throb);
+  }
+}
+
+// ===== Black Opal — Dark Shimmer =============================================
+
+const SHIMMER_STOPS: [number, number, number][] = [
+  [0x30, 0x48, 0xe0],  // deep blue
+  [0x80, 0x30, 0xc0],  // violet
+  [0x20, 0xa0, 0x68],  // green
+];
+
+function animateBlackOpalFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+
+  const bobPeriod = 3.5;
+  const bobAmp = 1.5;
+  entry.blackOpalBobWrap!.y = -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
+
+  if (entry.blackOpalShimmerSprite) {
+    const shimmerPeriod = 4.0;
+    const phase = (sec % shimmerPeriod) / shimmerPeriod;
+
+    const idx = phase * 3;
+    const i = Math.floor(idx) % 3;
+    const frac = idx - Math.floor(idx);
+    const next = (i + 1) % 3;
+    const r = Math.round(SHIMMER_STOPS[i][0] + (SHIMMER_STOPS[next][0] - SHIMMER_STOPS[i][0]) * frac);
+    const g = Math.round(SHIMMER_STOPS[i][1] + (SHIMMER_STOPS[next][1] - SHIMMER_STOPS[i][1]) * frac);
+    const b = Math.round(SHIMMER_STOPS[i][2] + (SHIMMER_STOPS[next][2] - SHIMMER_STOPS[i][2]) * frac);
+    entry.blackOpalShimmerSprite.tint = (r << 16) | (g << 8) | b;
+
+    const pulseRaw = Math.sin(phase * Math.PI * 6);
+    entry.blackOpalShimmerSprite.alpha = 0.15 + 0.2 * (0.5 + 0.5 * pulseRaw);
+  }
+
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 3.0) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.7 * haloPulse);
+  }
+}
+
+// ===== Star Ruby — Corona Pulse =============================================
+
+const STAR_RUBY_CORONA_PALETTE = {
+  light: 0xfff0c0,
+  mid: 0xff6040,
+  dark: 0xe8384c,
+  sparkle: 0xffffe0,
+};
+
+function animateStarRubyFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  let haloAlpha = 0.3;
+
+  if (tier >= 2) {
+    const strobePeriod = 1.4;
+    const strobePhase = (sec % strobePeriod) / strobePeriod;
+    const strobeIntensity = Math.pow(Math.max(0, 1 - strobePhase * 2.0), 2);
+    const breathe = (Math.sin(sec * 1.2) + 1) / 2;
+    const scale = 1.0 + strobeIntensity * 0.05 + breathe * 0.03;
+    entry.starRubyBobWrap!.scale.set(scale);
+
+    if (entry.starRubyCoronaSprite) {
+      entry.starRubyCoronaSprite.alpha = strobeIntensity * 0.35 + breathe * 0.12;
+    }
+
+    haloAlpha = 0.25 + strobeIntensity * 0.3 + breathe * 0.1;
+  } else if (tier >= 1) {
+    const breathePeriod = 2.0;
+    const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+    const breatheEased = Math.pow(breathePhase, 1.3);
+    const scale = 1.0 + breatheEased * 0.08;
+    entry.starRubyBobWrap!.scale.set(scale);
+
+    const brightCycle = (Math.sin(sec * 2.2) + 1) / 2;
+    if (entry.starRubyCoronaSprite) {
+      entry.starRubyCoronaSprite.alpha = breatheEased * 0.2 + brightCycle * 0.08;
+    }
+
+    haloAlpha = 0.2 + breatheEased * 0.3;
+  } else {
+    const breathePeriod = 2.5;
+    const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+    const breatheEased = Math.pow(breathePhase, 1.5);
+    const scale = 1.0 + breatheEased * 0.06;
+    entry.starRubyBobWrap!.scale.set(scale);
+
+    haloAlpha = 0.15 + breatheEased * 0.2;
+  }
+
+  if (entry.fx) {
+    entry.fx.halo.alpha = entry.fx.haloPeak * haloAlpha;
   }
 }
 
