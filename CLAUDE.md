@@ -11,6 +11,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run test:watch` — Vitest in watch mode
 - `npm run sim` — run the heavy headless-sim test (the one `npm test` skips)
 - `npm run sim:run|sim:compare|sim:history` — `tools/sim-compare/cli.ts` entry points (balance regression diffing)
+- `npm run wave-difficulty|wave-difficulty:compare|wave-difficulty:history` — wave difficulty analysis CLI
+- `npm run telemetry:local` — local telemetry server for offline dev
+- `npm run blueprint:viz` — visualize maze blueprint (Python, uses `uv run`)
+- `npm run blueprint:export` — export blueprint JSON (Python, uses `uv run`)
 - `npm run preview` — local build + `wrangler dev` (Cloudflare Worker simulator)
 - `npm run deploy` — production deploy to Cloudflare. **Never run this without explicit confirmation.**
 - Single test file: `npx vitest run tests/combat.test.ts`
@@ -43,6 +47,7 @@ Game progresses through phases in `state.phase`: `title → build → wave → c
 - Keeper handling (no controller file, lives on `Game`) — after each wave, player keeps **one** of the 5 placed towers; the others convert to rocks (permanent maze blockers, no refund). This is core to the genre and to the design intent (see below).
 - `Combat` (`src/systems/Combat.ts`) — runs every sim step regardless of phase; handles tower targeting/firing, projectile flight, on-hit effects.
 - `Traps` (`src/systems/Traps.ts`) — towers with `isTrap=true` don't fire projectiles; instead they trigger area effects when creeps walk within range.
+- `PayloadSpawner` (`src/systems/PayloadSpawner.ts`) — handles container creep death: spawns child creeps with staggered timing at the parent's death position.
 
 `Game.cmd*` methods are the public command surface UI calls into; phase controllers do the actual work.
 
@@ -81,7 +86,7 @@ PixiJS v8 with pixel-art settings (`antialias: false`, `roundPixels: true`). `Bo
 
 ### localStorage
 
-All keys use the format `gemtd:<kebab-case>`. Current keys: `gemtd:music-muted`, `gemtd:path-viz`, `gemtd:sim-speed`. Wrap writes in `try/catch` for private-browsing mode.
+All keys use the format `gemtd:<kebab-case>`. Current keys: `gemtd:music-muted`, `gemtd:path-viz`, `gemtd:sim-speed`, `gemtd:last-seen-version`. Wrap writes in `try/catch` for private-browsing mode.
 
 ## Tooling beyond the game
 
