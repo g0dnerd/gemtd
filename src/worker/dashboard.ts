@@ -595,7 +595,7 @@ function render(data) {
   h += '<section class="dash-section" id="gems"><div class="section-header"><h2>Gem Effectiveness</h2></div>';
   h += '<div class="table-panel"><div class="table-panel-header"><h3>Tower damage by gem type and quality</h3><span class="pill pill-accent">Sortable</span></div>';
   h += '<table class="data-table" id="table-gems"><thead><tr>';
-  h += '<th>Gem</th><th>Quality</th><th class="num">Count</th><th class="num">Avg Dmg/Wave</th><th>Avg Total Dmg</th>';
+  h += '<th>Gem</th><th>Quality</th><th class="num">Count</th><th class="num">Avg Dmg/Wave</th><th>Avg Total Dmg</th><th class="num">Avg Share</th>';
   h += '</tr></thead><tbody></tbody></table></div></section>';
 
   // Gem Damage Curves
@@ -1161,12 +1161,14 @@ function renderGemTable(gems) {
   const qNames = { 1: 'Chipped', 2: 'Flawed', 3: 'Normal', 4: 'Flawless', 5: 'Perfect' };
   tbody.innerHTML = gems.map(r => {
     const p = maxDmg > 0 ? (Number(r.avg_damage) / maxDmg) : 0;
+    const share = Number(r.avg_damage_share);
     return '<tr><td><span class="kind-dot" style="background:' + (GEM_COLORS[r.gem] || C.muted) + '"></span>' + capitalize(r.gem) + '</td>' +
-      '<td><span class="quality-badge q' + r.quality + '">' + (qNames[r.quality] || r.quality) + '</span></td>' +
+      '<td data-sort="' + r.quality + '"><span class="quality-badge q' + r.quality + '">' + (qNames[r.quality] || r.quality) + '</span></td>' +
       '<td class="num">' + r.count + '</td>' +
       '<td class="num">' + fmtN(Math.round(Number(r.avg_dmg_per_wave))) + '</td>' +
       '<td><div class="bar-cell"><span class="bar-value">' + fmtN(Math.round(Number(r.avg_damage))) + '</span>' +
-      '<span class="bar-track"><span class="bar-fill" style="transform:scaleX(' + p.toFixed(3) + ');background:' + (GEM_COLORS[r.gem] || C.teal) + '"></span></span></div></td></tr>';
+      '<span class="bar-track"><span class="bar-fill" style="transform:scaleX(' + p.toFixed(3) + ');background:' + (GEM_COLORS[r.gem] || C.teal) + '"></span></span></div></td>' +
+      '<td class="num">' + (isNaN(share) ? '\\u2014' : (share * 100).toFixed(1) + '%') + '</td></tr>';
   }).join('');
 }
 
@@ -1279,8 +1281,8 @@ function makeSortable() {
         th.classList.add('sorted');
         th.querySelector('.sort-arrow').textContent = dir === 'asc' ? '\\u25B2' : '\\u25BC';
         rows.sort((a, b) => {
-          const aText = (a.cells[colIdx]?.textContent || '').replace(/[%,\\u2605]/g, '').trim();
-          const bText = (b.cells[colIdx]?.textContent || '').replace(/[%,\\u2605]/g, '').trim();
+          const aText = (a.cells[colIdx]?.getAttribute('data-sort') || a.cells[colIdx]?.textContent || '').replace(/[%,\\u2605]/g, '').trim();
+          const bText = (b.cells[colIdx]?.getAttribute('data-sort') || b.cells[colIdx]?.textContent || '').replace(/[%,\\u2605]/g, '').trim();
           const aNum = parseFloat(aText);
           const bNum = parseFloat(bText);
           if (!isNaN(aNum) && !isNaN(bNum)) return dir === 'asc' ? aNum - bNum : bNum - aNum;

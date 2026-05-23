@@ -97,8 +97,11 @@ export async function handleStats(
     db.prepare(
       `SELECT t.gem, t.quality, count(*) as count,
               avg(t.total_damage) as avg_damage,
-              avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave
+              avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave,
+              avg(CASE WHEN rt.run_total > 0 THEN t.total_damage * 1.0 / rt.run_total ELSE 0 END) as avg_damage_share
        FROM towers t JOIN runs r ON t.run_id = r.run_id
+       JOIN (SELECT run_id, sum(total_damage) as run_total FROM towers GROUP BY run_id) rt
+         ON t.run_id = rt.run_id
        WHERE t.combo_key = '' ${cv.replace("run_id", "t.run_id")}
        GROUP BY t.gem, t.quality ORDER BY avg_dmg_per_wave DESC`,
     ).bind(...cBind).all(),
