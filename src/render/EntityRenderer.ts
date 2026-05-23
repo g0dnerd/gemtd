@@ -58,6 +58,11 @@ interface MalachiteFx {
   color: number;
 }
 
+interface ParaibaFx {
+  arcs: Graphics[];
+  tier: number;
+}
+
 interface TowerEntry {
   obj: Container;
   /** Cached comboKey so we can rebuild the sprite if a tower is upgraded. */
@@ -104,6 +109,8 @@ interface TowerEntry {
   starRubyBobWrap?: Container;
   /** Hot corona overlay sprite for star ruby pulse tint. */
   starRubyCoronaSprite?: Sprite;
+  paraibaBobWrap?: Container;
+  paraibaFx?: ParaibaFx;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -197,6 +204,8 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let blackOpalShimmerSprite: Sprite | undefined;
       let starRubyBobWrap: Container | undefined;
       let starRubyCoronaSprite: Sprite | undefined;
+      let paraibaBobWrap: Container | undefined;
+      let paraibaFx: ParaibaFx | undefined;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -337,6 +346,12 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           }
           obj.addChild(wrap);
           starRubyBobWrap = wrap;
+        } else if (t.comboKey === 'paraiba_tourmaline') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          paraibaFx = makeParaibaArcFx(wrap, tier);
+          obj.addChild(wrap);
+          paraibaBobWrap = wrap;
         } else {
           obj.addChild(towerSprite);
         }
@@ -352,7 +367,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -364,6 +379,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     else if (entry.ysBobWrap) animateYellowSapphireFx(entry, now);
     else if (entry.blackOpalBobWrap) animateBlackOpalFx(entry, now);
     else if (entry.starRubyBobWrap) animateStarRubyFx(entry, now);
+    else if (entry.paraibaBobWrap) animateParaibaArcFx(entry, now);
     else if (entry.fx) animateTowerFx(entry.fx, now);
     if (entry.opalFrames && entry.opalSprite) {
       const frame = Math.floor(now / 225) % OPAL_FRAME_COUNT;
@@ -742,6 +758,110 @@ function animateStarRubyFx(entry: TowerEntry, now: number): void {
 
   if (entry.fx) {
     entry.fx.halo.alpha = entry.fx.haloPeak * haloAlpha;
+  }
+}
+
+// ===== Paraiba Tourmaline — Heavy Arc ========================================
+
+const PARAIBA_TIPS_T0 = [
+  { x: -7.5, y: -15 },
+  { x: 4.5, y: -15 },
+];
+const PARAIBA_TIPS_T1 = [
+  { x: -13.5, y: -18 },
+  { x: 4.5, y: -18 },
+  { x: 12, y: -12 },
+];
+
+function makeParaibaArcFx(parent: Container, tier: number): ParaibaFx {
+  const arcCount = tier >= 1 ? 2 : 1;
+  const arcs: Graphics[] = [];
+  for (let i = 0; i < arcCount; i++) {
+    const arc = new Graphics();
+    parent.addChild(arc);
+    arcs.push(arc);
+  }
+  return { arcs, tier };
+}
+
+function paraibaJaggedLine(x1: number, y1: number, x2: number, y2: number, seed: number): { x: number; y: number }[] {
+  const pts = [{ x: x1, y: y1 }];
+  const segments = 5;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const perpX = -dy / len;
+  const perpY = dx / len;
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const mx = x1 + dx * t;
+    const my = y1 + dy * t;
+    const bulge = Math.sin(t * Math.PI);
+    const jitter = Math.sin(seed * 7.1 + i * 4.7) * 6 * bulge;
+    pts.push({ x: mx + perpX * jitter, y: my + perpY * jitter });
+  }
+  pts.push({ x: x2, y: y2 });
+  return pts;
+}
+
+function animateParaibaArcFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const bobPeriod = 2.5 - tier * 0.5;
+  const bobAmp = 1.5 + tier * 1.0;
+  entry.paraibaBobWrap!.y = -bobAmp * (1 - Math.cos((2 * Math.PI * sec) / bobPeriod)) / 2;
+
+  const fx = entry.paraibaFx!;
+  const cyclePeriod = tier >= 1 ? 5.0 : 7.0;
+  const tips = tier >= 1 ? PARAIBA_TIPS_T1 : PARAIBA_TIPS_T0;
+  const arcPairs = tier >= 1 ? [[0, 1], [1, 2]] : [[0, 1]];
+
+  let maxArcAlpha = 0;
+
+  for (let a = 0; a < fx.arcs.length; a++) {
+    const arc = fx.arcs[a];
+    arc.clear();
+
+    const phase = ((sec / cyclePeriod) + a * 0.5) % 1;
+
+    let arcAlpha: number;
+    if (phase < 0.10) {
+      arcAlpha = (phase / 0.10) * 0.85;
+    } else if (phase < 0.25) {
+      arcAlpha = 0.85;
+    } else if (phase < 0.35) {
+      arcAlpha = 0.85 * (1 - (phase - 0.25) / 0.10);
+    } else {
+      arcAlpha = 0;
+    }
+
+    maxArcAlpha = Math.max(maxArcAlpha, arcAlpha);
+
+    if (arcAlpha > 0.05) {
+      const [i1, i2] = arcPairs[a];
+      const tip1 = tips[i1];
+      const tip2 = tips[i2];
+
+      const seed = Math.floor(sec * 1.2) + a * 50;
+      const pts = paraibaJaggedLine(tip1.x, tip1.y, tip2.x, tip2.y, seed);
+
+      arc.moveTo(pts[0].x, pts[0].y);
+      for (let p = 1; p < pts.length; p++) arc.lineTo(pts[p].x, pts[p].y);
+      arc.stroke({ width: 4, color: 0x00d8c8, alpha: arcAlpha * 0.25 });
+
+      arc.moveTo(pts[0].x, pts[0].y);
+      for (let p = 1; p < pts.length; p++) arc.lineTo(pts[p].x, pts[p].y);
+      arc.stroke({ width: 2, color: 0xa8ffe8, alpha: arcAlpha });
+
+      arc.circle(tip1.x, tip1.y, 1.5).fill({ color: 0xffffff, alpha: arcAlpha * 0.85 });
+      arc.circle(tip2.x, tip2.y, 1.5).fill({ color: 0xffffff, alpha: arcAlpha * 0.85 });
+    }
+  }
+
+  if (entry.fx) {
+    const basePulse = (Math.sin((sec / 1.8) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.4 * basePulse + 0.3 * maxArcAlpha);
   }
 }
 
