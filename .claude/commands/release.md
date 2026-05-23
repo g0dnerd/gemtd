@@ -23,11 +23,7 @@ Otherwise:
 
 ### 2. Apply the version bump
 
-Update the version in **both** of these files:
-
-1. **`package.json`** — the `"version"` field.
-2. **`src/ui/Hud.ts`** — the line that sets `wmVer.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
-3. **`src/ui/Title.ts`** — the line that sets `version.textContent = "v..."`. Update the string literal to the new version prefixed with `v`.
+Update the version in **`package.json`** — the `"version"` field. That's the only file that needs a manual update; `Hud.ts` and `Title.ts` both read `__GAME_VERSION__` at build time.
 
 ### 3. Changelog (skip if `none`)
 
@@ -64,4 +60,4 @@ Commit **all** uncommitted changes related to the current work — not just the 
   - **Body**: only if there are substantive changes beyond the version bump; keep it to 1-3 lines max.
   - End with the `Co-Authored-By` trailer.
 
-**Note:** `__GAME_VERSION__` (used in telemetry) is a Vite build-time variable that auto-syncs from `package.json` - no manual update needed there.
+**Note:** `__GAME_VERSION__` is a Vite build-time variable that auto-syncs from `package.json` — all runtime version references (HUD, title screen, telemetry) use it, so only `package.json` needs updating.

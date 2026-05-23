@@ -98,7 +98,7 @@ export function mountHud(
   wmName.textContent = "FACETS";
   const wmVer = document.createElement("div");
   wmVer.className = "wm-ver";
-  wmVer.textContent = "v1.5.6";
+  wmVer.textContent = `v${__GAME_VERSION__}`;
   wm.append(wmName, wmVer);
   if (game.state.hardcore) {
     const skull = document.createElement("div");

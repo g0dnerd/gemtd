@@ -130,12 +130,12 @@ describe("red crystal demote mechanic", () => {
     expect(ground.hp).toBeLessThan(hpBefore);
   });
 
-  it("demotes air creep to ground on every 14th hit", () => {
+  it("demotes air creep to ground on every 13th hit", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     const air = makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 13;
+    tower.attackCount = 12;
 
     let demoted = false;
     bus.on("creep:demoted", () => { demoted = true; });
@@ -146,7 +146,7 @@ describe("red crystal demote mechanic", () => {
     expect(air.flags?.air).toBe(false);
   });
 
-  it("does not demote on non-14th hits", () => {
+  it("does not demote on non-13th hits", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
@@ -156,19 +156,19 @@ describe("red crystal demote mechanic", () => {
     let demoted = false;
     bus.on("creep:demoted", () => { demoted = true; });
 
-    // At 0.8 atk speed, cooldown = 75 ticks. Over 60 ticks only 1 attack fires.
+    // At 0.72 atk speed, cooldown = 67 ticks. Over 60 ticks only 1 attack fires.
     step(combat, state, SIM_HZ);
 
     expect(demoted).toBe(false);
     expect(air.flags?.air).toBe(true);
   });
 
-  it("does not demote ground creeps on 14th hit", () => {
+  it("does not demote ground creeps on 13th hit", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeGroundCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 13;
+    tower.attackCount = 12;
 
     let demoted = false;
     bus.on("creep:demoted", () => { demoted = true; });
@@ -183,7 +183,7 @@ describe("red crystal demote mechanic", () => {
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     const air = makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 13;
+    tower.attackCount = 12;
 
     step(combat, state, SIM_HZ);
 
@@ -198,19 +198,19 @@ describe("red crystal demote mechanic", () => {
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 13;
+    tower.attackCount = 12;
 
     step(combat, state, SIM_HZ);
 
     expect(tower.attackCount).toBe(0);
   });
 
-  it("does not reset attackCount when hitting a ground creep on 14th hit", () => {
+  it("does not reset attackCount when hitting a ground creep on 13th hit", () => {
     const { game, state } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeGroundCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 13;
+    tower.attackCount = 12;
 
     step(combat, state, SIM_HZ);
 
@@ -222,7 +222,7 @@ describe("red crystal demote mechanic", () => {
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 13;
+    tower.attackCount = 12;
 
     step(combat, state, SIM_HZ);
     expect(tower.attackCount).toBe(0);
@@ -230,10 +230,10 @@ describe("red crystal demote mechanic", () => {
     let demoteCount = 0;
     bus.on("creep:demoted", () => { demoteCount++; });
 
-    // Step enough for several attacks but not 14 more
+    // Step enough for several attacks but not 13 more
     step(combat, state, SIM_HZ * 5);
     expect(tower.attackCount).toBeGreaterThan(0);
-    expect(tower.attackCount).toBeLessThan(14);
+    expect(tower.attackCount).toBeLessThan(13);
     expect(demoteCount).toBe(0);
   });
 
@@ -246,7 +246,7 @@ describe("red crystal demote mechanic", () => {
     step(combat, state, SIM_HZ * 5);
 
     const dmgDealt = 500000 - creep.hp;
-    // Base Red Crystal: 68-128 dmg at 0.8 atk speed = ~78 DPS
+    // Base Red Crystal: 68-128 dmg at 0.72 atk speed = ~87 DPS
     // Over 5 seconds: ~390 damage (rough, with RNG)
     expect(dmgDealt).toBeGreaterThan(200);
     expect(dmgDealt).toBeLessThan(800);

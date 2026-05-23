@@ -480,9 +480,9 @@ export const WAVES: WaveDef[] = [
         armor: 35,
         payload: [
           {
-            kind: "gazer" as CreepKind,
+            kind: "anemone" as CreepKind,
             count: 3,
-            hp: 112000,
+            hp: 100000,
             bounty: 0,
             payload: [
               {
@@ -494,7 +494,7 @@ export const WAVES: WaveDef[] = [
                   {
                     kind: "amalgam" as CreepKind,
                     count: 5,
-                    hp: 100000,
+                    hp: 80000,
                     bounty: 0,
                     armor: 20,
                     slowResist: 0.7,

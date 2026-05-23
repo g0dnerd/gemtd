@@ -307,6 +307,39 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.7",
+      notes: [
+        {
+          tag: "buff",
+          text: "Uranium: burn DPS buffed (base 85->95, U235 115->130).",
+        },
+        {
+          tag: "nerf",
+          text: "Emerald: stun bonus damage nerfed to 1.5x (both tiers).",
+        },
+        {
+          tag: "nerf",
+          text: "Lucky Asian Jade: base damage nerfed ~5%.",
+        },
+        {
+          tag: "buff",
+          text: "Red Crystal: attacks 10% faster, demote-air triggers sooner per tier.",
+        },
+        {
+          tag: "buff",
+          text: "Mighty Malachite: +5% damage, range increased to 4.5.",
+        },
+        {
+          tag: "nerf",
+          text: "Silver Knight: slower attack speed, Nova every 10th hit.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 50: anemone and amalgam HP reduced.",
+        },
+      ],
+    },
+    {
       ver: "1.5.6",
       notes: [
         {

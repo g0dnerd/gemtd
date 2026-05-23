@@ -48,7 +48,7 @@ describe('container creeps', () => {
       vessels[0].hp = 0;
       vessels[0].alive = false;
       game.handleCreepDeath(vessels[0]);
-      for (let j = 0; j < 30; j++) game.simStep();
+      for (let j = 0; j < 60; j++) game.simStep();
 
       const normals = game.state.creeps.filter(c => c.kind === 'shambler');
       expect(normals.length).toBe(3);
@@ -217,7 +217,7 @@ describe('container creeps', () => {
       game.handleCreepDeath(vessel);
 
       expect(game.state.waveStats.totalToSpawn).toBe(5);
-      for (let j = 0; j < 30; j++) game.simStep();
+      for (let j = 0; j < 80; j++) game.simStep();
       expect(game.state.waveStats.spawnedThisWave).toBe(5);
     });
   });
@@ -295,14 +295,14 @@ describe('container creeps', () => {
       const immediateCount = game.state.creeps.filter(c => c.kind === 'shambler').length;
       expect(immediateCount).toBe(1);
 
-      // After a few ticks, more appear
-      for (let i = 0; i < 10; i++) game.simStep();
+      // After enough ticks for 2nd spawn (STAGGER_TICKS=20), more appear
+      for (let i = 0; i < 25; i++) game.simStep();
       const afterSome = game.state.creeps.filter(c => c.kind === 'shambler').length;
       expect(afterSome).toBeGreaterThan(1);
       expect(afterSome).toBeLessThan(4);
 
-      // After enough ticks, all are spawned
-      for (let i = 0; i < 30; i++) game.simStep();
+      // After enough ticks for all spawns (delay 60 for 4th creep)
+      for (let i = 0; i < 60; i++) game.simStep();
       const afterAll = game.state.creeps.filter(c => c.kind === 'shambler').length;
       expect(afterAll).toBe(4);
     });
