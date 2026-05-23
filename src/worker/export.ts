@@ -28,7 +28,7 @@ const TABLES: Record<string, string[]> = {
     "total_hp_spawned",
   ],
   wave_gem_damage: [
-    "run_id", "wave", "gem", "is_combo", "damage", "kills",
+    "run_id", "wave", "gem", "is_combo", "combo_key", "damage", "kills",
   ],
 };
 

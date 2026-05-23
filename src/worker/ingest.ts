@@ -142,10 +142,10 @@ export async function handleIngest(
   for (const wgd of waveGemDamage) {
     stmts.push(
       db.prepare(
-        `INSERT INTO wave_gem_damage (run_id, wave, gem, is_combo, damage, kills)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO wave_gem_damage (run_id, wave, gem, is_combo, combo_key, damage, kills)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
-        runId, wgd.wave, wgd.gem, wgd.isCombo ? 1 : 0, wgd.damage, wgd.kills,
+        runId, wgd.wave, wgd.gem, wgd.isCombo ? 1 : 0, wgd.comboKey ?? "", wgd.damage, wgd.kills,
       ),
     );
   }

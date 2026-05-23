@@ -588,7 +588,7 @@ function render(data) {
   h += '<section class="dash-section" id="combos"><div class="section-header"><h2>Combo Effectiveness</h2></div>';
   h += '<div class="table-panel"><div class="table-panel-header"><h3>Damage output by combo and tier</h3><span class="pill pill-accent">Sortable</span></div>';
   h += '<table class="data-table" id="table-combos"><thead><tr>';
-  h += '<th>Combo</th><th class="num">Count</th><th class="num">Avg Dmg/Wave</th><th>Avg Total Dmg</th><th class="num">Avg Wave Built</th><th class="num">Wave Impact</th>';
+  h += '<th>Combo</th><th class="num">Count</th><th class="num">Avg Dmg/Wave</th><th>Avg Total Dmg</th><th class="num">Avg Wave Built</th><th class="num">Wave Impact</th><th class="num">Avg Share</th><th class="num">Dmg/HP</th>';
   h += '</tr></thead><tbody></tbody></table></div></section>';
 
   // Gems
@@ -606,7 +606,7 @@ function render(data) {
   h += '</div>';
   h += '<div class="table-panel" style="margin-top:12px"><div class="table-panel-header"><h3>Gem damage by game phase</h3><span class="pill pill-accent">Sortable</span></div>';
   h += '<table class="data-table" id="table-gem-phase"><thead><tr>';
-  h += '<th>Gem</th><th>Type</th><th class="num">Early (1\\u201315)</th><th class="num">Mid (16\\u201330)</th><th class="num">Late (31+)</th><th class="num">Total</th>';
+  h += '<th>Gem</th><th>Type</th><th class="num">Early (1\\u201315)</th><th class="num">Mid (16\\u201330)</th><th class="num">Late (31+)</th><th class="num">Total</th><th class="num">Avg Share</th><th class="num">Dmg/HP</th>';
   h += '</tr></thead><tbody></tbody></table></div></section>';
 
   // Keepers
@@ -630,10 +630,10 @@ function render(data) {
   el.innerHTML = h;
   createCharts(data, total);
 
-  renderComboTable(data.combos || [], avgWave);
+  renderComboTable(data.combos || [], avgWave, data.comboDamageByWave || [], data.gemDamageByWave || [], data.waveHpPool || []);
   renderGemTable(data.gemDps || []);
   renderCreepKindTable(data.creepKindSummary || []);
-  renderGemPhaseTable(data.gemDamageByWave || []);
+  renderGemPhaseTable(data.gemDamageByWave || [], data.waveHpPool || []);
   renderKeeperTable(data.keeperChoices || []);
   renderChanceTable(data.chanceTiming || []);
   makeSortable();
@@ -1091,9 +1091,39 @@ function createCharts(data, total) {
   }
 }
 
-function renderComboTable(combos, globalAvgWave) {
+function renderComboTable(combos, globalAvgWave, comboDmgByWave, allGemDmgByWave, hpPoolRows) {
   const tbody = document.querySelector('#table-combos tbody');
   if (!tbody || !combos.length) return;
+
+  const hpByWave = {};
+  (hpPoolRows || []).forEach(r => { hpByWave[r.wave] = Number(r.avg_hp_pool); });
+
+  const waveTotals = {};
+  (allGemDmgByWave || []).forEach(r => { waveTotals[Number(r.wave)] = (waveTotals[Number(r.wave)] || 0) + Number(r.total_damage); });
+
+  const comboWaves = {};
+  (comboDmgByWave || []).forEach(r => {
+    const ck = r.combo_key;
+    if (!comboWaves[ck]) comboWaves[ck] = [];
+    comboWaves[ck].push({ wave: Number(r.wave), damage: Number(r.total_damage), runs: Number(r.runs) });
+  });
+
+  const comboNorm = {};
+  Object.entries(comboWaves).forEach(([ck, waves]) => {
+    let shareSum = 0, shareN = 0, normSum = 0, normN = 0;
+    waves.forEach(wd => {
+      const wt = waveTotals[wd.wave];
+      if (wt > 0) { shareSum += wd.damage / wt; shareN++; }
+      const hp = hpByWave[wd.wave];
+      if (hp > 0 && wd.runs > 0) { normSum += (wd.damage / wd.runs) / hp; normN++; }
+    });
+    comboNorm[ck] = {
+      avgShare: shareN > 0 ? shareSum / shareN : 0,
+      avgNorm: normN > 0 ? normSum / normN : 0,
+    };
+  });
+
+  const seenCombo = {};
   const maxDmg = Math.max(...combos.map(r => Number(r.avg_damage)));
   tbody.innerHTML = combos.map(r => {
     const tier = Number(r.tier) || 0;
@@ -1107,13 +1137,20 @@ function renderComboTable(combos, globalAvgWave) {
     const deltaStr = isNaN(delta) ? '\\u2014'
       : (delta >= 0 ? '+' : '') + delta.toFixed(1);
     const deltaColor = isNaN(delta) ? '' : delta >= 0 ? 'color:' + C.green : 'color:' + C.red;
+    const firstTier = !seenCombo[r.combo_key];
+    seenCombo[r.combo_key] = true;
+    const sn = firstTier ? comboNorm[r.combo_key] : null;
+    const shareStr = sn ? (sn.avgShare * 100).toFixed(1) + '%' : '\\u2014';
+    const normStr = sn ? (sn.avgNorm * 100).toFixed(1) + '%' : '\\u2014';
     return '<tr><td style="font-weight:500">' + name + badge + '</td>' +
       '<td class="num">' + r.count + '</td>' +
       '<td class="num">' + fmtN(Math.round(Number(r.avg_dmg_per_wave))) + '</td>' +
       '<td><div class="bar-cell"><span class="bar-value">' + fmtN(Math.round(Number(r.avg_damage))) + '</span>' +
       '<span class="bar-track"><span class="bar-fill" style="transform:scaleX(' + p.toFixed(3) + ');background:' + C.teal + '"></span></span></div></td>' +
       '<td class="num">' + Number(r.avg_wave_built).toFixed(1) + '</td>' +
-      '<td class="num" style="' + deltaColor + ';font-weight:600">' + deltaStr + '</td></tr>';
+      '<td class="num" style="' + deltaColor + ';font-weight:600">' + deltaStr + '</td>' +
+      '<td class="num">' + shareStr + '</td>' +
+      '<td class="num">' + normStr + '</td></tr>';
   }).join('');
 }
 
@@ -1151,22 +1188,43 @@ function renderCreepKindTable(kinds) {
   }).join('');
 }
 
-function renderGemPhaseTable(rows) {
+function renderGemPhaseTable(rows, hpPoolRows) {
   const tbody = document.querySelector('#table-gem-phase tbody');
   if (!tbody || !rows.length) return;
+
+  const hpByWave = {};
+  (hpPoolRows || []).forEach(r => { hpByWave[r.wave] = Number(r.avg_hp_pool); });
+
+  const waveTotals = {};
+  rows.forEach(r => { waveTotals[Number(r.wave)] = (waveTotals[Number(r.wave)] || 0) + Number(r.total_damage); });
+
   const phases = {};
   rows.forEach(r => {
     const gem = r.gem;
     const isCombo = Number(r.is_combo);
     const key = gem + '|' + isCombo;
-    if (!phases[key]) phases[key] = { gem, isCombo, early: 0, mid: 0, late: 0, total: 0 };
+    if (!phases[key]) phases[key] = { gem, isCombo, early: 0, mid: 0, late: 0, total: 0, perWave: [] };
     const dmg = Number(r.total_damage);
     const w = Number(r.wave);
     phases[key].total += dmg;
     if (w <= 15) phases[key].early += dmg;
     else if (w <= 30) phases[key].mid += dmg;
     else phases[key].late += dmg;
+    phases[key].perWave.push({ wave: w, damage: dmg, runs: Number(r.runs) });
   });
+
+  Object.values(phases).forEach(p => {
+    let shareSum = 0, shareN = 0, normSum = 0, normN = 0;
+    p.perWave.forEach(wd => {
+      const wt = waveTotals[wd.wave];
+      if (wt > 0) { shareSum += wd.damage / wt; shareN++; }
+      const hp = hpByWave[wd.wave];
+      if (hp > 0 && wd.runs > 0) { normSum += (wd.damage / wd.runs) / hp; normN++; }
+    });
+    p.avgShare = shareN > 0 ? shareSum / shareN : 0;
+    p.avgNorm = normN > 0 ? normSum / normN : 0;
+  });
+
   const sorted = Object.values(phases).sort((a, b) => b.total - a.total);
   tbody.innerHTML = sorted.map(r => {
     const color = GEM_COLORS[r.gem] || C.muted;
@@ -1177,7 +1235,9 @@ function renderGemPhaseTable(rows) {
       '<td class="num">' + fmtN(Math.round(r.early)) + '</td>' +
       '<td class="num">' + fmtN(Math.round(r.mid)) + '</td>' +
       '<td class="num">' + fmtN(Math.round(r.late)) + '</td>' +
-      '<td class="num">' + fmtN(Math.round(r.total)) + '</td></tr>';
+      '<td class="num">' + fmtN(Math.round(r.total)) + '</td>' +
+      '<td class="num">' + (r.avgShare * 100).toFixed(1) + '%</td>' +
+      '<td class="num">' + (r.avgNorm * 100).toFixed(1) + '%</td></tr>';
   }).join('');
 }
 

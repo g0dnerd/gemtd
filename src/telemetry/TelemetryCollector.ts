@@ -44,6 +44,7 @@ interface WaveGemDamage {
   wave: number;
   gem: string;
   isCombo: boolean;
+  comboKey: string;
   damage: number;
   kills: number;
 }
@@ -253,13 +254,14 @@ export class TelemetryCollector {
           const killsDelta = t.kills - (snap?.kills ?? t.kills);
           if (dmgDelta <= 0 && killsDelta <= 0) continue;
           const isCombo = !!t.comboKey;
-          const key = `${t.gem}:${isCombo ? 1 : 0}`;
+          const comboKey = t.comboKey || "";
+          const key = `${t.gem}:${isCombo ? 1 : 0}:${comboKey}`;
           const existing = gemDmg.get(key);
           if (existing) {
             existing.damage += dmgDelta;
             existing.kills += killsDelta;
           } else {
-            gemDmg.set(key, { wave: s.wave, gem: t.gem, isCombo, damage: dmgDelta, kills: killsDelta });
+            gemDmg.set(key, { wave: s.wave, gem: t.gem, isCombo, comboKey, damage: dmgDelta, kills: killsDelta });
           }
         }
         for (const entry of gemDmg.values()) {

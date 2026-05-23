@@ -51,6 +51,8 @@ export async function handleStats(
     creepKindSummary,
     gemDamageByWave,
     gemDamageSummary,
+    waveHpPool,
+    comboDamageByWave,
   ] = await Promise.all([
     db.prepare(
       `SELECT count(*) as total_runs, avg(wave_reached) as avg_wave,
@@ -178,7 +180,7 @@ export async function handleStats(
 
     db.prepare(
       `SELECT wave, gem, is_combo, sum(damage) as total_damage,
-              sum(kills) as total_kills, count(*) as runs
+              sum(kills) as total_kills, count(DISTINCT run_id) as runs
        FROM wave_gem_damage WHERE 1=1 ${cv}
        GROUP BY wave, gem, is_combo ORDER BY wave, gem`,
     ).bind(...cBind).all(),
@@ -186,9 +188,22 @@ export async function handleStats(
     db.prepare(
       `SELECT gem, is_combo, sum(damage) as total_damage,
               sum(kills) as total_kills,
-              avg(damage) as avg_damage_per_run_wave
+              sum(damage) * 1.0 / count(DISTINCT run_id) as avg_damage_per_run_wave
        FROM wave_gem_damage WHERE 1=1 ${cv}
        GROUP BY gem, is_combo ORDER BY total_damage DESC`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave, sum(total_hp_spawned) * 1.0 / count(DISTINCT run_id) as avg_hp_pool
+       FROM wave_creep_stats WHERE 1=1 ${cv}
+       GROUP BY wave ORDER BY wave`,
+    ).bind(...cBind).all(),
+
+    db.prepare(
+      `SELECT wave, combo_key, sum(damage) as total_damage,
+              sum(kills) as total_kills, count(*) as runs
+       FROM wave_gem_damage WHERE combo_key != '' ${cv}
+       GROUP BY wave, combo_key ORDER BY wave, combo_key`,
     ).bind(...cBind).all(),
   ]);
 
@@ -213,5 +228,7 @@ export async function handleStats(
     creepKindSummary: creepKindSummary.results,
     gemDamageByWave: gemDamageByWave.results,
     gemDamageSummary: gemDamageSummary.results,
+    waveHpPool: waveHpPool.results,
+    comboDamageByWave: comboDamageByWave.results,
   });
 }
