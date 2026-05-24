@@ -948,7 +948,7 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
   hero.className = "px-panel-inset inspector-hero";
   const frame = document.createElement("div");
   frame.className = "inspector-hero-frame inspector-hero-frame-creep";
-  frame.appendChild(htmlCreep(c.kind, c.color, 44, true));
+  frame.appendChild(htmlCreep(c.kind, c.color, 44, true, !!c.chrysalidAwakened));
   const text = document.createElement("div");
   text.className = "inspector-hero-text";
   const name = document.createElement("div");

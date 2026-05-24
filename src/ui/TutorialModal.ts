@@ -307,6 +307,31 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.8",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Chrysalid: awakened resistances reduced from 80% to 70%.",
+        },
+        {
+          tag: "new",
+          text: "Creep inspector shows gem weakness for the current wave.",
+        },
+        {
+          tag: "new",
+          text: "Leaderboard: toggle between total and per-wave damage.",
+        },
+        {
+          tag: "new",
+          text: "Redesigned start/end markers — dark portal & victory beacon.",
+        },
+        {
+          tag: "fix",
+          text: "Gold gem type corrected to Amethyst.",
+        },
+      ],
+    },
+    {
       ver: "1.5.7",
       notes: [
         {

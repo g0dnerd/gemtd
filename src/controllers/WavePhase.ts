@@ -210,9 +210,9 @@ export class WavePhase {
       c.chrysalidAwakened = true;
       c.speed *= CHRYSALID_SPEED_MULT;
       c.armor += CHRYSALID_AWAKEN_ARMOR;
-      c.slowResist = 0.8;
-      c.stunResist = 0.8;
-      c.poisonResist = 0.8;
+      c.slowResist = 0.7;
+      c.stunResist = 0.7;
+      c.poisonResist = 0.7;
       c.slow = undefined;
       c.stun = undefined;
       c.poison = undefined;

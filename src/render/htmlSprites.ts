@@ -4,7 +4,7 @@
  */
 
 import { GEM_PALETTE, GemType, Quality, THEME } from './theme';
-import { GEM_SPRITE, COIN_SPRITE, HEART_SPRITE, OUTLINE_COLOR, PixelGrid, SPRITE_BY_KIND } from './sprites';
+import { GEM_SPRITE, COIN_SPRITE, HEART_SPRITE, OUTLINE_COLOR, PixelGrid, SPRITE_BY_KIND, SPRITE_CHRYSALID_AWAKE } from './sprites';
 import { TIER_GRIDS, SPECIAL_SPRITES, SPECIAL_TIER_GRIDS, SPECIAL_TIER_PALETTES, applyOpalFlecks, OPAL_FLECK_CSS } from './spriteData';
 import type { CreepKind } from '../data/creeps';
 
@@ -142,7 +142,7 @@ export function htmlCoin(size = 14): HTMLDivElement {
   return htmlSprite(COIN_SPRITE, { light: '#ffe068', mid: '#f0c038', dark: '#886820' }, size);
 }
 
-export function htmlCreep(kind: CreepKind, color: GemType, size = 36, glow = false): HTMLDivElement {
+export function htmlCreep(kind: CreepKind, color: GemType, size = 36, glow = false, awakened = false): HTMLDivElement {
   const css: PaletteCss = kind === 'gestation' ? {
     light: '#e8dcd0',
     mid: '#b89878',
@@ -158,5 +158,6 @@ export function htmlCreep(kind: CreepKind, color: GemType, size = 36, glow = fal
     sparkle: hex6(THEME.ink),
     extra: hex6(THEME.bad),
   };
-  return htmlSprite(SPRITE_BY_KIND[kind], css, size, glow);
+  const grid = (kind === 'chrysalid' && awakened) ? SPRITE_CHRYSALID_AWAKE : SPRITE_BY_KIND[kind];
+  return htmlSprite(grid, css, size, glow);
 }
