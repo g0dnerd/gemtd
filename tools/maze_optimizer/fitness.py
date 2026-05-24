@@ -167,6 +167,7 @@ def evaluate(
     w_depth: float = 0.3,
     w_air: float = 3.0,
     air_keeper_ratio: float = 2.0,
+    removals: list[list[tuple[int, int]]] | None = None,
 ) -> dict:
     grid = copy_grid(base_grid)
     repaired: list[list[tuple[int, int]]] = []
@@ -199,6 +200,31 @@ def evaluate(
     weighted_air = 0.0
 
     for round_idx, positions in enumerate(chromosome):
+        if removals and round_idx < len(removals):
+            did_remove = False
+            for rx, ry in removals[round_idx]:
+                if grid[ry, rx] == Cell.Rock:
+                    place_tower(grid, rx, ry, Cell.Grass)
+                    did_remove = True
+            if did_remove:
+                segments = find_route(grid)
+                if segments is None:
+                    return {
+                        "fitness": -999999,
+                        "path_length": 0,
+                        "cumulative_path": 0,
+                        "exposure_total": 0,
+                        "air_exposure_total": 0,
+                        "weighted_coverage": 0.0,
+                        "weighted_depth": 0.0,
+                        "weighted_air": 0.0,
+                        "validity_penalty": -999999,
+                        "chromosome": chromosome,
+                    }
+                flat_route = flatten_route(segments)
+                route_set = set(flat_route)
+                cell_seg = build_cell_to_seg(segments)
+
         placed: list[tuple[int, int]] = []
         repaired_round: list[tuple[int, int]] = []
 

@@ -34,7 +34,7 @@ import {
 import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES, type WaveDef } from "../data/waves";
-import { MAZE_BLUEPRINT } from "../data/maze-blueprint";
+import { MAZE_BLUEPRINT, MAZE_REMOVALS } from "../data/maze-blueprint";
 import { exposureAt } from "../sim/blueprintKeeper";
 import {
   CHANCE_TIER_UPGRADE_COST,
@@ -558,6 +558,7 @@ export class Game {
     if (this.blueprintMode && !this.blueprint) {
       const bp: Blueprint = {
         rounds: MAZE_BLUEPRINT as [number, number][][],
+        removals: MAZE_REMOVALS as [number, number][][],
       };
       bp.keeperIndices = computeKeeperIndices(bp);
       this.blueprint = bp;
@@ -807,6 +808,11 @@ export class Game {
         const keeperIdx = bp.keeperIndices?.[roundIdx] ?? 0;
         const [kx, ky] = positions[keeperIdx];
         if (x === kx && y === ky) {
+          const removals = bp.removals?.[roundIdx] ?? [];
+          for (const [rx, ry] of removals) {
+            const rock = this.state.rocks.find((r) => r.x === rx && r.y === ry);
+            if (rock) this.cmdRemoveRock(rock.id);
+          }
           const rest = positions.filter((_p, i) => i !== keeperIdx);
           for (let i = rest.length - 1; i > 0; i--) {
             const j = this.rng.int(i + 1);

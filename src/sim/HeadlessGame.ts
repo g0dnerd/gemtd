@@ -247,6 +247,20 @@ export class HeadlessGame {
     return this.buildPhase.combine(towerIds);
   }
 
+  cmdRemoveRock(rockId: number): boolean {
+    const state = this.state;
+    const cells = state.rocks.filter((r) => r.id === rockId);
+    if (cells.length === 0) return false;
+    for (const c of cells) {
+      state.grid[c.y][c.x] = Cell.Grass;
+    }
+    state.rocks = state.rocks.filter((r) => r.id !== rockId);
+    state.rocksRemoved += 1;
+    if (state.selectedRockId === rockId) this.selectRock(null);
+    this.refreshRoute();
+    return true;
+  }
+
   cmdUpgradeTower(towerId: number): boolean {
     const state = this.state;
     const tower = state.towers.find((t) => t.id === towerId);

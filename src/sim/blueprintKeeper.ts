@@ -3,6 +3,7 @@ import { findRoute, flattenRoute } from '../systems/Pathfinding';
 
 export interface Blueprint {
   rounds: [number, number][][];
+  removals?: [number, number][][];
   keeperIndices?: number[];
 }
 
@@ -30,7 +31,18 @@ export function computeKeeperIndices(blueprint: Blueprint): number[] {
   const grid: Cell[][] = BASE.grid.map((row) => row.slice());
   const keepers: number[] = [];
 
-  for (const positions of blueprint.rounds) {
+  for (let roundIdx = 0; roundIdx < blueprint.rounds.length; roundIdx++) {
+    const positions = blueprint.rounds[roundIdx];
+
+    if (blueprint.removals?.[roundIdx]) {
+      for (const [rx, ry] of blueprint.removals[roundIdx]) {
+        grid[ry][rx] = Cell.Grass;
+        grid[ry][rx + 1] = Cell.Grass;
+        grid[ry + 1][rx] = Cell.Grass;
+        grid[ry + 1][rx + 1] = Cell.Grass;
+      }
+    }
+
     const placed: { x: number; y: number; idx: number }[] = [];
 
     for (let i = 0; i < positions.length; i++) {

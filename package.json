@@ -16,6 +16,7 @@
     "telemetry:local": "tsx tools/local-telemetry/server.ts",
     "blueprint:viz": "cd tools/maze_optimizer && uv run python visualize.py",
     "blueprint:export": "cd tools/maze_optimizer && uv run python export_blueprint.py",
+    "blueprint:optimize": "cd tools/maze_optimizer && uv run python cli.py optimize",
     "wave-difficulty": "npx tsx tools/wave-difficulty/cli.ts run",
     "wave-difficulty:compare": "npx tsx tools/wave-difficulty/cli.ts compare",
     "wave-difficulty:history": "npx tsx tools/wave-difficulty/cli.ts history",

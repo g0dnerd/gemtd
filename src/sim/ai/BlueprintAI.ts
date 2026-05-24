@@ -1,6 +1,6 @@
 import type { HeadlessGame } from '../HeadlessGame';
 import { GRID_H, GRID_W, isBuildable } from '../../data/map';
-import { MAZE_BLUEPRINT } from '../../data/maze-blueprint';
+import { MAZE_BLUEPRINT, MAZE_REMOVALS } from '../../data/maze-blueprint';
 import { findRoute, flattenRoute } from '../../systems/Pathfinding';
 import { gemStats } from '../../data/gems';
 import { GRID_SCALE } from '../../game/constants';
@@ -19,7 +19,10 @@ export class BlueprintAI extends GreedyAI {
 
   constructor() {
     super();
-    this.keeperIndices = computeKeeperIndices({ rounds: MAZE_BLUEPRINT as [number, number][][] });
+    this.keeperIndices = computeKeeperIndices({
+      rounds: MAZE_BLUEPRINT as [number, number][][],
+      removals: MAZE_REMOVALS as [number, number][][],
+    });
   }
 
   protected override placeGems(game: HeadlessGame): void {
@@ -29,6 +32,12 @@ export class BlueprintAI extends GreedyAI {
     if (roundIndex < 0 || roundIndex >= MAZE_BLUEPRINT.length) {
       super.placeGems(game);
       return;
+    }
+
+    const removals = MAZE_REMOVALS[roundIndex] ?? [];
+    for (const [rx, ry] of removals) {
+      const rock = game.state.rocks.find((r) => r.x === rx && r.y === ry);
+      if (rock) game.cmdRemoveRock(rock.id);
     }
 
     const positions = MAZE_BLUEPRINT[roundIndex];
