@@ -61,7 +61,7 @@ export class HeuristicAI extends BlueprintAI {
     }
 
     if (s.wave > 1) {
-      if (s.wave === 2) this.upgradeSpecialTower(game);
+      this.upgradeCheapTowers(game);
       const tierBefore = s.chanceTier;
       const goldBefore = s.gold;
       this.upgradeChanceTier(game);
@@ -85,42 +85,36 @@ export class HeuristicAI extends BlueprintAI {
     }
   }
 
-  private upgradeSpecialTower(game: HeadlessGame): void {
+  private upgradeCheapTowers(game: HeadlessGame): void {
     const state = game.state;
     for (const tower of state.towers) {
       if (!tower.comboKey) continue;
-      if ((tower.upgradeTier ?? 0) > 0) continue;
       const combo = COMBO_BY_NAME.get(tower.comboKey);
       if (!combo) continue;
-      const upgrade = nextUpgrade(combo, 0);
-      if (!upgrade) continue;
+      const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
+      if (!upgrade || upgrade.cost >= 100) continue;
       if (state.gold < upgrade.cost) continue;
       if (this.logging) {
-        this.log.push(`  special upgrade: ${combo.name} → ${upgrade.name} (${upgrade.cost}g)`);
+        this.log.push(`  cheap upgrade: ${combo.name} → ${upgrade.name} (${upgrade.cost}g)`);
       }
       game.cmdUpgradeTower(tower.id);
-      return;
     }
   }
 
   protected override upgradeComboTowers(game: HeadlessGame): void {
     const state = game.state;
-    const upgradeable: Array<{ towerId: number; cost: number }> = [];
+    const upgradeable: Array<{ towerId: number; cost: number; kills: number }> = [];
 
     for (const tower of state.towers) {
       if (!tower.comboKey) continue;
-      const combo = COMBO_BY_NAME.get(tower.comboKey!);
+      const combo = COMBO_BY_NAME.get(tower.comboKey);
       if (!combo) continue;
-      const next = nextUpgrade(combo, tower.upgradeTier ?? 0);
-      if (!next) continue;
-      upgradeable.push({ towerId: tower.id, cost: next.cost });
+      const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
+      if (!upgrade) continue;
+      upgradeable.push({ towerId: tower.id, cost: upgrade.cost, kills: tower.kills });
     }
 
-    // Shuffle using seeded rng
-    for (let i = upgradeable.length - 1; i > 0; i--) {
-      const j = Math.floor(game.rng.next() * (i + 1));
-      [upgradeable[i], upgradeable[j]] = [upgradeable[j], upgradeable[i]];
-    }
+    upgradeable.sort((a, b) => b.kills - a.kills);
 
     for (const { towerId, cost } of upgradeable) {
       if (state.gold < cost) continue;
@@ -128,7 +122,7 @@ export class HeuristicAI extends BlueprintAI {
         const tower = state.towers.find((t) => t.id === towerId);
         const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;
         const next = combo ? nextUpgrade(combo, tower!.upgradeTier ?? 0) : null;
-        if (next) this.log.push(`  upgrade: ${combo!.name} → ${next.name} (${cost}g)`);
+        if (next) this.log.push(`  upgrade: ${combo!.name} → ${next.name} (${cost}g, ${tower!.kills} kills)`);
       }
       game.cmdUpgradeTower(towerId);
     }
@@ -393,7 +387,21 @@ export class HeuristicAI extends BlueprintAI {
     // Rule 3: combo ingredient progress
     const progress = this.comboProgressForDraw(gem, quality, keptTowers);
 
-    return qualityScore + progress * 50;
+    // Chipped gems are only worth keeping if they advance a combo
+    if (quality === 1 && progress === 0) {
+      return (gem === 'amethyst' || gem === 'ruby') ? 2 : 1;
+    }
+
+    // Tiebreaker: prefer gems not already covered by an existing combo's inputs
+    const coveredGems = new Set<string>();
+    for (const t of keptTowers) {
+      if (!t.comboKey) continue;
+      const combo = COMBO_BY_NAME.get(t.comboKey);
+      if (combo) for (const inp of combo.inputs) coveredGems.add(inp.gem);
+    }
+    const coveredPenalty = coveredGems.has(gem) ? -25 : 0;
+
+    return qualityScore + progress * 50 + coveredPenalty;
   }
 
   private findCompletedCombosForDraw(
