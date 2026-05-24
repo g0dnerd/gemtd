@@ -138,10 +138,14 @@ export class BlueprintAI extends GreedyAI {
     }
 
     const targetPosIdx = this.keeperIndices[roundIndex];
-    const draw = state.draws[targetPosIdx];
-    if (draw?.placedTowerId !== null && draw?.placedTowerId !== undefined) {
-      game.cmdDesignateKeep(draw.placedTowerId);
-      return;
+    const positions = MAZE_BLUEPRINT[roundIndex];
+    if (targetPosIdx >= 0 && targetPosIdx < positions.length) {
+      const [kx, ky] = positions[targetPosIdx];
+      const tower = state.towers.find((t) => t.x === kx && t.y === ky);
+      if (tower && state.draws.some((d) => d.placedTowerId === tower.id)) {
+        game.cmdDesignateKeep(tower.id);
+        return;
+      }
     }
 
     super.designateKeeper(game);
