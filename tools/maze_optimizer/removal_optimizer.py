@@ -299,10 +299,6 @@ def _evaluate_removal_core(
     if find_route(test_grid) is None:
         return (0.0, None, -1, 0)
 
-    candidates = _candidate_positions(rock_x, rock_y, test_grid)
-    if not candidates:
-        return (0.0, None, -1, 0)
-
     orig_positions = chromosome[target_round]
     trial_removals = [list(r) for r in removals]
     trial_removals[target_round] = all_removals
@@ -312,6 +308,29 @@ def _evaluate_removal_core(
     best_swap = -1
     n_replays = 0
 
+    # Removal-only: just delete the rock, keep original positions unchanged
+    cp, wc, wd, wa = replay_rounds(
+        chromosome,
+        trial_removals,
+        base_grid,
+        air_keeper_ratio,
+        start_round=target_round,
+        init_grid=copy_grid(snapshot.grid),
+        init_segments=[list(s) for s in snapshot.segments],
+        init_keepers=list(snapshot.keepers),
+        init_cum_path=snapshot.cumulative_path,
+        init_w_cov=snapshot.weighted_coverage,
+        init_w_dep=snapshot.weighted_depth,
+        init_w_air=snapshot.weighted_air,
+    )
+    n_replays += 1
+    if cp >= 0:
+        delta = fitness(cp, wc, wd, wa) - head - baseline_tail
+        if delta > best_delta:
+            best_delta = delta
+
+    # Swap candidates: replace one position with a candidate near the freed area
+    candidates = _candidate_positions(rock_x, rock_y, test_grid)
     for cand in candidates:
         for swap_idx in range(len(orig_positions)):
             modified_chromosome = list(chromosome)
@@ -672,13 +691,14 @@ class RemovalOptimizer:
                     self._evaluate_batch_parallel(top)
                 )
 
-            if best_delta <= 0 or best_rock is None or best_cand is None:
+            if best_delta <= 0 or best_rock is None:
                 print("No improvement found. Converged.")
                 break
 
             # Accept removal
             self.removals[best_round].append((best_rock.x, best_rock.y))
-            self.chromosome[best_round][best_swap] = best_cand
+            if best_cand is not None:
+                self.chromosome[best_round][best_swap] = best_cand
             old_fitness = self.baseline_fitness
             self._rebuild_from(best_round)
             total_removals += 1
@@ -687,9 +707,12 @@ class RemovalOptimizer:
                 f"  Removed ({best_rock.x}, {best_rock.y}) "
                 f"[placed round {best_rock.round_placed}] at round {best_round}"
             )
-            print(
-                f"  Swap position {best_swap} → ({best_cand[0]}, {best_cand[1]})"
-            )
+            if best_cand is not None:
+                print(
+                    f"  Swap position {best_swap} → ({best_cand[0]}, {best_cand[1]})"
+                )
+            else:
+                print("  Pure removal (no position swap)")
             print(
                 f"  Delta: +{best_delta:.1f}, "
                 f"fitness: {old_fitness:.1f} → {self.baseline_fitness:.1f}"
