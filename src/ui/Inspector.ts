@@ -26,6 +26,8 @@ export interface InspectorRefs {
   title: HTMLDivElement;
   refresh: (g: Game) => void;
   lastFingerprint: string;
+  heroMeta: HTMLDivElement | null;
+  lastKills: number;
 }
 
 export function mountInspector(game: Game): InspectorRefs {
@@ -49,6 +51,8 @@ export function mountInspector(game: Game): InspectorRefs {
     title,
     refresh: (g: Game) => render(refs, g),
     lastFingerprint: "",
+    heroMeta: null,
+    lastKills: -1,
   };
 
   render(refs, game);
@@ -119,7 +123,7 @@ function fingerprint(game: Game): string {
     tower.quality,
     tower.comboKey ?? "",
     tower.upgradeTier ?? 0,
-    tower.kills,
+    towerLevel(tower),
     game.state.phase,
     game.state.designatedKeepTowerId ?? "",
     isCurrentDraw ? 1 : 0,
@@ -131,10 +135,32 @@ function fingerprint(game: Game): string {
   ].join("|");
 }
 
+function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
+  const lvl = towerLevel(tower);
+  el.textContent =
+    lvl > 0
+      ? `${tower.kills} kills · LV ${lvl} (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)`
+      : `${tower.kills} / 10 kills to next level`;
+}
+
 function render(refs: InspectorRefs, game: Game): void {
   const fp = fingerprint(game);
-  if (fp === refs.lastFingerprint) return;
+  if (fp === refs.lastFingerprint) {
+    if (refs.heroMeta) {
+      const id = game.selectedTowerId;
+      const tower =
+        id !== null
+          ? (game.state.towers.find((t) => t.id === id) ?? null)
+          : null;
+      if (tower && tower.kills !== refs.lastKills) {
+        updateHeroMeta(refs.heroMeta, tower);
+        refs.lastKills = tower.kills;
+      }
+    }
+    return;
+  }
   refs.lastFingerprint = fp;
+  refs.heroMeta = null;
   const body = refs.body;
   body.innerHTML = "";
 
@@ -199,11 +225,9 @@ function render(refs: InspectorRefs, game: Game): void {
   }
   const heroMeta = document.createElement("div");
   heroMeta.className = "inspector-tower-hero-meta";
-  const lvl = towerLevel(tower);
-  heroMeta.textContent =
-    lvl > 0
-      ? `${tower.kills} kills · LV ${lvl} (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)`
-      : `${tower.kills} / 10 kills to next level`;
+  updateHeroMeta(heroMeta, tower);
+  refs.heroMeta = heroMeta;
+  refs.lastKills = tower.kills;
   mid.append(heroName, heroSub, heroMeta);
   hero.append(frame, mid);
   body.appendChild(hero);
