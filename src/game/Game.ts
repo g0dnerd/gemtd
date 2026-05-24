@@ -627,6 +627,7 @@ export class Game {
       });
       return false;
     }
+    const removedCells = cells.map((c) => ({ ...c }));
     for (const c of cells) {
       state.grid[c.y][c.x] = Cell.Grass;
     }
@@ -634,6 +635,17 @@ export class Game {
     state.rocksRemoved += 1;
     if (state.selectedRockId === rockId) this.selectRock(null);
     this.refreshRoute();
+    state.undoStack.push({
+      description: "Remove rock",
+      undo: () => {
+        for (const c of removedCells) {
+          state.grid[c.y][c.x] = Cell.Rock;
+          state.rocks.push(c);
+        }
+        state.rocksRemoved -= 1;
+        this.refreshRoute();
+      },
+    });
     this.bus.emit("rock:remove", { id: rockId, cost: 0 });
     this.bus.emit("toast", { kind: "good", text: "Rock cleared" });
     return true;

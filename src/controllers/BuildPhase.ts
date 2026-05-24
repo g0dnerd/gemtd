@@ -179,6 +179,9 @@ export class BuildPhase {
         const s = state.draws.find((d) => d.slotId === placedSlotId);
         if (s) s.placedTowerId = null;
         state.activeDrawSlot = placedSlotId;
+        if (state.designatedKeepTowerId === id) {
+          state.designatedKeepTowerId = null;
+        }
         this.game.refreshRoute();
         this.game.bus.emit('draws:change', { });
       },
@@ -494,6 +497,14 @@ export class BuildPhase {
     });
 
     this.game.selectTower(towerId);
+
+    state.undoStack.push({
+      description: `Demote ${tower.gem} L${oldQuality} → L${tower.quality}`,
+      undo: () => {
+        tower.quality = oldQuality as Quality;
+        state.downgradeUsedThisRound = false;
+      },
+    });
 
     if (!duringWave && allDrawsPlaced(state)) {
       this.autoConcludeRound(towerId);
