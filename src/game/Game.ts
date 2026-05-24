@@ -67,7 +67,7 @@ export class Game {
   readonly bus = new EventBus();
   readonly state: State;
   readonly rng: RNG;
-  readonly seed: number;
+  seed: number;
   readonly app: Application;
 
   readonly board: Container;
@@ -217,6 +217,8 @@ export class Game {
     this.state.speed = this.loadStoredSpeed();
     this.state.totalWaves = WAVES.length;
     this.state.endless = false;
+    this.seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
+    this.wavePhase.clearGeneratedCache();
     this.state.debugWaveDef = undefined;
     this.state.gemWeaknesses = this.generateWeaknesses();
     // Reset grid
@@ -240,9 +242,7 @@ export class Game {
 
   continueEndless(): void {
     this.state.endless = true;
-    this.state.phase = "build";
     this.enterBuild();
-    this.bus.emit("phase:enter", { phase: "build" });
   }
 
   /** Debug mode: place gems along the blueprint maze, one wave of every creep kind. */

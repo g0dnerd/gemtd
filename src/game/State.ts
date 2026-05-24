@@ -245,6 +245,8 @@ export interface State {
   seenCreepKinds: CreepKind[];
   /** Per-wave record of which special kinds were new when that wave first appeared in the threat panel. */
   newKindsByWave: Record<number, CreepKind[]>;
+  /** Endless mode — procedurally generate waves past 50. */
+  endless: boolean;
   /** Override wave definition for debug mode. */
   debugWaveDef?: WaveDef;
   /** Gem weakness rotation — shuffled blocks of 7 gem types (excludes opal). */
@@ -303,6 +305,7 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     waveStats: { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 },
     seenCreepKinds: [],
     newKindsByWave: {},
+    endless: false,
     gemWeaknesses: [],
   };
 }

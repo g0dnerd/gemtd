@@ -43,8 +43,20 @@ export function mountGameOver(
   const buttons = document.createElement('div');
   buttons.style.display = 'flex';
   buttons.style.gap = '12px';
+
+  if (phase === 'victory') {
+    const continueBtn = document.createElement('button');
+    continueBtn.className = 'px-btn px-btn-primary';
+    continueBtn.textContent = '∞ CONTINUE (ENDLESS)';
+    continueBtn.addEventListener('click', () => {
+      overlay.remove();
+      game.continueEndless();
+    });
+    buttons.appendChild(continueBtn);
+  }
+
   const restart = document.createElement('button');
-  restart.className = 'px-btn px-btn-primary';
+  restart.className = phase === 'victory' ? 'px-btn' : 'px-btn px-btn-primary';
   restart.textContent = '▶ NEW GAME';
   restart.addEventListener('click', () => {
     overlay.remove();

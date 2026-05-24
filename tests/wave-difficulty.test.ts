@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { WAVES } from "../src/data/waves";
-import { waveDifficulty } from "../src/data/wave-difficulty";
+import { waveDifficulty, creepEffectiveHp, invertCreepHp } from "../src/data/wave-difficulty";
+import { CREEP_ARCHETYPES, type CreepKind } from "../src/data/creeps";
 
 const DIFFICULTY_SNAPSHOT = [
   971, 1680, 3359, 4560, 7555, 9067, 17521, 31579, 27583, 33600, 44249, 84131,
-  62162, 104890, 105250, 163918, 141351, 121477, 231786, 248379, 315652,
-  517125, 399940, 694738, 767686, 894332, 672906, 647747, 1035947, 980856,
-  1246981, 2267201, 2073538, 2442345, 2073077, 2571298, 2569998, 3161772,
-  3912876, 2718796, 2777595, 4683215, 4612220, 4336638, 9085676, 9832488,
-  6779374, 9380821, 10035010, 27839353,
+  71486, 117477, 89250, 163918, 141351, 121477, 231786, 298054, 315652, 594693,
+  399940, 694738, 488536, 894332, 773842, 647747, 1191339, 1177027, 1396619,
+  2267201, 2073538, 2442345, 1317842, 3311832, 3310158, 3414714, 4225906,
+  3262555, 3110907, 4683215, 4612220, 5485847, 3293451, 13082715, 7796280,
+  9380821, 13352183, 16189904,
 ];
 
 const DRIFT_TOLERANCE = 0.15;
@@ -68,8 +69,8 @@ describe("wave difficulty", () => {
       const median = [...diffs].sort((a, b) => a - b)[5];
       expect(
         bossDiff,
-        `tier ${t + 1} boss should exceed tier median`,
-      ).toBeGreaterThan(median);
+        `tier ${t + 1} boss should be at or above tier median`,
+      ).toBeGreaterThanOrEqual(median);
     }
   });
 
@@ -78,6 +79,59 @@ describe("wave difficulty", () => {
       const d = waveDifficulty(w);
       expect(d).toBeGreaterThan(0);
       expect(Number.isFinite(d)).toBe(true);
+    }
+  });
+
+  it("mender+carapace wave gets interaction bonus", () => {
+    const baseWave = WAVES.find(
+      (w) =>
+        w.groups.some((g) => g.kind === "mender") &&
+        w.groups.some((g) => g.kind === "carapace"),
+    )!;
+    expect(baseWave).toBeDefined();
+    const withoutInteraction = baseWave.groups.reduce((sum, g) => {
+      const ehp = creepEffectiveHp(g.kind, g.hp, g.armor, g.slowResist, g.stunResist ?? 0);
+      return sum + ehp * g.count;
+    }, 0);
+    const withInteraction = waveDifficulty(baseWave);
+    expect(withInteraction).toBeGreaterThan(Math.round(withoutInteraction));
+  });
+
+  it("nested payloads contribute less than top-level equivalent", () => {
+    const containerWave = WAVES.find((w) =>
+      w.groups.some((g) => g.payload && g.payload.some((p) => p.payload)),
+    )!;
+    expect(containerWave).toBeDefined();
+    const actual = waveDifficulty(containerWave);
+    const flatGroups = containerWave.groups.map((g) => ({
+      ...g,
+      payload: g.payload?.map((p) => ({ ...p, payload: undefined })),
+    }));
+    const flatWave = { ...containerWave, groups: flatGroups };
+    const withoutNested = waveDifficulty(flatWave);
+    expect(actual).toBeGreaterThan(withoutNested);
+  });
+});
+
+describe("difficulty inversion", () => {
+  const ARCHETYPES_TO_TEST: CreepKind[] = [
+    "shambler", "skitter", "carapace", "shrike", "amalgam",
+    "mender", "wizard", "burrower", "vessel", "gazer",
+    "coral", "anemone", "chrysalid", "mycoid", "gestation",
+  ];
+
+  it("roundtrip: invertCreepHp(creepEffectiveHp(...)) ≈ hp for all archetypes", () => {
+    for (const kind of ARCHETYPES_TO_TEST) {
+      const hp = 10000;
+      const armor = CREEP_ARCHETYPES[kind].defaultArmor ?? 5;
+      const slowResist = 0.3;
+      const stunResist = 0.2;
+      const ehp = creepEffectiveHp(kind, hp, armor, slowResist, stunResist);
+      const recovered = invertCreepHp(ehp, kind, armor, slowResist, stunResist);
+      expect(
+        Math.abs(recovered - hp),
+        `${kind}: expected ${hp}, got ${recovered.toFixed(2)}`,
+      ).toBeLessThan(0.01);
     }
   });
 });

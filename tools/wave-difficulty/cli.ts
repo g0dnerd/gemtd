@@ -3,6 +3,7 @@ import { evaluate, towerLabels } from './runner';
 import { writeSnapshot, readSnapshot, listSnapshots, findLatestOther } from './snapshot';
 import { compareSnapshots } from './compare';
 import { printTable, printComparison, printHistory } from './format';
+import { fit, writeConstants, printFitResult } from './fit';
 import type { Snapshot } from './types';
 
 const DEFAULT_TRIALS = 20;
@@ -107,6 +108,24 @@ function handleHistory(args: string[]): void {
   printHistory(listSnapshots().slice(0, limit));
 }
 
+function handleCalibrate(args: string[]): void {
+  const { flags } = parseArgs(args);
+  const snapshotRef = flags.snapshot;
+  const shouldWrite = flags.write === 'true';
+
+  console.log('Running calibration optimizer...');
+  const result = fit(snapshotRef);
+  printFitResult(result);
+
+  if (shouldWrite) {
+    writeConstants(result.constants);
+    console.log('\nConstants written to src/data/difficulty-constants.ts');
+    console.log('Run tests to verify: npm test');
+  } else {
+    console.log('\nDry run — pass --write to update difficulty-constants.ts');
+  }
+}
+
 function printUsage(): void {
   console.log(`
 Usage: npx tsx tools/wave-difficulty/cli.ts <command> [options]
@@ -115,12 +134,15 @@ Commands:
   run [--trials N]               Evaluate all waves and store snapshot (default: ${DEFAULT_TRIALS} trials)
   compare [current] [base]       Compare two snapshots (default: HEAD vs most recent other)
   history [--limit N]            List stored snapshots (default: 20)
+  calibrate [--write] [--snapshot <ref>]  Optimize constants against sim + expert data
 
 Examples:
   npm run wave-difficulty
   npm run wave-difficulty -- --trials 50
   npm run wave-difficulty:compare
   npm run wave-difficulty:history
+  npm run wave-difficulty:calibrate
+  npm run wave-difficulty:calibrate -- --write
 `);
 }
 
@@ -136,6 +158,9 @@ switch (subcommand) {
     break;
   case 'history':
     handleHistory(args.slice(1));
+    break;
+  case 'calibrate':
+    handleCalibrate(args.slice(1));
     break;
   default:
     printUsage();

@@ -32,6 +32,10 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
       game.newGame(1);
       showHud();
       if (version.isNewPlayer) mountTutorialModal(container);
+    }, () => {
+      game.newEndlessGame();
+      showHud();
+      if (version.isNewPlayer) mountTutorialModal(container);
     }, version.hasUnseenUpdate);
   };
 

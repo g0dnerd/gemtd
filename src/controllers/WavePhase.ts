@@ -7,6 +7,7 @@ import { Game } from '../game/Game';
 import { CreepState, CreepPayload, creepDeathMetrics } from '../game/State';
 import { CREEP_ARCHETYPES } from '../data/creeps';
 import { WAVES, type WaveDef, type PayloadGroup, waveTotalCount, groupForSpawn } from '../data/waves';
+import { generateWave } from '../data/wave-generator';
 import { FINE_TILE, GRID_SCALE, SIM_DT, SIM_HZ, TILE } from '../game/constants';
 
 const HEALER_INTERVAL = 5 * SIM_HZ;
@@ -41,6 +42,7 @@ export class WavePhase {
   private elapsed = 0;
   private goldEarned = 0;
   private livesAtStart = 0;
+  private generatedWaveCache = new Map<number, WaveDef>();
 
   onEnter(wave: number): void {
     this.wave = wave;
@@ -60,8 +62,23 @@ export class WavePhase {
 
   constructor(private game: Game) {}
 
+  clearGeneratedCache(): void {
+    this.generatedWaveCache.clear();
+  }
+
   private waveDef(): WaveDef | undefined {
-    return this.game.state.debugWaveDef ?? WAVES[this.wave - 1];
+    if (this.game.state.debugWaveDef) return this.game.state.debugWaveDef;
+    if (this.wave <= WAVES.length) return WAVES[this.wave - 1];
+    return this.getGeneratedWave(this.wave);
+  }
+
+  private getGeneratedWave(waveNum: number): WaveDef {
+    let cached = this.generatedWaveCache.get(waveNum);
+    if (!cached) {
+      cached = generateWave(waveNum, this.game.seed);
+      this.generatedWaveCache.set(waveNum, cached);
+    }
+    return cached;
   }
 
   step(): void {

@@ -12,6 +12,7 @@ export function mountTitle(
   root: HTMLElement,
   onStart: () => void,
   onStartHardcore: () => void,
+  onStartEndless: () => void,
   hasUnseenUpdate = false,
 ): () => void {
   const screen = document.createElement("div");
@@ -48,6 +49,7 @@ export function mountTitle(
   const btns: Array<[string, string, () => void]> = [
     ["▶ NEW GAME", "px-btn px-btn-primary", onStart],
     ["☠ NEW GAME (HARDCORE)", "px-btn", onStartHardcore],
+    ["∞ ENDLESS", "px-btn", onStartEndless],
     ["? HOW TO PLAY", "px-btn", () => mountTutorialModal(root)],
   ];
   for (const [label, cls, fn] of btns) {

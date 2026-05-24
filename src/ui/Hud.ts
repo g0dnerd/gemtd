@@ -30,6 +30,7 @@ import {
   type SpeedMultiplier,
 } from "../game/constants";
 import { WAVES, WaveDef, waveTotalCount } from "../data/waves";
+import { generateWave } from "../data/wave-generator";
 import { CREEP_ARCHETYPES, type CreepKind } from "../data/creeps";
 import { isMuted, toggleMute } from "./Audio";
 
@@ -1058,13 +1059,19 @@ export function mountHud(
     "amalgam",
   ]);
 
+  function getWaveDef(n: number): WaveDef | undefined {
+    if (n <= WAVES.length) return WAVES[n - 1];
+    if (game.state.endless) return generateWave(n, game.seed);
+    return undefined;
+  }
+
   function refreshThreats(): void {
     threatsList.innerHTML = "";
     const cur = Math.max(1, game.state.wave || 1);
     const start = cur;
-    const end = Math.min(WAVES.length, start + 2);
+    const end = game.state.endless ? start + 2 : Math.min(WAVES.length, start + 2);
     for (let n = start; n <= end; n++) {
-      const def = WAVES[n - 1];
+      const def = getWaveDef(n);
       if (!def) continue;
       const isCurrent = n === cur;
       if (!(n in game.state.newKindsByWave)) {
@@ -1188,7 +1195,9 @@ export function mountHud(
     chance.refresh();
     refreshStartGate();
     refreshInspector(inspector, game);
-    mobileWaveNum.textContent = `W${game.state.wave || 0}/${WAVES.length}`;
+    mobileWaveNum.textContent = game.state.endless
+      ? `W${game.state.wave || 0}`
+      : `W${game.state.wave || 0}/${WAVES.length}`;
   }
 
   function refreshStartGate(): void {
