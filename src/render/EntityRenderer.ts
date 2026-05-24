@@ -1290,7 +1290,7 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
     const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
     if (ratio !== entry.lastHpRatio) {
       entry.lastHpRatio = ratio;
-      const inner = entry.obj.children[0] as Container;
+      const inner = entry.obj.children.find((ch) => ch.label !== "sel") as Container;
       const hpBar = inner.children.find((ch) => (ch as Graphics).label === "hp") as Graphics | undefined;
       if (hpBar) {
         hpBar.clear();
