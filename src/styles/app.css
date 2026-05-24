@@ -1050,6 +1050,32 @@
   color: var(--px-accent);
   border-color: var(--px-accent);
 }
+.inspector-creep-weak {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+.inspector-creep-weak-tag {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink-dim);
+  letter-spacing: 1px;
+}
+.inspector-creep-weak-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 5px;
+  background: var(--px-bg);
+  box-shadow: inset 1px 1px 0 0 var(--px-border-dark);
+}
+.inspector-creep-weak-name {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink);
+  letter-spacing: 1px;
+}
 .inspector-creep-blurb {
   font-family: "VT323", monospace;
   font-size: 15px;

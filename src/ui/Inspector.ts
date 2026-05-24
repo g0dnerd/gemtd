@@ -5,7 +5,7 @@
 
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
-import { htmlGemTier, htmlSpecial, htmlCreep } from "../render/htmlSprites";
+import { htmlGem, htmlGemTier, htmlSpecial, htmlCreep } from "../render/htmlSprites";
 import { EffectKind, gemStats } from "../data/gems";
 import {
   COMBOS,
@@ -91,6 +91,7 @@ function fingerprint(game: Game): string {
       c.flags?.boss ? "B" : "",
       c.flags?.armored ? "A" : "",
       c.flags?.air ? "F" : "",
+      game.state.gemWeaknesses[game.state.wave - 1] ?? "",
       game.state.tick,
     ].join("|");
   }
@@ -900,10 +901,26 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
   const name = document.createElement("div");
   name.className = "inspector-hero-name";
   name.textContent = CREEP_KIND_NAMES[c.kind] ?? c.kind.toUpperCase();
-  const sub = document.createElement("span");
-  sub.className = "inspector-hero-sub";
-  sub.textContent = GEM_PALETTE[c.color].name.toUpperCase();
-  text.append(name, sub);
+  text.appendChild(name);
+
+  const weakGem = game.state.gemWeaknesses[game.state.wave - 1];
+  if (weakGem) {
+    const weakSub = document.createElement("div");
+    weakSub.className = "inspector-creep-weak";
+    const weakTag = document.createElement("span");
+    weakTag.className = "inspector-creep-weak-tag";
+    weakTag.textContent = "WEAK TO";
+    const weakPill = document.createElement("span");
+    weakPill.className = "inspector-creep-weak-pill";
+    weakPill.appendChild(htmlGem(weakGem, 12));
+    const weakName = document.createElement("span");
+    weakName.className = "inspector-creep-weak-name";
+    weakName.textContent = GEM_PALETTE[weakGem].name.toUpperCase();
+    weakPill.appendChild(weakName);
+    weakSub.append(weakTag, weakPill);
+    text.appendChild(weakSub);
+  }
+
   hero.append(frame, text);
   body.appendChild(hero);
 
