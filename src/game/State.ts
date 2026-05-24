@@ -45,6 +45,8 @@ export interface TowerState {
   kills: number;
   /** Cumulative damage dealt (post-armor). */
   totalDamage: number;
+  /** Damage dealt during the current wave only (reset at wave start). */
+  waveDamage: number;
   /** Wave number when this tower was placed. */
   placedWave: number;
   /** Beam state — tracks current beam target and ramp stacks. */

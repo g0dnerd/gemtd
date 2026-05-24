@@ -67,7 +67,7 @@ function makeBloodstone(
     quality: 5 as Quality,
     lastFireTick: 0,
     kills: 0,
-    totalDamage: 0,
+    totalDamage: 0, waveDamage: 0,
     placedWave: 1,
     comboKey: "bloodstone",
     upgradeTier: opts.upgraded ? 1 : 0,

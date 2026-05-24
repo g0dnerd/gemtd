@@ -436,6 +436,7 @@ export class Combat {
       }
     }
     owner.totalDamage += dmg;
+    owner.waveDamage += dmg;
     c.hp -= dmg;
     this.game.bus.emit('tower:hit', { id: owner.id, targetId: c.id, damage: dmg });
     if (c.hp <= 0) {

@@ -369,6 +369,7 @@ export class Game {
         lastFireTick: 0,
         kills: 0,
         totalDamage: 0,
+        waveDamage: 0,
         placedWave: this.state.wave,
         isTrap: spec.isTrap || undefined,
       });
@@ -478,6 +479,7 @@ export class Game {
     this.state.phase = "wave";
     this.state.undoStack = [];
     this.state.activeDrawSlot = null;
+    for (const t of this.state.towers) t.waveDamage = 0;
     this.wavePhase.onEnter(this.state.wave);
     this.bus.emit("phase:enter", { phase: "wave" });
     this.bus.emit("wave:start", { wave: this.state.wave });

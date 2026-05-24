@@ -20,6 +20,13 @@ import { CREEP_ARCHETYPES } from "../data/creeps";
 import { towerLevel } from "../systems/Combat";
 import { SIM_HZ } from "../game/constants";
 
+type LbMode = 'total' | 'wave';
+
+let lbMode: LbMode = (() => {
+  try { return (localStorage.getItem('gemtd:lb-mode') as LbMode) || 'total'; }
+  catch { return 'total'; }
+})();
+
 export interface InspectorRefs {
   root: HTMLElement;
   body: HTMLDivElement;
@@ -107,9 +114,9 @@ function fingerprint(game: Game): string {
     id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) {
     const dmgFp = game.state.towers
-      .map((t) => `${t.id}:${Math.floor(t.totalDamage)}`)
+      .map((t) => `${t.id}:${Math.floor(t.totalDamage)}:${Math.floor(t.waveDamage)}`)
       .join(",");
-    return `lb|${game.state.phase}|${dmgFp}`;
+    return `lb|${lbMode}|${game.state.phase}|${dmgFp}`;
   }
   const isCurrentDraw = game.state.draws.some(
     (d) => d.placedTowerId === tower.id,
@@ -169,6 +176,7 @@ function render(refs: InspectorRefs, game: Game): void {
     const creep = game.state.creeps.find((c) => c.id === game.selectedCreepId);
     if (creep && creep.alive) {
       refs.title.textContent = "SELECTED · CREEP";
+      removeLbToggle(refs);
       renderCreep(body, creep, game);
       return;
     }
@@ -176,6 +184,7 @@ function render(refs: InspectorRefs, game: Game): void {
 
   if (game.selectedRockId !== null) {
     refs.title.textContent = "SELECTED · ROCK";
+    removeLbToggle(refs);
     renderRock(body, game, game.selectedRockId);
     return;
   }
@@ -185,11 +194,13 @@ function render(refs: InspectorRefs, game: Game): void {
     id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) {
     refs.title.textContent = "GEM DAMAGE";
+    mountLbToggle(refs, game);
     renderLeaderboard(body, game);
     return;
   }
 
   refs.title.textContent = "SELECTED · GEM";
+  removeLbToggle(refs);
 
   const stats = effectiveStatsFor(tower);
 
@@ -468,30 +479,72 @@ function lbGemColors(gem: GemType): {
   }
 }
 
+function mountLbToggle(refs: InspectorRefs, game: Game): void {
+  const head = refs.title.parentElement!;
+  const existing = head.querySelector('.lb-toggle');
+  if (existing) {
+    const btns = existing.querySelectorAll('.lb-toggle-btn');
+    btns[0]?.classList.toggle('active', lbMode === 'total');
+    btns[1]?.classList.toggle('active', lbMode === 'wave');
+    return;
+  }
+  const toggle = document.createElement('div');
+  toggle.className = 'lb-toggle';
+  const btnTotal = document.createElement('button');
+  btnTotal.className = `lb-toggle-btn${lbMode === 'total' ? ' active' : ''}`;
+  btnTotal.textContent = 'TOTAL';
+  const btnWave = document.createElement('button');
+  btnWave.className = `lb-toggle-btn${lbMode === 'wave' ? ' active' : ''}`;
+  btnWave.textContent = 'WAVE';
+  btnTotal.addEventListener('click', () => { setLbMode('total', refs, game); });
+  btnWave.addEventListener('click', () => { setLbMode('wave', refs, game); });
+  toggle.append(btnTotal, btnWave);
+  head.appendChild(toggle);
+}
+
+function removeLbToggle(refs: InspectorRefs): void {
+  const head = refs.title.parentElement;
+  if (!head) return;
+  const toggle = head.querySelector('.lb-toggle');
+  if (toggle) toggle.remove();
+}
+
+function setLbMode(mode: LbMode, refs: InspectorRefs, game: Game): void {
+  lbMode = mode;
+  try { localStorage.setItem('gemtd:lb-mode', mode); } catch {}
+  refs.lastFingerprint = '';
+  refs.refresh(game);
+}
+
+function getDmg(t: TowerState): number {
+  return lbMode === 'wave' ? t.waveDamage : t.totalDamage;
+}
+
 function renderLeaderboard(body: HTMLDivElement, game: Game): void {
   const towers = game.state.towers
-    .filter((t) => t.totalDamage > 0)
-    .sort((a, b) => b.totalDamage - a.totalDamage);
+    .filter((t) => getDmg(t) > 0)
+    .sort((a, b) => getDmg(b) - getDmg(a));
 
   if (towers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "inspector-empty";
-    empty.textContent = "No gem damage yet.";
+    empty.textContent = lbMode === 'wave' ? "No damage this wave." : "No gem damage yet.";
     body.appendChild(empty);
     return;
   }
 
-  const maxDmg = towers[0].totalDamage;
-  const totalDmg = towers.reduce((sum, t) => sum + t.totalDamage, 0);
+  const maxDmg = getDmg(towers[0]);
+  const totalDmg = towers.reduce((sum, t) => sum + getDmg(t), 0);
   const list = document.createElement("div");
   list.className = "lb-list";
 
   const limit = Math.min(towers.length, 8);
   for (let i = 0; i < limit; i++) {
     const t = towers[i];
+    const dmg = getDmg(t);
     const c = lbGemColors(t.gem);
-    const barPct = (t.totalDamage / maxDmg) * 100;
-    const sharePct = totalDmg > 0 ? (t.totalDamage / totalDmg) * 100 : 0;
+    const barPct = (dmg / maxDmg) * 100;
+    const sharePct = totalDmg > 0 ? (dmg / totalDmg) * 100 : 0;
 
     const row = document.createElement("div");
     row.className = "lb-row";
@@ -529,7 +582,7 @@ function renderLeaderboard(body: HTMLDivElement, game: Game): void {
 
     const val = document.createElement("div");
     val.className = "lb-val";
-    val.textContent = formatDamage(t.totalDamage);
+    val.textContent = formatDamage(dmg);
 
     row.append(rank, sprite, nameEl, pctEl, val);
     list.appendChild(row);

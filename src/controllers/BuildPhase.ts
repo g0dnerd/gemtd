@@ -157,6 +157,7 @@ export class BuildPhase {
       lastFireTick: 0,
       kills: 0,
       totalDamage: 0,
+      waveDamage: 0,
       placedWave: state.wave,
     };
     state.towers.push(tower);
@@ -378,6 +379,7 @@ export class BuildPhase {
       lastFireTick: 0,
       kills: 0,
       totalDamage: 0,
+      waveDamage: 0,
       placedWave: state.wave,
       isTrap: isTrap || undefined,
     };

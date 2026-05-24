@@ -67,7 +67,7 @@ function makeTrap(
     quality: 3 as Quality,
     comboKey,
     lastFireTick: 0,
-    kills: 0, totalDamage: 0, placedWave: 1,
+    kills: 0, totalDamage: 0, waveDamage: 0, placedWave: 1,
     isTrap: true,
     lastTriggerTick: -99999,
   };
@@ -258,7 +258,7 @@ describeRunes("Traps system", () => {
       gem: "ruby",
       quality: 3 as Quality,
       lastFireTick: 0,
-      kills: 0, totalDamage: 0, placedWave: 1,
+      kills: 0, totalDamage: 0, waveDamage: 0, placedWave: 1,
     };
     state.towers.push(normalTower);
     const cx = 10 * FINE_TILE + FINE_TILE / 2;
@@ -323,7 +323,7 @@ describeRunes("Traps: combine produces trap towers", () => {
       gem: "topaz",
       quality: 3 as Quality,
       lastFireTick: 0,
-      kills: 0, totalDamage: 0, placedWave: 1,
+      kills: 0, totalDamage: 0, waveDamage: 0, placedWave: 1,
     };
     const t2: TowerState = {
       id: game.nextId(),
@@ -332,7 +332,7 @@ describeRunes("Traps: combine produces trap towers", () => {
       gem: "amethyst",
       quality: 2 as Quality,
       lastFireTick: 0,
-      kills: 0, totalDamage: 0, placedWave: 1,
+      kills: 0, totalDamage: 0, waveDamage: 0, placedWave: 1,
     };
     const t3: TowerState = {
       id: game.nextId(),
@@ -341,7 +341,7 @@ describeRunes("Traps: combine produces trap towers", () => {
       gem: "sapphire",
       quality: 2 as Quality,
       lastFireTick: 0,
-      kills: 0, totalDamage: 0, placedWave: 1,
+      kills: 0, totalDamage: 0, waveDamage: 0, placedWave: 1,
     };
     for (const t of [t1, t2, t3]) {
       state.towers.push(t);

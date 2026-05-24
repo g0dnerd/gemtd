@@ -961,10 +961,11 @@
   cursor: pointer;
   border-radius: 3px;
   border: 1px solid transparent;
-  transition: background-color 100ms ease, border-color 100ms ease, filter 100ms ease;
+  transition: background-color 100ms ease-out, border-color 100ms ease-out, filter 100ms ease-out, transform 100ms ease-out;
 }
 .lb-row:active {
   filter: brightness(1.15);
+  transform: scale(0.98);
 }
 .lb-sprite {
   flex-shrink: 0;
@@ -1018,6 +1019,38 @@
   text-align: center;
   padding: 4px;
   opacity: 0.7;
+}
+
+/* Leaderboard toggle */
+.lb-toggle {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--px-ink-dim);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.lb-toggle-btn {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  padding: 3px 6px;
+  background: transparent;
+  color: var(--px-ink-dim);
+  border: none;
+  cursor: pointer;
+  transition: background-color 80ms ease-out, color 80ms ease-out, transform 80ms ease-out;
+}
+.lb-toggle-btn:active {
+  transform: scale(0.95);
+}
+.lb-toggle-btn.active {
+  background: var(--px-ink-dim);
+  color: var(--px-bg);
+}
+@media (hover: hover) and (pointer: fine) {
+  .lb-toggle-btn:not(.active):hover {
+    background: rgba(244, 228, 193, 0.08);
+  }
 }
 
 /* Creep inspector */

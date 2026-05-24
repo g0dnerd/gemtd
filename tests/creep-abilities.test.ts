@@ -168,7 +168,7 @@ describe('mycoid (sapper)', () => {
       quality: 5 as Quality,
       lastFireTick: 0,
       kills: 0,
-      totalDamage: 0,
+      totalDamage: 0, waveDamage: 0,
       placedWave: 1,
     };
     state.towers.push(tower);
