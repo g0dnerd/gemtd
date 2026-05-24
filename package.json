@@ -1,6 +1,6 @@
 {
   "name": "gemtd",
-  "version": "1.5.9",
+  "version": "1.5.10",
   "private": true,
   "type": "module",
   "scripts": {
@@ -20,6 +20,7 @@
     "wave-difficulty": "npx tsx tools/wave-difficulty/cli.ts run",
     "wave-difficulty:compare": "npx tsx tools/wave-difficulty/cli.ts compare",
     "wave-difficulty:history": "npx tsx tools/wave-difficulty/cli.ts history",
+    "wave-difficulty:calibrate": "npx tsx tools/wave-difficulty/cli.ts calibrate",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy"
   },

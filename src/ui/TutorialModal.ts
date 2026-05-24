@@ -305,6 +305,23 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.10",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Periodic nova now deals 50% base damage.",
+        },
+        {
+          tag: "buff",
+          text: "Ancient Paraiba attack speed increased (0.6 → 0.8).",
+        },
+        {
+          tag: "fix",
+          text: "VFX no longer replay during sim catch-up after tabbing back.",
+        },
+      ],
+    },
+    {
       ver: "1.5.9",
       notes: [
         {

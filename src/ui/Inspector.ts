@@ -1229,7 +1229,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "multi_target":
       return { label: "MULTI", text: `${e.count} targets`, tone: "aoe" };
     case "periodic_nova":
-      return { label: "NOVA", text: `every ${e.everyN} hits`, tone: "aoe" };
+      return { label: "NOVA", text: `every ${e.everyN} hits, 50% dmg`, tone: "aoe" };
     case "death_nova":
       return {
         label: "DEATH NOVA",

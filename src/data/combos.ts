@@ -423,7 +423,7 @@ const ALL_COMBOS: ComboRecipe[] = [
             { kind: "slow", factor: 0.55, duration: 2.0 },
             { kind: "periodic_nova", everyN: 10 },
           ],
-          blurb: "Wide splash. 45% slow. Nova every 10th attack.",
+          blurb: "Wide splash. 45% slow. Nova every 10th attack at 50% dmg.",
           targeting: "all",
         },
       },
@@ -618,7 +618,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           dmgMin: 360,
           dmgMax: 500,
           range: 4.5,
-          atkSpeed: 0.6,
+          atkSpeed: 0.8,
           effects: [
             { kind: "splash", radius: 2.0, falloff: 0.5, chance: 1.0 },
             {

@@ -120,7 +120,7 @@ export class Combat {
             t.attackCount = (t.attackCount ?? 0) + 1;
             if (t.attackCount % novaEffect.everyN === 0) {
               const allTargets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, Infinity);
-              for (const tgt of allTargets) this.fire(t, tgt, stats, dmgMult);
+              for (const tgt of allTargets) this.fire(t, tgt, stats, dmgMult, false, 0.5);
               this.game.bus.emit('vfx:nova', { x: (t.x + 1) * FINE_TILE, y: (t.y + 1) * FINE_TILE, rangePx: stats.range * TILE });
             } else {
               this.fire(t, target, stats, dmgMult);
@@ -218,12 +218,12 @@ export class Combat {
     this.game.bus.emit('vfx:eruption', { x: tx, y: ty, radiusPx: maxDist });
   }
 
-  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0, demoteShot = false): void {
+  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0, demoteShot = false, baseDmgMult = 1): void {
     const state = this.game.state;
     const fromX = (tower.x + 1) * FINE_TILE;
     const fromY = (tower.y + 1) * FINE_TILE;
     const baseDmg = randInt(this.game.rng, stats.dmgMin, stats.dmgMax);
-    let dmg = Math.round(baseDmg * (1 + dmgAuraMult));
+    let dmg = Math.round(baseDmg * baseDmgMult * (1 + dmgAuraMult));
 
     // Focus crit: track target and accumulate bonus crit chance
     const focusCrit = stats.effects.find((e): e is Extract<EffectKind, { kind: 'focus_crit' }> => e.kind === 'focus_crit');

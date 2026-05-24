@@ -335,7 +335,7 @@ export function effectSummary(e: EffectKind): string {
     case 'freeze_chance':
       return `${Math.round(e.chance * 100)}% freeze ${e.duration}s`;
     case 'periodic_nova':
-      return `Nova every ${e.everyN} attacks`;
+      return `Nova every ${e.everyN} attacks (50% dmg)`;
     case 'prox_burn_ramp':
       return `Burn ${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s · ${e.radius.toFixed(1)} tiles`;
     case 'death_nova':
