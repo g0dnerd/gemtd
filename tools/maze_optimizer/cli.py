@@ -102,6 +102,7 @@ def optimize_main(args: argparse.Namespace) -> None:
         air_keeper_ratio=args.air_keeper_ratio,
         top_k=args.top_k,
         max_iterations=args.max_iterations,
+        cores=args.cores,
     )
 
     result = optimizer.run()
@@ -169,6 +170,7 @@ def main() -> None:
     )
     opt.add_argument("--max-iterations", type=int, default=0, help="Max iterations (0 = unlimited)")
     opt.add_argument("--top-k", type=int, default=50, help="Candidates to evaluate per iteration")
+    opt.add_argument("--cores", type=int, default=None, help="CPU cores (default: all)")
     _add_weight_args(opt)
 
     # Backward compat: no subcommand → search

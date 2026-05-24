@@ -8,7 +8,9 @@ removes rocks and re-places towers for net fitness improvement.
 from __future__ import annotations
 
 import math
+import time
 from dataclasses import dataclass
+from multiprocessing import Pool, cpu_count
 
 import numpy as np
 
@@ -73,6 +75,11 @@ _OVERLAP_OFFSETS = [
     (1, -1),
     (-1, 1),
 ]
+
+
+# ---------------------------------------------------------------------------
+# Module-level functions (used by both serial path and worker processes)
+# ---------------------------------------------------------------------------
 
 
 def _compute_round_metrics(
@@ -235,6 +242,170 @@ def replay_rounds(
     return (cumulative_path, weighted_coverage, weighted_depth, weighted_air)
 
 
+def _candidate_positions(
+    rx: int, ry: int, grid: np.ndarray
+) -> list[tuple[int, int]]:
+    """Valid 2x2 footprints overlapping the freed rock area."""
+    seen: set[tuple[int, int]] = set()
+    result: list[tuple[int, int]] = []
+    for dx, dy in _OVERLAP_OFFSETS:
+        cx, cy = rx + dx, ry + dy
+        if (cx, cy) not in seen:
+            seen.add((cx, cy))
+            if can_place_2x2(grid, cx, cy):
+                result.append((cx, cy))
+    return result
+
+
+def _evaluate_removal_core(
+    rock_x: int,
+    rock_y: int,
+    target_round: int,
+    base_grid: np.ndarray,
+    chromosome: list[list[tuple[int, int]]],
+    removals: list[list[tuple[int, int]]],
+    snapshot: RoundSnapshot,
+    w_path: float,
+    w_coverage: float,
+    w_depth: float,
+    w_air: float,
+    air_keeper_ratio: float,
+    baseline_fitness: float,
+) -> tuple[float, tuple[int, int] | None, int, int]:
+    """Core evaluation: best (delta, candidate, swap_idx, n_replays) for one removal."""
+
+    def fitness(cp: int, wc: float, wd: float, wa: float) -> float:
+        return w_path * cp + w_coverage * wc + w_depth * wd + w_air * wa
+
+    head = fitness(
+        snapshot.cumulative_path, snapshot.weighted_coverage,
+        snapshot.weighted_depth, snapshot.weighted_air,
+    )
+    baseline_tail = baseline_fitness - head
+
+    test_grid = copy_grid(snapshot.grid)
+    all_removals = list(removals[target_round]) + [(rock_x, rock_y)]
+    for rx, ry in all_removals:
+        if test_grid[ry, rx] == Cell.Rock:
+            place_tower(test_grid, rx, ry, Cell.Grass)
+    if find_route(test_grid) is None:
+        return (0.0, None, -1, 0)
+
+    candidates = _candidate_positions(rock_x, rock_y, test_grid)
+    if not candidates:
+        return (0.0, None, -1, 0)
+
+    orig_positions = chromosome[target_round]
+    trial_removals = [list(r) for r in removals]
+    trial_removals[target_round] = all_removals
+
+    best_delta = 0.0
+    best_cand: tuple[int, int] | None = None
+    best_swap = -1
+    n_replays = 0
+
+    for cand in candidates:
+        for swap_idx in range(len(orig_positions)):
+            modified_chromosome = list(chromosome)
+            modified_round = list(orig_positions)
+            modified_round[swap_idx] = cand
+            modified_chromosome[target_round] = modified_round
+
+            cp, wc, wd, wa = replay_rounds(
+                modified_chromosome,
+                trial_removals,
+                base_grid,
+                air_keeper_ratio,
+                start_round=target_round,
+                init_grid=copy_grid(snapshot.grid),
+                init_segments=[list(s) for s in snapshot.segments],
+                init_keepers=list(snapshot.keepers),
+                init_cum_path=snapshot.cumulative_path,
+                init_w_cov=snapshot.weighted_coverage,
+                init_w_dep=snapshot.weighted_depth,
+                init_w_air=snapshot.weighted_air,
+            )
+            n_replays += 1
+            if cp < 0:
+                continue
+
+            delta = fitness(cp, wc, wd, wa) - head - baseline_tail
+            if delta > best_delta:
+                best_delta = delta
+                best_cand = cand
+                best_swap = swap_idx
+
+    return (best_delta, best_cand, best_swap, n_replays)
+
+
+# ---------------------------------------------------------------------------
+# Multiprocessing worker
+# ---------------------------------------------------------------------------
+
+_w_base_grid: np.ndarray | None = None
+_w_chromosome: list | None = None
+_w_removals: list | None = None
+_w_snapshots: list | None = None
+_w_wp: float = 1.0
+_w_wc: float = 1.5
+_w_wd: float = 0.3
+_w_wa: float = 3.0
+_w_akr: float = 2.0
+_w_baseline: float = 0.0
+
+
+def _init_eval_worker(
+    base_grid: np.ndarray,
+    chromosome: list,
+    removals: list,
+    snapshots: list,
+    w_path: float,
+    w_coverage: float,
+    w_depth: float,
+    w_air: float,
+    air_keeper_ratio: float,
+    baseline_fitness: float,
+) -> None:
+    global _w_base_grid, _w_chromosome, _w_removals, _w_snapshots
+    global _w_wp, _w_wc, _w_wd, _w_wa, _w_akr, _w_baseline
+    _w_base_grid = base_grid
+    _w_chromosome = chromosome
+    _w_removals = removals
+    _w_snapshots = snapshots
+    _w_wp = w_path
+    _w_wc = w_coverage
+    _w_wd = w_depth
+    _w_wa = w_air
+    _w_akr = air_keeper_ratio
+    _w_baseline = baseline_fitness
+
+
+def _eval_one(
+    task: tuple[int, int, int, int, int],
+) -> tuple[int, float, tuple[int, int] | None, int, int]:
+    """Worker: evaluate one (rock, target_round) pair.
+
+    task = (candidate_index, rock_x, rock_y, rock_placed, target_round)
+    Returns (candidate_index, delta, best_cand, best_swap, n_replays).
+    """
+    ci, rock_x, rock_y, _rock_placed, target_round = task
+    snapshot = _w_snapshots[target_round - 1]  # type: ignore[index]
+    delta, cand, swap, n_rep = _evaluate_removal_core(
+        rock_x, rock_y, target_round,
+        _w_base_grid,  # type: ignore[arg-type]
+        _w_chromosome,  # type: ignore[arg-type]
+        _w_removals,  # type: ignore[arg-type]
+        snapshot,
+        _w_wp, _w_wc, _w_wd, _w_wa, _w_akr, _w_baseline,
+    )
+    return (ci, delta, cand, swap, n_rep)
+
+
+# ---------------------------------------------------------------------------
+# Optimizer class
+# ---------------------------------------------------------------------------
+
+
 class RemovalOptimizer:
     """Greedily removes rocks and re-places towers for net fitness gain."""
 
@@ -250,6 +421,7 @@ class RemovalOptimizer:
         air_keeper_ratio: float = 2.0,
         top_k: int = 50,
         max_iterations: int = 0,
+        cores: int | None = None,
     ):
         self.chromosome = [list(r) for r in chromosome]
         self.base_grid = base_grid
@@ -260,6 +432,7 @@ class RemovalOptimizer:
         self.air_keeper_ratio = air_keeper_ratio
         self.top_k = top_k
         self.max_iterations = max_iterations
+        self.cores = cores or cpu_count()
 
         self.snapshots: list[RoundSnapshot] = []
         self.rocks: list[RockRecord] = []
@@ -271,6 +444,8 @@ class RemovalOptimizer:
 
     def _build_baseline(self) -> None:
         """Full replay from scratch, storing all snapshots and rocks."""
+        print("Building baseline (50 rounds)...", flush=True)
+        t0 = time.monotonic()
         self.snapshots.clear()
         self.rocks.clear()
         cp, wc, wd, wa = replay_rounds(
@@ -282,6 +457,7 @@ class RemovalOptimizer:
             rocks_out=self.rocks,
         )
         self.baseline_fitness = self._fitness(cp, wc, wd, wa)
+        print(f"  Done in {time.monotonic() - t0:.1f}s", flush=True)
 
     def _rebuild_from(self, start_round: int) -> None:
         """Re-replay from start_round onward, rebuilding snapshots and rocks."""
@@ -319,6 +495,7 @@ class RemovalOptimizer:
 
     def _prefilter(self) -> list[tuple[RockRecord, int, float]]:
         """Score all (rock, target_round) pairs by exposure potential."""
+        t0 = time.monotonic()
         candidates: list[tuple[RockRecord, int, float]] = []
         for rock in self.rocks:
             for r in range(rock.round_placed + 1, NUM_ROUNDS):
@@ -326,97 +503,140 @@ class RemovalOptimizer:
                 if exp > 0:
                     candidates.append((rock, r, float(exp)))
         candidates.sort(key=lambda t: t[2], reverse=True)
+        n_pairs = sum(NUM_ROUNDS - 1 - r.round_placed for r in self.rocks)
+        print(
+            f"  Pre-filter: scanned {n_pairs} (rock, round) pairs → "
+            f"{len(candidates)} with exposure > 0  [{time.monotonic() - t0:.1f}s]",
+            flush=True,
+        )
         return candidates
-
-    def _candidate_positions(
-        self, rx: int, ry: int, grid: np.ndarray
-    ) -> list[tuple[int, int]]:
-        """Valid 2x2 footprints overlapping the freed rock area."""
-        seen: set[tuple[int, int]] = set()
-        result: list[tuple[int, int]] = []
-        for dx, dy in _OVERLAP_OFFSETS:
-            cx, cy = rx + dx, ry + dy
-            if (cx, cy) not in seen:
-                seen.add((cx, cy))
-                if can_place_2x2(grid, cx, cy):
-                    result.append((cx, cy))
-        return result
 
     def _evaluate_removal(
         self, rock: RockRecord, target_round: int
-    ) -> tuple[float, tuple[int, int] | None, int]:
-        """Evaluate best (fitness_delta, candidate_pos, swap_idx) for this removal."""
-        prev = self.snapshots[target_round - 1]
-
-        head_fitness = self._fitness(
-            prev.cumulative_path, prev.weighted_coverage,
-            prev.weighted_depth, prev.weighted_air,
+    ) -> tuple[float, tuple[int, int] | None, int, int]:
+        """Serial evaluation for a single (rock, target_round) pair."""
+        return _evaluate_removal_core(
+            rock.x, rock.y, target_round,
+            self.base_grid, self.chromosome, self.removals,
+            self.snapshots[target_round - 1],
+            self.w_path, self.w_coverage, self.w_depth, self.w_air,
+            self.air_keeper_ratio, self.baseline_fitness,
         )
-        baseline_tail = self.baseline_fitness - head_fitness
 
-        # Prepare grid with rock removed (+ any existing removals for this round)
-        test_grid = copy_grid(prev.grid)
-        all_removals = list(self.removals[target_round]) + [(rock.x, rock.y)]
-        for rx, ry in all_removals:
-            if test_grid[ry, rx] == Cell.Rock:
-                place_tower(test_grid, rx, ry, Cell.Grass)
-        if find_route(test_grid) is None:
-            return (0.0, None, -1)
-
-        candidates = self._candidate_positions(rock.x, rock.y, test_grid)
-        if not candidates:
-            return (0.0, None, -1)
-
-        orig_positions = self.chromosome[target_round]
-        trial_removals = [list(r) for r in self.removals]
-        trial_removals[target_round] = all_removals
-
+    def _evaluate_batch_serial(
+        self,
+        top: list[tuple[RockRecord, int, float]],
+    ) -> tuple[float, RockRecord | None, int, tuple[int, int] | None, int]:
+        """Evaluate candidates serially with per-candidate logging."""
         best_delta = 0.0
+        best_rock: RockRecord | None = None
+        best_round = -1
         best_cand: tuple[int, int] | None = None
         best_swap = -1
+        total_replays = 0
+        t_eval = time.monotonic()
 
-        for cand in candidates:
-            for swap_idx in range(len(orig_positions)):
-                modified_chromosome = list(self.chromosome)
-                modified_round = list(orig_positions)
-                modified_round[swap_idx] = cand
-                modified_chromosome[target_round] = modified_round
+        for ci, (rock, target_round, exposure) in enumerate(top):
+            t_cand = time.monotonic()
+            delta, cand, swap, n_rep = self._evaluate_removal(rock, target_round)
+            total_replays += n_rep
+            tag = ""
+            if delta > best_delta:
+                best_delta = delta
+                best_rock = rock
+                best_round = target_round
+                best_cand = cand
+                best_swap = swap
+                tag = f"  ← new best +{delta:.1f}"
+            print(
+                f"    [{ci + 1}/{len(top)}] rock ({rock.x},{rock.y}) "
+                f"r{rock.round_placed}→r{target_round}  "
+                f"exp={exposure:.0f}  {n_rep} replays  "
+                f"{time.monotonic() - t_cand:.1f}s{tag}",
+                flush=True,
+            )
 
-                cp, wc, wd, wa = replay_rounds(
-                    modified_chromosome,
-                    trial_removals,
-                    self.base_grid,
-                    self.air_keeper_ratio,
-                    start_round=target_round,
-                    init_grid=copy_grid(prev.grid),
-                    init_segments=[list(s) for s in prev.segments],
-                    init_keepers=list(prev.keepers),
-                    init_cum_path=prev.cumulative_path,
-                    init_w_cov=prev.weighted_coverage,
-                    init_w_dep=prev.weighted_depth,
-                    init_w_air=prev.weighted_air,
-                )
-                if cp < 0:
-                    continue
+        elapsed = time.monotonic() - t_eval
+        print(
+            f"  Evaluated {total_replays} replays in {elapsed:.1f}s "
+            f"({total_replays / elapsed:.0f} replay/s)" if elapsed > 0
+            else f"  Evaluated {total_replays} replays",
+            flush=True,
+        )
+        return best_delta, best_rock, best_round, best_cand, best_swap
 
-                new_tail = self._fitness(cp, wc, wd, wa) - head_fitness
-                delta = new_tail - baseline_tail
+    def _evaluate_batch_parallel(
+        self,
+        top: list[tuple[RockRecord, int, float]],
+    ) -> tuple[float, RockRecord | None, int, tuple[int, int] | None, int]:
+        """Evaluate candidates in parallel across worker processes."""
+        tasks = [
+            (ci, rock.x, rock.y, rock.round_placed, target_round)
+            for ci, (rock, target_round, _) in enumerate(top)
+        ]
 
+        t_eval = time.monotonic()
+        print(
+            f"  Dispatching {len(tasks)} tasks to {self.cores} workers...",
+            flush=True,
+        )
+
+        with Pool(
+            self.cores,
+            initializer=_init_eval_worker,
+            initargs=(
+                self.base_grid, self.chromosome, self.removals,
+                self.snapshots,
+                self.w_path, self.w_coverage, self.w_depth, self.w_air,
+                self.air_keeper_ratio, self.baseline_fitness,
+            ),
+        ) as pool:
+            best_delta = 0.0
+            best_rock: RockRecord | None = None
+            best_round = -1
+            best_cand: tuple[int, int] | None = None
+            best_swap = -1
+            total_replays = 0
+            completed = 0
+
+            for ci, delta, cand, swap, n_rep in pool.imap_unordered(_eval_one, tasks):
+                completed += 1
+                total_replays += n_rep
+                rock, target_round, exposure = top[ci]
+                tag = ""
                 if delta > best_delta:
                     best_delta = delta
+                    best_rock = rock
+                    best_round = target_round
                     best_cand = cand
-                    best_swap = swap_idx
+                    best_swap = swap
+                    tag = f"  ← new best +{delta:.1f}"
+                print(
+                    f"    [{completed}/{len(tasks)}] rock ({rock.x},{rock.y}) "
+                    f"r{rock.round_placed}→r{target_round}  "
+                    f"exp={exposure:.0f}  {n_rep} replays{tag}",
+                    flush=True,
+                )
 
-        return (best_delta, best_cand, best_swap)
+        elapsed = time.monotonic() - t_eval
+        print(
+            f"  Evaluated {total_replays} replays in {elapsed:.1f}s "
+            f"({total_replays / elapsed:.0f} replay/s)" if elapsed > 0
+            else f"  Evaluated {total_replays} replays",
+            flush=True,
+        )
+        return best_delta, best_rock, best_round, best_cand, best_swap
 
     def run(self) -> dict:
         """Run the greedy optimization loop. Returns result dict."""
         self._build_baseline()
         print(f"Baseline fitness: {self.baseline_fitness:.1f}")
         print(f"  Rocks: {len(self.rocks)}")
+        print(f"  Cores: {self.cores}")
 
         iteration = 0
         total_removals = 0
+        t_start = time.monotonic()
 
         while True:
             if 0 < self.max_iterations <= iteration:
@@ -431,23 +651,18 @@ class RemovalOptimizer:
             top = candidates[: self.top_k]
             print(
                 f"\nIteration {iteration}: evaluating {len(top)} "
-                f"of {len(candidates)} candidates..."
+                f"of {len(candidates)} candidates...",
+                flush=True,
             )
 
-            best_delta = 0.0
-            best_rock: RockRecord | None = None
-            best_round = -1
-            best_cand: tuple[int, int] | None = None
-            best_swap = -1
-
-            for rock, target_round, _exposure in top:
-                delta, cand, swap = self._evaluate_removal(rock, target_round)
-                if delta > best_delta:
-                    best_delta = delta
-                    best_rock = rock
-                    best_round = target_round
-                    best_cand = cand
-                    best_swap = swap
+            if self.cores == 1:
+                best_delta, best_rock, best_round, best_cand, best_swap = (
+                    self._evaluate_batch_serial(top)
+                )
+            else:
+                best_delta, best_rock, best_round, best_cand, best_swap = (
+                    self._evaluate_batch_parallel(top)
+                )
 
             if best_delta <= 0 or best_rock is None or best_cand is None:
                 print("No improvement found. Converged.")
@@ -480,7 +695,8 @@ class RemovalOptimizer:
         )
         final_fitness = self._fitness(cp, wc, wd, wa)
 
-        print(f"\nOptimization complete: {total_removals} removals in {iteration} iterations")
+        elapsed = time.monotonic() - t_start
+        print(f"\nOptimization complete: {total_removals} removals in {iteration} iterations ({elapsed:.0f}s)")
         print(f"  Fitness: {final_fitness:.1f}")
         print(f"  Path: {cp}")
         print(f"  Coverage: {wc:.1f}")
