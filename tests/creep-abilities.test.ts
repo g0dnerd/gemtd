@@ -54,9 +54,9 @@ describe('chrysalid (berserker)', () => {
 
       expect(c.chrysalidAwakened).toBe(true);
       expect(c.speed).toBe(originalSpeed * 1.6);
-      expect(c.slowResist).toBe(0.8);
-      expect(c.stunResist).toBe(0.8);
-      expect(c.poisonResist).toBe(0.8);
+      expect(c.slowResist).toBe(0.7);
+      expect(c.stunResist).toBe(0.7);
+      expect(c.poisonResist).toBe(0.7);
       // Existing debuffs cleared on transformation
       expect(c.slow).toBeUndefined();
       expect(c.poison).toBeUndefined();
@@ -116,10 +116,10 @@ describe('chrysalid (berserker)', () => {
       const fakeTower = {} as TowerState;
       combat.applyEffects(c, [{ kind: 'slow', factor: 0.5, duration: 2 }], fakeTower);
 
-      // Slow applies but at 80% reduced effectiveness
+      // Slow applies but at 70% reduced effectiveness
       expect(c.slow).toBeDefined();
-      // factor = 0.5 + (1 - 0.5) * 0.8 = 0.9
-      expect(c.slow!.factor).toBeCloseTo(0.9);
+      // factor = 0.5 + (1 - 0.5) * 0.7 = 0.85
+      expect(c.slow!.factor).toBeCloseTo(0.85);
     });
   });
 
