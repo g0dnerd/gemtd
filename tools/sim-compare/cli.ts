@@ -57,14 +57,23 @@ function handleRun(args: string[]): void {
     }
   }
 
+  const aiFilter = flags.ai;
+  const ais = aiFilter
+    ? ALL_AIS.filter((a) => a.name.toLowerCase() === aiFilter.toLowerCase())
+    : ALL_AIS;
+  if (ais.length === 0) {
+    console.log(`Unknown AI "${aiFilter}". Available: ${ALL_AIS.map((a) => a.name).join(', ')}`);
+    process.exit(1);
+  }
+
   console.log(`Running sim for commit ${git.shortHash} (${git.message})...`);
-  const aisResult = runAllAIs(seedCount, ALL_AIS);
+  const aisResult = runAllAIs(seedCount, ais);
 
   const snap: Snapshot = {
     version: 1,
     git,
     timestamp: new Date().toISOString(),
-    config: { seedCount, aiNames: ALL_AIS.map((a) => a.name) },
+    config: { seedCount, aiNames: ais.map((a) => a.name) },
     ais: aisResult,
   };
 
@@ -139,7 +148,7 @@ function printUsage(): void {
 Usage: npx tsx tools/sim-compare/cli.ts <command> [options]
 
 Commands:
-  run [--seeds N] [--tag <ref>]    Run sim and store snapshot (default: 50 seeds, tagged as HEAD)
+  run [--seeds N] [--tag <ref>] [--ai <name>]  Run sim and store snapshot
   compare [current] [base]         Compare two snapshots (default current: HEAD, default base: most recent other)
   history [--limit N]              List stored snapshots (default: 20)
 

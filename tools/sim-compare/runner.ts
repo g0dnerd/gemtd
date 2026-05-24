@@ -2,6 +2,7 @@ import { HeadlessGame } from '../../src/sim/HeadlessGame';
 import { GreedyAI } from '../../src/sim/ai/GreedyAI';
 import { BlueprintAI } from '../../src/sim/ai/BlueprintAI';
 import { StrategistAI } from '../../src/sim/ai/StrategistAI';
+import { HeuristicAI } from '../../src/sim/ai/HeuristicAI';
 import type { SimAI, GameResult } from '../../src/sim/types';
 import type { AISnapshot, AggregateStats, PerSeedResult, DpsHpEntry } from './types';
 
@@ -127,6 +128,7 @@ export const ALL_AIS: AIEntry[] = [
   { name: 'GreedyAI', ai: new GreedyAI() },
   { name: 'BlueprintAI', ai: new BlueprintAI() },
   { name: 'StrategistAI', ai: new StrategistAI() },
+  { name: 'HeuristicAI', ai: new HeuristicAI() },
 ];
 
 export function runAllAIs(seedCount: number, ais: AIEntry[]): Record<string, AISnapshot> {

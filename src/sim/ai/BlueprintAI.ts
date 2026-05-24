@@ -82,7 +82,7 @@ export class BlueprintAI extends GreedyAI {
   }
 
   /** Order draw slots so the best gem is placed at the keeper position. */
-  private buildSlotOrder(
+  protected buildSlotOrder(
     unplaced: Array<{ slotId: number; gem: import('../../render/theme').GemType; quality: number }>,
     keeperPosIdx: number,
     positionCount: number,
