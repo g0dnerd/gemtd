@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 from grid import (
@@ -53,6 +55,10 @@ def _build_air_route() -> frozenset[tuple[int, int]]:
 
 
 AIR_ROUTE: frozenset[tuple[int, int]] = _build_air_route()
+
+
+def round_weight(r: int, power: float = 1.3) -> float:
+    return 1.0 + (r / (NUM_ROUNDS - 1)) ** power
 
 
 def exposure_at(x: int, y: int, route_set: set[tuple[int, int]]) -> int:
@@ -156,7 +162,10 @@ def repair_position(
 def evaluate(
     chromosome: list[list[tuple[int, int]]],
     base_grid: np.ndarray,
-    air_exposure_weight: float = 3.0,
+    w_path: float = 1.0,
+    w_coverage: float = 1.5,
+    w_depth: float = 0.3,
+    w_air: float = 3.0,
     air_keeper_ratio: float = 2.0,
 ) -> dict:
     grid = copy_grid(base_grid)
@@ -174,6 +183,9 @@ def evaluate(
             "cumulative_path": 0,
             "exposure_total": 0,
             "air_exposure_total": 0,
+            "weighted_coverage": 0.0,
+            "weighted_depth": 0.0,
+            "weighted_air": 0.0,
             "validity_penalty": -999999,
             "chromosome": chromosome,
         }
@@ -182,6 +194,9 @@ def evaluate(
     cell_seg = build_cell_to_seg(segments)
 
     cumulative_path = 0
+    weighted_coverage = 0.0
+    weighted_depth = 0.0
+    weighted_air = 0.0
 
     for round_idx, positions in enumerate(chromosome):
         placed: list[tuple[int, int]] = []
@@ -231,12 +246,26 @@ def evaluate(
             )
             all_keepers.append(placed[keeper_idx])
 
-            round_exposure = sum(exposure_at(kx, ky, route_set) for kx, ky in all_keepers)
-            total_exposure += round_exposure
+            covered: set[tuple[int, int]] = set()
+            depth_map: dict[tuple[int, int], int] = {}
+            for kx, ky in all_keepers:
+                cx, cy = kx + 1, ky + 1
+                for dx, dy in RANGE_OFFSETS:
+                    cell = (cx + dx, cy + dy)
+                    if cell in route_set:
+                        covered.add(cell)
+                        depth_map[cell] = depth_map.get(cell, 0) + 1
+
+            w_r = round_weight(round_idx)
+            weighted_coverage += len(covered) * w_r
+            weighted_depth += sum(math.log(1 + c) for c in depth_map.values()) * w_r
+
+            total_exposure += sum(exposure_at(kx, ky, route_set) for kx, ky in all_keepers)
 
             if is_air:
                 round_air = sum(air_exposure_at(kx, ky) for kx, ky in all_keepers)
                 total_air_exposure += round_air
+                weighted_air += round_air * w_r
 
             for i, (px, py) in enumerate(placed):
                 if i != keeper_idx:
@@ -249,8 +278,10 @@ def evaluate(
     validity_penalty = -(100 * invalid_count + 10 * invalid_count * invalid_count) if invalid_count else 0
 
     fitness = (
-        total_exposure
-        + air_exposure_weight * total_air_exposure
+        w_path * cumulative_path
+        + w_coverage * weighted_coverage
+        + w_depth * weighted_depth
+        + w_air * weighted_air
         + validity_penalty
     )
 
@@ -260,6 +291,9 @@ def evaluate(
         "cumulative_path": cumulative_path,
         "exposure_total": total_exposure,
         "air_exposure_total": total_air_exposure,
+        "weighted_coverage": weighted_coverage,
+        "weighted_depth": weighted_depth,
+        "weighted_air": weighted_air,
         "validity_penalty": validity_penalty,
         "chromosome": repaired,
     }
@@ -270,6 +304,11 @@ def evaluate_with_traps(
     trap_positions: list[tuple[int, int]],
     base_grid: np.ndarray,
     trap_weight: float = 5.0,
+    w_path: float = 1.0,
+    w_coverage: float = 1.5,
+    w_depth: float = 0.3,
+    w_air: float = 3.0,
+    air_keeper_ratio: float = 2.0,
 ) -> dict:
     """Evaluate a maze layout that includes trap placements on the path.
 
@@ -287,7 +326,7 @@ def evaluate_with_traps(
             placed_traps.append((tx, ty))
 
     # Run normal tower evaluation on the grid (traps are walkable, so routing works)
-    result = evaluate(chromosome, grid)
+    result = evaluate(chromosome, grid, w_path, w_coverage, w_depth, w_air, air_keeper_ratio)
 
     # Score trap placements by route overlap
     if result["fitness"] <= -999999:

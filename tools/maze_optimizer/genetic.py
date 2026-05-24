@@ -39,19 +39,29 @@ from fitness import (
 Chromosome = list[list[tuple[int, int]]]
 
 _worker_base_grid: np.ndarray | None = None
-_worker_air_exposure_weight: float = 3.0
+_worker_w_path: float = 1.0
+_worker_w_coverage: float = 1.5
+_worker_w_depth: float = 0.3
+_worker_w_air: float = 3.0
 _worker_air_keeper_ratio: float = 2.0
 
 
 def _init_worker(
     base_grid: np.ndarray,
-    air_exposure_weight: float,
+    w_path: float,
+    w_coverage: float,
+    w_depth: float,
+    w_air: float,
     air_keeper_ratio: float,
 ) -> None:
     global _worker_base_grid
-    global _worker_air_exposure_weight, _worker_air_keeper_ratio
+    global _worker_w_path, _worker_w_coverage, _worker_w_depth, _worker_w_air
+    global _worker_air_keeper_ratio
     _worker_base_grid = base_grid
-    _worker_air_exposure_weight = air_exposure_weight
+    _worker_w_path = w_path
+    _worker_w_coverage = w_coverage
+    _worker_w_depth = w_depth
+    _worker_w_air = w_air
     _worker_air_keeper_ratio = air_keeper_ratio
 
 
@@ -59,7 +69,10 @@ def _evaluate_wrapper(chromosome: Chromosome) -> dict:
     return evaluate(
         chromosome,
         _worker_base_grid,  # type: ignore[arg-type]
-        _worker_air_exposure_weight,
+        _worker_w_path,
+        _worker_w_coverage,
+        _worker_w_depth,
+        _worker_w_air,
         _worker_air_keeper_ratio,
     )
 
@@ -506,12 +519,15 @@ def local_search(
     base_grid: np.ndarray,
     rng: random.Random,
     iterations: int = 50,
-    air_exposure_weight: float = 3.0,
+    w_path: float = 1.0,
+    w_coverage: float = 1.5,
+    w_depth: float = 0.3,
+    w_air: float = 3.0,
     air_keeper_ratio: float = 2.0,
 ) -> tuple[Chromosome, float]:
     """Hill-climbing on a single individual."""
     best = [list(r) for r in individual]
-    best_result = evaluate(best, base_grid, air_exposure_weight, air_keeper_ratio)
+    best_result = evaluate(best, base_grid, w_path, w_coverage, w_depth, w_air, air_keeper_ratio)
     best_fitness = best_result["fitness"]
     best = best_result["chromosome"]
 
@@ -524,7 +540,7 @@ def local_search(
             max(PLACE_MIN, min(PLACE_MAX_X, x + rng.randint(-5, 5))),
             max(PLACE_MIN, min(PLACE_MAX_Y, y + rng.randint(-5, 5))),
         )
-        result = evaluate(candidate, base_grid, air_exposure_weight, air_keeper_ratio)
+        result = evaluate(candidate, base_grid, w_path, w_coverage, w_depth, w_air, air_keeper_ratio)
         if result["fitness"] > best_fitness:
             best_fitness = result["fitness"]
             best = result["chromosome"]
@@ -543,7 +559,10 @@ def evaluate_population(
     population: list[Chromosome],
     base_grid: np.ndarray,
     cores: int | None,
-    air_exposure_weight: float = 3.0,
+    w_path: float = 1.0,
+    w_coverage: float = 1.5,
+    w_depth: float = 0.3,
+    w_air: float = 3.0,
     air_keeper_ratio: float = 2.0,
     cache: dict | None = None,
 ) -> list[dict]:
@@ -568,14 +587,14 @@ def evaluate_population(
 
     if cores == 1:
         fresh = [
-            evaluate(ind, base_grid, air_exposure_weight, air_keeper_ratio)
+            evaluate(ind, base_grid, w_path, w_coverage, w_depth, w_air, air_keeper_ratio)
             for ind in uncached_chroms
         ]
     else:
         with Pool(
             cores,
             initializer=_init_worker,
-            initargs=(base_grid, air_exposure_weight, air_keeper_ratio),
+            initargs=(base_grid, w_path, w_coverage, w_depth, w_air, air_keeper_ratio),
         ) as pool:
             fresh = pool.map(_evaluate_wrapper, uncached_chroms)
 
@@ -599,8 +618,12 @@ def _write_checkpoint(result: dict, path: str) -> None:
     output = {
         "fitness": result["fitness"],
         "path_length": result["path_length"],
+        "cumulative_path": result.get("cumulative_path", 0),
         "exposure_total": result["exposure_total"],
         "air_exposure_total": result["air_exposure_total"],
+        "weighted_coverage": result.get("weighted_coverage", 0.0),
+        "weighted_depth": result.get("weighted_depth", 0.0),
+        "weighted_air": result.get("weighted_air", 0.0),
         "rounds": result["chromosome"],
     }
     with open(path, "w") as f:
@@ -617,7 +640,10 @@ def run_ga(
     elite_pct: float = 0.05,
     cores: int | None = None,
     seed: int = 42,
-    air_exposure_weight: float = 3.0,
+    w_path: float = 1.0,
+    w_coverage: float = 1.5,
+    w_depth: float = 0.3,
+    w_air: float = 3.0,
     air_keeper_ratio: float = 2.0,
     checkpoint_path: str | None = None,
 ) -> dict:
@@ -627,7 +653,8 @@ def run_ga(
     rng = random.Random(seed)
 
     print(f"GA params: pop={population_size}, gen={generations}, tourn={tournament_size}, "
-          f"air_w={air_exposure_weight}, air_kr={air_keeper_ratio}, cores={cores}")
+          f"w_path={w_path}, w_cov={w_coverage}, w_depth={w_depth}, w_air={w_air}, "
+          f"air_kr={air_keeper_ratio}, cores={cores}")
     print("Initializing population...")
 
     t0 = time.time()
@@ -638,7 +665,10 @@ def run_ga(
 
     print("Evaluating initial population...")
     t0 = time.time()
-    results = evaluate_population(population, base_grid, cores, air_exposure_weight, air_keeper_ratio, fitness_cache)
+    results = evaluate_population(
+        population, base_grid, cores, w_path, w_coverage, w_depth, w_air,
+        air_keeper_ratio, fitness_cache,
+    )
     print(f"Initial evaluation in {time.time() - t0:.1f}s")
 
     population = [r["chromosome"] for r in results]
@@ -699,8 +729,8 @@ def run_ga(
 
             t0 = time.time()
             results = evaluate_population(
-                population, base_grid, cores, air_exposure_weight, air_keeper_ratio,
-                fitness_cache,
+                population, base_grid, cores, w_path, w_coverage, w_depth, w_air,
+                air_keeper_ratio, fitness_cache,
             )
             eval_time = time.time() - t0
 
@@ -723,7 +753,8 @@ def run_ga(
                     idx = ranked[li] if li < len(ranked) else 0
                     ls_chrom, ls_fit = local_search(
                         population[idx], base_grid, rng, iterations=100,
-                        air_exposure_weight=air_exposure_weight,
+                        w_path=w_path, w_coverage=w_coverage,
+                        w_depth=w_depth, w_air=w_air,
                         air_keeper_ratio=air_keeper_ratio,
                     )
                     if ls_fit > fitness_scores[idx]:
@@ -733,7 +764,8 @@ def run_ga(
                             best_fitness = ls_fit
                             best_result = evaluate(
                                 ls_chrom, base_grid,
-                                air_exposure_weight, air_keeper_ratio,
+                                w_path, w_coverage, w_depth, w_air,
+                                air_keeper_ratio,
                             )
                             stagnation = 0
 
