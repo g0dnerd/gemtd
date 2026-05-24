@@ -47,6 +47,18 @@ export class BlueprintAI extends GreedyAI {
       ? this.keeperIndices[roundIndex]
       : -1;
 
+    if (keeperPosIdx >= 0 && keeperPosIdx < positions.length) {
+      const [kx, ky] = positions[keeperPosIdx];
+      const removed = new Set<number>();
+      for (const [dx, dy] of FOOTPRINT) {
+        const rock = state.rocks.find((r) => r.x === kx + dx && r.y === ky + dy);
+        if (rock && !removed.has(rock.id)) {
+          removed.add(rock.id);
+          game.cmdRemoveRock(rock.id);
+        }
+      }
+    }
+
     // Build placement order: put the best gem at the keeper position
     const unplaced = state.draws.filter((d) => d.placedTowerId === null);
     const slotOrder = this.buildSlotOrder(unplaced, keeperPosIdx, positions.length);
