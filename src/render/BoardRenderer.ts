@@ -141,10 +141,8 @@ export function renderGround(layer: Container, grid: Cell[][]): void {
   }
   layer.addChild(g);
 
-  // Start (cave mouth) and End (crystal shrine) markers, drawn on top of the
-  // path corridor at the 2×2 anchor cells.
-  drawCaveSpawn(layer, START.x * FINE_TILE, START.y * FINE_TILE);
-  drawCrystalShrine(layer, END.x * FINE_TILE, END.y * FINE_TILE);
+  drawDarkPortal(layer, START.x * FINE_TILE, START.y * FINE_TILE);
+  drawVictoryBeacon(layer, END.x * FINE_TILE, END.y * FINE_TILE);
 }
 
 /** Grass tile — verdant meadow with 3 alternating bases + scattered decorations. */
@@ -218,97 +216,56 @@ function drawWallCell(g: Graphics, cx: number, cy: number, x: number, y: number)
   }
 }
 
-/**
- * Cave-mouth spawn marker.
- * Origin (ox, oy) is the top-left pixel of the 2×2 spawn region.
- * Coordinates are taken verbatim from the design handoff.
- */
-function drawCaveSpawn(layer: Container, ox: number, oy: number): void {
+function drawDarkPortal(layer: Container, ox: number, oy: number): void {
   const g = new Graphics();
-  // Rocky frame
-  g.rect(ox + 0, oy + 4, 40, 36).fill(0x3a2818);
-  // Inner rock
-  g.rect(ox + 2, oy + 6, 36, 32).fill(0x5a4030);
-  // Cave void
-  g.rect(ox + 4, oy + 8, 32, 28).fill(0x1a1428);
-  // Pure black opening
-  g.rect(ox + 6, oy + 8, 28, 2).fill(0x0a0510);
-  g.rect(ox + 5, oy + 10, 30, 22).fill(0x0a0510);
-  // Stalactites
-  g.rect(ox + 8, oy + 8, 2, 2).fill(0x5a4030);
-  g.rect(ox + 28, oy + 8, 2, 2).fill(0x5a4030);
-  // Skull
-  g.rect(ox + 15, oy + 2, 8, 6).fill(0xf4e4c1);
-  g.rect(ox + 16, oy + 3, 2, 2).fill(0x0a0510);
-  g.rect(ox + 20, oy + 3, 2, 2).fill(0x0a0510);
-  g.rect(ox + 17, oy + 6, 1, 2).fill(0x0a0510);
-  g.rect(ox + 19, oy + 6, 1, 2).fill(0x0a0510);
-  // Glowing red eyes inside the cave
-  g.rect(ox + 15, oy + 18, 2, 2).fill(0xd04848);
-  g.rect(ox + 21, oy + 18, 2, 2).fill(0xd04848);
-  // S badge — 12×10 chip with bevel + outline
-  drawBadge(g, ox + 13, oy + 24, 12, 10, 0xd04848, 0xf06868, 0x802020);
+  g.rect(ox + 2, oy + 2, 36, 36).fill(0x3a2818);
+  g.rect(ox + 4, oy + 4, 32, 32).fill(0x5a4030);
+  g.rect(ox + 10, oy + 6, 20, 28).fill(0x0a0510);
+  g.rect(ox + 8, oy + 8, 24, 24).fill(0x0a0510);
+  g.rect(ox + 6, oy + 10, 28, 20).fill(0x0a0510);
+  g.rect(ox + 12, oy + 10, 4, 2).fill(0x4a1838);
+  g.rect(ox + 24, oy + 28, 4, 2).fill(0x4a1838);
+  g.rect(ox + 10, oy + 20, 2, 4).fill(0x4a1838);
+  g.rect(ox + 28, oy + 16, 2, 4).fill(0x4a1838);
+  g.rect(ox + 14, oy + 12, 2, 2).fill(0xd04848);
+  g.rect(ox + 22, oy + 26, 2, 2).fill(0xd04848);
+  g.rect(ox + 10, oy + 18, 2, 2).fill(0xd04848);
+  g.rect(ox + 26, oy + 20, 2, 2).fill(0xd04848);
+  g.rect(ox + 16, oy + 14, 2, 2).fill(0xf06868);
+  g.rect(ox + 24, oy + 24, 2, 2).fill(0xf06868);
+  g.rect(ox + 16, oy + 16, 8, 8).fill(0x1a0818);
+  g.rect(ox + 18, oy + 18, 4, 4).fill(0xd04848);
+  g.rect(ox + 19, oy + 19, 2, 2).fill(0xf06868);
+  g.rect(ox + 4, oy + 4, 2, 4).fill(0x802020);
+  g.rect(ox + 34, oy + 4, 2, 4).fill(0x802020);
+  g.rect(ox + 4, oy + 32, 2, 4).fill(0x802020);
+  g.rect(ox + 34, oy + 32, 2, 4).fill(0x802020);
   layer.addChild(g);
-
-  const sLabel = makeMonoLabel("S", 7, 0xf4e4c1);
-  sLabel.x = ox + 13 + Math.round((12 - sLabel.width) / 2);
-  sLabel.y = oy + 24 + Math.round((10 - sLabel.height) / 2);
-  layer.addChild(sLabel);
 }
 
-/**
- * Crystal-shrine end marker.
- * Origin (ox, oy) is the top-left pixel of the 2×2 end region.
- */
-function drawCrystalShrine(layer: Container, ox: number, oy: number): void {
+function drawVictoryBeacon(layer: Container, ox: number, oy: number): void {
   const g = new Graphics();
-  // Halo — a few alpha-blended concentric circles centered on the crystal.
-  const cxh = ox + 18;
-  const cyh = oy + 16;
-  for (let i = 4; i >= 1; i--) {
-    g.circle(cxh, cyh, 6 + i * 4).fill({ color: 0x78a8f8, alpha: 0.1 });
+  const cx = ox + 20, cy = oy + 16;
+  for (let i = 3; i >= 0; i--) {
+    g.circle(cx, cy, 8 + i * 5).fill({ color: 0xf0c038, alpha: 0.06 + i * 0.02 });
   }
-  // Pedestal
-  g.rect(ox + 4, oy + 26, 36, 14).fill(0x5a4a6a);
-  g.rect(ox + 4, oy + 26, 36, 2).fill(0x7c66a4);
-  g.rect(ox + 2, oy + 36, 40, 4).fill(0x1a1428);
-  // Crystal shaft
-  g.rect(ox + 14, oy + 2, 10, 18).fill(CELL.crystalCore);
-  g.rect(ox + 14, oy + 2, 3, 18).fill(CELL.crystalLight);
-  g.rect(ox + 14, oy + 2, 1, 18).fill(0xffffff);
-  g.rect(ox + 22, oy + 2, 2, 18).fill(CELL.crystalDeep);
-  // Crystal tip
-  g.rect(ox + 16, oy + 0, 6, 2).fill(CELL.crystalCore);
-  g.rect(ox + 18, oy - 2, 2, 2).fill(0xffffff);
-  // E badge
-  drawBadge(g, ox + 14, oy + 30, 12, 10, 0xf0c038, 0xffe068, 0x886820);
+  g.rect(ox + 6, oy + 30, 28, 8).fill(0x5a4a6a);
+  g.rect(ox + 6, oy + 30, 28, 2).fill(0x7c66a4);
+  g.rect(ox + 4, oy + 36, 32, 4).fill(0x1a1428);
+  g.rect(ox + 17, oy + 4, 6, 26).fill(0xf0c038);
+  g.rect(ox + 17, oy + 4, 2, 26).fill(0xffe068);
+  g.rect(ox + 21, oy + 4, 2, 26).fill(0x886820);
+  g.rect(ox + 18, oy + 2, 4, 2).fill(0xffe068);
+  g.rect(ox + 19, oy + 0, 2, 2).fill(0xffffff);
+  g.rect(ox + 14, oy + 10, 2, 2).fill(0xffe068);
+  g.rect(ox + 25, oy + 14, 2, 2).fill(0xffe068);
+  g.rect(ox + 12, oy + 20, 2, 2).fill(0xffe068);
+  g.rect(ox + 27, oy + 8, 2, 2).fill(0xffe068);
+  g.rect(ox + 10, oy + 6, 1, 1).fill(0xf0c038);
+  g.rect(ox + 28, oy + 18, 1, 1).fill(0xf0c038);
+  g.rect(ox + 13, oy + 14, 1, 1).fill(0xf0c038);
+  g.rect(ox + 26, oy + 24, 1, 1).fill(0xf0c038);
   layer.addChild(g);
-
-  const eLabel = makeMonoLabel("E", 7, 0x1a1428);
-  eLabel.x = ox + 14 + Math.round((12 - eLabel.width) / 2);
-  eLabel.y = oy + 30 + Math.round((10 - eLabel.height) / 2);
-  layer.addChild(eLabel);
-}
-
-/** Beveled badge chip (used by S/E + flag numerals). 1px outer outline. */
-function drawBadge(
-  g: Graphics,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  fill: number,
-  hi: number,
-  lo: number,
-): void {
-  // 1px outer outline
-  g.rect(x - 1, y - 1, w + 2, h + 2).fill(0x1a1428);
-  // body + bevel
-  g.rect(x, y, w, h).fill(fill);
-  g.rect(x, y, w, 1).fill(hi);
-  g.rect(x, y, 1, h).fill(hi);
-  g.rect(x, y + h - 1, w, 1).fill(lo);
-  g.rect(x + w - 1, y, 1, h).fill(lo);
 }
 
 function makeMonoLabel(s: string, size: number, color: number): Text {
