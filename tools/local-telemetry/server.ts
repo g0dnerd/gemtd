@@ -90,8 +90,8 @@ const insertWaveCreepStat = db.prepare(
 );
 
 const insertWaveGemDamage = db.prepare(
-  `INSERT INTO wave_gem_damage (run_id, wave, gem, is_combo, damage, kills)
-   VALUES (?, ?, ?, ?, ?, ?)`,
+  `INSERT INTO wave_gem_damage (run_id, wave, gem, is_combo, combo_key, upgrade_tier, damage, kills)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 const ingestTx = db.transaction(
@@ -138,7 +138,7 @@ const ingestTx = db.transaction(
     }
     for (const wgd of waveGemDamage) {
       insertWaveGemDamage.run(
-        runId, wgd.wave, wgd.gem, wgd.isCombo ? 1 : 0, wgd.damage, wgd.kills,
+        runId, wgd.wave, wgd.gem, wgd.isCombo ? 1 : 0, wgd.comboKey ?? "", wgd.upgradeTier ?? 0, wgd.damage, wgd.kills,
       );
     }
   },
@@ -224,8 +224,11 @@ function handleStats(url: URL, res: ServerResponse): void {
   const gemDps = db.prepare(
     `SELECT t.gem, t.quality, count(*) as count,
             avg(t.total_damage) as avg_damage,
-            avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave
+            avg(t.total_damage * 1.0 / (r.wave_reached - t.placed_wave + 1)) as avg_dmg_per_wave,
+            avg(CASE WHEN rt.run_total > 0 THEN t.total_damage * 1.0 / rt.run_total ELSE 0 END) as avg_damage_share
      FROM towers t JOIN runs r ON t.run_id = r.run_id
+     JOIN (SELECT run_id, sum(total_damage) as run_total FROM towers GROUP BY run_id) rt
+       ON t.run_id = rt.run_id
      WHERE t.combo_key = '' ${childWhere("t.run_id")}
      GROUP BY t.gem, t.quality ORDER BY avg_dmg_per_wave DESC`,
   ).all(...vf.binds);
@@ -307,7 +310,7 @@ function handleStats(url: URL, res: ServerResponse): void {
 
   const gemDamageByWave = db.prepare(
     `SELECT wave, gem, is_combo, sum(damage) as total_damage,
-            sum(kills) as total_kills, count(*) as runs
+            sum(kills) as total_kills, count(DISTINCT run_id) as runs
      FROM wave_gem_damage WHERE 1=1 ${childWhere()}
      GROUP BY wave, gem, is_combo ORDER BY wave, gem`,
   ).all(...vf.binds);
@@ -315,9 +318,22 @@ function handleStats(url: URL, res: ServerResponse): void {
   const gemDamageSummary = db.prepare(
     `SELECT gem, is_combo, sum(damage) as total_damage,
             sum(kills) as total_kills,
-            avg(damage) as avg_damage_per_run_wave
+            sum(damage) * 1.0 / count(DISTINCT run_id) as avg_damage_per_run_wave
      FROM wave_gem_damage WHERE 1=1 ${childWhere()}
      GROUP BY gem, is_combo ORDER BY total_damage DESC`,
+  ).all(...vf.binds);
+
+  const waveHpPool = db.prepare(
+    `SELECT wave, sum(total_hp_spawned) * 1.0 / count(DISTINCT run_id) as avg_hp_pool
+     FROM wave_creep_stats WHERE 1=1 ${childWhere()}
+     GROUP BY wave ORDER BY wave`,
+  ).all(...vf.binds);
+
+  const comboDamageByWave = db.prepare(
+    `SELECT wave, combo_key, upgrade_tier, sum(damage) as total_damage,
+            sum(kills) as total_kills, count(DISTINCT run_id) as runs
+     FROM wave_gem_damage WHERE combo_key != '' ${childWhere()}
+     GROUP BY wave, combo_key, upgrade_tier ORDER BY wave, combo_key, upgrade_tier`,
   ).all(...vf.binds);
 
   json(res, {
@@ -338,6 +354,8 @@ function handleStats(url: URL, res: ServerResponse): void {
     creepKindSummary,
     gemDamageByWave,
     gemDamageSummary,
+    waveHpPool,
+    comboDamageByWave,
   });
 }
 
@@ -369,7 +387,7 @@ const TABLES: Record<string, string[]> = {
     "total_hp_spawned",
   ],
   wave_gem_damage: [
-    "run_id", "wave", "gem", "is_combo", "damage", "kills",
+    "run_id", "wave", "gem", "is_combo", "combo_key", "upgrade_tier", "damage", "kills",
   ],
 };
 

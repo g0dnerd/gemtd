@@ -19,6 +19,8 @@ export function openDb(): Database.Database {
     "0001_create_tables.sql",
     "0002_wave_pressure.sql",
     "0003_balance_telemetry.sql",
+    "0004_wave_gem_combo_key.sql",
+    "0005_wave_gem_upgrade_tier.sql",
   ];
 
   db.exec(
