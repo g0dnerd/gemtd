@@ -84,8 +84,8 @@ export const CHECKPOINT_ZONES: ReadonlyMap<
     [
       { x: 31, y: 22 },
       { x: 32, y: 22 },
-      { x: 32, y: 23 },
       { x: 32, y: 21 },
+      { x: 33, y: 22 },
     ],
   ],
   [
@@ -111,7 +111,7 @@ export const CHECKPOINT_ZONES: ReadonlyMap<
     [
       { x: 20, y: 33 },
       { x: 20, y: 34 },
-      { x: 19, y: 34 },
+      { x: 20, y: 35 },
       { x: 21, y: 34 },
     ],
   ],
