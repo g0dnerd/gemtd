@@ -663,6 +663,7 @@ class RemovalOptimizer:
 
         iteration = 0
         total_removals = 0
+        pure_removals = 0
         t_start = time.monotonic()
 
         while True:
@@ -712,6 +713,7 @@ class RemovalOptimizer:
                     f"  Swap position {best_swap} → ({best_cand[0]}, {best_cand[1]})"
                 )
             else:
+                pure_removals += 1
                 print("  Pure removal (no position swap)")
             print(
                 f"  Delta: +{best_delta:.1f}, "
@@ -737,6 +739,8 @@ class RemovalOptimizer:
 
         elapsed = time.monotonic() - t_start
         print(f"\nOptimization complete: {total_removals} removals in {iteration} iterations ({elapsed:.0f}s)")
+        if pure_removals:
+            print(f"  Pure removals (no swap): {pure_removals}/{total_removals}")
         print(f"  Fitness: {final_fitness:.1f}")
         print(f"  Path: {cp}")
         print(f"  Coverage: {wc:.1f}")
