@@ -122,6 +122,7 @@ def replay_rounds(
     snapshots_out: list[RoundSnapshot] | None = None,
     rocks_out: list[RockRecord] | None = None,
     keeper_indices_out: list[int] | None = None,
+    repaired_out: list[list[tuple[int, int]]] | None = None,
 ) -> tuple[int, float, float, float]:
     """Replay rounds [start_round, NUM_ROUNDS).
 
@@ -224,6 +225,9 @@ def replay_rounds(
 
         if keeper_indices_out is not None:
             keeper_indices_out.append(keeper_idx if placed else 0)
+
+        if repaired_out is not None:
+            repaired_out.append(list(placed) if placed else [(ox, oy) for ox, oy in positions])
 
         cumulative_path += len(flat_route)
 
@@ -693,13 +697,20 @@ class RemovalOptimizer:
 
             iteration += 1
 
-        # Final validation replay
+        # Final validation replay — capture repaired positions
         keeper_indices: list[int] = []
+        repaired_rounds: list[list[tuple[int, int]]] = []
         cp, wc, wd, wa = replay_rounds(
             self.chromosome, self.removals, self.base_grid, self.air_keeper_ratio,
             keeper_indices_out=keeper_indices,
+            repaired_out=repaired_rounds,
         )
         final_fitness = self._fitness(cp, wc, wd, wa)
+
+        n_repaired = sum(
+            1 for ri in range(len(repaired_rounds))
+            if repaired_rounds[ri] != list(self.chromosome[ri])
+        )
 
         elapsed = time.monotonic() - t_start
         print(f"\nOptimization complete: {total_removals} removals in {iteration} iterations ({elapsed:.0f}s)")
@@ -708,6 +719,8 @@ class RemovalOptimizer:
         print(f"  Coverage: {wc:.1f}")
         print(f"  Depth: {wd:.1f}")
         print(f"  Air: {wa:.1f}")
+        if n_repaired:
+            print(f"  Repaired positions in {n_repaired} rounds")
 
         return {
             "fitness": final_fitness,
@@ -715,7 +728,7 @@ class RemovalOptimizer:
             "weighted_coverage": wc,
             "weighted_depth": wd,
             "weighted_air": wa,
-            "rounds": self.chromosome,
+            "rounds": repaired_rounds,
             "removals": [[list(pos) for pos in r] for r in self.removals],
             "keeper_indices": keeper_indices,
         }
