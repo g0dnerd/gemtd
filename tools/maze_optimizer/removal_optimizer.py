@@ -121,6 +121,7 @@ def replay_rounds(
     init_w_air: float = 0.0,
     snapshots_out: list[RoundSnapshot] | None = None,
     rocks_out: list[RockRecord] | None = None,
+    keeper_indices_out: list[int] | None = None,
 ) -> tuple[int, float, float, float]:
     """Replay rounds [start_round, NUM_ROUNDS).
 
@@ -209,6 +210,8 @@ def replay_rounds(
                 placed, route_set, is_air, all_keepers, air_keeper_ratio
             )
             all_keepers.append(placed[keeper_idx])
+            if keeper_indices_out is not None:
+                keeper_indices_out.append(keeper_idx)
 
             rc, rd, ra = _compute_round_metrics(round_idx, all_keepers, route_set)
             weighted_coverage += rc
@@ -690,8 +693,10 @@ class RemovalOptimizer:
             iteration += 1
 
         # Final validation replay
+        keeper_indices: list[int] = []
         cp, wc, wd, wa = replay_rounds(
-            self.chromosome, self.removals, self.base_grid, self.air_keeper_ratio
+            self.chromosome, self.removals, self.base_grid, self.air_keeper_ratio,
+            keeper_indices_out=keeper_indices,
         )
         final_fitness = self._fitness(cp, wc, wd, wa)
 
@@ -711,4 +716,5 @@ class RemovalOptimizer:
             "weighted_air": wa,
             "rounds": self.chromosome,
             "removals": [[list(pos) for pos in r] for r in self.removals],
+            "keeper_indices": keeper_indices,
         }

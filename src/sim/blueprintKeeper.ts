@@ -27,9 +27,29 @@ export function exposureAt(
   return count;
 }
 
+/** Cells covered by a keeper at (x, y) that fall on the route. */
+function coveredCells(
+  x: number,
+  y: number,
+  routeSet: Set<string>,
+): string[] {
+  const cx = x + 1;
+  const cy = y + 1;
+  const out: string[] = [];
+  for (let dx = -KEEPER_RANGE; dx <= KEEPER_RANGE; dx++) {
+    for (let dy = -KEEPER_RANGE; dy <= KEEPER_RANGE; dy++) {
+      if (dx * dx + dy * dy > KEEPER_R2) continue;
+      const key = `${cx + dx},${cy + dy}`;
+      if (routeSet.has(key)) out.push(key);
+    }
+  }
+  return out;
+}
+
 export function computeKeeperIndices(blueprint: Blueprint): number[] {
   const grid: Cell[][] = BASE.grid.map((row) => row.slice());
   const keepers: number[] = [];
+  const coveredByKeepers = new Set<string>();
 
   for (let roundIdx = 0; roundIdx < blueprint.rounds.length; roundIdx++) {
     const positions = blueprint.rounds[roundIdx];
@@ -64,16 +84,27 @@ export function computeKeeperIndices(blueprint: Blueprint): number[] {
     const flat = segments ? flattenRoute(segments) : [];
     const routeSet = new Set(flat.map((p) => `${p.x},${p.y}`));
 
+    // Pick the position covering the most NEW route cells (matching Python select_keeper)
     let bestIdx = 0;
-    let bestExp = -1;
+    let bestScore = -1;
     for (let i = 0; i < placed.length; i++) {
-      const exp = exposureAt(placed[i].x, placed[i].y, routeSet);
-      if (exp > bestExp) {
-        bestExp = exp;
+      const cells = coveredCells(placed[i].x, placed[i].y, routeSet);
+      let newCount = 0;
+      for (const c of cells) {
+        if (!coveredByKeepers.has(c)) newCount++;
+      }
+      if (newCount > bestScore) {
+        bestScore = newCount;
         bestIdx = i;
       }
     }
     keepers.push(placed.length > 0 ? placed[bestIdx].idx : 0);
+
+    // Update coverage set with chosen keeper
+    if (placed.length > 0) {
+      const cells = coveredCells(placed[bestIdx].x, placed[bestIdx].y, routeSet);
+      for (const c of cells) coveredByKeepers.add(c);
+    }
 
     for (let i = 0; i < placed.length; i++) {
       if (i === bestIdx) continue;

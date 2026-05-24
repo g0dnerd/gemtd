@@ -38,6 +38,11 @@ def export_blueprint(blueprint_path: str, output_path: str) -> None:
             lines.append("  [],")
         lines.append("];\n")
 
+    keeper_indices = data.get("keeper_indices")
+    if keeper_indices:
+        entries = ", ".join(str(k) for k in keeper_indices)
+        lines.append(f"export const MAZE_KEEPER_INDICES: ReadonlyArray<number> = [{entries}];\n")
+
     with open(output_path, "w") as f:
         f.write("\n".join(lines))
 

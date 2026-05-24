@@ -34,7 +34,7 @@ import {
 import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES, type WaveDef } from "../data/waves";
-import { MAZE_BLUEPRINT, MAZE_REMOVALS } from "../data/maze-blueprint";
+import { MAZE_BLUEPRINT, MAZE_REMOVALS, MAZE_KEEPER_INDICES } from "../data/maze-blueprint";
 import { exposureAt } from "../sim/blueprintKeeper";
 import {
   CHANCE_TIER_UPGRADE_COST,
@@ -560,7 +560,9 @@ export class Game {
         rounds: MAZE_BLUEPRINT as [number, number][][],
         removals: MAZE_REMOVALS as [number, number][][],
       };
-      bp.keeperIndices = computeKeeperIndices(bp);
+      bp.keeperIndices = MAZE_KEEPER_INDICES
+        ? Array.from(MAZE_KEEPER_INDICES)
+        : computeKeeperIndices(bp);
       this.blueprint = bp;
     }
   }

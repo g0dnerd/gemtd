@@ -1,6 +1,6 @@
 import type { HeadlessGame } from '../HeadlessGame';
 import { GRID_H, GRID_W, isBuildable } from '../../data/map';
-import { MAZE_BLUEPRINT, MAZE_REMOVALS } from '../../data/maze-blueprint';
+import { MAZE_BLUEPRINT, MAZE_REMOVALS, MAZE_KEEPER_INDICES } from '../../data/maze-blueprint';
 import { findRoute, flattenRoute } from '../../systems/Pathfinding';
 import { gemStats } from '../../data/gems';
 import { GRID_SCALE } from '../../game/constants';
@@ -19,10 +19,12 @@ export class BlueprintAI extends GreedyAI {
 
   constructor() {
     super();
-    this.keeperIndices = computeKeeperIndices({
-      rounds: MAZE_BLUEPRINT as [number, number][][],
-      removals: MAZE_REMOVALS as [number, number][][],
-    });
+    this.keeperIndices = MAZE_KEEPER_INDICES
+      ? Array.from(MAZE_KEEPER_INDICES)
+      : computeKeeperIndices({
+          rounds: MAZE_BLUEPRINT as [number, number][][],
+          removals: MAZE_REMOVALS as [number, number][][],
+        });
   }
 
   protected override placeGems(game: HeadlessGame): void {
