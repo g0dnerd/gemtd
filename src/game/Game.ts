@@ -710,9 +710,24 @@ export class Game {
     const maxCatchUp = 120;
     const toSimulate = Math.min(maxCatchUp, (dtMs / 1000) * speed);
     this.accum += toSimulate;
-    while (this.accum >= SIM_DT) {
-      this.simStep();
-      this.accum -= SIM_DT;
+    const steps = Math.floor(this.accum / SIM_DT);
+    const muteThreshold = 4;
+    if (steps > muteThreshold) {
+      this.bus.muteVfx = true;
+      const unmutAt = steps - muteThreshold;
+      let i = 0;
+      while (this.accum >= SIM_DT) {
+        if (i === unmutAt) this.bus.muteVfx = false;
+        this.simStep();
+        this.accum -= SIM_DT;
+        i++;
+      }
+      this.bus.muteVfx = false;
+    } else {
+      while (this.accum >= SIM_DT) {
+        this.simStep();
+        this.accum -= SIM_DT;
+      }
     }
   }
 

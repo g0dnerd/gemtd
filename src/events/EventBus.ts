@@ -53,6 +53,7 @@ type Handler<T> = (payload: T) => void;
 
 export class EventBus {
   private listeners = new Map<keyof GameEvents, Set<Handler<unknown>>>();
+  muteVfx = false;
 
   on<K extends keyof GameEvents>(event: K, handler: Handler<GameEvents[K]>): () => void {
     let set = this.listeners.get(event);
@@ -67,6 +68,7 @@ export class EventBus {
   }
 
   emit<K extends keyof GameEvents>(event: K, payload: GameEvents[K]): void {
+    if (this.muteVfx && (event as string).startsWith('vfx:')) return;
     const set = this.listeners.get(event);
     if (!set) return;
     for (const handler of set) {
