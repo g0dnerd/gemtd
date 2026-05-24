@@ -66,7 +66,10 @@ interface CoinRainFx {
 
 interface ChainPulseFx {
   kind: 'chainPulse';
-  segments: Array<{ fromX: number; fromY: number; toX: number; toY: number }>;
+  segments: Array<{
+    fromX: number; fromY: number; toX: number; toY: number;
+    fromId: number; toId: number;
+  }>;
   age: number; lifetime: number;
 }
 
@@ -182,6 +185,7 @@ export class VfxRenderer {
         segments.push({
           fromX: e.points[i].x, fromY: e.points[i].y,
           toX: e.points[i + 1].x, toY: e.points[i + 1].y,
+          fromId: e.points[i].id, toId: e.points[i + 1].id,
         });
       }
       const lifetime = segments.length * 6 + 14;
@@ -234,7 +238,7 @@ export class VfxRenderer {
       fx.age++;
       if (fx.age >= fx.lifetime) continue;
       this.pool[write++] = fx;
-      this.draw(fx);
+      this.draw(fx, state);
     }
     this.pool.length = write;
 
@@ -259,7 +263,7 @@ export class VfxRenderer {
     if (this.gfx) this.gfx.clear();
   }
 
-  private draw(fx: Fx): void {
+  private draw(fx: Fx, state: State): void {
     const g = this.gfx!;
     const t = fx.age / fx.lifetime;
     const alpha = 1 - t;
@@ -319,24 +323,30 @@ export class VfxRenderer {
         const dotFlashFrames = 3;
         for (let i = 0; i < fx.segments.length; i++) {
           const seg = fx.segments[i];
+          const fromCreep = state.creeps.find(c => c.id === seg.fromId);
+          const toCreep = state.creeps.find(c => c.id === seg.toId);
+          const fx0 = fromCreep?.alive ? fromCreep.px : seg.fromX;
+          const fy0 = fromCreep?.alive ? fromCreep.py : seg.fromY;
+          const tx0 = toCreep?.alive ? toCreep.px : seg.toX;
+          const ty0 = toCreep?.alive ? toCreep.py : seg.toY;
           const segStart = i * segFrames;
           const segAge = fx.age - segStart;
           if (segAge < 0) continue;
           const ext = Math.min(segAge / segFrames, 1);
-          const ex = seg.fromX + (seg.toX - seg.fromX) * ext;
-          const ey = seg.fromY + (seg.toY - seg.fromY) * ext;
+          const ex = fx0 + (tx0 - fx0) * ext;
+          const ey = fy0 + (ty0 - fy0) * ext;
           const segFade = Math.max(0, 1 - Math.max(0, segAge - segFrames) / fadeFrames);
-          g.moveTo(seg.fromX, seg.fromY).lineTo(ex, ey)
+          g.moveTo(fx0, fy0).lineTo(ex, ey)
             .stroke({ width: 2, color: GEM_PALETTE.topaz.mid, alpha: segFade * 0.6 });
           if (ext >= 1) {
             const dotAge = segAge - segFrames;
             const dotAlpha = dotAge < dotFlashFrames ? 0.7 : segFade * 0.5;
             const dotRadius = dotAge < dotFlashFrames ? 3 : 2;
             const dotColor = dotAge < dotFlashFrames ? GEM_PALETTE.topaz.light : GEM_PALETTE.topaz.mid;
-            g.circle(seg.toX, seg.toY, dotRadius)
+            g.circle(tx0, ty0, dotRadius)
               .fill({ color: dotColor, alpha: dotAlpha });
             if (dotAge < dotFlashFrames) {
-              g.circle(seg.toX, seg.toY, 1)
+              g.circle(tx0, ty0, 1)
                 .fill({ color: 0xffffff, alpha: 0.6 * (1 - dotAge / dotFlashFrames) });
             }
           }
