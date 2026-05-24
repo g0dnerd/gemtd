@@ -256,9 +256,7 @@ function combineBody(): HTMLElement {
         html: `<b>Recipes:</b> specific gem + quality combos form a <b>special tower</b>. See the RECIPES panel for all combinations.`,
       },
     ]),
-    note(
-      `Only <b>kept</b> towers from previous rounds are eligible. The full combine menu (<kbd>C</kbd>) lets you pick towers manually.`,
-    ),
+    note(`Only <b>kept</b> towers from previous rounds are eligible.`),
   );
   return wrap;
 }
@@ -1089,7 +1087,6 @@ function keysBody(): HTMLElement {
     ["SPACE", "Start placement / next wave"],
     ["TAB", "Cycle draw slot (Shift = back)"],
     ["K", "Keep hovered or selected tower"],
-    ["C", "Open Combine menu"],
     "sep",
     ["U", "Undo last placement"],
     ["R", "Remove selected rock"],

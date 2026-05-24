@@ -17,7 +17,6 @@ import {
 } from "../render/htmlSprites";
 import { COMBOS, ComboRecipe } from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
-import { mountCombineModal } from "./CombineModal";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
 import { activeDraw, allDrawsPlaced, type TowerState } from "../game/State";
@@ -1487,10 +1486,6 @@ export function mountHud(
     }
   });
 
-  function openCombine(initialTab?: "level" | "recipe"): void {
-    mountCombineModal(root, game, initialTab);
-  }
-
   const onKey = (ev: KeyboardEvent) => {
     if (ev.key === "Shift") {
       shiftDown = true;
@@ -1514,8 +1509,6 @@ export function mountHud(
     } else if (ev.key === "8") {
       game.setSpeed(8);
       speedBtn.textContent = "8×";
-    } else if (ev.key === "c" || ev.key === "C") {
-      openCombine();
     } else if (ev.key === "Escape") {
       if (radialOpen) {
         closeRadial();

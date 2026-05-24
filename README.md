@@ -19,6 +19,6 @@ npm run build
 ## Architecture
 
 - **Game canvas** (PixiJS): board, gems, creeps, projectiles, FX.
-- **HUD chrome** (HTML/CSS): title screen, stat chips, stash, combine modal.
+- **HUD chrome** (HTML/CSS): title screen, stat chips, stash.
 - **Pure-data game content** under `src/data/` (gems, combos, waves, creeps, map).
 - **Sim** is fixed-step 60 Hz; render is decoupled.
