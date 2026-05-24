@@ -602,9 +602,8 @@ export class Game {
     }
   }
 
-  /** Cost in gold to demolish the next rock. Starts at 2 and grows by 1 per removal. */
   rockRemovalCost(): number {
-    return 2 + this.state.rocksRemoved;
+    return 0;
   }
 
   /** True when the rock can be removed: not currently in the same build phase it was placed in. */
@@ -628,22 +627,15 @@ export class Game {
       });
       return false;
     }
-    const cost = this.rockRemovalCost();
-    if (state.gold < cost) {
-      this.bus.emit("toast", { kind: "error", text: `Need ${cost}g` });
-      return false;
-    }
     for (const c of cells) {
       state.grid[c.y][c.x] = Cell.Grass;
     }
     state.rocks = state.rocks.filter((r) => r.id !== rockId);
-    state.gold -= cost;
     state.rocksRemoved += 1;
     if (state.selectedRockId === rockId) this.selectRock(null);
     this.refreshRoute();
-    this.bus.emit("gold:change", { gold: state.gold });
-    this.bus.emit("rock:remove", { id: rockId, cost });
-    this.bus.emit("toast", { kind: "good", text: `Rock cleared · −${cost}g` });
+    this.bus.emit("rock:remove", { id: rockId, cost: 0 });
+    this.bus.emit("toast", { kind: "good", text: "Rock cleared" });
     return true;
   }
 

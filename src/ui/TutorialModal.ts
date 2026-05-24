@@ -203,7 +203,7 @@ function goalBody(): HTMLElement {
       },
       {
         marker: htmlCoin(18),
-        html: `Kills earn <b>gold</b> for chance-tier upgrades, combines, and rock removal.`,
+        html: `Kills earn <b>gold</b> for chance-tier and combo gem upgrades.`,
       },
     ]),
     note(
@@ -304,6 +304,15 @@ function changesBody(): HTMLElement {
   const wrap = document.createElement("div");
 
   const versions: VersionEntry[] = [
+    {
+      ver: "1.5.9",
+      notes: [
+        {
+          tag: "bal",
+          text: "Rock removal is now free (no gold cost).",
+        },
+      ],
+    },
     {
       ver: "1.5.8",
       notes: [

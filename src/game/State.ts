@@ -224,7 +224,7 @@ export interface State {
   selectedRockId: number | null;
   /** Currently selected creep id (mutually exclusive with tower/rock). */
   selectedCreepId: number | null;
-  /** Lifetime count of rocks the player has demolished — drives removal cost scaling. */
+  /** Lifetime count of rocks the player has demolished. */
   rocksRemoved: number;
   /** Started with 1 life. */
   hardcore: boolean;

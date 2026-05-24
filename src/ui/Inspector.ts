@@ -105,9 +105,7 @@ function fingerprint(game: Game): string {
   const rockId = game.selectedRockId;
   if (rockId !== null) {
     const removable = game.canRemoveRock(rockId);
-    const cost = game.rockRemovalCost();
-    const affordable = game.state.gold >= cost;
-    return `rock|${rockId}|${game.state.phase}|${removable ? 1 : 0}|${affordable ? 1 : 0}|${cost}`;
+    return `rock|${rockId}|${game.state.phase}|${removable ? 1 : 0}`;
   }
   const id = game.selectedTowerId;
   const tower =
@@ -891,18 +889,16 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
   body.appendChild(hero);
 
   const removable = game.canRemoveRock(rockId);
-  const cost = game.rockRemovalCost();
-  const affordable = game.state.gold >= cost;
 
   const note = document.createElement("div");
   note.className = "inspector-effect";
   const noteLbl = document.createElement("div");
   noteLbl.className = "inspector-effect-label";
-  noteLbl.textContent = removable ? "DEMOLISH · COST" : "LOCKED · THIS ROUND";
+  noteLbl.textContent = removable ? "DEMOLISH" : "LOCKED · THIS ROUND";
   const noteTxt = document.createElement("div");
   noteTxt.className = "inspector-effect-text";
   noteTxt.textContent = removable
-    ? `${cost} gold — frees the 2×2 footprint`
+    ? "Frees the 2×2 footprint"
     : "Available once this build phase ends";
   note.append(noteLbl, noteTxt);
   body.appendChild(note);
@@ -911,8 +907,8 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
   actions.className = "inspector-actions";
   const remove = document.createElement("button");
   remove.className = "px-btn px-btn-bad";
-  remove.textContent = `↯ REMOVE · ${cost}G`;
-  remove.disabled = !removable || !affordable;
+  remove.textContent = "↯ REMOVE";
+  remove.disabled = !removable;
   remove.addEventListener("click", () => game.cmdRemoveRock(rockId));
   actions.append(remove);
   body.appendChild(actions);
