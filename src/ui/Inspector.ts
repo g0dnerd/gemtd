@@ -992,7 +992,10 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
   if (archetype?.blurb) {
     const blurb = document.createElement("div");
     blurb.className = "inspector-creep-blurb";
-    blurb.textContent = archetype.blurb;
+    blurb.textContent =
+      c.kind === "chrysalid" && c.chrysalidAwakened
+        ? "Awakened: 70% resistant to slow, stun and poison. +60% movement speed, +10 armor, dodges every 10th hit."
+        : archetype.blurb;
     body.appendChild(blurb);
   }
 
