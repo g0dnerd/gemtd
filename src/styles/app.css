@@ -840,6 +840,17 @@
     0 0 0 1px var(--px-border-dark);
   border-left: 3px solid var(--px-info);
   line-height: 1;
+  animation: chicletIn 200ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
+}
+.inspector-chiclet:nth-child(1) { animation-delay: 0ms; }
+.inspector-chiclet:nth-child(2) { animation-delay: 40ms; }
+.inspector-chiclet:nth-child(3) { animation-delay: 80ms; }
+.inspector-chiclet:nth-child(4) { animation-delay: 120ms; }
+.inspector-chiclet:nth-child(5) { animation-delay: 160ms; }
+.inspector-chiclet:nth-child(6) { animation-delay: 200ms; }
+@keyframes chicletIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 .inspector-chiclet .chiclet-lbl {
   font-family: "Press Start 2P", monospace;
@@ -950,7 +961,10 @@
   cursor: pointer;
   border-radius: 3px;
   border: 1px solid transparent;
-  transition: background-color 100ms ease, border-color 100ms ease;
+  transition: background-color 100ms ease, border-color 100ms ease, filter 100ms ease;
+}
+.lb-row:active {
+  filter: brightness(1.15);
 }
 .lb-sprite {
   flex-shrink: 0;
@@ -1068,7 +1082,7 @@
 .inspector-creep-hp-fill {
   height: 100%;
   background: var(--px-good);
-  transition: width 0.1s linear;
+  transition: width 160ms ease-out, background-color 300ms ease;
 }
 .inspector-creep-hp-fill.hp-warn {
   background: var(--px-accent);
