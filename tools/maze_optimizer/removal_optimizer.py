@@ -211,9 +211,6 @@ def replay_rounds(
             )
             all_keepers.append(placed[keeper_idx])
 
-        if keeper_indices_out is not None:
-            keeper_indices_out.append(keeper_idx if placed else 0)
-
             rc, rd, ra = _compute_round_metrics(round_idx, all_keepers, route_set)
             weighted_coverage += rc
             weighted_depth += rd
@@ -224,6 +221,9 @@ def replay_rounds(
                     place_tower(grid, px, py, Cell.Rock)
                     if rocks_out is not None:
                         rocks_out.append(RockRecord(px, py, round_idx))
+
+        if keeper_indices_out is not None:
+            keeper_indices_out.append(keeper_idx if placed else 0)
 
         cumulative_path += len(flat_route)
 
