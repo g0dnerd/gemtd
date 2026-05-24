@@ -225,7 +225,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "topaz",
+    visualGem: "amethyst",
   },
   {
     key: "jade",
@@ -707,6 +707,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [],
     visualGem: "diamond",
   },
+
   // ─── Runes (traps) ───────────────────────────────────────────────────────
   {
     key: "rune_holding",
