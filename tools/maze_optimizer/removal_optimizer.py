@@ -210,8 +210,9 @@ def replay_rounds(
                 placed, route_set, is_air, all_keepers, air_keeper_ratio
             )
             all_keepers.append(placed[keeper_idx])
-            if keeper_indices_out is not None:
-                keeper_indices_out.append(keeper_idx)
+
+        if keeper_indices_out is not None:
+            keeper_indices_out.append(keeper_idx if placed else 0)
 
             rc, rd, ra = _compute_round_metrics(round_idx, all_keepers, route_set)
             weighted_coverage += rc

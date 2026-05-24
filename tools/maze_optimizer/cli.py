@@ -115,6 +115,7 @@ def optimize_main(args: argparse.Namespace) -> None:
         "weighted_air": result["weighted_air"],
         "rounds": result["rounds"],
         "removals": result["removals"],
+        "keeper_indices": result["keeper_indices"],
     }
 
     with open(args.output, "w") as f:
