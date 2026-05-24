@@ -803,7 +803,7 @@ function computeAuraMults(towers: TowerState[], tick: number): AuraMults {
         const dx = tgt.x - src.x;
         const dy = tgt.y - src.y;
         if (dx * dx + dy * dy > r2) continue;
-        map.set(tgt.id, (map.get(tgt.id) ?? 0) + e.pct);
+        map.set(tgt.id, 1 - (1 - (map.get(tgt.id) ?? 0)) * (1 - e.pct));
       }
     }
   }

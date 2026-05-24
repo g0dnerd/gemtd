@@ -618,7 +618,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           dmgMin: 360,
           dmgMax: 500,
           range: 4.5,
-          atkSpeed: 0.8,
+          atkSpeed: 0.7,
           effects: [
             { kind: "splash", radius: 2.0, falloff: 0.5, chance: 1.0 },
             {

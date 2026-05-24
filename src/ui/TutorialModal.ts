@@ -305,6 +305,23 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.11",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Opal auras now stack with diminishing returns.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 50 gestation HP reduced 10%, inner spawn slow resist lowered.",
+        },
+        {
+          tag: "nerf",
+          text: "Ancient Paraiba attack speed reduced (0.8 → 0.7).",
+        },
+      ],
+    },
+    {
       ver: "1.5.10",
       notes: [
         {

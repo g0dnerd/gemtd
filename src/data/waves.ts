@@ -473,7 +473,7 @@ export const WAVES: WaveDef[] = [
       {
         kind: "gestation" as CreepKind,
         count: 1,
-        hp: 267000,
+        hp: 240300,
         bounty: 28,
         slowResist: 0.7,
         stunResist: 0.7,
@@ -497,7 +497,7 @@ export const WAVES: WaveDef[] = [
                     hp: 80000,
                     bounty: 0,
                     armor: 20,
-                    slowResist: 0.7,
+                    slowResist: 0.6,
                   },
                   {
                     kind: "mender" as CreepKind,
@@ -505,7 +505,7 @@ export const WAVES: WaveDef[] = [
                     hp: 75000,
                     bounty: 0,
                     armor: 16,
-                    slowResist: 0.6,
+                    slowResist: 0.5,
                   },
                 ],
               },
