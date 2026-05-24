@@ -1036,17 +1036,32 @@
   color: var(--px-accent);
   border-color: var(--px-accent);
 }
+.inspector-creep-blurb {
+  font-family: "VT323", monospace;
+  font-size: 15px;
+  color: var(--px-ink-dim);
+  line-height: 1.2;
+  padding: 0 4px;
+  margin-bottom: 8px;
+  font-style: italic;
+}
 .inspector-creep-hp {
-  padding: 4px 6px;
+  padding: 8px 10px;
+  margin-bottom: 8px;
+}
+.inspector-creep-hp-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
 }
 .inspector-creep-hp-nums {
   font-family: "VT323", monospace;
   font-size: 16px;
   color: var(--px-ink);
-  margin-bottom: 3px;
 }
 .inspector-creep-hp-track {
-  height: 6px;
+  height: 8px;
   background: var(--px-border-dark);
   box-shadow: inset 1px 1px 0 0 rgba(0, 0, 0, 0.3);
 }

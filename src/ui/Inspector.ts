@@ -16,6 +16,7 @@ import {
   nextUpgrade,
 } from "../data/combos";
 import { CreepState, TowerState } from "../game/State";
+import { CREEP_ARCHETYPES } from "../data/creeps";
 import { towerLevel } from "../systems/Combat";
 import { SIM_HZ } from "../game/constants";
 
@@ -848,6 +849,13 @@ const CREEP_KIND_NAMES: Record<string, string> = {
   mender: "MENDER",
   wizard: "WIZARD",
   burrower: "BURROWER",
+  vessel: "VESSEL",
+  gazer: "GAZER",
+  coral: "CORAL",
+  anemone: "ANEMONE",
+  chrysalid: "CHRYSALID",
+  mycoid: "MYCOID",
+  gestation: "GESTATION",
 };
 
 const ABILITY_DESC: Record<string, string> = {
@@ -885,16 +893,28 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
     body.appendChild(flagRow);
   }
 
-  // HP bar
+  // Blurb (archetype description)
+  const archetype = CREEP_ARCHETYPES[c.kind as keyof typeof CREEP_ARCHETYPES];
+  if (archetype?.blurb) {
+    const blurb = document.createElement("div");
+    blurb.className = "inspector-creep-blurb";
+    blurb.textContent = archetype.blurb;
+    body.appendChild(blurb);
+  }
+
+  // HP bar (inset card)
   const hpRow = document.createElement("div");
-  hpRow.className = "inspector-creep-hp";
+  hpRow.className = "px-panel-inset inspector-creep-hp";
+  const hpHead = document.createElement("div");
+  hpHead.className = "inspector-creep-hp-head";
   const hpLabel = document.createElement("div");
-  hpLabel.className = "inspector-effect-label";
-  hpLabel.textContent = "HIT POINTS";
+  hpLabel.className = "inspector-stat-label-sm";
+  hpLabel.textContent = "HP";
   const hpNums = document.createElement("div");
   hpNums.className = "inspector-creep-hp-nums";
   const pct = Math.max(0, Math.min(100, (c.hp / c.maxHp) * 100));
   hpNums.textContent = `${Math.ceil(c.hp)} / ${c.maxHp}  (${pct.toFixed(0)}%)`;
+  hpHead.append(hpLabel, hpNums);
   const hpTrack = document.createElement("div");
   hpTrack.className = "inspector-creep-hp-track";
   const hpFill = document.createElement("div");
@@ -903,7 +923,7 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
   if (pct < 25) hpFill.classList.add("hp-crit");
   else if (pct < 50) hpFill.classList.add("hp-warn");
   hpTrack.appendChild(hpFill);
-  hpRow.append(hpLabel, hpNums, hpTrack);
+  hpRow.append(hpHead, hpTrack);
   body.appendChild(hpRow);
 
   // Stats grid — speed + bounty + optional slow resist
