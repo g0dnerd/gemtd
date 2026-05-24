@@ -7,6 +7,7 @@ export default defineConfig({
   build: {
     target: "es2022",
     sourcemap: true,
+    chunkSizeWarningLimit: 600,
   },
   define: {
     __GAME_VERSION__: JSON.stringify(pkg.version),
