@@ -45,6 +45,7 @@ interface WaveGemDamage {
   gem: string;
   isCombo: boolean;
   comboKey: string;
+  upgradeTier: number;
   damage: number;
   kills: number;
 }
@@ -255,13 +256,14 @@ export class TelemetryCollector {
           if (dmgDelta <= 0 && killsDelta <= 0) continue;
           const isCombo = !!t.comboKey;
           const comboKey = t.comboKey || "";
-          const key = `${t.gem}:${isCombo ? 1 : 0}:${comboKey}`;
+          const tier = t.upgradeTier ?? 0;
+          const key = `${t.gem}:${isCombo ? 1 : 0}:${comboKey}:${tier}`;
           const existing = gemDmg.get(key);
           if (existing) {
             existing.damage += dmgDelta;
             existing.kills += killsDelta;
           } else {
-            gemDmg.set(key, { wave: s.wave, gem: t.gem, isCombo, comboKey, damage: dmgDelta, kills: killsDelta });
+            gemDmg.set(key, { wave: s.wave, gem: t.gem, isCombo, comboKey, upgradeTier: tier, damage: dmgDelta, kills: killsDelta });
           }
         }
         for (const entry of gemDmg.values()) {

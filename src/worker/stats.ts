@@ -203,10 +203,10 @@ export async function handleStats(
     ).bind(...cBind).all(),
 
     db.prepare(
-      `SELECT wave, combo_key, sum(damage) as total_damage,
+      `SELECT wave, combo_key, upgrade_tier, sum(damage) as total_damage,
               sum(kills) as total_kills, count(*) as runs
        FROM wave_gem_damage WHERE combo_key != '' ${cv}
-       GROUP BY wave, combo_key ORDER BY wave, combo_key`,
+       GROUP BY wave, combo_key, upgrade_tier ORDER BY wave, combo_key, upgrade_tier`,
     ).bind(...cBind).all(),
   ]);
 

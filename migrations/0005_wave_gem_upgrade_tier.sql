@@ -1,0 +1,1 @@
+ALTER TABLE wave_gem_damage ADD COLUMN upgrade_tier INTEGER NOT NULL DEFAULT 0;

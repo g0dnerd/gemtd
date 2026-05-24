@@ -1103,7 +1103,7 @@ function renderComboTable(combos, globalAvgWave, comboDmgByWave, allGemDmgByWave
 
   const comboWaves = {};
   (comboDmgByWave || []).forEach(r => {
-    const ck = r.combo_key;
+    const ck = r.combo_key + ':' + (Number(r.upgrade_tier) || 0);
     if (!comboWaves[ck]) comboWaves[ck] = [];
     comboWaves[ck].push({ wave: Number(r.wave), damage: Number(r.total_damage), runs: Number(r.runs) });
   });
@@ -1123,7 +1123,6 @@ function renderComboTable(combos, globalAvgWave, comboDmgByWave, allGemDmgByWave
     };
   });
 
-  const seenCombo = {};
   const maxDmg = Math.max(...combos.map(r => Number(r.avg_damage)));
   tbody.innerHTML = combos.map(r => {
     const tier = Number(r.tier) || 0;
@@ -1137,9 +1136,7 @@ function renderComboTable(combos, globalAvgWave, comboDmgByWave, allGemDmgByWave
     const deltaStr = isNaN(delta) ? '\\u2014'
       : (delta >= 0 ? '+' : '') + delta.toFixed(1);
     const deltaColor = isNaN(delta) ? '' : delta >= 0 ? 'color:' + C.green : 'color:' + C.red;
-    const firstTier = !seenCombo[r.combo_key];
-    seenCombo[r.combo_key] = true;
-    const sn = firstTier ? comboNorm[r.combo_key] : null;
+    const sn = comboNorm[r.combo_key + ':' + tier];
     const shareStr = sn ? (sn.avgShare * 100).toFixed(1) + '%' : '\\u2014';
     const normStr = sn ? (sn.avgNorm * 100).toFixed(1) + '%' : '\\u2014';
     return '<tr><td style="font-weight:500">' + name + badge + '</td>' +
