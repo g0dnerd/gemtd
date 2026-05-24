@@ -67,6 +67,7 @@ export class Game {
   readonly bus = new EventBus();
   readonly state: State;
   readonly rng: RNG;
+  readonly seed: number;
   readonly app: Application;
 
   readonly board: Container;
@@ -131,9 +132,8 @@ export class Game {
 
   constructor(app: Application) {
     this.app = app;
-    this.rng = new RNG(
-      (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0,
-    );
+    this.seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
+    this.rng = new RNG(this.seed);
 
     const grid: Cell[][] = BASE.grid.map((row) => row.slice());
     this.state = emptyState(grid, WAVES.length);
@@ -216,6 +216,7 @@ export class Game {
     this.state.totalKills = 0;
     this.state.speed = this.loadStoredSpeed();
     this.state.totalWaves = WAVES.length;
+    this.state.endless = false;
     this.state.debugWaveDef = undefined;
     this.state.gemWeaknesses = this.generateWeaknesses();
     // Reset grid
@@ -230,6 +231,18 @@ export class Game {
 
   restartGame(): void {
     this.newGame(this.state.hardcore ? 1 : START_LIVES);
+  }
+
+  newEndlessGame(): void {
+    this.newGame(START_LIVES);
+    this.state.endless = true;
+  }
+
+  continueEndless(): void {
+    this.state.endless = true;
+    this.state.phase = "build";
+    this.enterBuild();
+    this.bus.emit("phase:enter", { phase: "build" });
   }
 
   /** Debug mode: place gems along the blueprint maze, one wave of every creep kind. */
@@ -508,7 +521,7 @@ export class Game {
       this.bus.emit("phase:enter", { phase: "gameover" });
       return;
     }
-    if (this.state.wave >= this.state.totalWaves) {
+    if (this.state.wave >= this.state.totalWaves && !this.state.endless) {
       this.state.phase = "victory";
       this.bus.emit("phase:enter", { phase: "victory" });
       return;
@@ -856,7 +869,36 @@ export class Game {
     if (state.draws.length > 0 || state.designatedKeepTowerId !== null)
       return false;
     this.buildPhase.rollDraws();
+    if (this.blueprintMode && this.blueprint) {
+      this.clearBlueprintRocks();
+    }
     return true;
+  }
+
+  private clearBlueprintRocks(): void {
+    const bp = this.blueprint!;
+    const roundIdx = this.state.wave - 1;
+    if (roundIdx < 0 || roundIdx >= bp.rounds.length) return;
+
+    const removals = bp.removals?.[roundIdx] ?? [];
+    for (const [rx, ry] of removals) {
+      const rock = this.state.rocks.find((r) => r.x === rx && r.y === ry);
+      if (rock) this.cmdRemoveRock(rock.id);
+    }
+
+    const keeperIdx = bp.keeperIndices?.[roundIdx] ?? 0;
+    const positions = bp.rounds[roundIdx];
+    if (keeperIdx >= 0 && keeperIdx < positions.length) {
+      const [kx, ky] = positions[keeperIdx];
+      const removed = new Set<number>();
+      for (const [dx, dy] of [[0,0],[1,0],[0,1],[1,1]] as const) {
+        const rock = this.state.rocks.find((r) => r.x === kx + dx && r.y === ky + dy);
+        if (rock && !removed.has(rock.id)) {
+          removed.add(rock.id);
+          this.cmdRemoveRock(rock.id);
+        }
+      }
+    }
   }
   cmdSetActiveSlot(slotId: number): void {
     this.buildPhase.setActiveSlot(slotId);
