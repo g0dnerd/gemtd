@@ -1,0 +1,1669 @@
+{
+  "version": 1,
+  "git": {
+    "commit": "1c0adfc40ca0e3f6ba06b1644ee1b01b3259e2cd",
+    "shortHash": "1c0adfc",
+    "message": "fix: restore metrics and rock placement outside keeper_indices guard",
+    "date": "2026-05-24T16:38:21+02:00",
+    "branch": "main",
+    "dirty": true
+  },
+  "timestamp": "2026-05-24T15:05:03.703Z",
+  "config": {
+    "seedCount": 50,
+    "aiNames": [
+      "GreedyAI",
+      "BlueprintAI",
+      "StrategistAI"
+    ]
+  },
+  "ais": {
+    "GreedyAI": {
+      "aggregate": {
+        "medianWave": 15,
+        "meanWave": 14.2,
+        "p10Wave": 11,
+        "p90Wave": 20,
+        "minWave": 10,
+        "maxWave": 21,
+        "meanGold": 139,
+        "meanLives": 9.7,
+        "victoryRate": 0
+      },
+      "gemDamageShare": {
+        "sapphire": 10.9,
+        "emerald": 23.6,
+        "ruby": 16.1,
+        "topaz": 12.7,
+        "diamond": 14.1,
+        "amethyst": 16.1,
+        "opal": 0.6,
+        "aquamarine": 5.9
+      },
+      "gemKillShare": {
+        "sapphire": 15.5,
+        "emerald": 28.7,
+        "ruby": 10.4,
+        "topaz": 6.5,
+        "diamond": 11.9,
+        "amethyst": 20.2,
+        "opal": 0.4,
+        "aquamarine": 6.3
+      },
+      "dpsVsHp": [
+        {
+          "wave": 1,
+          "avgDps": 1081,
+          "avgHp": 910,
+          "ratio": 1.19
+        },
+        {
+          "wave": 2,
+          "avgDps": 1880,
+          "avgHp": 1575,
+          "ratio": 1.19
+        },
+        {
+          "wave": 3,
+          "avgDps": 2299,
+          "avgHp": 1938,
+          "ratio": 1.19
+        },
+        {
+          "wave": 4,
+          "avgDps": 4648,
+          "avgHp": 4275,
+          "ratio": 1.09
+        },
+        {
+          "wave": 5,
+          "avgDps": 5591,
+          "avgHp": 5489,
+          "ratio": 1.02
+        },
+        {
+          "wave": 6,
+          "avgDps": 8921,
+          "avgHp": 8500,
+          "ratio": 1.05
+        },
+        {
+          "wave": 7,
+          "avgDps": 10629,
+          "avgHp": 10108,
+          "ratio": 1.05
+        },
+        {
+          "wave": 8,
+          "avgDps": 3996,
+          "avgHp": 3096,
+          "ratio": 1.29
+        },
+        {
+          "wave": 9,
+          "avgDps": 19032,
+          "avgHp": 19370,
+          "ratio": 0.98
+        },
+        {
+          "wave": 10,
+          "avgDps": 33466,
+          "avgHp": 42000,
+          "ratio": 0.8
+        },
+        {
+          "wave": 11,
+          "avgDps": 41974,
+          "avgHp": 38450,
+          "ratio": 1.09
+        },
+        {
+          "wave": 12,
+          "avgDps": 42952,
+          "avgHp": 45800,
+          "ratio": 0.94
+        },
+        {
+          "wave": 13,
+          "avgDps": 48989,
+          "avgHp": 41279,
+          "ratio": 1.19
+        },
+        {
+          "wave": 14,
+          "avgDps": 13556,
+          "avgHp": 12006,
+          "ratio": 1.13
+        },
+        {
+          "wave": 15,
+          "avgDps": 149186,
+          "avgHp": 157085,
+          "ratio": 0.95
+        },
+        {
+          "wave": 16,
+          "avgDps": 84453,
+          "avgHp": 84436,
+          "ratio": 1
+        },
+        {
+          "wave": 17,
+          "avgDps": 104996,
+          "avgHp": 98736,
+          "ratio": 1.06
+        },
+        {
+          "wave": 18,
+          "avgDps": 88791,
+          "avgHp": 88290,
+          "ratio": 1.01
+        },
+        {
+          "wave": 19,
+          "avgDps": 41003,
+          "avgHp": 38994,
+          "ratio": 1.05
+        },
+        {
+          "wave": 20,
+          "avgDps": 189806,
+          "avgHp": 297100,
+          "ratio": 0.64
+        },
+        {
+          "wave": 21,
+          "avgDps": 186233,
+          "avgHp": 194210,
+          "ratio": 0.96
+        }
+      ],
+      "perSeed": [
+        {
+          "seed": 1,
+          "wave": 11,
+          "gold": 24,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 2,
+          "wave": 12,
+          "gold": 88,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 3,
+          "wave": 15,
+          "gold": 139,
+          "lives": 9,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 4,
+          "wave": 12,
+          "gold": 136,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 5,
+          "wave": 21,
+          "gold": 69,
+          "lives": 0,
+          "towers": 21,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 6,
+          "wave": 15,
+          "gold": 116,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 7,
+          "wave": 20,
+          "gold": 217,
+          "lives": 0,
+          "towers": 20,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 8,
+          "wave": 15,
+          "gold": 179,
+          "lives": 19,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 9,
+          "wave": 15,
+          "gold": 49,
+          "lives": 40,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 10,
+          "wave": 12,
+          "gold": 91,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 11,
+          "wave": 13,
+          "gold": 56,
+          "lives": 0,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 12,
+          "wave": 15,
+          "gold": 61,
+          "lives": 1,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 13,
+          "wave": 12,
+          "gold": 161,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 14,
+          "wave": 15,
+          "gold": 193,
+          "lives": 10,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 15,
+          "wave": 15,
+          "gold": 160,
+          "lives": 17,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 16,
+          "wave": 15,
+          "gold": 131,
+          "lives": 48,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 17,
+          "wave": 20,
+          "gold": 160,
+          "lives": 0,
+          "towers": 16,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 18,
+          "wave": 20,
+          "gold": 264,
+          "lives": 0,
+          "towers": 20,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 19,
+          "wave": 15,
+          "gold": 88,
+          "lives": 36,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 20,
+          "wave": 15,
+          "gold": 242,
+          "lives": 20,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 21,
+          "wave": 15,
+          "gold": 266,
+          "lives": 29,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 22,
+          "wave": 11,
+          "gold": 10,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 23,
+          "wave": 13,
+          "gold": 59,
+          "lives": 0,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 24,
+          "wave": 15,
+          "gold": 151,
+          "lives": 17,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 25,
+          "wave": 15,
+          "gold": 198,
+          "lives": 11,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 26,
+          "wave": 21,
+          "gold": 280,
+          "lives": 0,
+          "towers": 21,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 27,
+          "wave": 15,
+          "gold": 205,
+          "lives": 15,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 28,
+          "wave": 20,
+          "gold": 159,
+          "lives": 0,
+          "towers": 18,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 29,
+          "wave": 15,
+          "gold": 186,
+          "lives": 1,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 30,
+          "wave": 12,
+          "gold": 128,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 31,
+          "wave": 13,
+          "gold": 36,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 32,
+          "wave": 13,
+          "gold": 190,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 33,
+          "wave": 15,
+          "gold": 241,
+          "lives": 37,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 34,
+          "wave": 15,
+          "gold": 97,
+          "lives": 48,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 35,
+          "wave": 11,
+          "gold": 148,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 36,
+          "wave": 12,
+          "gold": 119,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 37,
+          "wave": 11,
+          "gold": 68,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 38,
+          "wave": 13,
+          "gold": 173,
+          "lives": 0,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 39,
+          "wave": 11,
+          "gold": 89,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 40,
+          "wave": 15,
+          "gold": 114,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 41,
+          "wave": 12,
+          "gold": 119,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 42,
+          "wave": 15,
+          "gold": 218,
+          "lives": 0,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 43,
+          "wave": 12,
+          "gold": 113,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 44,
+          "wave": 13,
+          "gold": 152,
+          "lives": 0,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 45,
+          "wave": 10,
+          "gold": 78,
+          "lives": 0,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 46,
+          "wave": 12,
+          "gold": 105,
+          "lives": 0,
+          "towers": 12,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 47,
+          "wave": 13,
+          "gold": 160,
+          "lives": 0,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 48,
+          "wave": 13,
+          "gold": 145,
+          "lives": 0,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 49,
+          "wave": 15,
+          "gold": 249,
+          "lives": 26,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 50,
+          "wave": 13,
+          "gold": 61,
+          "lives": 0,
+          "towers": 13,
+          "outcome": "gameover"
+        }
+      ]
+    },
+    "BlueprintAI": {
+      "aggregate": {
+        "medianWave": 10,
+        "meanWave": 11,
+        "p10Wave": 10,
+        "p90Wave": 15,
+        "minWave": 9,
+        "maxWave": 15,
+        "meanGold": 93,
+        "meanLives": 50,
+        "victoryRate": 0
+      },
+      "gemDamageShare": {
+        "sapphire": 16.1,
+        "emerald": 37.7,
+        "ruby": 10.1,
+        "amethyst": 9.8,
+        "aquamarine": 7.1,
+        "diamond": 11.6,
+        "topaz": 6.9,
+        "opal": 0.8
+      },
+      "gemKillShare": {
+        "sapphire": 23.6,
+        "emerald": 42.5,
+        "ruby": 7.3,
+        "amethyst": 9.7,
+        "aquamarine": 5.6,
+        "diamond": 6.6,
+        "topaz": 3.8,
+        "opal": 1
+      },
+      "dpsVsHp": [
+        {
+          "wave": 1,
+          "avgDps": 1081,
+          "avgHp": 910,
+          "ratio": 1.19
+        },
+        {
+          "wave": 2,
+          "avgDps": 1850,
+          "avgHp": 1575,
+          "ratio": 1.17
+        },
+        {
+          "wave": 3,
+          "avgDps": 2250,
+          "avgHp": 1938,
+          "ratio": 1.16
+        },
+        {
+          "wave": 4,
+          "avgDps": 4654,
+          "avgHp": 4275,
+          "ratio": 1.09
+        },
+        {
+          "wave": 5,
+          "avgDps": 5632,
+          "avgHp": 5489,
+          "ratio": 1.03
+        },
+        {
+          "wave": 6,
+          "avgDps": 8912,
+          "avgHp": 8500,
+          "ratio": 1.05
+        },
+        {
+          "wave": 7,
+          "avgDps": 10559,
+          "avgHp": 10108,
+          "ratio": 1.04
+        },
+        {
+          "wave": 8,
+          "avgDps": 3546,
+          "avgHp": 3096,
+          "ratio": 1.15
+        },
+        {
+          "wave": 9,
+          "avgDps": 19563,
+          "avgHp": 19370,
+          "ratio": 1.01
+        },
+        {
+          "wave": 10,
+          "avgDps": 36867,
+          "avgHp": 42000,
+          "ratio": 0.88
+        },
+        {
+          "wave": 11,
+          "avgDps": 52811,
+          "avgHp": 38450,
+          "ratio": 1.37
+        },
+        {
+          "wave": 12,
+          "avgDps": 46736,
+          "avgHp": 45800,
+          "ratio": 1.02
+        },
+        {
+          "wave": 13,
+          "avgDps": 58519,
+          "avgHp": 41279,
+          "ratio": 1.42
+        },
+        {
+          "wave": 14,
+          "avgDps": 13575,
+          "avgHp": 12006,
+          "ratio": 1.13
+        },
+        {
+          "wave": 15,
+          "avgDps": 104083,
+          "avgHp": 134100,
+          "ratio": 0.78
+        }
+      ],
+      "perSeed": [
+        {
+          "seed": 1,
+          "wave": 10,
+          "gold": 80,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 2,
+          "wave": 10,
+          "gold": 35,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 3,
+          "wave": 10,
+          "gold": 115,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 4,
+          "wave": 10,
+          "gold": 70,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 5,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 6,
+          "wave": 10,
+          "gold": 85,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 7,
+          "wave": 10,
+          "gold": 105,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 8,
+          "wave": 10,
+          "gold": 85,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 9,
+          "wave": 10,
+          "gold": 85,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 10,
+          "wave": 10,
+          "gold": 70,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 11,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 12,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 13,
+          "wave": 15,
+          "gold": 35,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 14,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 15,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 16,
+          "wave": 15,
+          "gold": 45,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 17,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 18,
+          "wave": 10,
+          "gold": 60,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 19,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 20,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 21,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 22,
+          "wave": 10,
+          "gold": 90,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 23,
+          "wave": 10,
+          "gold": 115,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 24,
+          "wave": 10,
+          "gold": 115,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 25,
+          "wave": 15,
+          "gold": 95,
+          "lives": 50,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 26,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 27,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 28,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 29,
+          "wave": 10,
+          "gold": 115,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 30,
+          "wave": 10,
+          "gold": 115,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 31,
+          "wave": 10,
+          "gold": 85,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 32,
+          "wave": 15,
+          "gold": 35,
+          "lives": 50,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 33,
+          "wave": 9,
+          "gold": 143,
+          "lives": 50,
+          "towers": 7,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 34,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 35,
+          "wave": 10,
+          "gold": 75,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 36,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 37,
+          "wave": 15,
+          "gold": 67,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 38,
+          "wave": 10,
+          "gold": 85,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 39,
+          "wave": 15,
+          "gold": 104,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 40,
+          "wave": 15,
+          "gold": 86,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 41,
+          "wave": 10,
+          "gold": 85,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 42,
+          "wave": 10,
+          "gold": 60,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 43,
+          "wave": 10,
+          "gold": 115,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 44,
+          "wave": 9,
+          "gold": 64,
+          "lives": 50,
+          "towers": 9,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 45,
+          "wave": 13,
+          "gold": 97,
+          "lives": 50,
+          "towers": 11,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 46,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 47,
+          "wave": 9,
+          "gold": 60,
+          "lives": 50,
+          "towers": 9,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 48,
+          "wave": 15,
+          "gold": 14,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 49,
+          "wave": 15,
+          "gold": 126,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 50,
+          "wave": 15,
+          "gold": 144,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        }
+      ]
+    },
+    "StrategistAI": {
+      "aggregate": {
+        "medianWave": 15,
+        "meanWave": 13.1,
+        "p10Wave": 10,
+        "p90Wave": 15,
+        "minWave": 10,
+        "maxWave": 20,
+        "meanGold": 111,
+        "meanLives": 50,
+        "victoryRate": 0
+      },
+      "gemDamageShare": {
+        "sapphire": 9.8,
+        "emerald": 27.5,
+        "ruby": 13.2,
+        "topaz": 9.5,
+        "aquamarine": 5.1,
+        "diamond": 16.2,
+        "amethyst": 18.3,
+        "opal": 0.3
+      },
+      "gemKillShare": {
+        "sapphire": 17,
+        "emerald": 32.8,
+        "ruby": 8.6,
+        "aquamarine": 4.1,
+        "topaz": 6.2,
+        "diamond": 12.9,
+        "amethyst": 18,
+        "opal": 0.3
+      },
+      "dpsVsHp": [
+        {
+          "wave": 1,
+          "avgDps": 1081,
+          "avgHp": 910,
+          "ratio": 1.19
+        },
+        {
+          "wave": 2,
+          "avgDps": 1880,
+          "avgHp": 1575,
+          "ratio": 1.19
+        },
+        {
+          "wave": 3,
+          "avgDps": 2262,
+          "avgHp": 1938,
+          "ratio": 1.17
+        },
+        {
+          "wave": 4,
+          "avgDps": 4681,
+          "avgHp": 4275,
+          "ratio": 1.09
+        },
+        {
+          "wave": 5,
+          "avgDps": 5648,
+          "avgHp": 5489,
+          "ratio": 1.03
+        },
+        {
+          "wave": 6,
+          "avgDps": 8979,
+          "avgHp": 8500,
+          "ratio": 1.06
+        },
+        {
+          "wave": 7,
+          "avgDps": 10631,
+          "avgHp": 10108,
+          "ratio": 1.05
+        },
+        {
+          "wave": 8,
+          "avgDps": 3649,
+          "avgHp": 3096,
+          "ratio": 1.18
+        },
+        {
+          "wave": 9,
+          "avgDps": 19653,
+          "avgHp": 19370,
+          "ratio": 1.01
+        },
+        {
+          "wave": 10,
+          "avgDps": 41028,
+          "avgHp": 42000,
+          "ratio": 0.98
+        },
+        {
+          "wave": 11,
+          "avgDps": 54955,
+          "avgHp": 38450,
+          "ratio": 1.43
+        },
+        {
+          "wave": 12,
+          "avgDps": 46977,
+          "avgHp": 45800,
+          "ratio": 1.03
+        },
+        {
+          "wave": 13,
+          "avgDps": 56807,
+          "avgHp": 41279,
+          "ratio": 1.38
+        },
+        {
+          "wave": 14,
+          "avgDps": 14323,
+          "avgHp": 12006,
+          "ratio": 1.19
+        },
+        {
+          "wave": 15,
+          "avgDps": 129511,
+          "avgHp": 145940,
+          "ratio": 0.89
+        },
+        {
+          "wave": 16,
+          "avgDps": 87073,
+          "avgHp": 84436,
+          "ratio": 1.03
+        },
+        {
+          "wave": 17,
+          "avgDps": 102239,
+          "avgHp": 98736,
+          "ratio": 1.04
+        },
+        {
+          "wave": 18,
+          "avgDps": 89212,
+          "avgHp": 88290,
+          "ratio": 1.01
+        },
+        {
+          "wave": 19,
+          "avgDps": 41461,
+          "avgHp": 38994,
+          "ratio": 1.06
+        },
+        {
+          "wave": 20,
+          "avgDps": 328984,
+          "avgHp": 297100,
+          "ratio": 1.11
+        }
+      ],
+      "perSeed": [
+        {
+          "seed": 1,
+          "wave": 15,
+          "gold": 91,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 2,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 3,
+          "wave": 10,
+          "gold": 105,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 4,
+          "wave": 15,
+          "gold": 126,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 5,
+          "wave": 15,
+          "gold": 114,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 6,
+          "wave": 15,
+          "gold": 43,
+          "lives": 50,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 7,
+          "wave": 15,
+          "gold": 110,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 8,
+          "wave": 15,
+          "gold": 106,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 9,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 10,
+          "wave": 15,
+          "gold": 49,
+          "lives": 50,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 11,
+          "wave": 15,
+          "gold": 105,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 12,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 13,
+          "wave": 15,
+          "gold": 130,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 14,
+          "wave": 15,
+          "gold": 63,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 15,
+          "wave": 15,
+          "gold": 146,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 16,
+          "wave": 15,
+          "gold": 144,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 17,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 18,
+          "wave": 15,
+          "gold": 89,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 19,
+          "wave": 10,
+          "gold": 55,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 20,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 21,
+          "wave": 15,
+          "gold": 126,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 22,
+          "wave": 15,
+          "gold": 54,
+          "lives": 50,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 23,
+          "wave": 10,
+          "gold": 90,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 24,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 25,
+          "wave": 15,
+          "gold": 126,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 26,
+          "wave": 15,
+          "gold": 59,
+          "lives": 50,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 27,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 28,
+          "wave": 15,
+          "gold": 74,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 29,
+          "wave": 15,
+          "gold": 57,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 30,
+          "wave": 10,
+          "gold": 130,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 31,
+          "wave": 15,
+          "gold": 104,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 32,
+          "wave": 10,
+          "gold": 70,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 33,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 34,
+          "wave": 10,
+          "gold": 100,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 35,
+          "wave": 15,
+          "gold": 54,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 36,
+          "wave": 15,
+          "gold": 104,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 37,
+          "wave": 10,
+          "gold": 105,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 38,
+          "wave": 10,
+          "gold": 115,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 39,
+          "wave": 15,
+          "gold": 126,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 40,
+          "wave": 10,
+          "gold": 85,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 41,
+          "wave": 15,
+          "gold": 126,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 42,
+          "wave": 10,
+          "gold": 60,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 43,
+          "wave": 15,
+          "gold": 120,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 44,
+          "wave": 10,
+          "gold": 55,
+          "lives": 50,
+          "towers": 8,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 45,
+          "wave": 10,
+          "gold": 75,
+          "lives": 50,
+          "towers": 10,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 46,
+          "wave": 15,
+          "gold": 104,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 47,
+          "wave": 15,
+          "gold": 104,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 48,
+          "wave": 15,
+          "gold": 251,
+          "lives": 50,
+          "towers": 15,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 49,
+          "wave": 15,
+          "gold": 236,
+          "lives": 50,
+          "towers": 13,
+          "outcome": "gameover"
+        },
+        {
+          "seed": 50,
+          "wave": 20,
+          "gold": 392,
+          "lives": 50,
+          "towers": 20,
+          "outcome": "gameover"
+        }
+      ]
+    }
+  }
+}
