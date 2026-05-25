@@ -117,7 +117,15 @@ export class HeuristicAI extends BlueprintAI {
     upgradeable.sort((a, b) => b.kills - a.kills);
 
     for (const { towerId, cost } of upgradeable) {
-      if (state.gold < cost) continue;
+      if (state.gold < cost) {
+        if (this.logging) {
+          const tower = state.towers.find((t) => t.id === towerId);
+          const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;
+          const next = combo ? nextUpgrade(combo, tower!.upgradeTier ?? 0) : null;
+          if (next) this.log.push(`  saving for: ${combo!.name} → ${next.name} (${cost}g, have ${state.gold}g)`);
+        }
+        break;
+      }
       if (this.logging) {
         const tower = state.towers.find((t) => t.id === towerId);
         const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;

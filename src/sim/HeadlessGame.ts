@@ -185,7 +185,7 @@ export class HeadlessGame {
     this.traps.step();
   }
 
-  runWave(maxTicks = 60 * 60 * 15): void {
+  runWave(maxTicks = 60 * 60 * 120): void {
     for (let i = 0; i < maxTicks; i++) {
       if (this.state.phase !== 'wave') break;
       this.simStep();
