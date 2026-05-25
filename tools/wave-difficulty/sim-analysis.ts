@@ -65,9 +65,13 @@ function resolveSnapshot(snapshotRef?: string): SimSnapshot {
   }
   const metas = listSimSnapshots();
   if (metas.length === 0) throw new Error('No sim-compare snapshots found. Run `npm run sim:run` first.');
-  const snap = readSimSnapshot(metas[0].commit);
-  if (!snap) throw new Error('Failed to read latest sim snapshot');
-  return snap;
+  let latest: SimSnapshot | null = null;
+  for (const m of metas) {
+    const s = readSimSnapshot(m.commit);
+    if (s && (!latest || s.timestamp > latest.timestamp)) latest = s;
+  }
+  if (!latest) throw new Error('Failed to read any sim snapshot');
+  return latest;
 }
 
 function resolveAI(snap: SimSnapshot, aiName?: string): { name: string; ai: AISnapshot } {
