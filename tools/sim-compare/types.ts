@@ -35,12 +35,25 @@ export interface DpsHpEntry {
   ratio: number;
 }
 
+export interface WavePerformance {
+  wave: number;
+  sampleCount: number;
+  meanLeaks: number;
+  meanKills: number;
+  meanLivesAfter: number;
+  meanGoldAfter: number;
+  meanTowers: number;
+  meanDpsRatio: number;
+  gameOverCount: number;
+}
+
 export interface AISnapshot {
   aggregate: AggregateStats;
   gemDamageShare: Record<string, number>;
   gemKillShare: Record<string, number>;
   dpsVsHp: DpsHpEntry[];
   perSeed: PerSeedResult[];
+  wavePerformance?: WavePerformance[];
 }
 
 export interface Snapshot {

@@ -4,7 +4,7 @@ import {
   DIFFICULTY,
   type DifficultyConstants,
 } from "../../src/data/difficulty-constants";
-import { buildCalibrationTargets, type CalibrationTarget } from "./calibration";
+import { buildCalibrationTargets, buildSimCalibrationTargets, type CalibrationTarget } from "./calibration";
 import { readFileSync, writeFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
@@ -138,8 +138,15 @@ function buildAccessors(): ParamAccessor[] {
   return accessors;
 }
 
-export function fit(snapshotRef?: string): FitResult {
-  const targets = buildCalibrationTargets(snapshotRef);
+export interface SimSourceOptions {
+  source: 'sim';
+  ai?: string;
+}
+
+export function fit(snapshotRef?: string, simOptions?: SimSourceOptions): FitResult {
+  const targets = simOptions
+    ? buildSimCalibrationTargets(snapshotRef, simOptions.ai)
+    : buildCalibrationTargets(snapshotRef);
   const accessors = buildAccessors();
   const constants = cloneConstants(DIFFICULTY);
 

@@ -2,6 +2,7 @@ import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { listSnapshots, readSnapshot } from "./snapshot";
+import { analyzeSimDifficulty } from "./sim-analysis";
 import type { AggregatedWaveMetrics } from "./types";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -59,4 +60,16 @@ export function buildCalibrationTargets(
   }
 
   return targets.sort((a, b) => a.waveNum - b.waveNum);
+}
+
+export function buildSimCalibrationTargets(
+  snapshotRef?: string,
+  aiName?: string,
+): CalibrationTarget[] {
+  const { entries } = analyzeSimDifficulty(snapshotRef, aiName);
+  const ranked = [...entries].sort((a, b) => a.empScore - b.empScore);
+  return ranked.map((e, i) => ({
+    waveNum: e.wave,
+    target: i + 1,
+  })).sort((a, b) => a.waveNum - b.waveNum);
 }

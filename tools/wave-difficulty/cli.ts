@@ -4,6 +4,7 @@ import { writeSnapshot, readSnapshot, listSnapshots, findLatestOther } from './s
 import { compareSnapshots } from './compare';
 import { printTable, printComparison, printHistory } from './format';
 import { fit, writeConstants, printFitResult } from './fit';
+import { analyzeSimDifficulty, printSimAnalysis } from './sim-analysis';
 import type { Snapshot } from './types';
 
 const DEFAULT_TRIALS = 20;
@@ -108,13 +109,23 @@ function handleHistory(args: string[]): void {
   printHistory(listSnapshots().slice(0, limit));
 }
 
+function handleSim(args: string[]): void {
+  const { flags } = parseArgs(args);
+  const snapshotRef = flags.snapshot;
+  const aiName = flags.ai;
+
+  const { entries, spearman, snap, aiLabel } = analyzeSimDifficulty(snapshotRef, aiName);
+  printSimAnalysis(entries, spearman, snap, aiLabel);
+}
+
 function handleCalibrate(args: string[]): void {
   const { flags } = parseArgs(args);
   const snapshotRef = flags.snapshot;
   const shouldWrite = flags.write === 'true';
+  const source = flags.source;
 
   console.log('Running calibration optimizer...');
-  const result = fit(snapshotRef);
+  const result = fit(snapshotRef, source === 'sim' ? { source: 'sim', ai: flags.ai } : undefined);
   printFitResult(result);
 
   if (shouldWrite) {
@@ -134,15 +145,19 @@ Commands:
   run [--trials N]               Evaluate all waves and store snapshot (default: ${DEFAULT_TRIALS} trials)
   compare [current] [base]       Compare two snapshots (default: HEAD vs most recent other)
   history [--limit N]            List stored snapshots (default: 20)
-  calibrate [--write] [--snapshot <ref>]  Optimize constants against sim + expert data
+  sim [--snapshot <ref>] [--ai <name>]    Analyze difficulty from sim-compare AI gameplay data
+  calibrate [--write] [--snapshot <ref>] [--source sim] [--ai <name>]
+                                 Optimize constants against reference-tower or sim data
 
 Examples:
   npm run wave-difficulty
   npm run wave-difficulty -- --trials 50
   npm run wave-difficulty:compare
   npm run wave-difficulty:history
+  npm run wave-difficulty:sim
+  npm run wave-difficulty:sim -- --ai HeuristicAI
   npm run wave-difficulty:calibrate
-  npm run wave-difficulty:calibrate -- --write
+  npm run wave-difficulty:calibrate -- --source sim --write
 `);
 }
 
@@ -158,6 +173,9 @@ switch (subcommand) {
     break;
   case 'history':
     handleHistory(args.slice(1));
+    break;
+  case 'sim':
+    handleSim(args.slice(1));
     break;
   case 'calibrate':
     handleCalibrate(args.slice(1));

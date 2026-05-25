@@ -26,6 +26,7 @@ parentPort!.on('message', (msg: { type: string; aiName: string; seed: number }) 
       gemDamageShare: game.metrics!.gemDamageShare(),
       gemKillShare: game.metrics!.gemKillShare(),
       dpsVsHp: game.metrics!.dpsVsHpPerWave(),
+      waveSummaries: game.metrics!.waveSummaries(),
     });
   }
 });

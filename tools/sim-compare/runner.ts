@@ -6,8 +6,8 @@ import { GreedyAI } from '../../src/sim/ai/GreedyAI';
 import { BlueprintAI } from '../../src/sim/ai/BlueprintAI';
 import { StrategistAI } from '../../src/sim/ai/StrategistAI';
 import { HeuristicAI } from '../../src/sim/ai/HeuristicAI';
-import type { SimAI, GameResult } from '../../src/sim/types';
-import type { AISnapshot, AggregateStats, PerSeedResult, DpsHpEntry } from './types';
+import type { SimAI, GameResult, WaveSummary } from '../../src/sim/types';
+import type { AISnapshot, AggregateStats, PerSeedResult, DpsHpEntry, WavePerformance } from './types';
 
 const WORKER_PATH = fileURLToPath(new URL('./worker-entry.mjs', import.meta.url));
 
@@ -16,6 +16,7 @@ interface RunData {
   gemDamageShare: Record<string, number>;
   gemKillShare: Record<string, number>;
   dpsVsHp: Array<{ wave: number; totalDamage: number; totalHp: number; ratio: number }>;
+  waveSummaries: WaveSummary[];
 }
 
 export function median(arr: number[]): number {
@@ -44,6 +45,7 @@ function runBatch(seedCount: number, ai: SimAI): RunData[] {
       gemDamageShare: game.metrics!.gemDamageShare(),
       gemKillShare: game.metrics!.gemKillShare(),
       dpsVsHp: game.metrics!.dpsVsHpPerWave(),
+      waveSummaries: game.metrics!.waveSummaries(),
     });
   }
   return runs;
@@ -115,12 +117,52 @@ function collectAISnapshot(runs: RunData[]): AISnapshot {
     outcome: r.result.outcome,
   }));
 
+  const gameOverWaves = new Map<number, number>();
+  for (const r of runs) {
+    if (r.result.outcome === 'gameover') {
+      const w = r.result.waveReached;
+      gameOverWaves.set(w, (gameOverWaves.get(w) ?? 0) + 1);
+    }
+  }
+
+  const waveAggPerf = new Map<number, { leaks: number[]; kills: number[]; lives: number[]; gold: number[]; towers: number[]; dpsRatio: number[] }>();
+  for (const run of runs) {
+    for (const ws of run.waveSummaries) {
+      let agg = waveAggPerf.get(ws.wave);
+      if (!agg) {
+        agg = { leaks: [], kills: [], lives: [], gold: [], towers: [], dpsRatio: [] };
+        waveAggPerf.set(ws.wave, agg);
+      }
+      agg.leaks.push(ws.leaked);
+      agg.kills.push(ws.killed);
+      agg.lives.push(ws.livesRemaining);
+      agg.gold.push(ws.goldAtEnd);
+      agg.towers.push(ws.towersCount);
+      agg.dpsRatio.push(ws.totalHpSpawned > 0 ? ws.totalDamageDealt / ws.totalHpSpawned : 0);
+    }
+  }
+
+  const wavePerformance: WavePerformance[] = [...waveAggPerf.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([wave, agg]) => ({
+      wave,
+      sampleCount: agg.leaks.length,
+      meanLeaks: Math.round(mean(agg.leaks) * 100) / 100,
+      meanKills: Math.round(mean(agg.kills) * 100) / 100,
+      meanLivesAfter: Math.round(mean(agg.lives) * 100) / 100,
+      meanGoldAfter: Math.round(mean(agg.gold)),
+      meanTowers: Math.round(mean(agg.towers) * 10) / 10,
+      meanDpsRatio: Math.round(mean(agg.dpsRatio) * 100) / 100,
+      gameOverCount: gameOverWaves.get(wave) ?? 0,
+    }));
+
   return {
     aggregate,
     gemDamageShare: toPercent(gemDmgTotals),
     gemKillShare: toPercent(gemKillTotals),
     dpsVsHp,
     perSeed,
+    wavePerformance,
   };
 }
 
@@ -205,7 +247,7 @@ export function runAllAIs(
       const w = new Worker(WORKER_PATH);
       workers.push(w);
 
-      w.on('message', (msg: { type: string; aiName: string; seed: number; result: GameResult; gemDamageShare: Record<string, number>; gemKillShare: Record<string, number>; dpsVsHp: RunData['dpsVsHp'] }) => {
+      w.on('message', (msg: { type: string; aiName: string; seed: number; result: GameResult; gemDamageShare: Record<string, number>; gemKillShare: Record<string, number>; dpsVsHp: RunData['dpsVsHp']; waveSummaries: WaveSummary[] }) => {
         if (msg.type === 'ready') {
           dispatchNext(w);
           return;
@@ -216,6 +258,7 @@ export function runAllAIs(
           gemDamageShare: msg.gemDamageShare,
           gemKillShare: msg.gemKillShare,
           dpsVsHp: msg.dpsVsHp,
+          waveSummaries: msg.waveSummaries,
         });
         completed++;
         process.stdout.write(`\r\x1b[2K  Progress: ${completed}/${total} games`);
