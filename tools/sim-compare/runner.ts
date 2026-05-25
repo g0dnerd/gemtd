@@ -1,3 +1,6 @@
+import { Worker } from 'node:worker_threads';
+import { fileURLToPath } from 'node:url';
+import { cpus } from 'node:os';
 import { HeadlessGame } from '../../src/sim/HeadlessGame';
 import { GreedyAI } from '../../src/sim/ai/GreedyAI';
 import { BlueprintAI } from '../../src/sim/ai/BlueprintAI';
@@ -5,6 +8,8 @@ import { StrategistAI } from '../../src/sim/ai/StrategistAI';
 import { HeuristicAI } from '../../src/sim/ai/HeuristicAI';
 import type { SimAI, GameResult } from '../../src/sim/types';
 import type { AISnapshot, AggregateStats, PerSeedResult, DpsHpEntry } from './types';
+
+const WORKER_PATH = fileURLToPath(new URL('./worker-entry.mjs', import.meta.url));
 
 interface RunData {
   result: GameResult;
@@ -131,7 +136,7 @@ export const ALL_AIS: AIEntry[] = [
   { name: 'HeuristicAI', ai: new HeuristicAI() },
 ];
 
-export function runAllAIs(seedCount: number, ais: AIEntry[]): Record<string, AISnapshot> {
+export function runAllAIsSequential(seedCount: number, ais: AIEntry[]): Record<string, AISnapshot> {
   const result: Record<string, AISnapshot> = {};
   for (const { name, ai } of ais) {
     const t0 = Date.now();
@@ -142,4 +147,86 @@ export function runAllAIs(seedCount: number, ais: AIEntry[]): Record<string, AIS
     result[name] = collectAISnapshot(runs);
   }
   return result;
+}
+
+export function runAllAIs(
+  seedCount: number,
+  ais: AIEntry[],
+  workerCount?: number,
+): Promise<Record<string, AISnapshot>> {
+  const numWorkers = Math.min(
+    workerCount ?? Math.max(1, cpus().length - 1),
+    seedCount * ais.length,
+  );
+
+  const workQueue: Array<{ aiName: string; seed: number }> = [];
+  for (const { name } of ais) {
+    for (let seed = 1; seed <= seedCount; seed++) {
+      workQueue.push({ aiName: name, seed });
+    }
+  }
+
+  const total = workQueue.length;
+  console.log(`  Running ${ais.length} AI${ais.length > 1 ? 's' : ''} × ${seedCount} seeds across ${numWorkers} workers...`);
+
+  return new Promise((resolve, reject) => {
+    const runsByAI = new Map<string, RunData[]>();
+    for (const { name } of ais) runsByAI.set(name, []);
+
+    let completed = 0;
+    let queueIdx = 0;
+    const workers: Worker[] = [];
+    let settled = false;
+
+    function finish(err?: Error): void {
+      if (settled) return;
+      settled = true;
+      for (const w of workers) w.terminate();
+      if (err) {
+        reject(err);
+        return;
+      }
+      process.stdout.write(`\r\x1b[2K  Progress: ${total}/${total} games — done\n`);
+      const result: Record<string, AISnapshot> = {};
+      for (const { name } of ais) {
+        result[name] = collectAISnapshot(runsByAI.get(name)!);
+      }
+      resolve(result);
+    }
+
+    function dispatchNext(w: Worker): void {
+      if (queueIdx < workQueue.length) {
+        const item = workQueue[queueIdx++];
+        w.postMessage({ type: 'run', aiName: item.aiName, seed: item.seed });
+      }
+    }
+
+    for (let i = 0; i < numWorkers; i++) {
+      const w = new Worker(WORKER_PATH);
+      workers.push(w);
+
+      w.on('message', (msg: { type: string; aiName: string; seed: number; result: GameResult; gemDamageShare: Record<string, number>; gemKillShare: Record<string, number>; dpsVsHp: RunData['dpsVsHp'] }) => {
+        if (msg.type === 'ready') {
+          dispatchNext(w);
+          return;
+        }
+        if (msg.type !== 'result') return;
+        runsByAI.get(msg.aiName)!.push({
+          result: msg.result,
+          gemDamageShare: msg.gemDamageShare,
+          gemKillShare: msg.gemKillShare,
+          dpsVsHp: msg.dpsVsHp,
+        });
+        completed++;
+        process.stdout.write(`\r\x1b[2K  Progress: ${completed}/${total} games`);
+        if (completed === total) {
+          finish();
+        } else {
+          dispatchNext(w);
+        }
+      });
+
+      w.on('error', (err) => finish(err));
+    }
+  });
 }

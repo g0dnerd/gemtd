@@ -1,5 +1,5 @@
 import { getGitInfo, getGitInfoForRef, resolveRef } from './git';
-import { runAllAIs, ALL_AIS } from './runner';
+import { runAllAIs, runAllAIsSequential, ALL_AIS } from './runner';
 import { writeSnapshot, readSnapshot, listSnapshots, findLatestOther } from './snapshot';
 import { compareSnapshots } from './compare';
 import { printRunSummary, printComparison, printHistory } from './format';
@@ -33,10 +33,12 @@ function parseArgs(args: string[]): { flags: Record<string, string>; positional:
   return { flags, positional };
 }
 
-function handleRun(args: string[]): void {
+async function handleRun(args: string[]): Promise<void> {
   const { flags } = parseArgs(args);
   const seedCount = flags.seeds ? parseInt(flags.seeds, 10) : DEFAULT_SEEDS;
   const tag = flags.tag;
+  const sequential = flags.sequential === 'true';
+  const workerCount = flags.workers ? parseInt(flags.workers, 10) : undefined;
 
   let git;
   if (tag) {
@@ -67,7 +69,12 @@ function handleRun(args: string[]): void {
   }
 
   console.log(`Running sim for commit ${git.shortHash} (${git.message})...`);
-  const aisResult = runAllAIs(seedCount, ais);
+  const t0 = Date.now();
+  const aisResult = sequential
+    ? runAllAIsSequential(seedCount, ais)
+    : await runAllAIs(seedCount, ais, workerCount);
+  const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
+  console.log(`  Total: ${elapsed}s`);
 
   const snap: Snapshot = {
     version: 1,
@@ -148,12 +155,19 @@ function printUsage(): void {
 Usage: npx tsx tools/sim-compare/cli.ts <command> [options]
 
 Commands:
-  run [--seeds N] [--tag <ref>] [--ai <name>]  Run sim and store snapshot
+  run [--seeds N] [--tag <ref>] [--ai <name>] [--workers N] [--sequential]
+                                   Run sim and store snapshot
   compare [current] [base]         Compare two snapshots (default current: HEAD, default base: most recent other)
   history [--limit N]              List stored snapshots (default: 20)
 
+Options for 'run':
+  --workers N     Number of worker threads (default: CPU count - 1)
+  --sequential    Disable parallelization, run AIs one at a time
+
 Examples:
   npm run sim:run
+  npm run sim:run -- --workers 8
+  npm run sim:run -- --sequential
   npm run sim:compare                          # HEAD vs most recent other
   npm run sim:compare -- abc1234               # HEAD vs abc1234
   npm run sim:compare -- abc1234 def5678       # abc1234 (current) vs def5678 (base)
@@ -166,7 +180,10 @@ const subcommand = args[0];
 
 switch (subcommand) {
   case 'run':
-    handleRun(args.slice(1));
+    handleRun(args.slice(1)).catch((err) => {
+      console.error(err);
+      process.exit(1);
+    });
     break;
   case 'compare':
     handleCompare(args.slice(1));
