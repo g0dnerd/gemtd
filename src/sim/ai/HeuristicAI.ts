@@ -188,6 +188,11 @@ export class HeuristicAI extends BlueprintAI {
         .filter((id): id is number => id !== null),
     );
 
+    // Top priority: always form combos that use only this round's gems
+    this.formRoundOnlyCombos(game, currentRoundIds);
+
+    if (game.state.phase !== 'build') return;
+
     const bestIndividualDps = this.bestRoundGemDps(game, currentRoundIds);
     const route = game.state.flatRoute;
 
@@ -199,13 +204,11 @@ export class HeuristicAI extends BlueprintAI {
       const matched = this.matchComboInputs(combo, game.state.towers);
       if (!matched) continue;
 
-      const allCurrentRound = matched.every((t) => currentRoundIds.has(t.id));
       const usesKeptTowers = matched.some((t) => !currentRoundIds.has(t.id));
+      if (!usesKeptTowers) continue;
 
-      if (usesKeptTowers && !allCurrentRound) {
-        const comboDps = estimateComboDps(combo);
-        if (comboDps < bestIndividualDps) continue;
-      }
+      const comboDps = estimateComboDps(combo);
+      if (comboDps < bestIndividualDps) continue;
 
       const reordered = this.reorderByExposure(matched, route);
       if (this.logging) {
@@ -250,6 +253,69 @@ export class HeuristicAI extends BlueprintAI {
       }
       game.cmdCombine(towers.slice(0, count).map((t) => t.id));
     }
+  }
+
+  private formRoundOnlyCombos(game: HeadlessGame, currentRoundIds: Set<number>): void {
+    const ranked = COMBOS.filter((c) => c.inputs.length > 0)
+      .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
+
+    for (const combo of ranked) {
+      if (game.state.phase !== 'build') return;
+      const roundTowers = game.state.towers.filter(
+        (t) => currentRoundIds.has(t.id) && !t.comboKey,
+      );
+
+      const matched = this.matchComboInputs(combo, roundTowers);
+      if (matched) {
+        const reordered = this.reorderByExposure(matched, game.state.flatRoute);
+        if (this.logging) {
+          const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
+          this.log.push(`  combo (round-only, always take): ${combo.name} (${inputs})`);
+        }
+        game.cmdCombine(reordered.map((t) => t.id));
+        continue;
+      }
+
+      if (game.state.downgradeUsedThisRound) continue;
+      const demoteId = this.findDemotionForCombo(combo, roundTowers);
+      if (demoteId === null) continue;
+
+      if (this.logging) {
+        const t = roundTowers.find((r) => r.id === demoteId)!;
+        this.log.push(`  demote: ${gemLabel(t.gem, t.quality)} → q${t.quality - 1} (for ${combo.name})`);
+      }
+      game.cmdDowngrade(demoteId);
+
+      const refreshed = game.state.towers.filter(
+        (t) => currentRoundIds.has(t.id) && !t.comboKey,
+      );
+      const reMatch = this.matchComboInputs(combo, refreshed);
+      if (!reMatch) continue;
+
+      const reordered = this.reorderByExposure(reMatch, game.state.flatRoute);
+      if (this.logging) {
+        const inputs = reMatch.map((t) => gemLabel(t.gem, t.quality)).join('+');
+        this.log.push(`  combo (round-only + demote, always take): ${combo.name} (${inputs})`);
+      }
+      game.cmdCombine(reordered.map((t) => t.id));
+    }
+  }
+
+  private findDemotionForCombo(
+    combo: ComboRecipe,
+    roundTowers: TowerState[],
+  ): number | null {
+    for (const tower of roundTowers) {
+      if (tower.quality <= 1) continue;
+      const virtual = roundTowers.map((t) =>
+        t.id === tower.id
+          ? ({ ...t, quality: t.quality - 1 } as TowerState)
+          : t,
+      );
+      const matched = this.matchComboInputs(combo, virtual);
+      if (matched && matched.some((m) => m.id === tower.id)) return tower.id;
+    }
+    return null;
   }
 
   private reorderByExposure(

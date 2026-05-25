@@ -247,6 +247,19 @@ export class HeadlessGame {
     return this.buildPhase.combine(towerIds);
   }
 
+  cmdDowngrade(towerId: number): boolean {
+    const state = this.state;
+    if (state.phase !== 'build') return false;
+    const tower = state.towers.find((t) => t.id === towerId);
+    if (!tower || tower.comboKey || tower.quality <= 1) return false;
+    if (state.downgradeUsedThisRound) return false;
+    const isCurrentDraw = state.draws.some((d) => d.placedTowerId === towerId);
+    if (!isCurrentDraw) return false;
+    tower.quality = (tower.quality - 1) as 1 | 2 | 3 | 4 | 5;
+    state.downgradeUsedThisRound = true;
+    return true;
+  }
+
   cmdRemoveRock(rockId: number): boolean {
     const state = this.state;
     const cells = state.rocks.filter((r) => r.id === rockId);
