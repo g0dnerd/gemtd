@@ -221,6 +221,10 @@ export class GreedyAI implements SimAI {
         .filter((id): id is number => id !== null),
     );
 
+    this.formRoundOnlyCombos(game, currentRoundIds);
+
+    if (game.state.phase !== 'build') return;
+
     // Best individual gem DPS from this round (the "keep" alternative)
     const bestIndividualDps = this.bestRoundGemDps(game, currentRoundIds);
 
@@ -232,36 +236,22 @@ export class GreedyAI implements SimAI {
       const matched = this.matchComboInputs(combo, game.state.towers);
       if (!matched) continue;
 
-      const allCurrentRound = matched.every((t) => currentRoundIds.has(t.id));
       const usesKeptTowers = matched.some((t) => !currentRoundIds.has(t.id));
+      if (!usesKeptTowers) continue;
 
-      if (allCurrentRound) {
+      const comboDps = estimateComboDps(combo);
+      if (comboDps < bestIndividualDps) {
         if (this.logging) {
           const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
-          this.log.push(`  combo: ${combo.name} (${inputs}) [all current-round → auto-take]`);
+          this.log.push(`  combo SKIP: ${combo.name} (${inputs}) dps=${Math.round(comboDps)} < bestGem=${Math.round(bestIndividualDps)}`);
         }
-        game.cmdCombine(matched.map((t) => t.id));
-      } else if (usesKeptTowers) {
-        const comboDps = estimateComboDps(combo);
-        if (comboDps < bestIndividualDps) {
-          if (this.logging) {
-            const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
-            this.log.push(`  combo SKIP: ${combo.name} (${inputs}) dps=${Math.round(comboDps)} < bestGem=${Math.round(bestIndividualDps)}`);
-          }
-          continue;
-        }
-        if (this.logging) {
-          const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
-          this.log.push(`  combo: ${combo.name} (${inputs}) [uses kept towers, dps=${Math.round(comboDps)} > ${Math.round(bestIndividualDps)}]`);
-        }
-        game.cmdCombine(matched.map((t) => t.id));
-      } else {
-        if (this.logging) {
-          const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
-          this.log.push(`  combo: ${combo.name} (${inputs})`);
-        }
-        game.cmdCombine(matched.map((t) => t.id));
+        continue;
       }
+      if (this.logging) {
+        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
+        this.log.push(`  combo: ${combo.name} (${inputs}) [uses kept towers, dps=${Math.round(comboDps)} > ${Math.round(bestIndividualDps)}]`);
+      }
+      game.cmdCombine(matched.map((t) => t.id));
     }
 
     if (game.state.phase !== 'build') return;
@@ -346,6 +336,67 @@ export class GreedyAI implements SimAI {
       if (dps > best) best = dps;
     }
     return best;
+  }
+
+  protected formRoundOnlyCombos(game: HeadlessGame, currentRoundIds: Set<number>): void {
+    const ranked = COMBOS.filter((c) => c.inputs.length > 0)
+      .sort((a, b) => comboInputCost(b) - comboInputCost(a));
+
+    for (const combo of ranked) {
+      if (game.state.phase !== 'build') return;
+      const roundTowers = game.state.towers.filter(
+        (t) => currentRoundIds.has(t.id) && !t.comboKey,
+      );
+
+      const matched = this.matchComboInputs(combo, roundTowers);
+      if (matched) {
+        if (this.logging) {
+          const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
+          this.log.push(`  combo (round-only, always take): ${combo.name} (${inputs})`);
+        }
+        game.cmdCombine(matched.map((t) => t.id));
+        continue;
+      }
+
+      if (game.state.downgradeUsedThisRound) continue;
+      const demoteId = this.findDemotionForCombo(combo, roundTowers);
+      if (demoteId === null) continue;
+
+      if (this.logging) {
+        const t = roundTowers.find((r) => r.id === demoteId)!;
+        this.log.push(`  demote: ${gemLabel(t.gem, t.quality)} → q${t.quality - 1} (for ${combo.name})`);
+      }
+      game.cmdDowngrade(demoteId);
+
+      const refreshed = game.state.towers.filter(
+        (t) => currentRoundIds.has(t.id) && !t.comboKey,
+      );
+      const reMatch = this.matchComboInputs(combo, refreshed);
+      if (!reMatch) continue;
+
+      if (this.logging) {
+        const inputs = reMatch.map((t) => gemLabel(t.gem, t.quality)).join('+');
+        this.log.push(`  combo (round-only + demote, always take): ${combo.name} (${inputs})`);
+      }
+      game.cmdCombine(reMatch.map((t) => t.id));
+    }
+  }
+
+  protected findDemotionForCombo(
+    combo: ComboRecipe,
+    roundTowers: TowerState[],
+  ): number | null {
+    for (const tower of roundTowers) {
+      if (tower.quality <= 1) continue;
+      const virtual = roundTowers.map((t) =>
+        t.id === tower.id
+          ? ({ ...t, quality: t.quality - 1 } as TowerState)
+          : t,
+      );
+      const matched = this.matchComboInputs(combo, virtual);
+      if (matched && matched.some((m) => m.id === tower.id)) return tower.id;
+    }
+    return null;
   }
 
   protected matchComboInputs(

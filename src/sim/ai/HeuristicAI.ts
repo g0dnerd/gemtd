@@ -263,7 +263,7 @@ export class HeuristicAI extends BlueprintAI {
     }
   }
 
-  private formRoundOnlyCombos(game: HeadlessGame, currentRoundIds: Set<number>): void {
+  protected override formRoundOnlyCombos(game: HeadlessGame, currentRoundIds: Set<number>): void {
     const ranked = COMBOS.filter((c) => c.inputs.length > 0)
       .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
 
@@ -307,23 +307,6 @@ export class HeuristicAI extends BlueprintAI {
       }
       game.cmdCombine(reordered.map((t) => t.id));
     }
-  }
-
-  private findDemotionForCombo(
-    combo: ComboRecipe,
-    roundTowers: TowerState[],
-  ): number | null {
-    for (const tower of roundTowers) {
-      if (tower.quality <= 1) continue;
-      const virtual = roundTowers.map((t) =>
-        t.id === tower.id
-          ? ({ ...t, quality: t.quality - 1 } as TowerState)
-          : t,
-      );
-      const matched = this.matchComboInputs(combo, virtual);
-      if (matched && matched.some((m) => m.id === tower.id)) return tower.id;
-    }
-    return null;
   }
 
   private reorderByExposure(

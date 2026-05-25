@@ -47,9 +47,12 @@ export class StrategistAI extends BlueprintAI {
         .filter((id): id is number => id !== null),
     );
 
+    this.formRoundOnlyCombos(game, currentRoundIds);
+
+    if (game.state.phase !== 'build') return;
+
     const bestIndividualDps = this.bestRoundGemDps(game, currentRoundIds);
 
-    // Priority 1: try to complete recipes using this round's draws
     const ranked = [...COMBOS]
       .filter((c) => c.inputs.length > 0)
       .sort((a, b) => comboValue(b) - comboValue(a));
@@ -60,17 +63,11 @@ export class StrategistAI extends BlueprintAI {
       const matched = this.matchComboInputs(combo, game.state.towers);
       if (!matched) continue;
 
-      const allCurrentRound = matched.every((t) => currentRoundIds.has(t.id));
       const usesKeptTowers = matched.some((t) => !currentRoundIds.has(t.id));
+      if (!usesKeptTowers) continue;
 
-      if (allCurrentRound) {
-        game.cmdCombine(matched.map((t) => t.id));
-      } else if (usesKeptTowers) {
-        if (comboValue(combo) < bestIndividualDps) continue;
-        game.cmdCombine(matched.map((t) => t.id));
-      } else {
-        game.cmdCombine(matched.map((t) => t.id));
-      }
+      if (comboValue(combo) < bestIndividualDps) continue;
+      game.cmdCombine(matched.map((t) => t.id));
     }
 
     // Priority 2: level-up combines
