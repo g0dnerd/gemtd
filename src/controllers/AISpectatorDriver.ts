@@ -152,7 +152,8 @@ export class AISpectatorDriver {
     const state = game.state;
 
     for (const method of WRAPPED_METHODS) {
-      const orig = (game[method] as (...args: unknown[]) => unknown).bind(game);
+      const proto = Object.getPrototypeOf(game);
+      const orig = (proto[method] as (...args: unknown[]) => unknown).bind(game);
       originals.set(method, orig);
 
       (game as unknown as Record<string, unknown>)[method] = (
@@ -172,10 +173,10 @@ export class AISpectatorDriver {
 
   private unwrapCommands(
     game: Game,
-    originals: Map<string, (...args: unknown[]) => unknown>,
+    _originals: Map<string, (...args: unknown[]) => unknown>,
   ): void {
-    for (const [method, orig] of originals) {
-      (game as unknown as Record<string, unknown>)[method] = orig;
+    for (const method of WRAPPED_METHODS) {
+      delete (game as unknown as Record<string, unknown>)[method];
     }
   }
 

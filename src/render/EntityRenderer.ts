@@ -1553,11 +1553,10 @@ export function renderAiOverlay(layer: Container): void {
   if (aiComboIds && aiComboIds.size > 0) {
     const t = performance.now() / 500;
     const pulse = (Math.sin(t * Math.PI * 2) + 1) / 2;
-    for (const entry of towerObjs.values()) {
+    for (const [towerId, entry] of towerObjs) {
+      if (!aiComboIds.has(towerId)) continue;
       const tower = entry.obj;
       if (!tower.parent) continue;
-      const towerId = [...towerObjs.entries()].find(([, e]) => e === entry)?.[0];
-      if (towerId === undefined || !aiComboIds.has(towerId)) continue;
       const cx = tower.x;
       const cy = tower.y;
       const half = FINE_TILE;
