@@ -6,6 +6,7 @@ import { COMBOS, COMBO_BY_NAME, findAllCombosFor, nextUpgrade } from '../../data
 import { GRID_SCALE } from '../../game/constants';
 import { BlueprintAI } from './BlueprintAI';
 import { MAZE_BLUEPRINT } from '../../data/maze-blueprint';
+import { exposureAt } from '../blueprintKeeper';
 
 const QUALITY_NAMES: Record<number, string> = {
   1: 'Chipped', 2: 'Flawed', 3: 'Normal', 4: 'Flawless', 5: 'Perfect',
@@ -115,7 +116,9 @@ export class HeuristicAI extends BlueprintAI {
 
   protected override upgradeComboTowers(game: HeadlessGame): void {
     const state = game.state;
-    const upgradeable: Array<{ towerId: number; cost: number; kills: number }> = [];
+    const routeSet = new Set(state.flatRoute.map((p) => `${p.x},${p.y}`));
+    const voidOpals: Array<{ towerId: number; cost: number; exposure: number }> = [];
+    const rest: Array<{ towerId: number; cost: number; kills: number }> = [];
 
     for (const tower of state.towers) {
       if (!tower.comboKey) continue;
@@ -123,12 +126,19 @@ export class HeuristicAI extends BlueprintAI {
       if (!combo) continue;
       const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
       if (!upgrade) continue;
-      upgradeable.push({ towerId: tower.id, cost: upgrade.cost, kills: tower.kills });
+      if (tower.comboKey === 'black_opal') {
+        voidOpals.push({ towerId: tower.id, cost: upgrade.cost, exposure: exposureAt(tower.x, tower.y, routeSet) });
+      } else {
+        rest.push({ towerId: tower.id, cost: upgrade.cost, kills: tower.kills });
+      }
     }
 
-    upgradeable.sort((a, b) => b.kills - a.kills);
+    voidOpals.sort((a, b) => b.exposure - a.exposure);
+    rest.sort((a, b) => b.kills - a.kills);
+    const upgradeable = [...voidOpals, ...rest];
 
-    for (const { towerId, cost } of upgradeable) {
+    for (const entry of upgradeable) {
+      const { towerId, cost } = entry;
       if (state.gold < cost) {
         if (this.logging) {
           const tower = state.towers.find((t) => t.id === towerId);
@@ -142,7 +152,10 @@ export class HeuristicAI extends BlueprintAI {
         const tower = state.towers.find((t) => t.id === towerId);
         const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;
         const next = combo ? nextUpgrade(combo, tower!.upgradeTier ?? 0) : null;
-        if (next) this.log.push(`  upgrade: ${combo!.name} → ${next.name} (${cost}g, ${tower!.kills} kills)`);
+        if (next) {
+          const extra = 'exposure' in entry ? `, exp=${entry.exposure}` : `, ${tower!.kills} kills`;
+          this.log.push(`  upgrade: ${combo!.name} → ${next.name} (${cost}g${extra})`);
+        }
       }
       game.cmdUpgradeTower(towerId);
     }
