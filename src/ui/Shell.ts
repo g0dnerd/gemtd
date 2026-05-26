@@ -46,10 +46,15 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
   };
 
   // Ctrl+0: debug mode — start with every gem/combo pre-placed.
+  // Ctrl+A: AI spectator mode.
   document.addEventListener('keydown', (ev) => {
     if (ev.ctrlKey && ev.key === '0') {
       ev.preventDefault();
       game.newDebugGame();
+      showHud();
+    } else if (ev.ctrlKey && ev.key === 'a') {
+      ev.preventDefault();
+      game.newGame(undefined, true);
       showHud();
     }
   });

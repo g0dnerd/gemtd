@@ -935,6 +935,13 @@ export function mountHud(
   systemRow.append(helpBtn, muteBtn, exitBtn);
   actionBar.appendChild(systemRow);
 
+  const takeOverBtn = document.createElement("button");
+  takeOverBtn.className = "px-btn px-btn-primary action-bar-reset";
+  takeOverBtn.textContent = "⏏ TAKE OVER · ESC";
+  takeOverBtn.style.display = game.aiSpectator ? "" : "none";
+  takeOverBtn.addEventListener("click", () => game.cmdTakeOver());
+  actionBar.appendChild(takeOverBtn);
+
   const resetBtn = document.createElement("button");
   resetBtn.className = "px-btn px-btn-bad action-bar-reset";
   resetBtn.textContent = "↺ RESET RUN · CTRL+R";
@@ -1198,6 +1205,8 @@ export function mountHud(
     mobileWaveNum.textContent = game.state.endless
       ? `W${game.state.wave || 0}`
       : `W${game.state.wave || 0}/${WAVES.length}`;
+    speedBtn.textContent = `${game.state.speed}×`;
+    takeOverBtn.style.display = game.aiSpectator ? "" : "none";
   }
 
   function refreshStartGate(): void {
@@ -1285,6 +1294,22 @@ export function mountHud(
     }),
   );
 
+  // AI spectator annotation events
+  unsubs.push(
+    game.bus.on('ai:keeper', ({ candidates, reason }) => {
+      const lines = candidates
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5)
+        .map((c) => `${c.label}: ${c.score}`)
+        .join(' | ');
+      game.bus.emit('toast', {
+        kind: 'info',
+        text: `AI Keep: ${reason} (${lines})`,
+        duration: 4000,
+      });
+    }),
+  );
+
   // Periodic refresh for in-wave HUD.
   const tickHandle = window.setInterval(tick, 100);
 
@@ -1368,6 +1393,7 @@ export function mountHud(
         return;
       }
       if (game.state.phase !== "build") return;
+      if (game.aiSpectator) return;
       const rt = tileFromPointer(ev);
       if (!rt) return;
       const rTower = game.state.towers.find(
@@ -1434,6 +1460,8 @@ export function mountHud(
         return;
       }
     }
+    // Block placement during AI spectator build phase
+    if (game.aiSpectator && game.state.phase === "build") return;
     // Otherwise: try to place if there's an active draw.
     if (activeDraw(game.state)) {
       if (isMobile) {
@@ -1500,10 +1528,12 @@ export function mountHud(
       shiftDown = true;
       updateShiftHint();
     }
+    const aiGated = game.aiSpectator && game.state.phase === "build";
     if (ev.key === " ") {
       ev.preventDefault();
-      triggerStartCta();
+      if (!aiGated) triggerStartCta();
     } else if (ev.key === "u" || ev.key === "U") {
+      if (aiGated) return;
       pendingTapTile = null;
       game.cmdUndo();
     } else if (ev.key === "1") {
@@ -1523,6 +1553,10 @@ export function mountHud(
         closeRadial();
         return;
       }
+      if (game.aiSpectator) {
+        game.cmdTakeOver();
+        return;
+      }
       game.selectTower(null);
       game.selectRock(null);
       game.selectCreep(null);
@@ -1540,6 +1574,7 @@ export function mountHud(
     } else if (ev.key === "k" || ev.key === "K") {
       // Pattern #4: K hotkey to keep hovered or selected gem
       if (game.state.phase !== "build") return;
+      if (aiGated) return;
       const ht = game.hoverTile;
       if (ht) {
         const tower = game.state.towers.find(

@@ -41,4 +41,12 @@ export class RNG {
   pick<T>(items: readonly T[]): T {
     return items[this.int(items.length)];
   }
+
+  saveState(): number {
+    return this.state;
+  }
+
+  restoreState(s: number): void {
+    this.state = s;
+  }
 }

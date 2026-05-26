@@ -1513,3 +1513,58 @@ function drawDashedCircle(g: Graphics, cx: number, cy: number, r: number, color:
   g.stroke({ width: 1.5, color, alpha });
 }
 
+// ===== AI Spectator Overlays ================================================
+
+let aiHighlight: { x: number; y: number; gem: GemType } | null = null;
+let aiComboIds: Set<number> | null = null;
+let aiOverlayGfx: Graphics | null = null;
+
+export function setAiHighlight(h: { x: number; y: number; gem: GemType } | null): void {
+  aiHighlight = h;
+}
+
+export function setAiCombo(ids: number[] | null): void {
+  aiComboIds = ids ? new Set(ids) : null;
+}
+
+export function renderAiOverlay(layer: Container): void {
+  if (!aiOverlayGfx) {
+    aiOverlayGfx = new Graphics();
+    layer.addChild(aiOverlayGfx);
+  }
+  aiOverlayGfx.clear();
+
+  if (aiHighlight) {
+    const px = aiHighlight.x * FINE_TILE;
+    const py = aiHighlight.y * FINE_TILE;
+    const sz = FINE_TILE * 2;
+    const palette = GEM_PALETTE[aiHighlight.gem];
+    const t = performance.now() / 400;
+    const pulse = (Math.sin(t * Math.PI * 2) + 1) / 2;
+    const alpha = 0.15 + 0.2 * pulse;
+    aiOverlayGfx.rect(px, py, sz, sz).fill({ color: palette.mid, alpha });
+    const borderAlpha = 0.5 + 0.3 * pulse;
+    aiOverlayGfx.rect(px, py, sz, 1).fill({ color: palette.light, alpha: borderAlpha });
+    aiOverlayGfx.rect(px, py + sz - 1, sz, 1).fill({ color: palette.light, alpha: borderAlpha });
+    aiOverlayGfx.rect(px, py, 1, sz).fill({ color: palette.light, alpha: borderAlpha });
+    aiOverlayGfx.rect(px + sz - 1, py, 1, sz).fill({ color: palette.light, alpha: borderAlpha });
+  }
+
+  if (aiComboIds && aiComboIds.size > 0) {
+    const t = performance.now() / 500;
+    const pulse = (Math.sin(t * Math.PI * 2) + 1) / 2;
+    for (const entry of towerObjs.values()) {
+      const tower = entry.obj;
+      if (!tower.parent) continue;
+      const towerId = [...towerObjs.entries()].find(([, e]) => e === entry)?.[0];
+      if (towerId === undefined || !aiComboIds.has(towerId)) continue;
+      const cx = tower.x;
+      const cy = tower.y;
+      const half = FINE_TILE;
+      const alpha = 0.3 + 0.3 * pulse;
+      aiOverlayGfx.rect(cx - half, cy - half, half * 2, half * 2)
+        .stroke({ width: 2, color: THEME.accent, alpha });
+    }
+  }
+}
+

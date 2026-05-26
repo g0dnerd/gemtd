@@ -9,7 +9,7 @@ export function mountToasts(root: HTMLElement, game: Game): void {
   stack.className = 'toast-stack';
   root.appendChild(stack);
 
-  game.bus.on('toast', ({ kind, text }) => {
+  game.bus.on('toast', ({ kind, text, duration }) => {
     const t = document.createElement('div');
     t.className = `toast ${kind}`;
     t.textContent = text;
@@ -18,6 +18,6 @@ export function mountToasts(root: HTMLElement, game: Game): void {
       t.style.transition = 'opacity 0.3s';
       t.style.opacity = '0';
       setTimeout(() => t.remove(), 350);
-    }, 1400);
+    }, duration ?? 1400);
   });
 }

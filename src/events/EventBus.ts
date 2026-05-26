@@ -30,7 +30,7 @@ export interface GameEvents {
   'tower:downgrade': { id: number; gem: GemType; oldQuality: Quality; newQuality: Quality };
   'chance:upgrade': { tier: number; cost: number };
   'rock:remove': { id: number; cost: number };
-  'toast': { kind: 'info' | 'good' | 'error'; text: string };
+  'toast': { kind: 'info' | 'good' | 'error'; text: string; duration?: number };
   'focusRecipe': { key: string };
   'rune:trigger': { id: number; effect: string };
   'vfx:nova': { x: number; y: number; rangePx: number };
@@ -47,6 +47,10 @@ export interface GameEvents {
   'vfx:mycoidPulse': { x: number; y: number; radiusPx: number };
   'vfx:gestationTransition': { x: number; y: number };
   'vfx:chainPulse': { points: Array<{ x: number; y: number; id: number }> };
+  'ai:highlight': { x: number; y: number; gem: GemType; quality: Quality };
+  'ai:combo': { towerIds: number[]; comboName: string };
+  'ai:keeper': { towerId: number; reason: string; candidates: Array<{ label: string; score: number }> };
+  'ai:clear': Record<string, never>;
 }
 
 type Handler<T> = (payload: T) => void;
@@ -54,6 +58,7 @@ type Handler<T> = (payload: T) => void;
 export class EventBus {
   private listeners = new Map<keyof GameEvents, Set<Handler<unknown>>>();
   muteVfx = false;
+  muted = false;
 
   on<K extends keyof GameEvents>(event: K, handler: Handler<GameEvents[K]>): () => void {
     let set = this.listeners.get(event);
@@ -68,6 +73,7 @@ export class EventBus {
   }
 
   emit<K extends keyof GameEvents>(event: K, payload: GameEvents[K]): void {
+    if (this.muted) return;
     if (this.muteVfx && (event as string).startsWith('vfx:')) return;
     const set = this.listeners.get(event);
     if (!set) return;

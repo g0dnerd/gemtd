@@ -55,6 +55,9 @@ import {
   renderBeams,
   renderHover,
   renderRangePreview,
+  renderAiOverlay,
+  setAiHighlight,
+  setAiCombo,
 } from "../render/EntityRenderer";
 import { renderCursorGrid, renderUniformGrid } from "../render/CursorGrid";
 import {
@@ -62,6 +65,7 @@ import {
   computeKeeperIndices,
   renderBlueprintOverlay,
 } from "../render/BlueprintOverlay";
+import { AISpectatorDriver } from "../controllers/AISpectatorDriver";
 
 export class Game {
   readonly bus = new EventBus();
@@ -116,6 +120,13 @@ export class Game {
   /** Creative mode — hidden cheat (Ctrl+Shift+C) to place rocks freely during build phase. */
   creativeMode = false;
 
+  /** AI spectator mode — AI plays while user watches. */
+  aiSpectator = false;
+  aiDriver: AISpectatorDriver | null = null;
+
+  /** True during AI recording pass — suppresses render-only side effects. */
+  _recording = false;
+
   private detachTelemetry?: () => void;
 
   /** Currently selected tower (if any). null otherwise. */
@@ -163,6 +174,10 @@ export class Game {
 
     this.app.ticker.add(this.tick, this);
 
+    this.bus.on('ai:highlight', (h) => setAiHighlight(h));
+    this.bus.on('ai:combo', ({ towerIds }) => setAiCombo(towerIds));
+    this.bus.on('ai:clear', () => { setAiHighlight(null); setAiCombo(null); });
+
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         this.backgroundInterval = setInterval(
@@ -189,7 +204,9 @@ export class Game {
   }
 
   /** Kick off a new run from the title screen. */
-  newGame(startLives: number = START_LIVES): void {
+  newGame(startLives: number = START_LIVES, aiSpectator = false): void {
+    this.aiSpectator = aiSpectator;
+    this.aiDriver = aiSpectator ? new AISpectatorDriver() : null;
     this.state.towers = [];
     this.state.rocks = [];
     this.state.creeps = [];
@@ -452,7 +469,11 @@ export class Game {
       totalToSpawn: 0,
     };
     this.buildPhase.onEnter();
+    if (this.aiSpectator) this.state.speed = 1;
     this.bus.emit("phase:enter", { phase: "build" });
+    if (this.aiSpectator && this.aiDriver) {
+      setTimeout(() => this.aiDriver?.runBuild(this), 0);
+    }
   }
 
   enterWave(): void {
@@ -493,6 +514,7 @@ export class Game {
     this.state.undoStack = [];
     this.state.activeDrawSlot = null;
     for (const t of this.state.towers) t.waveDamage = 0;
+    if (this.aiSpectator) this.state.speed = 8;
     this.wavePhase.onEnter(this.state.wave);
     this.bus.emit("phase:enter", { phase: "wave" });
     this.bus.emit("wave:start", { wave: this.state.wave });
@@ -540,7 +562,9 @@ export class Game {
     if (this.state.airRoute.length === 0) {
       this.state.airRoute = buildAirRoute();
     }
-    if (this.pathVizEnabled) {
+    if (this._recording) {
+      // Skip Pixi rendering during AI recording pass
+    } else if (this.pathVizEnabled) {
       renderPathTrace(this.layers.pathOverlay, route, this.state.phase);
     } else {
       this.layers.pathOverlay.removeChildren();
@@ -578,6 +602,13 @@ export class Game {
         : computeKeeperIndices(bp);
       this.blueprint = bp;
     }
+  }
+
+  get entityIdCounter(): number {
+    return this.nextEntityId;
+  }
+  set entityIdCounter(v: number) {
+    this.nextEntityId = v;
   }
 
   nextId(): number {
@@ -798,6 +829,7 @@ export class Game {
       this.selectedTowerId,
     );
     renderHover(this.layers.preview, this.state, this.hoverTile);
+    renderAiOverlay(this.layers.preview);
     if (this.hoverPixel) this.lastHoverPixel = this.hoverPixel;
     if (this.hoverTile) this.lastHoverTile = this.hoverTile;
     if (this.cursorGridEnabled) {
@@ -974,6 +1006,16 @@ export class Game {
       },
     });
     return true;
+  }
+
+  cmdTakeOver(): void {
+    if (!this.aiSpectator) return;
+    this.aiSpectator = false;
+    this.aiDriver?.cancel();
+    this.aiDriver = null;
+    this.state.speed = 1;
+    this.bus.emit('ai:clear', {});
+    this.bus.emit("toast", { kind: "good", text: "You have taken over" });
   }
 
   cmdUpgradeChanceTier(): boolean {
