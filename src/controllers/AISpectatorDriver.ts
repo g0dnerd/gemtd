@@ -160,6 +160,7 @@ export class AISpectatorDriver {
       ) => {
         const annotation = this.capturePreAnnotation(method, args, state);
         const result = orig(...args);
+        if (result === false) return result;
         this.capturePostAnnotation(annotation, method, state);
         recorded.push({ method, args, annotation });
         return result;
