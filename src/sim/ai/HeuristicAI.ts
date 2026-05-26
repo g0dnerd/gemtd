@@ -90,6 +90,11 @@ export class HeuristicAI extends BlueprintAI {
         this.upgradeCheapTowers(game);
       }
     }
+
+    // After any auto-conclude (level-up or demotion), form combos from
+    // surviving towers immediately — recipe combines work during wave phase
+    this.formKeptTowerCombos(game);
+    this.upgradeCheapTowers(game);
   }
 
   private upgradeCheapTowers(game: HeadlessGame): void {
@@ -144,13 +149,10 @@ export class HeuristicAI extends BlueprintAI {
   }
 
   private formKeptTowerCombos(game: HeadlessGame): void {
-    if (game.state.phase !== 'build') return;
-
     const ranked = COMBOS.filter((c) => c.inputs.length > 0)
       .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
 
     for (const combo of ranked) {
-      if (game.state.phase !== 'build') return;
       const towers = game.state.towers.filter((t) => !t.comboKey);
       const matched = this.matchComboInputs(combo, towers);
       if (!matched) continue;
@@ -158,7 +160,7 @@ export class HeuristicAI extends BlueprintAI {
       const reordered = this.reorderByExposure(matched);
       if (this.logging) {
         const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
-        this.log.push(`  combo (pre-placement): ${combo.name} (${inputs})`);
+        this.log.push(`  combo (kept towers): ${combo.name} (${inputs})`);
       }
       game.cmdCombine(reordered.map((t) => t.id));
     }
