@@ -3,7 +3,7 @@ import type { TowerState } from '../../game/State';
 import type { ComboRecipe } from '../../data/combos';
 import type { GemType, Quality } from '../../render/theme';
 import { COMBOS, COMBO_BY_NAME, findAllCombosFor, nextUpgrade } from '../../data/combos';
-import { GRID_SCALE } from '../../game/constants';
+import { GRID_SCALE, CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from '../../game/constants';
 import { BlueprintAI } from './BlueprintAI';
 import { MAZE_BLUEPRINT } from '../../data/maze-blueprint';
 import { exposureAt } from '../blueprintKeeper';
@@ -116,6 +116,11 @@ export class HeuristicAI extends BlueprintAI {
 
   protected override upgradeComboTowers(game: HeadlessGame): void {
     const state = game.state;
+
+    const nextTierCost = state.chanceTier < MAX_CHANCE_TIER
+      ? CHANCE_TIER_UPGRADE_COST[state.chanceTier]
+      : 0;
+
     const routeSet = new Set(state.flatRoute.map((p) => `${p.x},${p.y}`));
     const voidOpals: Array<{ towerId: number; cost: number; exposure: number }> = [];
     const rest: Array<{ towerId: number; cost: number; kills: number }> = [];
@@ -147,6 +152,15 @@ export class HeuristicAI extends BlueprintAI {
           if (next) this.log.push(`  saving for: ${combo!.name} → ${next.name} (${cost}g, have ${state.gold}g)`);
         }
         break;
+      }
+      if (nextTierCost > 0 && state.gold - cost < nextTierCost) {
+        if (this.logging) {
+          const tower = state.towers.find((t) => t.id === towerId);
+          const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;
+          const next = combo ? nextUpgrade(combo, tower!.upgradeTier ?? 0) : null;
+          if (next) this.log.push(`  skip upgrade: ${combo!.name} → ${next.name} (${cost}g, reserving ${nextTierCost}g for chance tier)`);
+        }
+        continue;
       }
       if (this.logging) {
         const tower = state.towers.find((t) => t.id === towerId);
