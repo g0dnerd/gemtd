@@ -930,7 +930,7 @@ export function mountHud(
 
   const systemRow = document.createElement("div");
   systemRow.className = "action-bar-system";
-  const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root));
+  const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root, undefined, game.seed));
   const exitBtn = makeBtn("EXIT", onExit);
   systemRow.append(helpBtn, muteBtn, exitBtn);
   actionBar.appendChild(systemRow);
@@ -1607,7 +1607,7 @@ export function mountHud(
       game.togglePathViz();
       refreshPathBtn();
     } else if (ev.key === "?" || ev.key === "h" || ev.key === "H") {
-      mountTutorialModal(root);
+      mountTutorialModal(root, undefined, game.seed);
     } else if (ev.key === "b" && ev.ctrlKey) {
       ev.preventDefault();
       game.toggleBlueprint();

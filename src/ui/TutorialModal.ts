@@ -9,6 +9,7 @@ interface Section {
 export function mountTutorialModal(
   root: HTMLElement,
   initialTab?: string,
+  seed?: number,
 ): () => void {
   const backdrop = document.createElement("div");
   backdrop.className = "modal-backdrop tutorial-backdrop";
@@ -109,10 +110,15 @@ export function mountTutorialModal(
   const hint = document.createElement("div");
   hint.className = "tutorial-hint";
   hint.textContent = "ESC or click outside to close";
+  const seedEl = document.createElement("div");
+  seedEl.className = "tutorial-hint";
+  if (seed !== undefined) {
+    seedEl.textContent = `Seed: ${seed}`;
+  }
   const okBtn = document.createElement("button");
   okBtn.className = "px-btn px-btn-primary modal-ok";
   okBtn.textContent = "GOT IT";
-  footer.append(hint, okBtn);
+  footer.append(hint, seedEl, okBtn);
   card.appendChild(footer);
 
   let closing = false;

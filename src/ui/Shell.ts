@@ -27,15 +27,15 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
     dispose = mountTitle(container, () => {
       game.newGame();
       showHud();
-      if (version.isNewPlayer) mountTutorialModal(container);
+      if (version.isNewPlayer) mountTutorialModal(container, undefined, game.seed);
     }, () => {
       game.newGame(1);
       showHud();
-      if (version.isNewPlayer) mountTutorialModal(container);
+      if (version.isNewPlayer) mountTutorialModal(container, undefined, game.seed);
     }, () => {
       game.newEndlessGame();
       showHud();
-      if (version.isNewPlayer) mountTutorialModal(container);
+      if (version.isNewPlayer) mountTutorialModal(container, undefined, game.seed);
     }, version.hasUnseenUpdate);
   };
 
