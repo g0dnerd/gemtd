@@ -3,10 +3,9 @@ import type { TowerState } from '../../game/State';
 import type { ComboRecipe } from '../../data/combos';
 import type { GemType, Quality } from '../../render/theme';
 import { COMBOS, COMBO_BY_NAME, findAllCombosFor, nextUpgrade } from '../../data/combos';
-import { GRID_SCALE, CHANCE_TIER_UPGRADE_COST, MAX_CHANCE_TIER } from '../../game/constants';
+import { GRID_SCALE, MAX_CHANCE_TIER } from '../../game/constants';
 import { BlueprintAI } from './BlueprintAI';
 import { MAZE_BLUEPRINT } from '../../data/maze-blueprint';
-import { exposureAt } from '../blueprintKeeper';
 
 const QUALITY_NAMES: Record<number, string> = {
   1: 'Chipped', 2: 'Flawed', 3: 'Normal', 4: 'Flawless', 5: 'Perfect',
@@ -63,7 +62,6 @@ export class HeuristicAI extends BlueprintAI {
     }
 
     if (s.wave > 1) {
-      this.upgradeCheapTowers(game);
       const tierBefore = s.chanceTier;
       const goldBefore = s.gold;
       this.upgradeChanceTier(game);
@@ -82,96 +80,74 @@ export class HeuristicAI extends BlueprintAI {
 
     this.placeGems(game);
     this.tryCombos(game);
-    this.upgradeCheapTowers(game);
 
     if (game.state.phase === 'build') {
       const demoted = this.designateKeeper(game);
       if (!demoted) {
         this.formComboWithKeeper(game);
-        this.upgradeCheapTowers(game);
       }
     }
 
     // After any auto-conclude (level-up or demotion), form combos from
     // surviving towers immediately — recipe combines work during wave phase
     this.formKeptTowerCombos(game);
-    this.upgradeCheapTowers(game);
-  }
-
-  private upgradeCheapTowers(game: HeadlessGame): void {
-    const state = game.state;
-    for (const tower of state.towers) {
-      if (!tower.comboKey) continue;
-      const combo = COMBO_BY_NAME.get(tower.comboKey);
-      if (!combo) continue;
-      const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
-      if (!upgrade || upgrade.cost >= 100) continue;
-      if (state.gold < upgrade.cost) continue;
-      if (this.logging) {
-        this.log.push(`  cheap upgrade: ${combo.name} → ${upgrade.name} (${upgrade.cost}g)`);
-      }
-      game.cmdUpgradeTower(tower.id);
-    }
   }
 
   protected override upgradeComboTowers(game: HeadlessGame): void {
     const state = game.state;
 
-    const nextTierCost = state.chanceTier < MAX_CHANCE_TIER
-      ? CHANCE_TIER_UPGRADE_COST[state.chanceTier]
-      : 0;
+    // Special (combo) upgrades only begin once the final chance tier is bought;
+    // until then every spare gold goes toward chance tier.
+    if (state.chanceTier < MAX_CHANCE_TIER) {
+      if (this.logging) {
+        this.log.push(`  no special upgrades yet (chance tier ${state.chanceTier}/${MAX_CHANCE_TIER})`);
+      }
+      return;
+    }
 
-    const routeSet = new Set(state.flatRoute.map((p) => `${p.x},${p.y}`));
-    const voidOpals: Array<{ towerId: number; cost: number; exposure: number }> = [];
-    const rest: Array<{ towerId: number; cost: number; kills: number }> = [];
+    // Priority: Black Opal → Void Opal always takes precedence, then the rest
+    // strictly by gem kills.
+    const voidOpals: number[] = [];
+    const rest: Array<{ towerId: number; kills: number }> = [];
 
     for (const tower of state.towers) {
       if (!tower.comboKey) continue;
       const combo = COMBO_BY_NAME.get(tower.comboKey);
       if (!combo) continue;
-      const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
-      if (!upgrade) continue;
+      if (!nextUpgrade(combo, tower.upgradeTier ?? 0)) continue;
       if (tower.comboKey === 'black_opal') {
-        voidOpals.push({ towerId: tower.id, cost: upgrade.cost, exposure: exposureAt(tower.x, tower.y, routeSet) });
+        voidOpals.push(tower.id);
       } else {
-        rest.push({ towerId: tower.id, cost: upgrade.cost, kills: tower.kills });
+        rest.push({ towerId: tower.id, kills: tower.kills });
       }
     }
 
-    voidOpals.sort((a, b) => b.exposure - a.exposure);
     rest.sort((a, b) => b.kills - a.kills);
-    const upgradeable = [...voidOpals, ...rest];
+    const order = [...voidOpals, ...rest.map((r) => r.towerId)];
 
-    for (const entry of upgradeable) {
-      const { towerId, cost } = entry;
-      if (state.gold < cost) {
+    // Fully upgrade each tower through every tier it can afford before moving
+    // to the next. When the next-priority upgrade is unaffordable, stop and
+    // save up rather than buying a cheaper lower-priority upgrade.
+    for (const towerId of order) {
+      const tower = state.towers.find((t) => t.id === towerId);
+      if (!tower || !tower.comboKey) continue;
+      const combo = COMBO_BY_NAME.get(tower.comboKey);
+      if (!combo) continue;
+
+      for (;;) {
+        const upgrade = nextUpgrade(combo, tower.upgradeTier ?? 0);
+        if (!upgrade) break;
+        if (state.gold < upgrade.cost) {
+          if (this.logging) {
+            this.log.push(`  saving for: ${combo.name} → ${upgrade.name} (${upgrade.cost}g, have ${state.gold}g)`);
+          }
+          return;
+        }
         if (this.logging) {
-          const tower = state.towers.find((t) => t.id === towerId);
-          const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;
-          const next = combo ? nextUpgrade(combo, tower!.upgradeTier ?? 0) : null;
-          if (next) this.log.push(`  saving for: ${combo!.name} → ${next.name} (${cost}g, have ${state.gold}g)`);
+          this.log.push(`  upgrade: ${combo.name} → ${upgrade.name} (${upgrade.cost}g, ${tower.kills} kills)`);
         }
-        break;
+        game.cmdUpgradeTower(towerId);
       }
-      if (nextTierCost > 0 && state.gold - cost < nextTierCost) {
-        if (this.logging) {
-          const tower = state.towers.find((t) => t.id === towerId);
-          const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;
-          const next = combo ? nextUpgrade(combo, tower!.upgradeTier ?? 0) : null;
-          if (next) this.log.push(`  skip upgrade: ${combo!.name} → ${next.name} (${cost}g, reserving ${nextTierCost}g for chance tier)`);
-        }
-        continue;
-      }
-      if (this.logging) {
-        const tower = state.towers.find((t) => t.id === towerId);
-        const combo = tower?.comboKey ? COMBO_BY_NAME.get(tower.comboKey) : null;
-        const next = combo ? nextUpgrade(combo, tower!.upgradeTier ?? 0) : null;
-        if (next) {
-          const extra = 'exposure' in entry ? `, exp=${entry.exposure}` : `, ${tower!.kills} kills`;
-          this.log.push(`  upgrade: ${combo!.name} → ${next.name} (${cost}g${extra})`);
-        }
-      }
-      game.cmdUpgradeTower(towerId);
     }
   }
 
