@@ -311,6 +311,27 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.12",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Reduced wave 24 shrike health from 8106 to 7300.",
+        },
+        {
+          tag: "nerf",
+          text: "Reduced wave 37 carapace armor from 33 to 30.",
+        },
+        {
+          tag: "nerf",
+          text: "Reduced wave 46 slow resist from 0.62 to 0.52.",
+        },
+        {
+          tag: "buff",
+          text: "Increased wave 47 slow resist from 0.44 to 0.54.",
+        },
+      ],
+    },
+    {
       ver: "1.5.11",
       notes: [
         {
