@@ -8,6 +8,7 @@ import { StrategistAI } from '../../src/sim/ai/StrategistAI';
 import { HeuristicAI } from '../../src/sim/ai/HeuristicAI';
 import type { SimAI, GameResult, WaveSummary } from '../../src/sim/types';
 import type { AISnapshot, AggregateStats, PerSeedResult, DpsHpEntry, WavePerformance } from './types';
+import { makeTransport, type TelemetryConfig } from './telemetry';
 
 const WORKER_PATH = fileURLToPath(new URL('./worker-entry.mjs', import.meta.url));
 
@@ -35,11 +36,19 @@ function mean(arr: number[]): number {
   return arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
-function runBatch(seedCount: number, ai: SimAI): RunData[] {
+async function runBatch(seedCount: number, ai: SimAI, aiName: string, telemetry?: TelemetryConfig): Promise<RunData[]> {
   const runs: RunData[] = [];
+  const transport = telemetry ? makeTransport(telemetry.url) : undefined;
   for (let seed = 1; seed <= seedCount; seed++) {
     const game = new HeadlessGame(seed);
+    const collector = telemetry && transport
+      ? game.attachTelemetry({ version: telemetry.version, mode: 'sim', ai: aiName, seed, transport })
+      : undefined;
     const result = game.runGame(ai);
+    if (collector) {
+      collector.finalize(result.outcome);
+      await collector.whenDone();
+    }
     runs.push({
       result,
       gemDamageShare: game.metrics!.gemDamageShare(),
@@ -178,12 +187,12 @@ export const ALL_AIS: AIEntry[] = [
   { name: 'HeuristicAI', ai: new HeuristicAI() },
 ];
 
-export function runAllAIsSequential(seedCount: number, ais: AIEntry[]): Record<string, AISnapshot> {
+export async function runAllAIsSequential(seedCount: number, ais: AIEntry[], telemetry?: TelemetryConfig): Promise<Record<string, AISnapshot>> {
   const result: Record<string, AISnapshot> = {};
   for (const { name, ai } of ais) {
     const t0 = Date.now();
     process.stdout.write(`  Running ${name} (${seedCount} seeds)...`);
-    const runs = runBatch(seedCount, ai);
+    const runs = await runBatch(seedCount, ai, name, telemetry);
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     process.stdout.write(` done (${elapsed}s)\n`);
     result[name] = collectAISnapshot(runs);
@@ -195,6 +204,7 @@ export function runAllAIs(
   seedCount: number,
   ais: AIEntry[],
   workerCount?: number,
+  telemetry?: TelemetryConfig,
 ): Promise<Record<string, AISnapshot>> {
   const numWorkers = Math.min(
     workerCount ?? Math.max(1, cpus().length - 1),
@@ -244,7 +254,7 @@ export function runAllAIs(
     }
 
     for (let i = 0; i < numWorkers; i++) {
-      const w = new Worker(WORKER_PATH);
+      const w = new Worker(WORKER_PATH, { workerData: { telemetry } });
       workers.push(w);
 
       w.on('message', (msg: { type: string; aiName: string; seed: number; result: GameResult; gemDamageShare: Record<string, number>; gemKillShare: Record<string, number>; dpsVsHp: RunData['dpsVsHp']; waveSummaries: WaveSummary[] }) => {

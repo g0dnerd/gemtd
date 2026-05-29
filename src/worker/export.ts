@@ -2,7 +2,7 @@ import type { Env } from "./types";
 
 const TABLES: Record<string, string[]> = {
   runs: [
-    "run_id", "outcome", "version", "mode", "wave_reached", "final_lives",
+    "run_id", "outcome", "version", "mode", "ai", "seed", "wave_reached", "final_lives",
     "final_gold", "total_kills", "tower_count", "combo_count", "max_chance_tier",
     "rocks_removed", "downgrades_used", "duration_ticks", "total_leaks",
     "clean_waves", "created_at",
@@ -28,7 +28,7 @@ const TABLES: Record<string, string[]> = {
     "total_hp_spawned",
   ],
   wave_gem_damage: [
-    "run_id", "wave", "gem", "is_combo", "combo_key", "damage", "kills",
+    "run_id", "wave", "gem", "is_combo", "combo_key", "upgrade_tier", "damage", "kills",
   ],
 };
 
@@ -44,6 +44,7 @@ export async function handleExport(
   );
   const version = url.searchParams.get("version") || null;
   const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
+  const runset = url.searchParams.get("runset");
 
   const columns = TABLES[table];
   if (!columns) {
@@ -53,7 +54,9 @@ export async function handleExport(
     );
   }
 
-  const mf = "mode NOT IN ('debug', 'creative') AND wave_reached > 1";
+  const mf = runset === "sim"
+    ? "mode = 'sim' AND wave_reached > 1"
+    : "mode NOT IN ('debug', 'creative', 'sim') AND wave_reached > 1";
 
   let sql: string;
   const binds: unknown[] = [];

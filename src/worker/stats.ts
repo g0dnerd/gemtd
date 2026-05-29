@@ -6,9 +6,12 @@ export async function handleStats(
 ): Promise<Response> {
   const version = url.searchParams.get("version") || null;
   const versions = url.searchParams.get("versions")?.split(",").filter(Boolean) || null;
+  const runset = url.searchParams.get("runset");
   const db = env.gemtd_telemetry;
 
-  const mf = "AND mode NOT IN ('debug', 'creative') AND wave_reached > 1";
+  const mf = runset === "sim"
+    ? "AND mode = 'sim' AND wave_reached > 1"
+    : "AND mode NOT IN ('debug', 'creative', 'sim') AND wave_reached > 1";
 
   let rv = mf;
   let rBind: string[] = [];

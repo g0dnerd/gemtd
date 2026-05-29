@@ -23,6 +23,8 @@ interface Payload {
   version: string;
   mode: string;
   outcome: string;
+  ai?: string;
+  seed?: number;
   run: RunData;
   waves: Array<Record<string, number>>;
   towers: Array<Record<string, unknown>>;
@@ -64,13 +66,15 @@ export async function handleIngest(
       `INSERT INTO runs (run_id, version, mode, outcome,
          wave_reached, final_lives, final_gold, total_kills,
          tower_count, combo_count, max_chance_tier, rocks_removed,
-         downgrades_used, duration_ticks, total_leaks, clean_waves)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         downgrades_used, duration_ticks, total_leaks, clean_waves,
+         ai, seed)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       runId, version, mode, outcome,
       run.waveReached, run.finalLives, run.finalGold, run.totalKills,
       run.towerCount, run.comboCount, run.maxChanceTier, run.rocksRemoved,
       run.downgradesUsed, run.durationTicks, run.totalLeaks, run.cleanWaves,
+      body.ai ?? "", body.seed ?? 0,
     ),
   );
 

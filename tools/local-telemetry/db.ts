@@ -21,6 +21,7 @@ export function openDb(): Database.Database {
     "0003_balance_telemetry.sql",
     "0004_wave_gem_combo_key.sql",
     "0005_wave_gem_upgrade_tier.sql",
+    "0006_sim_run_meta.sql",
   ];
 
   db.exec(

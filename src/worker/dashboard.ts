@@ -333,6 +333,10 @@ export function handleDashboard(secret: string): Response {
   <header class="topbar">
     <span class="topbar-title">Dashboard</span>
     <div class="topbar-controls">
+      <select id="runset">
+        <option value="real">Real</option>
+        <option value="sim">Sim</option>
+      </select>
       <div class="version-picker">
         <select id="vmode">
           <option value="exact">Exact</option>
@@ -509,9 +513,15 @@ function versionParams(params) {
   }
 }
 
+function runsetParams(params) {
+  const rs = document.getElementById('runset');
+  if (rs) params.runset = rs.value;
+}
+
 function updateExportLinks() {
   const params = { secret: SECRET, format: 'csv' };
   versionParams(params);
+  runsetParams(params);
   ['runs', 'towers', 'events', 'wave_creep_stats', 'wave_gem_damage'].forEach(ds => {
     const el = document.getElementById('exp-' + ds);
     if (el) el.href = base + '/export' + qs({ ...params, dataset: ds });
@@ -1298,6 +1308,7 @@ async function load() {
   el.innerHTML = '<p class="loading-msg">Loading\\u2026</p>';
   const params = { secret: SECRET };
   versionParams(params);
+  runsetParams(params);
   updateExportLinks();
 
   try {
@@ -1354,6 +1365,13 @@ document.getElementById('content').addEventListener('scroll', () => {
 // Version mode change
 document.getElementById('vmode').addEventListener('change', () => {
   populateVersions(allVersions);
+});
+
+// Runset toggle (real / sim) — reset version filter to avoid cross-runset mismatch
+document.getElementById('runset').addEventListener('change', () => {
+  const v = document.getElementById('version');
+  if (v) v.value = '';
+  load();
 });
 
 load();

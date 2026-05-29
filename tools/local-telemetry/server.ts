@@ -5,7 +5,11 @@ import { handleDashboard } from "../../src/worker/dashboard.js";
 const PORT = parseInt(process.env.TELEMETRY_PORT || "3456");
 const db = openDb();
 
-const VALID_RUN = "mode NOT IN ('debug', 'creative') AND wave_reached > 1";
+function validRun(runset: string | null): string {
+  return runset === "sim"
+    ? "mode = 'sim' AND wave_reached > 1"
+    : "mode NOT IN ('debug', 'creative', 'sim') AND wave_reached > 1";
+}
 
 function versionFilter(
   version: string | null,
@@ -58,8 +62,9 @@ const insertRun = db.prepare(
   `INSERT OR IGNORE INTO runs (run_id, version, mode, outcome,
      wave_reached, final_lives, final_gold, total_kills,
      tower_count, combo_count, max_chance_tier, rocks_removed,
-     downgrades_used, duration_ticks, total_leaks, clean_waves)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     downgrades_used, duration_ticks, total_leaks, clean_waves,
+     ai, seed)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
 const insertWave = db.prepare(
@@ -96,6 +101,7 @@ const insertWaveGemDamage = db.prepare(
 
 const ingestTx = db.transaction(
   (runId: string, version: string, mode: string, outcome: string,
+   ai: string, seed: number,
    run: any, waves: any[], towers: any[], events: any[],
    waveCreepStats: any[], waveGemDamage: any[]) => {
     insertRun.run(
@@ -103,6 +109,7 @@ const ingestTx = db.transaction(
       run.waveReached, run.finalLives, run.finalGold, run.totalKills,
       run.towerCount, run.comboCount, run.maxChanceTier, run.rocksRemoved,
       run.downgradesUsed, run.durationTicks, run.totalLeaks, run.cleanWaves,
+      ai, seed,
     );
     for (const w of waves) {
       insertWave.run(
@@ -156,8 +163,8 @@ function handleIngest(req: IncomingMessage, res: ServerResponse): void {
     const { runId, version, mode, outcome, run } = body;
 
     try {
-      ingestTx(runId, version, mode, outcome, run, body.waves ?? [], body.towers ?? [], body.events ?? [], body.waveCreepStats ?? [], body.waveGemDamage ?? []);
-      console.log(`Ingested run ${runId} (${mode}, wave ${run.waveReached}, ${outcome})`);
+      ingestTx(runId, version, mode, outcome, body.ai ?? "", body.seed ?? 0, run, body.waves ?? [], body.towers ?? [], body.events ?? [], body.waveCreepStats ?? [], body.waveGemDamage ?? []);
+      console.log(`Ingested run ${runId} (${mode}${body.ai ? `/${body.ai}` : ""}, wave ${run.waveReached}, ${outcome})`);
       cors(res);
       res.writeHead(204);
       res.end();
@@ -177,9 +184,10 @@ function handleStats(url: URL, res: ServerResponse): void {
     url.searchParams.get("version") || null,
     url.searchParams.get("versions")?.split(",").filter(Boolean) || null,
   );
-  const runsWhere = `AND ${VALID_RUN} ${vf.clause}`;
+  const VALID = validRun(url.searchParams.get("runset"));
+  const runsWhere = `AND ${VALID} ${vf.clause}`;
   const childWhere = (col = "run_id") =>
-    `AND ${col} IN (SELECT run_id FROM runs WHERE ${VALID_RUN} ${vf.clause})`;
+    `AND ${col} IN (SELECT run_id FROM runs WHERE ${VALID} ${vf.clause})`;
 
   const overview = db.prepare(
     `SELECT count(*) as total_runs, avg(wave_reached) as avg_wave,
@@ -273,7 +281,7 @@ function handleStats(url: URL, res: ServerResponse): void {
   ).all(...vf.binds);
 
   const versionRows = db.prepare(
-    `SELECT DISTINCT version FROM runs WHERE ${VALID_RUN} ORDER BY version DESC`,
+    `SELECT DISTINCT version FROM runs WHERE ${VALID} ORDER BY version DESC`,
   ).all() as Array<{ version: string }>;
 
   const wavePressure = db.prepare(
@@ -363,7 +371,7 @@ function handleStats(url: URL, res: ServerResponse): void {
 
 const TABLES: Record<string, string[]> = {
   runs: [
-    "run_id", "outcome", "version", "mode", "wave_reached", "final_lives",
+    "run_id", "outcome", "version", "mode", "ai", "seed", "wave_reached", "final_lives",
     "final_gold", "total_kills", "tower_count", "combo_count", "max_chance_tier",
     "rocks_removed", "downgrades_used", "duration_ticks", "total_leaks",
     "clean_waves", "created_at",
@@ -399,6 +407,7 @@ function handleExport(url: URL, res: ServerResponse): void {
     url.searchParams.get("version") || null,
     url.searchParams.get("versions")?.split(",").filter(Boolean) || null,
   );
+  const VALID = validRun(url.searchParams.get("runset"));
 
   const columns = TABLES[table];
   if (!columns) { text(res, `Invalid dataset. Valid: ${Object.keys(TABLES).join(", ")}`, 400); return; }
@@ -407,11 +416,11 @@ function handleExport(url: URL, res: ServerResponse): void {
   const binds: unknown[] = [];
 
   if (table === "runs") {
-    sql = `SELECT ${columns.join(", ")} FROM runs WHERE ${VALID_RUN} ${vf.clause}`;
+    sql = `SELECT ${columns.join(", ")} FROM runs WHERE ${VALID} ${vf.clause}`;
     binds.push(...vf.binds);
     sql += " ORDER BY created_at DESC LIMIT ?";
   } else {
-    sql = `SELECT ${columns.join(", ")} FROM ${table} WHERE run_id IN (SELECT run_id FROM runs WHERE ${VALID_RUN} ${vf.clause})`;
+    sql = `SELECT ${columns.join(", ")} FROM ${table} WHERE run_id IN (SELECT run_id FROM runs WHERE ${VALID} ${vf.clause})`;
     binds.push(...vf.binds);
     sql += " LIMIT ?";
   }
@@ -465,7 +474,7 @@ async function serveDashboard(res: ServerResponse): Promise<void> {
 
 function handleSummary(res: ServerResponse): void {
   const row = db.prepare(
-    `SELECT count(*) as total FROM runs WHERE ${VALID_RUN}`,
+    `SELECT count(*) as total FROM runs WHERE ${validRun(null)}`,
   ).get() as { total: number };
   json(res, { total: row.total });
 }
@@ -497,6 +506,12 @@ const server = createServer((req, res) => {
     text(res, "Not found", 404);
   }
 });
+
+// Sim workers reuse one keep-alive socket across games, but a HeuristicAI game
+// can take 30s+ — far longer than the 5s default. Keep idle sockets open so the
+// server doesn't close one out from under a worker's next POST (ECONNRESET).
+server.keepAliveTimeout = 120_000;
+server.headersTimeout = 125_000;
 
 server.listen(PORT, () => {
   const row = db.prepare("SELECT count(*) as total FROM runs").get() as { total: number };

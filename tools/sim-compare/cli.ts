@@ -4,7 +4,7 @@ import { writeSnapshot, readSnapshot, listSnapshots, findLatestOther } from './s
 import { compareSnapshots } from './compare';
 import { printRunSummary, printComparison, printHistory } from './format';
 import type { Snapshot } from './types';
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -59,7 +59,36 @@ async function handleRun(args: string[]): Promise<void> {
     }
   }
 
-  const aiFilter = flags.ai;
+  // Telemetry: off by default. `--telemetry` emits to the local server; add
+  // `--remote` (with --telemetry-url or GEMTD_TELEMETRY_URL) to hit production.
+  const telemetryEnabled = flags.telemetry === 'true';
+  let telemetry: { url: string; version: string } | undefined;
+  if (telemetryEnabled) {
+    const pkg = JSON.parse(
+      readFileSync(resolve(__dirname, '../../package.json'), 'utf-8'),
+    ) as { version: string };
+    let url: string;
+    if (flags.remote === 'true') {
+      const remoteUrl =
+        flags['telemetry-url'] && flags['telemetry-url'] !== 'true'
+          ? flags['telemetry-url']
+          : process.env.GEMTD_TELEMETRY_URL;
+      if (!remoteUrl) {
+        console.log('--remote requires a telemetry URL via --telemetry-url <url> or the GEMTD_TELEMETRY_URL env var.');
+        process.exit(1);
+      }
+      url = remoteUrl;
+    } else {
+      const port = process.env.TELEMETRY_PORT ?? '3456';
+      url = `http://localhost:${port}/api/telemetry`;
+    }
+    telemetry = { url, version: pkg.version };
+    console.log(`Telemetry enabled → ${url} (mode=sim, version=${pkg.version})`);
+  }
+
+  // Only HeuristicAI emits by default; an explicit --ai still records ai=<name>.
+  let aiFilter = flags.ai;
+  if (telemetryEnabled && !aiFilter) aiFilter = 'HeuristicAI';
   const ais = aiFilter
     ? ALL_AIS.filter((a) => a.name.toLowerCase() === aiFilter.toLowerCase())
     : ALL_AIS;
@@ -70,9 +99,9 @@ async function handleRun(args: string[]): Promise<void> {
 
   console.log(`Running sim for commit ${git.shortHash} (${git.message})...`);
   const t0 = Date.now();
-  const aisResult = sequential
-    ? runAllAIsSequential(seedCount, ais)
-    : await runAllAIs(seedCount, ais, workerCount);
+  const aisResult = await (sequential
+    ? runAllAIsSequential(seedCount, ais, telemetry)
+    : runAllAIs(seedCount, ais, workerCount, telemetry));
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
   console.log(`  Total: ${elapsed}s`);
 
@@ -156,18 +185,27 @@ Usage: npx tsx tools/sim-compare/cli.ts <command> [options]
 
 Commands:
   run [--seeds N] [--tag <ref>] [--ai <name>] [--workers N] [--sequential]
+      [--telemetry] [--remote] [--telemetry-url <url>]
                                    Run sim and store snapshot
   compare [current] [base]         Compare two snapshots (default current: HEAD, default base: most recent other)
   history [--limit N]              List stored snapshots (default: 20)
 
 Options for 'run':
-  --workers N     Number of worker threads (default: CPU count - 1)
-  --sequential    Disable parallelization, run AIs one at a time
+  --workers N         Number of worker threads (default: CPU count - 1)
+  --sequential        Disable parallelization, run AIs one at a time
+  --telemetry         Emit runs to the telemetry pipeline (mode='sim'). Off by
+                      default. Defaults --ai to HeuristicAI when --ai is unset.
+                      Target is http://localhost:\${TELEMETRY_PORT:-3456}/api/telemetry.
+  --remote            Send to a remote ingest URL instead of localhost. Requires
+                      --telemetry-url <url> or the GEMTD_TELEMETRY_URL env var.
+  --telemetry-url <url>  Explicit remote ingest URL (used with --remote).
 
 Examples:
   npm run sim:run
   npm run sim:run -- --workers 8
   npm run sim:run -- --sequential
+  npm run sim:run -- --telemetry --seeds 10
+  GEMTD_TELEMETRY_URL=https://example.com/api/telemetry npm run sim:run -- --telemetry --remote --seeds 5
   npm run sim:compare                          # HEAD vs most recent other
   npm run sim:compare -- abc1234               # HEAD vs abc1234
   npm run sim:compare -- abc1234 def5678       # abc1234 (current) vs def5678 (base)

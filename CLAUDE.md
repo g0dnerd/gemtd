@@ -92,9 +92,9 @@ All keys use the format `gemtd:<kebab-case>`. Current keys: `gemtd:music-muted`,
 
 ### Headless sim + AI players (`src/sim/`)
 
-`HeadlessGame` runs the game without Pixi. `src/sim/ai/` has three AI players — `BlueprintAI`, `GreedyAI`, `StrategistAI` — used **for balance evaluation only** (driving sim-compare runs). Update them only when a new mechanic genuinely needs to be understood by the evaluator; treat them as offline analysis tooling, not gameplay code.
+`HeadlessGame` runs the game without Pixi. `src/sim/ai/` has four AI players — `BlueprintAI`, `GreedyAI`, `StrategistAI`, `HeuristicAI` — used **for balance evaluation only** (driving sim-compare runs). Update them only when a new mechanic genuinely needs to be understood by the evaluator; treat them as offline analysis tooling, not gameplay code.
 
-Headless sim runs **must not write telemetry** — guard at the `TelemetryCollector` boundary, not in dashboard queries.
+Headless sim runs **don't write telemetry by default** — guard at the `TelemetryCollector` boundary, not in dashboard queries. The **one** intentional exception is `npm run sim:run -- --telemetry`, which attaches the collector and emits runs tagged `mode='sim'` (local server by default; `--remote` + `--telemetry-url`/`GEMTD_TELEMETRY_URL` for production, and only `HeuristicAI` unless `--ai` says otherwise). Plain `npm test`, `npm run sim`, and default `sim:run` still never emit.
 
 ### `tools/sim-compare/`
 
@@ -107,8 +107,8 @@ Offline genetic-algorithm tool that produces the blueprint JSON consumed by `Blu
 ### Telemetry + Cloudflare Worker (`src/worker/`, `src/telemetry/`, `migrations/`)
 
 - D1 binding `gemtd_telemetry`; schema in `migrations/`. The Worker exposes ingest, dashboard, stats, and export endpoints.
-- **Run validity filter:** dashboards and exports compute aggregates over `mode NOT IN ('debug','creative') AND wave_reached > 1`. Any new dashboard/export query must mirror this filter — don't aggregate raw rows.
-- If you add a new run `mode` (e.g. `sandbox`, `tutorial`), update the SQL filter list in `src/worker/{stats,export}.ts` and call it out in the PR.
+- **Run validity filter:** for real-player runs (the default `runset`), dashboards and exports compute aggregates over `mode NOT IN ('debug','creative','sim') AND wave_reached > 1`; `runset=sim` switches the base to `mode = 'sim' AND wave_reached > 1`. Any new dashboard/export query must mirror this filter — don't aggregate raw rows.
+- If you add a new run `mode` (e.g. `sandbox`, `tutorial`), update the SQL filter list in `src/worker/{stats,export}.ts` **and** `tools/local-telemetry/server.ts`, and call it out in the PR. (`'sim'` is already excluded from real aggregates; sim runs also carry `ai`/`seed` columns on `runs` for grouping and seed-level reproducibility.)
 - Telemetry is **opt-in / privacy-sensitive**. Don't send PII or anything that could re-identify a player beyond the seed. New fields on `TelemetryCollector` require explicit justification.
 - **Never deploy** (`npm run deploy`) without explicit confirmation — it hits production.
 

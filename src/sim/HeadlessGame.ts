@@ -13,6 +13,7 @@ import { Combat } from '../systems/Combat';
 import { Traps } from '../systems/Traps';
 import { GEM_TYPES, type GemType } from '../render/theme';
 import { Metrics } from './Metrics';
+import { TelemetryCollector, type TelemetryOptions } from '../telemetry/TelemetryCollector';
 import type { Game } from '../game/Game';
 import type { SimAI, GameResult } from './types';
 
@@ -240,6 +241,7 @@ export class HeadlessGame {
     state.gold -= cost;
     state.chanceTier += 1;
     this.bus.emit('gold:change', { gold: state.gold });
+    this.bus.emit('chance:upgrade', { tier: state.chanceTier, cost });
     return true;
   }
 
@@ -255,8 +257,15 @@ export class HeadlessGame {
     if (state.downgradeUsedThisRound) return false;
     const isCurrentDraw = state.draws.some((d) => d.placedTowerId === towerId);
     if (!isCurrentDraw) return false;
+    const oldQuality = tower.quality;
     tower.quality = (tower.quality - 1) as 1 | 2 | 3 | 4 | 5;
     state.downgradeUsedThisRound = true;
+    this.bus.emit('tower:downgrade', {
+      id: towerId,
+      gem: tower.gem,
+      oldQuality,
+      newQuality: tower.quality,
+    });
     return true;
   }
 
@@ -271,6 +280,7 @@ export class HeadlessGame {
     state.rocksRemoved += 1;
     if (state.selectedRockId === rockId) this.selectRock(null);
     this.refreshRoute();
+    this.bus.emit('rock:remove', { id: rockId, cost: 0 });
     return true;
   }
 
@@ -289,6 +299,14 @@ export class HeadlessGame {
     this.bus.emit('gold:change', { gold: state.gold });
     this.bus.emit('tower:upgrade', { id: towerId, comboKey: tower.comboKey, tier: tower.upgradeTier });
     return true;
+  }
+
+  /**
+   * Opt-in telemetry for headless runs. Call before `runGame(ai)` so the
+   * collector subscribes ahead of the first `wave:start`.
+   */
+  attachTelemetry(opts: TelemetryOptions): TelemetryCollector {
+    return new TelemetryCollector(this as unknown as Game, opts);
   }
 
   runGame(ai: SimAI): GameResult {

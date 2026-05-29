@@ -74,9 +74,24 @@ interface TelemetryEvent {
   value1: number;
 }
 
+export type TelemetryMode = "normal" | "hardcore" | "blueprint" | "sim";
+
+export interface TelemetryOptions {
+  version?: string;
+  mode?: TelemetryMode;
+  ai?: string;
+  seed?: number;
+  transport?: (payload: Record<string, unknown>) => Promise<void>;
+}
+
 export class TelemetryCollector {
   private readonly runId: string;
-  private readonly mode: "normal" | "hardcore" | "blueprint";
+  private readonly version: string;
+  private readonly mode: TelemetryMode;
+  private readonly ai?: string;
+  private readonly seed?: number;
+  private readonly transport?: (payload: Record<string, unknown>) => Promise<void>;
+  private sendPromise?: Promise<void>;
   private readonly state: State;
   private readonly bus: EventBus;
   private readonly unsubs: Array<() => void> = [];
@@ -102,14 +117,20 @@ export class TelemetryCollector {
   private readonly kindBuckets = new Map<CreepKind, CreepKindBucket>();
   private readonly towerWaveStart = new Map<number, { damage: number; kills: number }>();
 
-  constructor(game: Game) {
+  constructor(game: Game, opts?: TelemetryOptions) {
     this.runId = crypto.randomUUID();
     this.state = game.state;
     this.bus = game.bus;
 
-    if (game.state.hardcore) this.mode = "hardcore";
-    else if (game.blueprintMode) this.mode = "blueprint";
-    else this.mode = "normal";
+    // `??` short-circuits, so the bare `__GAME_VERSION__` (a Vite define that
+    // is undefined under tsx) is never evaluated when a version is injected.
+    this.version = opts?.version ?? __GAME_VERSION__;
+    this.mode =
+      opts?.mode ??
+      (game.state.hardcore ? "hardcore" : game.blueprintMode ? "blueprint" : "normal");
+    this.ai = opts?.ai;
+    this.seed = opts?.seed;
+    this.transport = opts?.transport;
 
     this.maxChanceTier = this.state.chanceTier;
     this.subscribe();
@@ -383,9 +404,11 @@ export class TelemetryCollector {
 
     const header = {
       runId: this.runId,
-      version: __GAME_VERSION__,
+      version: this.version,
       mode: this.mode,
       outcome,
+      ...(this.ai !== undefined ? { ai: this.ai } : {}),
+      ...(this.seed !== undefined ? { seed: this.seed } : {}),
     };
 
     const run = {
@@ -415,6 +438,11 @@ export class TelemetryCollector {
   }
 
   private send(payload: Record<string, unknown>): void {
+    if (this.transport) {
+      this.sendPromise = this.transport(payload);
+      return;
+    }
+
     const body = JSON.stringify(payload);
     const url = import.meta.env.DEV
       ? "http://localhost:3456/api/telemetry"
@@ -425,6 +453,20 @@ export class TelemetryCollector {
       headers: { "Content-Type": "application/json" },
       body,
     }).catch(() => {});
+  }
+
+  /**
+   * Idempotent flush for callers that drive the game without a terminal
+   * `phase:enter` (e.g. HeadlessGame's timeout branch sets `gameover` directly).
+   */
+  finalize(outcome: "gameover" | "victory"): void {
+    if (this.flushed) return;
+    this.flush(outcome);
+  }
+
+  /** Resolves once the injected transport's POST has settled. */
+  whenDone(): Promise<void> {
+    return this.sendPromise ?? Promise.resolve();
   }
 
   detach(): void {
