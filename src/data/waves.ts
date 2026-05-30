@@ -254,7 +254,7 @@ export const WAVES: WaveDef[] = [
     30,
     1.0,
     80,
-    ["amalgam", 8, 32000, 13, 0, 5],
+    ["amalgam", 7, 32000, 13, 0, 5],
     ["mender", 2, 15400, 8, 0, 3],
   ),
 
