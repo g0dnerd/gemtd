@@ -1,10 +1,36 @@
+/**
+ * Rock sprite — the mossy-boulder material used for permanent maze blockers
+ * (former non-kept gem towers).
+ *
+ * `buildMossRock(seed)` returns a 32×32 `grid` (slot values 0..7 → palette
+ * colours via drawPixelGrid) plus the `palette` to rasterise it with, and a
+ * separate low-alpha `shadow` grid: a sculpted ground-contact shadow with real
+ * form (wider at the base, fading outward through a dithered penumbra) — NOT a
+ * uniform offset blob. The shadow is rasterised on its own and drawn as a
+ * sprite *under* the rock at reduced alpha so it reads over grass/path/terrain.
+ *
+ * Per-position micro-variation: pass a per-rock seed and the silhouette
+ * chamfers + edge jitter + moss placement shift deterministically, so a field
+ * of rocks looks natural rather than tiled-identical.
+ */
+
 import type { PixelGrid } from "./sprites";
 import type { SpriteColors } from "./pixelTexture";
 import { ROCK_PAL } from "./theme";
 
 const SIZE = 32;
 
-type Sil = ([number, number] | null)[];
+export interface RockBuild {
+  grid: PixelGrid;
+  palette: SpriteColors;
+  /** Separate grid for the cast shadow; rasterise + draw under the rock at alpha. */
+  shadow: PixelGrid;
+  /** Suggested alpha for the cast-shadow sprite. */
+  shadowAlpha: number;
+}
+
+type Row = [number, number] | null;
+type Sil = Row[];
 
 function make(): number[][] {
   const g: number[][] = [];
@@ -12,25 +38,37 @@ function make(): number[][] {
   return g;
 }
 
-function silFromRows(rows: ([number, number] | null)[]): Sil {
-  return rows.map(r => (r ? [r[0], r[1]] : null));
+/** Small deterministic PRNG so each rock instance varies but stays stable. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-function chip(sil: Sil, chips: [string, number, number][]): void {
-  for (const [side, y, depth] of chips) {
-    if (!sil[y]) continue;
-    if (side === "L") sil[y]![0] = Math.min(sil[y]![1], sil[y]![0] + depth);
-    else sil[y]![1] = Math.max(sil[y]![0], sil[y]![1] - depth);
+function silFromRows(rows: Row[]): Sil {
+  return rows.map((r) => (r ? [r[0], r[1]] : null));
+}
+
+/** Randomly nibble the silhouette edges so no two rocks share an outline. */
+function jitterEdges(sil: Sil, rnd: () => number, amount = 1): void {
+  for (let y = 0; y < SIZE; y++) {
+    const r = sil[y];
+    if (!r) continue;
+    if (rnd() < 0.35) r[0] = Math.min(r[1], r[0] + (rnd() < 0.5 ? amount : 0));
+    if (rnd() < 0.35) r[1] = Math.max(r[0], r[1] - (rnd() < 0.5 ? amount : 0));
   }
 }
 
-function shadeDiagonal(
-  grid: number[][],
-  sil: Sil,
-  opts: { tHi?: number; tLo?: number } = {},
-): void {
-  const tHi = opts.tHi ?? 0.3;
-  const tLo = opts.tLo ?? 0.62;
+/**
+ * Diagonal light model. Light comes from the top-left; t increases toward the
+ * bottom-right. Three bands → light / mid / dark, with an outline ring.
+ */
+function shade(grid: number[][], sil: Sil, tHi = 0.3, tLo = 0.62): void {
   for (let y = 0; y < SIZE; y++) {
     const r = sil[y];
     if (!r) continue;
@@ -43,558 +81,163 @@ function shadeDiagonal(
   }
 }
 
-function bottomShadow(grid: number[][], sil: Sil, depth = 2): void {
+/** 1px outline ring around the silhouette (slot 4). */
+function outline(grid: number[][], sil: Sil): void {
   for (let y = 0; y < SIZE; y++) {
     const r = sil[y];
     if (!r) continue;
     for (let x = r[0]; x <= r[1]; x++) {
-      const below = sil[y + 1];
-      const empty = !below || x < below[0] || x > below[1];
-      if (empty) {
-        for (let d = 0; d < depth; d++) {
-          if (grid[y - d]?.[x] && grid[y - d][x] !== 0) grid[y - d][x] = 3;
-        }
+      const edge =
+        x === r[0] ||
+        x === r[1] ||
+        !sil[y - 1] ||
+        x < sil[y - 1]![0] ||
+        x > sil[y - 1]![1] ||
+        !sil[y + 1] ||
+        x < sil[y + 1]![0] ||
+        x > sil[y + 1]![1];
+      if (edge) grid[y][x] = 4;
+    }
+  }
+}
+
+function topHighlight(grid: number[][], sil: Sil, slot = 1): void {
+  for (let y = 0; y < SIZE; y++) {
+    const r = sil[y];
+    if (!r) continue;
+    for (let x = r[0] + 1; x <= r[1] - 1; x++) {
+      const above = sil[y - 1];
+      if ((!above || x < above[0] || x > above[1]) && grid[y][x] && grid[y][x] !== 4) {
+        if (grid[y + 1]?.[x] && grid[y + 1][x] !== 4) grid[y + 1][x] = slot;
       }
     }
   }
 }
 
-function topHighlight(grid: number[][], sil: Sil, depth = 1): void {
+/**
+ * Build a cast-shadow grid with real form: a flattened ellipse hugging the
+ * rock's base, wider than the rock and offset down-right to match the top-left
+ * key light. The single shadow colour is rendered at one sprite alpha, so the
+ * *softness* of the rim has to come from coverage, not tone: the core is solid,
+ * and the outer penumbra is dithered (checkerboard) so its edge fades into the
+ * terrain instead of stopping at a hard ellipse line. This is what makes it
+ * read as a grounded contact shadow rather than a uniform offset blob.
+ */
+function castShadow(sil: Sil, rnd: () => number): PixelGrid {
+  const g = make();
+  // Find the rock's footprint extents and its base row.
+  let baseY = 0;
+  let minX = SIZE,
+    maxX = 0;
+  for (let y = 0; y < SIZE; y++) {
+    const r = sil[y];
+    if (!r) continue;
+    baseY = Math.max(baseY, y);
+    minX = Math.min(minX, r[0]);
+    maxX = Math.max(maxX, r[1]);
+  }
+  const cx = (minX + maxX) / 2 + 2; // shift toward light's cast direction
+  const halfW = (maxX - minX) / 2 + 3;
+  const cy = Math.min(SIZE - 2, baseY - 1);
+  const halfH = 4.2 + rnd() * 1.2;
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const dx = (x - cx) / halfW;
+      const dy = (y - cy) / halfH;
+      const d = dx * dx + dy * dy;
+      if (d <= 1.0) g[y][x] = 1; // dense, fully-covered core
+      else if (d <= 1.45 && ((x + y) & 1) === 0) g[y][x] = 1; // dithered penumbra
+    }
+  }
+  return g;
+}
+
+const SHADOW_PAL = (color: number): SpriteColors => ({
+  light: color,
+  mid: color,
+  dark: color,
+});
+
+// ===========================================================================
+// Mossy boulder. Chunky greened granite that fills its 2×2 footprint, top
+// crusted with moss + tufts. Squarer, slightly-broken crown (not a clean dome)
+// with a planted wide base.
+// ===========================================================================
+
+function rounded(rnd: () => number): Sil {
+  const rows: Row[] = [];
+  const cx = 16 + (rnd() - 0.5) * 1.5;
+  const halfMax = 14; // near-full footprint half-width (cx±14 → ~2..30)
+  const topY = 2 + Math.floor(rnd() * 2); // 2..3
+  const baseY = 30;
+  // Asymmetric corner chamfers: small bevels up top, base stays planted.
+  // Independent per-corner cuts keep the block from reading as a clean square.
+  const tlCut = 3 + Math.floor(rnd() * 3); // top-left  3..5 (squarer crown)
+  const trCut = 3 + Math.floor(rnd() * 3); // top-right 3..5
+  const blCut = 1 + Math.floor(rnd() * 2); // bottom-left  1..2
+  const brCut = 1 + Math.floor(rnd() * 2); // bottom-right 1..2
+  for (let y = 0; y < SIZE; y++) {
+    if (y < topY || y > baseY) {
+      rows.push(null);
+      continue;
+    }
+    const dTop = y - topY;
+    const dBot = baseY - y;
+    // Each side recedes only near its corners; holds full width through the middle.
+    let leftCut = Math.max(0, tlCut - dTop, blCut - dBot);
+    let rightCut = Math.max(0, trCut - dTop, brCut - dBot);
+    // Ragged bite on the top corners so the crown breaks up instead of
+    // reading as a clean bevel curve.
+    if (dTop < 5) {
+      if (rnd() < 0.45) leftCut += 1;
+      if (rnd() < 0.45) rightCut += 1;
+    }
+    let xL = Math.round(cx - (halfMax - leftCut));
+    let xR = Math.round(cx + (halfMax - rightCut));
+    xL = Math.max(1, xL);
+    xR = Math.min(30, xR);
+    rows.push([xL, xR]);
+  }
+  return silFromRows(rows);
+}
+
+/** Build one mossy-boulder rock for the given per-position seed. */
+export function buildMossRock(seed: number): RockBuild {
+  const rnd = mulberry32(seed ^ 0x9e3779b9);
+  const sil = rounded(rnd);
+  jitterEdges(sil, rnd, 2);
+  const g = make();
+  shade(g, sil, 0.34, 0.5);
+  topHighlight(g, sil, 1);
+  outline(g, sil);
+  // Moss cap: cling to the top rim + a few side dabs.
   for (let y = 0; y < SIZE; y++) {
     const r = sil[y];
     if (!r) continue;
     for (let x = r[0]; x <= r[1]; x++) {
       const above = sil[y - 1];
-      const empty = !above || x < above[0] || x > above[1];
-      if (empty) {
-        for (let d = 0; d < depth; d++) {
-          if (grid[y + d]?.[x]) grid[y + d][x] = 1;
-        }
-      }
+      const nearTop = !above || x < above[0] || x > above[1] || y < 8;
+      if (nearTop && g[y][x] === 1 && rnd() < 0.55) g[y][x] = 5;
+      else if (nearTop && g[y][x] && g[y][x] !== 4 && rnd() < 0.25) g[y][x] = 6;
     }
   }
-}
-
-function leftHighlight(grid: number[][], sil: Sil, depth = 1): void {
-  for (let y = 0; y < SIZE; y++) {
+  // Bright moss specks + a couple of hanging strands.
+  for (let i = 0; i < 14; i++) {
+    const y = 3 + Math.floor(rnd() * 12);
     const r = sil[y];
     if (!r) continue;
-    for (let d = 0; d < depth; d++) {
-      const x = r[0] + d;
-      if (x <= r[1] && grid[y][x]) grid[y][x] = 1;
-    }
+    const x = r[0] + Math.floor(rnd() * (r[1] - r[0] + 1));
+    if (g[y][x] && g[y][x] !== 4) g[y][x] = rnd() < 0.5 ? 5 : 7;
   }
-}
-
-// -- 1. Megalith Slab -------------------------------------------------------
-
-function vMegalith(): { grid: PixelGrid; palette: SpriteColors } {
-  const rows: ([number, number] | null)[] = [];
-  for (let y = 0; y < SIZE; y++) {
-    let xL = 1,
-      xR = 30;
-    if (y === 0) {
-      xL = 6;
-      xR = 25;
-    } else if (y === 1) {
-      xL = 4;
-      xR = 27;
-    } else if (y === 2) {
-      xL = 2;
-      xR = 29;
-    } else if (y === 3) {
-      xL = 1;
-      xR = 30;
-    } else if (y === 31) {
-      xL = 3;
-      xR = 28;
-    } else if (y === 30) {
-      xL = 2;
-      xR = 29;
-    }
-    rows.push([xL, xR]);
-  }
-  const sil = silFromRows(rows);
-  chip(sil, [
-    ["L", 7, 1],
-    ["L", 8, 1],
-    ["L", 9, 2],
-    ["L", 10, 2],
-    ["L", 11, 1],
-    ["R", 5, 1],
-    ["R", 6, 1],
-    ["R", 13, 1],
-    ["R", 14, 2],
-    ["R", 15, 2],
-    ["R", 16, 2],
-    ["R", 17, 1],
-    ["L", 21, 1],
-    ["L", 22, 2],
-    ["L", 23, 2],
-    ["L", 24, 1],
-    ["R", 25, 1],
-    ["R", 26, 1],
-    ["R", 27, 2],
-    ["R", 28, 1],
-  ]);
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.32, tLo: 0.58 });
-  topHighlight(g, sil, 1);
-  leftHighlight(g, sil, 1);
-  bottomShadow(g, sil, 2);
-  for (const ly of [13, 19, 25]) {
-    const r = sil[ly];
-    if (!r) continue;
-    for (let x = r[0] + 3; x <= r[1] - 3; x += 3) {
-      if (g[ly][x] === 2) g[ly][x] = 3;
-    }
-  }
-  return { grid: g, palette: { ...ROCK_PAL.warmStone } };
-}
-
-// -- 2. Jagged Outcrop -------------------------------------------------------
-
-function vJaggedOutcrop(): { grid: PixelGrid; palette: SpriteColors } {
-  const topY = [
-    99, 99, 6, 4, 3, 5, 6, 7,
-    5, 3, 2, 1, 3, 4, 6, 7,
-    6, 5, 3, 2, 4, 5, 5, 6,
-    7, 6, 4, 3, 4, 6, 99, 99,
-  ];
-  const sil: Sil = new Array<[number, number] | null>(SIZE).fill(null);
-  for (let y = 0; y < SIZE; y++) {
-    let xL = -1,
-      xR = -1;
-    for (let x = 0; x < SIZE; x++) {
-      if (topY[x] <= y) {
-        if (xL < 0) xL = x;
-        xR = x;
-      }
-    }
-    if (xL >= 0) {
-      if (y >= 27) sil[y] = [2, 29];
-      else if (y >= 25) sil[y] = [1, 30];
-      else sil[y] = [xL, xR];
-    }
-  }
-  if (sil[31]) sil[31] = [3, 28];
-  if (sil[30]) sil[30] = [2, 29];
-  chip(sil, [
-    ["L", 14, 1],
-    ["L", 15, 1],
-    ["L", 22, 2],
-    ["L", 23, 1],
-    ["R", 17, 1],
-    ["R", 18, 1],
-    ["R", 19, 2],
-    ["R", 20, 1],
-    ["L", 9, 1],
-    ["R", 11, 1],
-  ]);
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.28, tLo: 0.6 });
-  topHighlight(g, sil, 1);
-  bottomShadow(g, sil, 2);
-  return { grid: g, palette: { ...ROCK_PAL.stone } };
-}
-
-// -- 3. Stepped Megalith (not in shipping mix) -------------------------------
-
-function vStepped(): { grid: PixelGrid; palette: SpriteColors } {
-  const rows: ([number, number] | null)[] = [];
-  for (let y = 0; y < SIZE; y++) {
-    if (y < 3) rows.push(null);
-    else if (y < 10) rows.push([10, 21]);
-    else if (y < 18) rows.push([5, 26]);
-    else if (y < 25) rows.push([2, 29]);
-    else if (y < 31) rows.push([1, 30]);
-    else rows.push([2, 29]);
-  }
-  const sil = silFromRows(rows);
-  chip(sil, [
-    ["L", 3, 1],
-    ["R", 3, 1],
-    ["L", 9, 1],
-    ["R", 9, 1],
-    ["L", 10, 1],
-    ["R", 17, 1],
-    ["L", 18, 1],
-    ["R", 24, 1],
-    ["L", 13, 1],
-    ["R", 14, 1],
-    ["L", 21, 1],
-    ["R", 22, 1],
-  ]);
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.3, tLo: 0.58 });
-  topHighlight(g, sil, 1);
-  bottomShadow(g, sil, 2);
-  for (const stepY of [8, 16, 23]) {
-    const above = sil[stepY],
-      below = sil[stepY + 1];
-    if (above && below) {
-      for (let x = below[0]; x <= below[1]; x++) {
-        if (x < above[0] || x > above[1]) {
-          if (g[stepY + 1]?.[x]) g[stepY + 1][x] = 3;
-        }
-      }
-    }
-  }
-  return { grid: g, palette: { ...ROCK_PAL.coolStone } };
-}
-
-// -- 4. Fractured Slab (not in shipping mix) ---------------------------------
-
-function vFractured(): { grid: PixelGrid; palette: SpriteColors } {
-  const rows: ([number, number] | null)[] = [];
-  for (let y = 0; y < SIZE; y++) {
-    let xL = 1,
-      xR = 30;
-    if (y === 0) {
-      xL = 5;
-      xR = 26;
-    } else if (y === 1) {
-      xL = 3;
-      xR = 28;
-    } else if (y === 2) {
-      xL = 2;
-      xR = 29;
-    } else if (y === 31) {
-      xL = 4;
-      xR = 27;
-    } else if (y === 30) {
-      xL = 2;
-      xR = 29;
-    }
-    rows.push([xL, xR]);
-  }
-  const sil = silFromRows(rows);
-  chip(sil, [
-    ["L", 4, 1],
-    ["L", 11, 1],
-    ["L", 12, 1],
-    ["R", 7, 1],
-    ["R", 8, 1],
-    ["R", 22, 2],
-    ["R", 23, 1],
-    ["L", 26, 1],
-    ["L", 27, 1],
-  ]);
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.3, tLo: 0.62 });
-  topHighlight(g, sil, 1);
-  leftHighlight(g, sil, 1);
-  bottomShadow(g, sil, 2);
-  const horiz: [number, number][] = [
-    [2, 15], [3, 15], [4, 16], [5, 16], [6, 17], [7, 17], [8, 16], [9, 16],
-    [10, 17], [11, 17], [12, 18], [13, 18], [14, 17], [15, 17],
-    [16, 16], [17, 16], [18, 17], [19, 17], [20, 18], [21, 18], [22, 17],
-    [23, 17], [24, 16], [25, 16], [26, 17], [27, 17], [28, 16], [29, 16],
-  ];
-  for (const [x, y] of horiz) if (g[y]?.[x]) g[y][x] = 4;
-  const vert: [number, number][] = [
-    [12, 4], [12, 5], [13, 6], [13, 7], [14, 8], [14, 9], [13, 10], [13, 11],
-    [14, 12], [14, 13], [15, 14],
-    [16, 18], [16, 19], [15, 20], [15, 21], [16, 22], [17, 23], [17, 24],
-    [16, 25], [16, 26], [17, 27], [17, 28],
-  ];
-  for (const [x, y] of vert) if (g[y]?.[x]) g[y][x] = 4;
-  const minor: [number, number][] = [
-    [6, 9], [7, 10], [24, 8], [25, 9], [8, 24], [9, 25], [26, 24], [27, 25],
-  ];
-  for (const [x, y] of minor) if (g[y]?.[x] === 2) g[y][x] = 3;
-  return { grid: g, palette: { ...ROCK_PAL.stone } };
-}
-
-// -- 5. Stacked Blocks -------------------------------------------------------
-
-function vStackedBlocks(): { grid: PixelGrid; palette: SpriteColors } {
-  const rows: ([number, number] | null)[] = [];
-  for (let y = 0; y < SIZE; y++) {
-    if (y < 1) rows.push(null);
-    else if (y < 11) rows.push([6, 28]);
-    else if (y < 21) rows.push([3, 27]);
-    else if (y < 31) rows.push([1, 30]);
-    else rows.push(null);
-  }
-  const sil = silFromRows(rows);
-  chip(sil, [
-    ["L", 1, 2],
-    ["R", 1, 2],
-    ["L", 10, 1],
-    ["R", 10, 1],
-    ["L", 11, 1],
-    ["R", 11, 1],
-    ["L", 20, 1],
-    ["R", 20, 1],
-    ["L", 21, 1],
-    ["R", 21, 1],
-    ["L", 30, 1],
-    ["R", 30, 1],
-    ["L", 6, 1],
-    ["R", 16, 1],
-    ["L", 26, 1],
-  ]);
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.32, tLo: 0.55 });
-  const blockSils = [
-    silFromRows(rows.map((r, y) => (y < 11 ? r : null))),
-    silFromRows(rows.map((r, y) => (y >= 11 && y < 21 ? r : null))),
-    silFromRows(rows.map((r, y) => (y >= 21 ? r : null))),
-  ];
-  for (const s of blockSils) {
-    topHighlight(g, s, 1);
-    leftHighlight(g, s, 1);
-    bottomShadow(g, s, 1);
-  }
-  for (const seamY of [10, 20]) {
-    const above = sil[seamY],
-      below = sil[seamY + 1];
-    if (above && below) {
-      for (let x = below[0]; x <= below[1]; x++) {
-        if (x < above[0] || x > above[1]) {
-          if (g[seamY + 1]?.[x]) g[seamY + 1][x] = 3;
-        }
-      }
-    }
-  }
-  return { grid: g, palette: { ...ROCK_PAL.warmStone } };
-}
-
-// -- 6. Crystal Megalith (not in shipping mix) -------------------------------
-
-function vCrystalMegalith(): { grid: PixelGrid; palette: SpriteColors } {
-  const rows: ([number, number] | null)[] = [];
-  for (let y = 0; y < SIZE; y++) {
-    if (y < 8) rows.push(null);
-    else if (y === 8) rows.push([3, 28]);
-    else if (y === 9) rows.push([2, 30]);
-    else if (y === 10) rows.push([1, 31]);
-    else if (y === 31) rows.push([2, 29]);
-    else if (y === 30) rows.push([0, 31]);
-    else rows.push([0, 31]);
-  }
-  const sil = silFromRows(rows);
-  chip(sil, [
-    ["L", 17, 1],
-    ["R", 14, 1],
-    ["L", 24, 2],
-    ["R", 22, 1],
-  ]);
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.3, tLo: 0.58 });
-  topHighlight(g, sil, 1);
-  leftHighlight(g, sil, 1);
-  bottomShadow(g, sil, 2);
-  const shardA: [number, number][] = [
-    [15, 1], [16, 1], [15, 2], [16, 2], [14, 3], [15, 3], [16, 3], [17, 3],
-    [13, 4], [14, 4], [15, 4], [16, 4], [17, 4], [18, 4],
-    [12, 5], [13, 5], [14, 5], [15, 5], [16, 5], [17, 5], [18, 5], [19, 5],
-    [12, 6], [13, 6], [14, 6], [15, 6], [16, 6], [17, 6], [18, 6], [19, 6],
-    [11, 7], [12, 7], [13, 7], [14, 7], [15, 7], [16, 7], [17, 7], [18, 7],
-    [19, 7], [20, 7],
-  ];
-  const shardB: [number, number][] = [
-    [6, 4], [6, 5], [5, 6], [6, 6], [7, 6], [5, 7], [6, 7], [7, 7], [8, 7],
-  ];
-  const shardC: [number, number][] = [
-    [25, 3], [26, 4], [25, 4], [26, 5], [24, 5], [25, 5], [26, 5], [27, 5],
-    [24, 6], [25, 6], [26, 6], [27, 6],
-    [23, 7], [24, 7], [25, 7], [26, 7], [27, 7], [28, 7],
-  ];
-  for (const [x, y] of [...shardA, ...shardB, ...shardC]) {
-    if (y >= 0 && y < SIZE && x >= 0 && x < SIZE) g[y][x] = 5;
-  }
-  const facets: [number, number][] = [
-    [17, 4], [18, 5], [19, 5], [18, 6], [19, 6], [19, 7], [20, 7],
-    [17, 3], [16, 4],
-    [7, 6], [7, 7], [8, 7],
-    [27, 5], [27, 6], [28, 7], [26, 5], [26, 6],
-  ];
-  for (const [x, y] of facets) if (g[y]?.[x] === 5) g[y][x] = 6;
   return {
     grid: g,
-    palette: { ...ROCK_PAL.coolStone, ...ROCK_PAL.crystal },
+    palette: ROCK_PAL.mossBoulder,
+    shadow: castShadow(sil, rnd),
+    shadowAlpha: 0.34,
   };
 }
 
-// -- 7. Mossy Block ----------------------------------------------------------
-
-function vMossyBlock(): { grid: PixelGrid; palette: SpriteColors } {
-  const rows: ([number, number] | null)[] = [];
-  for (let y = 0; y < SIZE; y++) {
-    let xL = 1,
-      xR = 30;
-    if (y === 0) {
-      xL = 7;
-      xR = 24;
-    } else if (y === 1) {
-      xL = 4;
-      xR = 27;
-    } else if (y === 2) {
-      xL = 2;
-      xR = 29;
-    } else if (y === 3) {
-      xL = 1;
-      xR = 30;
-    } else if (y === 31) {
-      xL = 3;
-      xR = 28;
-    } else if (y === 30) {
-      xL = 2;
-      xR = 29;
-    }
-    rows.push([xL, xR]);
-  }
-  const sil = silFromRows(rows);
-  chip(sil, [
-    ["L", 6, 1],
-    ["L", 7, 1],
-    ["L", 14, 2],
-    ["L", 15, 1],
-    ["R", 9, 1],
-    ["R", 10, 1],
-    ["R", 18, 2],
-    ["R", 19, 1],
-    ["L", 24, 1],
-    ["L", 25, 1],
-    ["R", 27, 1],
-  ]);
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.32, tLo: 0.55 });
-  topHighlight(g, sil, 1);
-  leftHighlight(g, sil, 1);
-  bottomShadow(g, sil, 2);
-  const moss: [number, number][] = [
-    [2, 2], [3, 2], [4, 3], [5, 3], [7, 2], [8, 3], [10, 2], [11, 3], [12, 2],
-    [14, 3], [15, 3], [16, 2], [17, 3], [18, 2],
-    [20, 3], [21, 2], [22, 3], [24, 2], [25, 3], [26, 2], [28, 3], [29, 3],
-    [3, 4], [4, 4], [7, 4], [8, 4], [11, 4], [12, 4],
-    [15, 4], [16, 4], [17, 4], [20, 4], [21, 4], [24, 4], [25, 4], [28, 4],
-    [5, 5], [6, 5], [12, 5], [16, 5], [20, 5], [25, 5],
-    [5, 6], [16, 6],
-    [5, 7],
-    [12, 6], [20, 6],
-    [16, 7],
-    [3, 9], [3, 10], [28, 9], [1, 12], [30, 11],
-  ];
-  for (const [x, y] of moss) if (g[y]?.[x]) g[y][x] = 5;
-  const deep: [number, number][] = [
-    [4, 3], [8, 3], [15, 3], [21, 3], [26, 3],
-    [4, 4], [16, 4], [25, 4],
-    [5, 6], [16, 6], [20, 6],
-  ];
-  for (const [x, y] of deep) if (g[y]?.[x]) g[y][x] = 6;
-  return { grid: g, palette: { ...ROCK_PAL.warmStone, ...ROCK_PAL.moss } };
-}
-
-// -- 8. Chunky Cluster (not in shipping mix) ---------------------------------
-
-function vChunkyCluster(): { grid: PixelGrid; palette: SpriteColors } {
-  const left = silFromRows(
-    Array.from({ length: SIZE }, (_, y): [number, number] | null => {
-      if (y < 4) return null;
-      if (y < 6) return [2, 9];
-      if (y < 14) return [0, 12];
-      if (y < 24) return [0, 14];
-      return [0, 13];
-    }),
-  );
-  const mid = silFromRows(
-    Array.from({ length: SIZE }, (_, y): [number, number] | null => {
-      if (y < 12) return null;
-      if (y < 16) return [10, 20];
-      if (y < 26) return [8, 22];
-      return [6, 24];
-    }),
-  );
-  const right = silFromRows(
-    Array.from({ length: SIZE }, (_, y): [number, number] | null => {
-      if (y < 8) return null;
-      if (y < 11) return [22, 28];
-      if (y < 20) return [19, 31];
-      if (y < 30) return [17, 31];
-      return [16, 30];
-    }),
-  );
-  const sil: Sil = new Array<[number, number] | null>(SIZE).fill(null);
-  for (let y = 0; y < SIZE; y++) {
-    const cands = [left[y], mid[y], right[y]].filter(
-      (c): c is [number, number] => c !== null,
-    );
-    if (!cands.length) continue;
-    let xL = 31,
-      xR = 0;
-    for (const c of cands) {
-      xL = Math.min(xL, c[0]);
-      xR = Math.max(xR, c[1]);
-    }
-    sil[y] = [xL, xR];
-  }
-  const g = make();
-  shadeDiagonal(g, sil, { tHi: 0.3, tLo: 0.58 });
-  topHighlight(g, sil, 1);
-  leftHighlight(g, sil, 1);
-  bottomShadow(g, sil, 2);
-  for (const s of [left, mid, right]) {
-    topHighlight(g, s, 1);
-    bottomShadow(g, s, 1);
-  }
-  for (let y = 12; y <= 24; y++) {
-    const lr = left[y]?.[1];
-    const mr = mid[y]?.[0];
-    if (lr != null && mr != null && Math.abs(lr - mr) <= 2) {
-      const x = Math.min(lr, mr);
-      if (g[y]?.[x] && g[y][x] !== 0) g[y][x] = 3;
-    }
-    const mR = mid[y]?.[1];
-    const rL = right[y]?.[0];
-    if (mR != null && rL != null && Math.abs(mR - rL) <= 2) {
-      const x = Math.min(mR, rL);
-      if (g[y]?.[x] && g[y][x] !== 0) g[y][x] = 3;
-    }
-  }
-  return { grid: g, palette: { ...ROCK_PAL.paleStone } };
-}
-
-// -- Variant registry --------------------------------------------------------
-
-const BUILDERS = {
-  megalith: vMegalith,
-  jagged: vJaggedOutcrop,
-  stepped: vStepped,
-  fractured: vFractured,
-  stacked: vStackedBlocks,
-  crystal: vCrystalMegalith,
-  mossyblk: vMossyBlock,
-  chunky: vChunkyCluster,
-};
-
-export type RockVariantId = "megalith" | "stacked" | "jagged" | "mossyblk";
-
-export function buildRockVariant(
-  id: RockVariantId,
-): { grid: PixelGrid; palette: SpriteColors } {
-  return BUILDERS[id]();
-}
-
-// -- Weighted picker ---------------------------------------------------------
-
-const MIX: readonly { id: RockVariantId; weight: number }[] = [
-  { id: "megalith", weight: 6 },
-  { id: "stacked", weight: 3 },
-  { id: "jagged", weight: 2 },
-  { id: "mossyblk", weight: 2 },
-];
-const TOTAL = 13;
-
-export function pickRockVariant(id: number, ax: number, ay: number): RockVariantId {
-  const seed = (id * 73856093) ^ ((ax * 19349663) ^ (ay * 83492791));
-  const h = ((seed % TOTAL) + TOTAL) % TOTAL;
-  let acc = 0;
-  for (const m of MIX) {
-    acc += m.weight;
-    if (h < acc) return m.id;
-  }
-  return MIX[0].id;
+/** Palette used to rasterise the mossy-boulder cast-shadow grid. */
+export function mossShadowPalette(): SpriteColors {
+  return SHADOW_PAL(ROCK_PAL.mossBoulder.shadow);
 }

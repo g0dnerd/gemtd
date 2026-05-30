@@ -21,7 +21,6 @@ import { drawPixelGrid } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX } from "./spriteData";
 import { rasterizeToTexture } from "./pixelTexture";
-import { pickRockVariant } from "./RockSprites";
 import { APEX_STARGEM } from "./theme";
 import { generateRuneTexture, runeEffectFromComboKey } from "./RuneSprites";
 
@@ -1150,14 +1149,19 @@ export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSp
     seen.add(id);
     let entry = rockObjs.get(id);
     if (!entry) {
-      const variantId = pickRockVariant(id, pos.x, pos.y);
-      const tex = cache.combinedRock(variantId);
-      const sprite = new Sprite(tex);
+      const seed = (id * 73856093) ^ (pos.x * 19349663) ^ (pos.y * 83492791);
+      const { rock, shadow, shadowAlpha } = cache.mossRock(seed);
+      const shadowSprite = new Sprite(shadow);
+      shadowSprite.anchor.set(0, 0);
+      shadowSprite.width = 2 * FINE_TILE;
+      shadowSprite.height = 2 * FINE_TILE;
+      shadowSprite.alpha = shadowAlpha;
+      const sprite = new Sprite(rock);
       sprite.anchor.set(0, 0);
       sprite.width = 2 * FINE_TILE;
       sprite.height = 2 * FINE_TILE;
       const obj = new Container();
-      obj.addChild(sprite);
+      obj.addChild(shadowSprite, sprite);
       obj.x = pos.x * FINE_TILE;
       obj.y = pos.y * FINE_TILE;
       layer.addChild(obj);

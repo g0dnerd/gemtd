@@ -154,14 +154,20 @@ export const QUALITY_GLOW: Record<Quality, number> = {
   5: 0.9,
 };
 
+/**
+ * Rock palette for permanent maze blockers — the mossy-boulder material:
+ * greened granite, damp and overgrown. `light/mid/dark` map to grid slots
+ * 1/2/3; `sparkle/extra/accent` map to 5/6/7 for moss flecks and tufts.
+ * `shadow` is the colour of the cast contact shadow rendered as a separate
+ * low-alpha sprite under the rock.
+ */
 export const ROCK_PAL = {
-  stone:     { light: 0xa8988a, mid: 0x7a6a5a, dark: 0x3a2a20, outline: 0x0a0510 },
-  warmStone: { light: 0xb8a088, mid: 0x88705c, dark: 0x3e2a1c, outline: 0x0a0510 },
-  coolStone: { light: 0x9098a0, mid: 0x606870, dark: 0x22282e, outline: 0x0a0510 },
-  paleStone: { light: 0xc8b8a8, mid: 0x90806c, dark: 0x48382a, outline: 0x0a0510 },
-  moss:      { sparkle: 0x84c068, extra: 0x3c6a30 },
-  crystal:   { sparkle: 0xb8e8f4, extra: 0x3878d8 },
-};
+  mossBoulder: {
+    light: 0x8c9482, mid: 0x5c6452, dark: 0x2a2e26, outline: 0x0a0f0a,
+    sparkle: 0x9ad06a, extra: 0x4a7a38, accent: 0xc8e08a,
+    shadow: 0x0a1206,
+  },
+} as const;
 
 export type RuneEffect = 'holding' | 'damage' | 'teleport' | 'slow';
 
