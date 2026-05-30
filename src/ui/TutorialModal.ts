@@ -311,15 +311,36 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.15",
+      notes: [
+        {
+          tag: "buff",
+          text: "Frosted Silver damage 40-54 -> 110-150, attack speed 1.1 -> 1.3, slow 28% -> 35%, cost 25 -> 110.",
+        },
+        {
+          tag: "nerf",
+          text: "Silver Knight damage 250-290 -> 230-270, cost 300 -> 270.",
+        },
+        {
+          tag: "buff",
+          text: "Vivid Malachite damage 33-51 -> 45-66, hits 3 -> 5 targets, cost 25 -> 75.",
+        },
+        {
+          tag: "nerf",
+          text: "Mighty Malachite damage 81-116 -> 78-108, cost 280 -> 250.",
+        },
+      ],
+    },
+    {
       ver: "1.5.14",
       notes: [
         {
           tag: "buff",
-          text: "Red Crystal +25% damage at all tiers; air-grounding cadence improved 13/12/11 → 12/11/10 hits.",
+          text: "Red Crystal +25% damage at all tiers; air-grounding cadence improved 13/12/11 -> 12/11/10 hits.",
         },
         {
           tag: "nerf",
-          text: "Uranium 235 upgrade cost raised 190 → 285.",
+          text: "Uranium 235 upgrade cost raised 190 -> 285.",
         },
         {
           tag: "buff",
@@ -361,7 +382,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "nerf",
-          text: "Ancient Paraiba attack speed reduced (0.8 → 0.7).",
+          text: "Ancient Paraiba attack speed reduced (0.8 -> 0.7).",
         },
       ],
     },
@@ -374,7 +395,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "buff",
-          text: "Ancient Paraiba attack speed increased (0.6 → 0.8).",
+          text: "Ancient Paraiba attack speed increased (0.6 -> 0.8).",
         },
         {
           tag: "fix",

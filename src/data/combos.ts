@@ -307,23 +307,23 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Vivid Malachite",
-        cost: 25,
+        cost: 75,
         stats: {
-          dmgMin: 33,
-          dmgMax: 51,
+          dmgMin: 45,
+          dmgMax: 66,
           range: 3.75,
           atkSpeed: 1.5,
-          effects: [{ kind: "multi_target", count: 3 }],
-          blurb: "Attacks 3 enemies at once.",
+          effects: [{ kind: "multi_target", count: 5 }],
+          blurb: "Attacks 5 enemies at once.",
           targeting: "all",
         },
       },
       {
         name: "Mighty Malachite",
-        cost: 280,
+        cost: 250,
         stats: {
-          dmgMin: 81,
-          dmgMax: 116,
+          dmgMin: 78,
+          dmgMax: 108,
           range: 4.5,
           atkSpeed: 1.8,
           effects: [{ kind: "multi_target", count: 99 }],
@@ -395,15 +395,15 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Frosted Silver",
-        cost: 25,
+        cost: 110,
         stats: {
-          dmgMin: 40,
-          dmgMax: 54,
+          dmgMin: 110,
+          dmgMax: 150,
           range: 3.75,
-          atkSpeed: 1.1,
+          atkSpeed: 1.3,
           effects: [
             { kind: "splash", radius: 1.5, falloff: 0.5 },
-            { kind: "slow", factor: 0.72, duration: 1.5 },
+            { kind: "slow", factor: 0.65, duration: 1.5 },
             { kind: "freeze_chance", chance: 0.1, duration: 0.8 },
           ],
           blurb: "Splash slow. 10% freeze chance.",
@@ -412,10 +412,10 @@ const ALL_COMBOS: ComboRecipe[] = [
       },
       {
         name: "Silver Knight",
-        cost: 300,
+        cost: 270,
         stats: {
-          dmgMin: 250,
-          dmgMax: 290,
+          dmgMin: 230,
+          dmgMax: 270,
           range: 4.0,
           atkSpeed: 1.0,
           effects: [
