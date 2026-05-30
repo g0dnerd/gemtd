@@ -1453,6 +1453,20 @@ function effectChiclet(e: EffectKind): ChicletData | null {
         text: `up to ×${e.maxMultiplier.toFixed(1)}`,
         tone: "buff",
       };
+    case "momentum":
+      return {
+        label: "MOMENTUM",
+        text: `${e.rampSpeed.toFixed(0)}× speed`,
+        tone: "buff",
+      };
+    case "pierce":
+      return { label: "PIERCE", text: `+${e.count} target`, tone: "aoe" };
+    case "kill_explode":
+      return {
+        label: "KILL BOOM",
+        text: `r=${e.radius.toFixed(1)}`,
+        tone: "aoe",
+      };
   }
 }
 

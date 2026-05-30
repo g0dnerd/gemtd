@@ -62,6 +62,13 @@ interface ParaibaFx {
   tier: number;
 }
 
+interface PyriteFx {
+  dots: Graphics[];
+  trails?: Graphics[];
+  arcs?: Graphics[];
+  tier: number;
+}
+
 interface TowerEntry {
   obj: Container;
   /** Cached comboKey so we can rebuild the sprite if a tower is upgraded. */
@@ -110,6 +117,8 @@ interface TowerEntry {
   starRubyCoronaSprite?: Sprite;
   paraibaBobWrap?: Container;
   paraibaFx?: ParaibaFx;
+  pyriteBobWrap?: Container;
+  pyriteFx?: PyriteFx;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -205,6 +214,8 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let starRubyCoronaSprite: Sprite | undefined;
       let paraibaBobWrap: Container | undefined;
       let paraibaFx: ParaibaFx | undefined;
+      let pyriteBobWrap: Container | undefined;
+      let pyriteFx: PyriteFx | undefined;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -351,6 +362,12 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           paraibaFx = makeParaibaArcFx(wrap, tier);
           obj.addChild(wrap);
           paraibaBobWrap = wrap;
+        } else if (t.comboKey === 'pyrite') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          pyriteFx = makePyriteFx(wrap, tier);
+          obj.addChild(wrap);
+          pyriteBobWrap = wrap;
         } else {
           obj.addChild(towerSprite);
         }
@@ -366,7 +383,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx, pyriteBobWrap, pyriteFx };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -379,6 +396,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     else if (entry.blackOpalBobWrap) animateBlackOpalFx(entry, now);
     else if (entry.starRubyBobWrap) animateStarRubyFx(entry, now);
     else if (entry.paraibaBobWrap) animateParaibaArcFx(entry, now);
+    else if (entry.pyriteBobWrap) animatePyriteFx(entry, now);
     else if (entry.fx) animateTowerFx(entry.fx, now);
     if (entry.opalFrames && entry.opalSprite) {
       const frame = Math.floor(now / 225) % OPAL_FRAME_COUNT;
@@ -862,6 +880,158 @@ function animateParaibaArcFx(entry: TowerEntry, now: number): void {
     const basePulse = (Math.sin((sec / 1.8) * Math.PI * 2) + 1) / 2;
     entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.4 * basePulse + 0.3 * maxArcAlpha);
   }
+}
+
+// ===== Pyrite — Kinetic Charge ================================================
+
+const PYRITE_ORBIT_COLORS: [number, number, number] = [0xe8c868, 0xf0a040, 0xfff0d0];
+
+function makePyriteFx(parent: Container, tier: number): PyriteFx {
+  const dotCount = tier >= 2 ? 3 : (tier >= 1 ? 2 : 1);
+  const dots: Graphics[] = [];
+  let trails: Graphics[] | undefined;
+  let arcs: Graphics[] | undefined;
+
+  if (tier >= 1) {
+    trails = [];
+    for (let i = 0; i < dotCount; i++) {
+      const trail = new Graphics();
+      parent.addChild(trail);
+      trails.push(trail);
+    }
+  }
+
+  if (tier >= 2) {
+    arcs = [];
+    for (let i = 0; i < 3; i++) {
+      const arc = new Graphics();
+      parent.addChild(arc);
+      arcs.push(arc);
+    }
+  }
+
+  for (let i = 0; i < dotCount; i++) {
+    const dot = new Graphics();
+    parent.addChild(dot);
+    dots.push(dot);
+  }
+
+  return { dots, trails, arcs, tier };
+}
+
+function animatePyriteFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+  const fx = entry.pyriteFx!;
+
+  // Bob: gentle for T2+, none for T1
+  if (tier >= 1) {
+    const bobPeriod = 2.5 - tier * 0.3;
+    const bobAmp = 1.5 + tier * 0.5;
+    entry.pyriteBobWrap!.y = -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  }
+
+  // Scale throb for T3
+  if (tier >= 2) {
+    const throbPeriod = 1.8;
+    const throb = (Math.sin((2 * Math.PI * sec) / throbPeriod) + 1) / 2;
+    entry.pyriteBobWrap!.scale.set(1 + throb * 0.04);
+  }
+
+  // Orbiting dots
+  const dotCount = fx.dots.length;
+  const r = TILE * (tier >= 2 ? 0.55 : 0.5);
+  const dotSize = 1.5 + tier * 0.3;
+  const orbitPeriods = [4.0, 3.2, 4.0];
+  const orbitRadii = [r, r * 1.15, r];
+
+  const dotPositions: { x: number; y: number }[] = [];
+
+  for (let i = 0; i < dotCount; i++) {
+    const period = tier >= 2 ? orbitPeriods[2] : orbitPeriods[i];
+    const orbitR = tier >= 2 ? orbitRadii[2] : orbitRadii[i];
+    const ang = tier >= 2
+      ? (sec / period) * Math.PI * 2 + (i / 3) * Math.PI * 2
+      : (sec / period) * Math.PI * 2 + i * Math.PI * 0.7;
+    const dx = Math.cos(ang) * orbitR;
+    const dy = Math.sin(ang) * orbitR * 0.85;
+    dotPositions.push({ x: dx, y: dy });
+
+    // Trails (T2+)
+    if (fx.trails && fx.trails[i]) {
+      const trail = fx.trails[i];
+      trail.clear();
+      for (let s = 1; s <= 4; s++) {
+        const trailAng = ang - (s * 0.1);
+        const tx = Math.cos(trailAng) * orbitR;
+        const ty = Math.sin(trailAng) * orbitR * 0.85;
+        trail.circle(tx, ty, dotSize * 0.5)
+          .fill({ color: PYRITE_ORBIT_COLORS[Math.min(i, 2)], alpha: 0.12 / s });
+      }
+    }
+
+    const dot = fx.dots[i];
+    dot.clear();
+    dot.circle(dx, dy, dotSize)
+      .fill({ color: PYRITE_ORBIT_COLORS[Math.min(i, 2)], alpha: 0.8 });
+    dot.circle(dx, dy, dotSize * 0.5)
+      .fill({ color: 0xffffff, alpha: 0.5 });
+  }
+
+  // Energy arcs connecting dots at T3
+  if (tier >= 2 && fx.arcs && dotPositions.length >= 3) {
+    const arcCyclePeriod = 3.0;
+    const arcPhase = (sec % arcCyclePeriod) / arcCyclePeriod;
+    let arcAlpha: number;
+    if (arcPhase < 0.15) arcAlpha = arcPhase / 0.15;
+    else if (arcPhase < 0.4) arcAlpha = 1;
+    else if (arcPhase < 0.55) arcAlpha = 1 - (arcPhase - 0.4) / 0.15;
+    else arcAlpha = 0;
+    arcAlpha *= 0.6;
+
+    for (let a = 0; a < 3; a++) {
+      const arc = fx.arcs[a];
+      arc.clear();
+      if (arcAlpha > 0.02) {
+        const p1 = dotPositions[a];
+        const p2 = dotPositions[(a + 1) % 3];
+        const seed = Math.floor(sec * 1.5) + a * 30;
+        const pts = pyriteJaggedLine(p1.x, p1.y, p2.x, p2.y, seed);
+        arc.moveTo(pts[0].x, pts[0].y);
+        for (let p = 1; p < pts.length; p++) arc.lineTo(pts[p].x, pts[p].y);
+        arc.stroke({ width: 3, color: 0xf0a040, alpha: arcAlpha * 0.3 });
+        arc.moveTo(pts[0].x, pts[0].y);
+        for (let p = 1; p < pts.length; p++) arc.lineTo(pts[p].x, pts[p].y);
+        arc.stroke({ width: 1.5, color: 0xfff0d0, alpha: arcAlpha });
+      }
+    }
+  }
+
+  // Halo animation
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 2.4) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.7 * haloPulse);
+  }
+}
+
+function pyriteJaggedLine(x1: number, y1: number, x2: number, y2: number, seed: number): { x: number; y: number }[] {
+  const pts = [{ x: x1, y: y1 }];
+  const segments = 4;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const perpX = -dy / len;
+  const perpY = dx / len;
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const mx = x1 + dx * t;
+    const my = y1 + dy * t;
+    const bulge = Math.sin(t * Math.PI);
+    const jitter = Math.sin(seed * 5.3 + i * 3.7) * 4 * bulge;
+    pts.push({ x: mx + perpX * jitter, y: my + perpY * jitter });
+  }
+  pts.push({ x: x2, y: y2 });
+  return pts;
 }
 
 // ===== Red Crystal — Sky Watcher Pulse ======================================

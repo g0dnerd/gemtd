@@ -392,6 +392,7 @@ const COMBO_TIER_NAMES = {
   paraiba_tourmaline: ['Paraiba Tourmaline', 'Ancient Paraiba'],
   uranium: ['Uranium', 'Uranium 235'],
   stargem: ['Stargem'],
+  pyrite: ['Pyrite', 'Molten Pyrite', 'Pyroclast'],
 };
 
 const AXIS_OPTS = {

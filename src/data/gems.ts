@@ -53,7 +53,10 @@ export type EffectKind =
   | { kind: 'stun_bonus_dmg'; multiplier: number }
   | { kind: 'eruption'; threshold: number; damage: number; radius: number; falloff: number; afterburnDps?: number; afterburnDuration?: number }
   | { kind: 'demote_air'; everyN: number }
-  | { kind: 'charge_burst'; maxMultiplier: number; chargeSeconds: number };
+  | { kind: 'charge_burst'; maxMultiplier: number; chargeSeconds: number }
+  | { kind: 'momentum'; maxStacks: number; rampSpeed: number; rampDmg?: number }
+  | { kind: 'pierce'; count: number }
+  | { kind: 'kill_explode'; radius: number; falloff: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -415,6 +418,12 @@ export function effectSummary(e: EffectKind): string {
       return `Every ${e.everyN}th hit grounds air units`;
     case 'charge_burst':
       return `Charge: up to ×${e.maxMultiplier.toFixed(1)} after ${e.chargeSeconds}s idle`;
+    case 'momentum':
+      return `Momentum: ${e.rampSpeed.toFixed(1)}× speed at ${e.maxStacks} stacks${e.rampDmg ? `, +${Math.round((e.rampDmg - 1) * 100)}% dmg` : ''}`;
+    case 'pierce':
+      return `Pierce ${e.count} additional target${e.count > 1 ? 's' : ''}`;
+    case 'kill_explode':
+      return `Kill explosion r=${e.radius.toFixed(1)}`;
     case 'none':
       return '';
   }

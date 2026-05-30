@@ -293,7 +293,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     inputs: [
       { gem: "opal", quality: 1 },
       { gem: "emerald", quality: 1 },
-      { gem: "aquamarine", quality: 1 },
+      { gem: "topaz", quality: 1 },
     ],
     stats: {
       dmgMin: 19,
@@ -376,9 +376,9 @@ const ALL_COMBOS: ComboRecipe[] = [
     key: "silver",
     name: "Silver",
     inputs: [
-      { gem: "topaz", quality: 1 },
-      { gem: "diamond", quality: 1 },
       { gem: "sapphire", quality: 1 },
+      { gem: "garnet", quality: 1 },
+      { gem: "diamond", quality: 1 },
     ],
     stats: {
       dmgMin: 36,
@@ -494,6 +494,57 @@ const ALL_COMBOS: ComboRecipe[] = [
       },
     ],
     visualGem: "ruby",
+  },
+  {
+    key: "pyrite",
+    name: "Pyrite",
+    inputs: [
+      { gem: "carnelian", quality: 1 },
+      { gem: "spinel", quality: 1 },
+      { gem: "aquamarine", quality: 1 },
+    ],
+    stats: {
+      dmgMin: 32,
+      dmgMax: 40,
+      range: 5.5,
+      atkSpeed: 1.0,
+      effects: [{ kind: "momentum", maxStacks: 12, rampSpeed: 2.5 }],
+      blurb: "Builds momentum — attacks faster the longer it fires.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Molten Pyrite",
+        cost: 100,
+        stats: {
+          dmgMin: 55,
+          dmgMax: 70,
+          range: 5.5,
+          atkSpeed: 0.5,
+          effects: [{ kind: "momentum", maxStacks: 15, rampSpeed: 4.0, rampDmg: 1.8 }],
+          blurb: "Momentum ramps speed and damage (+80% at max).",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Pyroclast",
+        cost: 280,
+        stats: {
+          dmgMin: 90,
+          dmgMax: 120,
+          range: 6.0,
+          atkSpeed: 0.6,
+          effects: [
+            { kind: "momentum", maxStacks: 15, rampSpeed: 4.0, rampDmg: 2.0 },
+            { kind: "pierce", count: 1 },
+            { kind: "kill_explode", radius: 1.0, falloff: 0.4 },
+          ],
+          blurb: "Max momentum: pierce + kill explosions.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "spinel",
   },
   {
     key: "yellow_sapphire",

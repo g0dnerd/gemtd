@@ -40,6 +40,9 @@ function estimateComboDps(combo: ComboRecipe): number {
     else if (e.kind === 'prox_burn') dps += e.dps * 3;
     else if (e.kind === 'prox_armor_reduce') dps += e.value * 15;
     else if (e.kind === 'charge_burst') dps *= 1.5;
+    else if (e.kind === 'momentum') dps *= (1 + e.rampSpeed) / 2;
+    else if (e.kind === 'pierce') dps *= 1 + e.count * 0.4;
+    else if (e.kind === 'kill_explode') dps *= 1.3;
   }
   return dps;
 }

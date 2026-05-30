@@ -76,10 +76,11 @@ export class BuildPhase {
     const gems: Array<{ gem: GemType; quality: Quality }> = [];
 
     if (state.wave === 1) {
-      // Guarantee ingredients for a random early-game special (Silver or Malachite).
+      // Guarantee ingredients for a random early-game special (Silver, Malachite, or Pyrite).
       const recipes: GemType[][] = [
-        ['topaz', 'diamond', 'sapphire'],
-        ['opal', 'emerald', 'aquamarine'],
+        ['sapphire', 'garnet', 'diamond'],
+        ['opal', 'emerald', 'topaz'],
+        ['carnelian', 'spinel', 'aquamarine'],
       ];
       for (const g of this.game.rng.pick(recipes)) {
         gems.push({ gem: g, quality: 1 });

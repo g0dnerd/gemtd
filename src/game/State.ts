@@ -69,6 +69,8 @@ export interface TowerState {
   silencedUntil?: number;
   /** Eruption pressure stacks — persists between waves. */
   pressureStacks?: number;
+  /** Momentum stacks for Pyrite-style towers (resets when idle). */
+  momentumStacks?: number;
 }
 
 export interface RockState {
@@ -168,6 +170,11 @@ export interface ProjectileState {
   isGroundTarget?: boolean;
   /** Parabolic arc height in pixels for rendering. */
   arcHeight?: number;
+  /** Number of additional targets this projectile can pierce through. */
+  pierceCount?: number;
+  /** Whether this projectile should trigger kill_explode on kill. */
+  killExplode?: { radius: number; falloff: number };
+
 }
 
 export interface DrawOffer {

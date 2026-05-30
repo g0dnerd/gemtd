@@ -192,6 +192,79 @@ export class VfxRenderer {
       this.pool.push({ kind: 'chainPulse', segments, age: 0, lifetime });
     });
 
+    bus.on('vfx:groundImpact', (e) => {
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx, color: 0xf0a040,
+        age: 0, lifetime: 20,
+      });
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx * 0.5, color: 0xffe080,
+        age: 0, lifetime: 14,
+      });
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * Math.PI * 2 + Math.random() * 0.5;
+        const speed = 0.6 + Math.random() * 1.0;
+        this.pool.push({
+          kind: 'drift',
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed - 0.3,
+          color: i % 2 === 0 ? 0xf0a040 : 0xd06848,
+          size: 1.5 + Math.random(),
+          age: 0, lifetime: 20 + Math.floor(Math.random() * 10),
+        });
+      }
+    });
+
+    bus.on('vfx:pierce', (e) => {
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: TILE * 0.6, color: 0xffffff,
+        age: 0, lifetime: 10,
+      });
+      const perpX = -e.dirY;
+      const perpY = e.dirX;
+      for (let side = -1; side <= 1; side += 2) {
+        this.pool.push({
+          kind: 'drift',
+          x: e.x, y: e.y,
+          vx: perpX * side * 1.5,
+          vy: perpY * side * 1.5,
+          color: 0xe8c868,
+          size: 2,
+          age: 0, lifetime: 15,
+        });
+      }
+    });
+
+    bus.on('vfx:killExplode', (e) => {
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx, color: 0x801020,
+        age: 0, lifetime: 24,
+      });
+      this.pool.push({
+        kind: 'ring', x: e.x, y: e.y,
+        maxRadius: e.radiusPx * 0.6, color: 0xf0a040,
+        age: 0, lifetime: 18,
+      });
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * Math.PI * 2 + Math.random() * 0.3;
+        const speed = 1.0 + Math.random() * 1.5;
+        this.pool.push({
+          kind: 'drift',
+          x: e.x, y: e.y,
+          vx: Math.cos(a) * speed,
+          vy: Math.sin(a) * speed - 0.4,
+          color: i % 3 === 0 ? 0xfff0d0 : (i % 3 === 1 ? 0xf0a040 : 0xe8c868),
+          size: 1.5 + Math.random() * 1.5,
+          age: 0, lifetime: 25 + Math.floor(Math.random() * 10),
+        });
+      }
+    });
+
     bus.on('vfx:gestationTransition', (e) => {
       this.pool.push({
         kind: 'ring', x: e.x, y: e.y,
@@ -252,6 +325,7 @@ export class VfxRenderer {
 
     if (state.phase === 'wave') {
       this.drawFocusPips(state);
+      this.drawMomentumPips(state);
       this.tickAfterburn(state);
       this.tickAuraShimmer(state);
       this.tickCorrosion(state);
@@ -468,6 +542,55 @@ export class VfxRenderer {
         } else {
           g.poly(pts).stroke({ width: 1, color: 0xff5040, alpha: 0.3 });
         }
+      }
+    }
+  }
+
+  private drawMomentumPips(state: State): void {
+    const g = this.gfx!;
+    const now = performance.now() / 1000;
+    for (const t of state.towers) {
+      if (t.momentumStacks == null || t.momentumStacks === 0) continue;
+      const effects = resolveEffects(t);
+      const momentum = effects.find(
+        (e): e is Extract<EffectKind, { kind: 'momentum' }> => e.kind === 'momentum',
+      );
+      if (!momentum) continue;
+      const max = momentum.maxStacks;
+      const cur = t.momentumStacks;
+      const frac = cur / max;
+      const tx = (t.x + 1) * FINE_TILE;
+      const ty = (t.y + 1) * FINE_TILE - FINE_TILE * 0.85;
+      const pipCount = Math.min(max, 8);
+      const gap = 8;
+      const x0 = tx - ((pipCount - 1) * gap) / 2;
+      const ps = 3;
+      const atMax = cur >= max;
+      const pulseAlpha = atMax ? 0.7 + 0.3 * ((Math.sin(now * 6) + 1) / 2) : 1;
+      const filledPips = Math.round((cur / max) * pipCount);
+
+      for (let i = 0; i < pipCount; i++) {
+        const px = x0 + i * gap;
+        const pts = [px, ty - ps, px + ps, ty, px, ty + ps, px - ps, ty];
+        if (i < filledPips) {
+          const color = frac > 0.7 ? 0xfff0d0 : (frac > 0.4 ? 0xf0a040 : 0xe8c868);
+          g.poly(pts).fill({ color, alpha: 0.9 * pulseAlpha });
+        } else {
+          g.poly(pts).stroke({ width: 1, color: 0xe8c868, alpha: 0.3 });
+        }
+      }
+
+      if (atMax && this.frame % 20 === 0) {
+        this.pool.push({
+          kind: 'drift',
+          x: tx + (Math.random() - 0.5) * pipCount * gap,
+          y: ty,
+          vx: (Math.random() - 0.5) * 0.3,
+          vy: -0.5 - Math.random() * 0.3,
+          color: 0xfff0d0,
+          size: 1,
+          age: 0, lifetime: 15,
+        });
       }
     }
   }

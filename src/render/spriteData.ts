@@ -667,6 +667,48 @@ const YELLOW_SAPPH_T2: PixelGrid = [
   [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
 ];
 
+// PYRITE — T1: Fractured Core (8×8), dark iron shell with glowing vein seams
+const PYRITE_T1: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 4, 3, 1, 2, 3, 4, 0],
+  [4, 3, 5, 5, 2, 3, 3, 4],
+  [4, 1, 5, 1, 5, 2, 3, 4],
+  [4, 2, 2, 5, 3, 5, 3, 4],
+  [4, 3, 3, 2, 5, 5, 3, 4],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+];
+
+// PYRITE — T2: Molten Pyrite (10×10), more fractures, brighter core
+const PYRITE_T2: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 4, 0, 0, 0],
+  [0, 4, 3, 3, 1, 2, 3, 3, 4, 0],
+  [4, 3, 5, 5, 5, 5, 2, 3, 3, 4],
+  [4, 3, 5, 1, 1, 2, 5, 2, 3, 4],
+  [4, 1, 5, 1, 5, 5, 2, 5, 3, 4],
+  [4, 2, 5, 5, 5, 2, 3, 5, 3, 4],
+  [4, 3, 5, 2, 2, 3, 5, 3, 3, 4],
+  [4, 3, 3, 5, 5, 5, 3, 3, 3, 4],
+  [0, 4, 3, 3, 2, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+// PYRITE — T3: Pyroclast (12×12), white-hot core, volcanic black crust
+const PYRITE_T3: PixelGrid = [
+  [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
+  [0, 0, 4, 3, 3, 1, 2, 3, 3, 4, 0, 0],
+  [0, 4, 3, 5, 5, 5, 5, 5, 3, 3, 4, 0],
+  [4, 3, 5, 1, 1, 5, 5, 2, 5, 3, 3, 4],
+  [4, 3, 5, 1, 5, 1, 2, 5, 2, 5, 3, 4],
+  [4, 1, 5, 5, 1, 5, 5, 2, 5, 5, 3, 4],
+  [4, 2, 5, 5, 5, 5, 5, 3, 5, 5, 3, 4],
+  [4, 3, 5, 2, 5, 2, 3, 5, 3, 5, 3, 4],
+  [4, 3, 3, 5, 5, 5, 5, 5, 3, 3, 3, 4],
+  [0, 4, 3, 3, 5, 2, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 3, 3, 3, 3, 3, 3, 4, 0, 0],
+  [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
+];
+
 export type SpecialTier = 1 | 2 | 3;
 
 /** Per-tier grids for all specials. T1 is the base grid in SPECIAL_SPRITES. */
@@ -686,6 +728,7 @@ export const SPECIAL_TIER_GRIDS: Partial<
   red_crystal: { 2: RED_CRYSTAL_T2, 3: RED_CRYSTAL_T3 },
   paraiba_tourmaline: { 2: PARAIBA_T2 },
   yellow_sapphire: { 2: YELLOW_SAPPH_T2 },
+  pyrite: { 2: PYRITE_T2, 3: PYRITE_T3 },
 };
 
 const STARGEM: PixelGrid = [
@@ -924,6 +967,16 @@ export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
     },
     visualGem: "sapphire",
   },
+  pyrite: {
+    grid: PYRITE_T1,
+    palette: {
+      light: hex("#e8c868"),
+      mid: hex("#b08830"),
+      dark: hex("#483818"),
+      sparkle: hex("#fff0a0"),
+    },
+    visualGem: "spinel",
+  },
   rune_holding: {
     grid: RUNE_HOLDING_GRID,
     palette: {
@@ -1034,6 +1087,20 @@ export const SPECIAL_TIER_PALETTES: Partial<
       mid: hex("#00d8c8"),
       dark: hex("#0a4858"),
       sparkle: hex("#e0ffff"),
+    },
+  },
+  pyrite: {
+    2: {
+      light: hex("#f0a040"),
+      mid: hex("#c06020"),
+      dark: hex("#301810"),
+      sparkle: hex("#ffe080"),
+    },
+    3: {
+      light: hex("#fff0d0"),
+      mid: hex("#f07830"),
+      dark: hex("#181010"),
+      sparkle: hex("#ffffff"),
     },
   },
 };
@@ -1159,6 +1226,14 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     glow: hex("#ffd048"),
     halo: 0.7,
     pulse: 1.9,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  pyrite: {
+    glow: hex("#e8c868"),
+    halo: 0.5,
+    pulse: 2.4,
     orbit: false,
     aura: false,
     ground: null,

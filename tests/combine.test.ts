@@ -144,12 +144,12 @@ describe('combine: level-up (current round)', () => {
 });
 
 describe('combine: recipe path', () => {
-  it('matches Silver (Chipped Topaz + Chipped Diamond + Chipped Sapphire)', () => {
+  it('matches Silver (Chipped Sapphire + Chipped Garnet + Chipped Diamond)', () => {
     const h = setup();
     const ts = [
-      placeTower(h.game, 4, 4, 'topaz', 1),
-      placeTower(h.game, 4, 6, 'diamond', 1),
-      placeTower(h.game, 4, 8, 'sapphire', 1),
+      placeTower(h.game, 4, 4, 'sapphire', 1),
+      placeTower(h.game, 4, 6, 'garnet', 1),
+      placeTower(h.game, 4, 8, 'diamond', 1),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
@@ -242,9 +242,9 @@ describe('combine: recipe path', () => {
   it('allows recipe combining kept towers during wave phase', () => {
     const h = setup();
     const ts = [
-      placeTower(h.game, 4, 4, 'topaz', 1),
-      placeTower(h.game, 4, 6, 'diamond', 1),
-      placeTower(h.game, 4, 8, 'sapphire', 1),
+      placeTower(h.game, 4, 4, 'sapphire', 1),
+      placeTower(h.game, 4, 6, 'garnet', 1),
+      placeTower(h.game, 4, 8, 'diamond', 1),
     ];
     h.game.state.phase = 'wave' as any;
     h.game.state.draws = [];
@@ -255,9 +255,9 @@ describe('combine: recipe path', () => {
   it('allows all-kept recipe during placement without waiting for draws', () => {
     const h = setup();
     const kept = [
-      placeTower(h.game, 4, 4, 'topaz', 1),
-      placeTower(h.game, 4, 6, 'diamond', 1),
-      placeTower(h.game, 4, 8, 'sapphire', 1),
+      placeTower(h.game, 4, 4, 'sapphire', 1),
+      placeTower(h.game, 4, 6, 'garnet', 1),
+      placeTower(h.game, 4, 8, 'diamond', 1),
     ];
     // Simulate mid-placement: draws don't include kept towers.
     h.game.state.draws = [
@@ -270,15 +270,15 @@ describe('combine: recipe path', () => {
 
   it('findCombo strict tuple matching', () => {
     expect(findCombo([
-      { gem: 'topaz', quality: 1 },
-      { gem: 'diamond', quality: 1 },
       { gem: 'sapphire', quality: 1 },
+      { gem: 'garnet', quality: 1 },
+      { gem: 'diamond', quality: 1 },
     ])?.key).toBe('silver');
     // Wrong quality combination.
     expect(findCombo([
-      { gem: 'topaz', quality: 2 },
+      { gem: 'sapphire', quality: 2 },
+      { gem: 'garnet', quality: 1 },
       { gem: 'diamond', quality: 1 },
-      { gem: 'sapphire', quality: 1 },
     ])).toBeNull();
   });
 

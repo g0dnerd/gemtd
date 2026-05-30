@@ -94,7 +94,13 @@ export class Combat {
         // Passive burn towers don't fire projectiles.
         if (stats.effects.some((e) => e.kind === 'prox_burn' || e.kind === 'prox_burn_ramp')) continue;
         const atkMult = auras.atkSpeed.get(t.id) ?? 0;
-        const effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
+        // Momentum: scale attack speed with stacks
+        const momentumEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'momentum' }> => e.kind === 'momentum');
+        let effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
+        if (momentumEffect && t.momentumStacks) {
+          const frac = t.momentumStacks / momentumEffect.maxStacks;
+          effectiveAtkSpeed *= 1 + (momentumEffect.rampSpeed - 1) * frac;
+        }
         const cooldownTicks = Math.max(1, Math.round(SIM_HZ / effectiveAtkSpeed));
         if (tick - t.lastFireTick < cooldownTicks) continue;
         const beamEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'beam_ramp' }> => e.kind === 'beam_ramp');
@@ -111,6 +117,11 @@ export class Combat {
           const target = pickTarget(t, stats.range, state.creeps, stats.targeting, tick, stats.targetPriority);
           if (!target) {
             if (beamEffect) t.beam = undefined;
+            // Momentum: reset stacks after grace period (2× base cooldown)
+            if (momentumEffect && t.momentumStacks) {
+              const baseCooldown = Math.round(SIM_HZ / stats.atkSpeed);
+              if (tick - t.lastFireTick > baseCooldown * 2) t.momentumStacks = 0;
+            }
             continue;
           }
           const prevFireTick = t.lastFireTick;
@@ -138,6 +149,10 @@ export class Combat {
             if (hasOnHitEffects) this.fire(t, target, stats, dmgMult, false, 1, prevFireTick);
           } else {
             this.fire(t, target, stats, dmgMult, false, 1, prevFireTick);
+          }
+          // Momentum: increment stacks after firing
+          if (momentumEffect) {
+            t.momentumStacks = Math.min((t.momentumStacks ?? 0) + 1, momentumEffect.maxStacks);
           }
           this.checkEruption(t, stats);
         }
@@ -236,6 +251,13 @@ export class Combat {
       dmg = Math.round(dmg * chargeMult);
     }
 
+    // Momentum: scale damage with current stacks
+    const momentumEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'momentum' }> => e.kind === 'momentum');
+    if (momentumEffect && momentumEffect.rampDmg && tower.momentumStacks) {
+      const frac = tower.momentumStacks / momentumEffect.maxStacks;
+      dmg = Math.round(dmg * (1 + (momentumEffect.rampDmg - 1) * frac));
+    }
+
     // Focus crit: track target and accumulate bonus crit chance
     const focusCrit = stats.effects.find((e): e is Extract<EffectKind, { kind: 'focus_crit' }> => e.kind === 'focus_crit');
     if (focusCrit) {
@@ -283,6 +305,9 @@ export class Combat {
     const dy = toY - fromY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
+    const pierceEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'pierce' }> => e.kind === 'pierce');
+    const killExplodeEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'kill_explode' }> => e.kind === 'kill_explode');
+
     const proj: ProjectileState = {
       id: this.game.nextId(),
       fromX, fromY,
@@ -298,6 +323,8 @@ export class Combat {
       isDemoteShot: demoteShot || undefined,
       isGroundTarget: stats.groundTarget || undefined,
       arcHeight: stats.groundTarget ? Math.max(20, dist * 0.3) : undefined,
+      pierceCount: pierceEffect?.count,
+      killExplode: killExplodeEffect ? { radius: killExplodeEffect.radius, falloff: killExplodeEffect.falloff } : undefined,
     };
     state.projectiles.push(proj);
     this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
@@ -336,6 +363,7 @@ export class Combat {
 
     // Direct hit (skip burrowed targets — projectile misses)
     if (target && !isBurrowed(target, tick)) {
+      const hpBefore = target.hp;
       this.applyDamage(target, p.damage, owner);
       this.applyEffects(target, stats.effects, owner);
       this.rollBonusGold(owner, target, stats);
@@ -347,6 +375,63 @@ export class Combat {
           target.pathPos = Math.min(nearestPathPos(target.px, target.py, route, FINE_TILE), route.length - 2);
         }
         this.game.bus.emit('creep:demoted', { id: target.id });
+      }
+      // Kill explosion: AoE at death position when target dies from this hit
+      if (p.killExplode && hpBefore > 0 && !target.alive) {
+        const r = p.killExplode.radius * TILE;
+        const r2 = r * r;
+        for (const c of state.creeps) {
+          if (!c.alive || c === target || isBurrowed(c, tick)) continue;
+          if (!canTarget(stats.targeting, c)) continue;
+          const ddx = c.px - target.px, ddy = c.py - target.py;
+          const d2 = ddx * ddx + ddy * ddy;
+          if (d2 > r2) continue;
+          const dist = Math.sqrt(d2);
+          const dmgMult = 1 - (1 - p.killExplode.falloff) * (dist / r);
+          this.applyDamage(c, Math.round(p.damage * dmgMult), owner);
+        }
+        this.game.bus.emit('vfx:killExplode', { x: target.px, y: target.py, radiusPx: r });
+      }
+      // Pierce: continue to next creep in line behind the target
+      if (p.pierceCount && p.pierceCount > 0) {
+        const fromX = (owner.x + 1) * FINE_TILE;
+        const fromY = (owner.y + 1) * FINE_TILE;
+        const dirX = target.px - fromX;
+        const dirY = target.py - fromY;
+        const dirLen = Math.sqrt(dirX * dirX + dirY * dirY);
+        if (dirLen > 0) {
+          const nx = dirX / dirLen, ny = dirY / dirLen;
+          let bestCreep: CreepState | null = null;
+          let bestDot = 0;
+          for (const c of state.creeps) {
+            if (!c.alive || c === target || isBurrowed(c, tick)) continue;
+            if (!canTarget(stats.targeting, c)) continue;
+            const cx = c.px - target.px, cy = c.py - target.py;
+            const dot = cx * nx + cy * ny;
+            if (dot <= 0) continue;
+            const perpDist = Math.abs(cx * ny - cy * nx);
+            if (perpDist > TILE * 1.5) continue;
+            if (!bestCreep || dot < bestDot) { bestCreep = c; bestDot = dot; }
+          }
+          if (bestCreep) {
+            const pierceProj: ProjectileState = {
+              id: this.game.nextId(),
+              fromX: target.px, fromY: target.py,
+              toX: bestCreep.px, toY: bestCreep.py,
+              targetId: bestCreep.id,
+              t: 0,
+              speed: p.speed,
+              damage: p.damage,
+              ownerTowerId: owner.id,
+              color: p.color,
+              alive: true,
+              pierceCount: p.pierceCount - 1,
+              killExplode: p.killExplode,
+            };
+            state.projectiles.push(pierceProj);
+            this.game.bus.emit('vfx:pierce', { x: target.px, y: target.py, dirX: nx, dirY: ny });
+          }
+        }
       }
     }
 
