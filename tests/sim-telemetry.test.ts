@@ -79,5 +79,20 @@ describe('sim telemetry', () => {
     expect(p.outcome).toBe(result.outcome);
     expect(Array.isArray(p.waveGemDamage)).toBe(true);
     expect(p.waveGemDamage.length).toBeGreaterThan(0);
+
+    // Keeper parity: HeadlessGame.enterWave must set keptTowerIdThisRound (like
+    // Game.ts) so the collector emits a keeper event per round and fills
+    // keeperQuality. Without it, sim runs record neither (the kept special-gem
+    // upgrade tier would be invisible to the balancing dataset).
+    const keepers = p.events.filter((e: { type: string }) => e.type === 'keeper');
+    expect(keepers.length).toBe(p.run.waveReached);
+    // The keeper event carries the kept tower's gem, combo (detail) and upgrade
+    // tier (value1) — the special-gem upgrade-tier attribution we rely on.
+    for (const k of keepers) {
+      expect(typeof k.gem).toBe('string');
+      expect(k.gem.length).toBeGreaterThan(0);
+      expect(typeof k.value1).toBe('number');
+    }
+    expect(p.waves.some((w: { keeperQuality: number }) => w.keeperQuality > 0)).toBe(true);
   });
 });

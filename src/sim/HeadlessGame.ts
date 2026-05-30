@@ -114,6 +114,7 @@ export class HeadlessGame {
       if (this.state.designatedKeepTowerId === null) return;
       this.buildPhase.applyKeepAndRock();
     }
+    this.state.keptTowerIdThisRound = this.state.designatedKeepTowerId;
     this.state.draws = [];
     this.state.designatedKeepTowerId = null;
     this.state.phase = 'wave';
