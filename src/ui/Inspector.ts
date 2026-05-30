@@ -474,6 +474,27 @@ function lbGemColors(gem: GemType): {
         fillAlpha: 0.2,
         borderAlpha: 0.3,
       };
+    case "garnet":
+      return {
+        text: "#d06848",
+        fill: "#8a2830",
+        fillAlpha: 0.22,
+        borderAlpha: 0.3,
+      };
+    case "spinel":
+      return {
+        text: "#f080c0",
+        fill: "#c03888",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
+    case "carnelian":
+      return {
+        text: "#e89060",
+        fill: "#c06030",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
   }
 }
 
@@ -1425,6 +1446,12 @@ function effectChiclet(e: EffectKind): ChicletData | null {
         label: "BURN",
         text: `${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s`,
         tone: "debuff",
+      };
+    case "charge_burst":
+      return {
+        label: "CHARGE",
+        text: `up to ×${e.maxMultiplier.toFixed(1)}`,
+        tone: "buff",
       };
   }
 }

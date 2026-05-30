@@ -52,7 +52,8 @@ export type EffectKind =
   | { kind: 'linger_burn'; duration: number }
   | { kind: 'stun_bonus_dmg'; multiplier: number }
   | { kind: 'eruption'; threshold: number; damage: number; radius: number; falloff: number; afterburnDps?: number; afterburnDuration?: number }
-  | { kind: 'demote_air'; everyN: number };
+  | { kind: 'demote_air'; everyN: number }
+  | { kind: 'charge_burst'; maxMultiplier: number; chargeSeconds: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -77,6 +78,12 @@ export interface GemBase {
   projectileColor?: GemType;
   /** Per-gem override for QUALITY_DMG_MULT. Entries omitted fall through to the global table. */
   qualityDmgMult?: Partial<Record<Quality, number>>;
+  /** Targeting priority override ('furthest' is default). */
+  targetPriority?: 'furthest' | 'highest_hp';
+  /** Projectile speed in px/sec (default = 480). */
+  projectileSpeed?: number;
+  /** Projectile targets ground position, not the creep — splash at landing. */
+  groundTarget?: boolean;
 }
 
 /** Per-gem stat block. */
@@ -162,6 +169,39 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     effects: [{ kind: 'beam_ramp', rampPerHit: 0.21, maxStacks: 30 }],
     targeting: 'all',
   },
+  garnet: {
+    name: 'Garnet',
+    blurb: 'Mortar — arcing shell splashes at ground position.',
+    baseDmg: 50,
+    spread: 0.2,
+    baseRange: 7.5,
+    baseAtkSpeed: 0.2,
+    effects: [{ kind: 'splash', radius: 1.5, falloff: 0.5 }],
+    targeting: 'ground',
+    projectileSpeed: 160,
+    groundTarget: true,
+  },
+  spinel: {
+    name: 'Spinel',
+    blurb: 'Sniper — targets highest-HP creep. Pure damage.',
+    baseDmg: 60,
+    spread: 0.15,
+    baseRange: 7.5,
+    baseAtkSpeed: 0.2,
+    effects: [],
+    targeting: 'all',
+    targetPriority: 'highest_hp',
+  },
+  carnelian: {
+    name: 'Carnelian',
+    blurb: 'Charged burst — first shot after idle hits hard.',
+    baseDmg: 18,
+    spread: 0.2,
+    baseRange: 4.0,
+    baseAtkSpeed: 0.8,
+    effects: [{ kind: 'charge_burst', maxMultiplier: 4.0, chargeSeconds: 8 }],
+    targeting: 'all',
+  },
 };
 
 /** Computed stat block for a (gem, quality) pair. */
@@ -178,6 +218,9 @@ export interface GemStats {
   cost: number;
   effects: EffectKind[];
   targeting: Targeting;
+  targetPriority?: 'furthest' | 'highest_hp';
+  projectileSpeed?: number;
+  groundTarget?: boolean;
 }
 
 const QUALITY_DMG_MULT: Record<Quality, number> = {
@@ -242,6 +285,8 @@ function scaleEffects(effects: EffectKind[], quality: Quality, dmgScale: number)
         return { ...e, value: e.value + (quality - 1), duration: e.duration + (quality - 1) * 0.5 };
       case 'bonus_gold':
         return { ...e, chance: Math.min(0.05, e.chance + (quality - 1) * 0.005) };
+      case 'charge_burst':
+        return { ...e, maxMultiplier: e.maxMultiplier + (quality - 1) * 0.5 };
       default:
         return e;
     }
@@ -274,6 +319,9 @@ export function gemStats(gem: GemType, quality: Quality): GemStats {
     cost: QUALITY_BASE_COST[quality],
     effects: scaleEffects(base.effects, quality, dmgMult),
     targeting: base.targeting,
+    targetPriority: base.targetPriority,
+    projectileSpeed: base.projectileSpeed,
+    groundTarget: base.groundTarget,
   };
 }
 
@@ -365,6 +413,8 @@ export function effectSummary(e: EffectKind): string {
     }
     case 'demote_air':
       return `Every ${e.everyN}th hit grounds air units`;
+    case 'charge_burst':
+      return `Charge: up to ×${e.maxMultiplier.toFixed(1)} after ${e.chargeSeconds}s idle`;
     case 'none':
       return '';
   }

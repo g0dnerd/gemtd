@@ -1334,7 +1334,10 @@ export function renderProjectiles(layer: Container, projectiles: ProjectileState
       projectileObjs.set(p.id, entry);
     }
     const x = p.fromX + (p.toX - p.fromX) * p.t;
-    const y = p.fromY + (p.toY - p.fromY) * p.t;
+    let y = p.fromY + (p.toY - p.fromY) * p.t;
+    if (p.arcHeight) {
+      y -= p.arcHeight * 4 * p.t * (1 - p.t);
+    }
     entry.obj.x = x;
     entry.obj.y = y;
   }

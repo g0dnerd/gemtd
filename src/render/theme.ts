@@ -51,9 +51,9 @@ export const CELL = {
   crystalDeep: 0x3868c8,
 } as const;
 
-export type GemType = 'ruby' | 'sapphire' | 'emerald' | 'topaz' | 'amethyst' | 'opal' | 'diamond' | 'aquamarine';
+export type GemType = 'ruby' | 'sapphire' | 'emerald' | 'topaz' | 'amethyst' | 'opal' | 'diamond' | 'aquamarine' | 'garnet' | 'spinel' | 'carnelian';
 
-export const GEM_TYPES: GemType[] = ['ruby', 'sapphire', 'emerald', 'topaz', 'amethyst', 'opal', 'diamond', 'aquamarine'];
+export const GEM_TYPES: GemType[] = ['ruby', 'sapphire', 'emerald', 'topaz', 'amethyst', 'opal', 'diamond', 'aquamarine', 'garnet', 'spinel', 'carnelian'];
 
 export interface GemPaletteEntry {
   name: string;
@@ -104,6 +104,21 @@ export const GEM_PALETTE: Record<GemType, GemPaletteEntry> = {
     name: 'Aquamarine',
     light: 0xb8f4ee, mid: 0x7fe6e1, dark: 0x2c8a86,
     css: { name: 'Aquamarine', light: '#b8f4ee', mid: '#7fe6e1', dark: '#2c8a86' },
+  },
+  garnet: {
+    name: 'Garnet',
+    light: 0xd06848, mid: 0x8a2830, dark: 0x381010,
+    css: { name: 'Garnet', light: '#d06848', mid: '#8a2830', dark: '#381010' },
+  },
+  spinel: {
+    name: 'Spinel',
+    light: 0xf080c0, mid: 0xc03888, dark: 0x601840,
+    css: { name: 'Spinel', light: '#f080c0', mid: '#c03888', dark: '#601840' },
+  },
+  carnelian: {
+    name: 'Carnelian',
+    light: 0xe89060, mid: 0xc06030, dark: 0x502818,
+    css: { name: 'Carnelian', light: '#e89060', mid: '#c06030', dark: '#502818' },
   },
 };
 

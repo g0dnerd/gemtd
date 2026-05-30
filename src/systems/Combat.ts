@@ -103,15 +103,17 @@ export class Combat {
         if (multiEffect) {
           const targets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, multiEffect.count);
           if (targets.length === 0) continue;
+          const prevFireTickM = t.lastFireTick;
           t.lastFireTick = tick;
           const dmgMult = auras.dmg.get(t.id) ?? 0;
-          for (const tgt of targets) this.fire(t, tgt, stats, dmgMult);
+          for (const tgt of targets) this.fire(t, tgt, stats, dmgMult, false, 1, prevFireTickM);
         } else {
-          const target = pickTarget(t, stats.range, state.creeps, stats.targeting, tick);
+          const target = pickTarget(t, stats.range, state.creeps, stats.targeting, tick, stats.targetPriority);
           if (!target) {
             if (beamEffect) t.beam = undefined;
             continue;
           }
+          const prevFireTick = t.lastFireTick;
           t.lastFireTick = tick;
           const dmgMult = auras.dmg.get(t.id) ?? 0;
 
@@ -120,22 +122,22 @@ export class Combat {
             t.attackCount = (t.attackCount ?? 0) + 1;
             if (t.attackCount % novaEffect.everyN === 0) {
               const allTargets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, Infinity);
-              for (const tgt of allTargets) this.fire(t, tgt, stats, dmgMult, false, 0.5);
+              for (const tgt of allTargets) this.fire(t, tgt, stats, dmgMult, false, 0.5, prevFireTick);
               this.game.bus.emit('vfx:nova', { x: (t.x + 1) * FINE_TILE, y: (t.y + 1) * FINE_TILE, rangePx: stats.range * TILE });
             } else {
-              this.fire(t, target, stats, dmgMult);
+              this.fire(t, target, stats, dmgMult, false, 1, prevFireTick);
             }
           } else if (demoteEffect) {
             t.attackCount = (t.attackCount ?? 0) + 1;
-            this.fire(t, target, stats, dmgMult, t.attackCount % demoteEffect.everyN === 0);
+            this.fire(t, target, stats, dmgMult, t.attackCount % demoteEffect.everyN === 0, 1, prevFireTick);
           } else if (beamEffect) {
             this.beamHit(t, target, stats, beamEffect, dmgMult);
             const hasOnHitEffects = stats.effects.some(e =>
               e.kind === 'slow' || e.kind === 'poison' || e.kind === 'stun'
             );
-            if (hasOnHitEffects) this.fire(t, target, stats, dmgMult);
+            if (hasOnHitEffects) this.fire(t, target, stats, dmgMult, false, 1, prevFireTick);
           } else {
-            this.fire(t, target, stats, dmgMult);
+            this.fire(t, target, stats, dmgMult, false, 1, prevFireTick);
           }
           this.checkEruption(t, stats);
         }
@@ -148,7 +150,7 @@ export class Combat {
       const dx = p.toX - p.fromX;
       const dy = p.toY - p.fromY;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      const dt = (PROJECTILE_PX_PER_SEC / Math.max(1, dist)) * SIM_DT;
+      const dt = (p.speed / Math.max(1, dist)) * SIM_DT;
       p.t += dt;
       if (p.t >= 1) {
         p.alive = false;
@@ -218,12 +220,21 @@ export class Combat {
     this.game.bus.emit('vfx:eruption', { x: tx, y: ty, radiusPx: maxDist });
   }
 
-  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0, demoteShot = false, baseDmgMult = 1): void {
+  private fire(tower: TowerState, target: CreepState, stats: ResolvedStats, dmgAuraMult = 0, demoteShot = false, baseDmgMult = 1, prevFireTick = 0): void {
     const state = this.game.state;
     const fromX = (tower.x + 1) * FINE_TILE;
     const fromY = (tower.y + 1) * FINE_TILE;
     const baseDmg = randInt(this.game.rng, stats.dmgMin, stats.dmgMax);
     let dmg = Math.round(baseDmg * baseDmgMult * (1 + dmgAuraMult));
+
+    // Charge burst: scale damage based on idle time since last fire
+    const chargeBurst = stats.effects.find((e): e is Extract<EffectKind, { kind: 'charge_burst' }> => e.kind === 'charge_burst');
+    if (chargeBurst && prevFireTick > 0) {
+      const idleTicks = state.tick - prevFireTick;
+      const chargeFraction = Math.min(1, idleTicks / (chargeBurst.chargeSeconds * SIM_HZ));
+      const chargeMult = 1 + (chargeBurst.maxMultiplier - 1) * chargeFraction;
+      dmg = Math.round(dmg * chargeMult);
+    }
 
     // Focus crit: track target and accumulate bonus crit chance
     const focusCrit = stats.effects.find((e): e is Extract<EffectKind, { kind: 'focus_crit' }> => e.kind === 'focus_crit');
@@ -265,19 +276,28 @@ export class Combat {
       dmg = Math.round(dmg * stunBonus.multiplier);
     }
 
+    const speed = stats.projectileSpeed ?? PROJECTILE_PX_PER_SEC;
+    const toX = target.px;
+    const toY = target.py;
+    const dx = toX - fromX;
+    const dy = toY - fromY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
     const proj: ProjectileState = {
       id: this.game.nextId(),
       fromX, fromY,
-      toX: target.px, toY: target.py,
+      toX, toY,
       targetId: target.id,
       t: 0,
-      speed: PROJECTILE_PX_PER_SEC,
+      speed,
       damage: dmg,
       ownerTowerId: tower.id,
       color: stats.visualGem,
       alive: true,
       wasCrit: wasCrit || undefined,
       isDemoteShot: demoteShot || undefined,
+      isGroundTarget: stats.groundTarget || undefined,
+      arcHeight: stats.groundTarget ? Math.max(20, dist * 0.3) : undefined,
     };
     state.projectiles.push(proj);
     this.game.bus.emit('tower:fire', { id: tower.id, targetId: target.id });
@@ -290,6 +310,29 @@ export class Combat {
     const stats = effectiveStats(owner);
     const target = state.creeps.find((c) => c.id === p.targetId && c.alive);
     const tick = state.tick;
+
+    // Ground-target (mortar): splash at landing position, no direct hit
+    if (p.isGroundTarget) {
+      const splashEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'splash' }> => e.kind === 'splash');
+      const radius = splashEffect ? splashEffect.radius * TILE : 1.5 * TILE;
+      const falloff = splashEffect?.falloff ?? 0.5;
+      const r2 = radius * radius;
+      for (const c of state.creeps) {
+        if (!c.alive || isBurrowed(c, tick)) continue;
+        if (!canTarget(stats.targeting, c)) continue;
+        const dx = c.px - p.toX;
+        const dy = c.py - p.toY;
+        const dist2 = dx * dx + dy * dy;
+        if (dist2 > r2) continue;
+        const dist = Math.sqrt(dist2);
+        const t = dist / radius;
+        const dmgMult = 1 - (1 - falloff) * t;
+        const dmg = Math.round(p.damage * dmgMult);
+        this.applyDamage(c, dmg, owner);
+      }
+      this.game.bus.emit('vfx:groundImpact', { x: p.toX, y: p.toY, radiusPx: radius });
+      return;
+    }
 
     // Direct hit (skip burrowed targets — projectile misses)
     if (target && !isBurrowed(target, tick)) {
@@ -736,6 +779,9 @@ interface ResolvedStats {
   effects: EffectKind[];
   visualGem: TowerState['gem'];
   targeting: 'all' | 'ground' | 'air';
+  targetPriority?: 'furthest' | 'highest_hp';
+  projectileSpeed?: number;
+  groundTarget?: boolean;
 }
 
 export function towerLevel(t: TowerState): number {
@@ -778,6 +824,9 @@ function effectiveStats(t: TowerState): ResolvedStats {
     effects: scaleBurnEffects(s.effects, mult),
     visualGem: t.gem,
     targeting: s.targeting,
+    targetPriority: s.targetPriority,
+    projectileSpeed: s.projectileSpeed,
+    groundTarget: s.groundTarget,
   };
 }
 
@@ -826,7 +875,7 @@ function isBurrowed(c: CreepState, tick: number): boolean {
   return !!c.burrowed && c.burrowed.expiresAt > tick;
 }
 
-function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], targeting: 'all' | 'ground' | 'air', tick: number): CreepState | null {
+function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], targeting: 'all' | 'ground' | 'air', tick: number, priority?: 'furthest' | 'highest_hp'): CreepState | null {
   const r2 = (rangeTiles * TILE) * (rangeTiles * TILE);
   const tx = (t.x + 1) * FINE_TILE;
   const ty = (t.y + 1) * FINE_TILE;
@@ -838,7 +887,8 @@ function pickTarget(t: TowerState, rangeTiles: number, creeps: CreepState[], tar
     const dx = c.px - tx;
     const dy = c.py - ty;
     if (dx * dx + dy * dy > r2) continue;
-    if (!best || c.pathPos > best.pathPos) best = c;
+    if (!best) { best = c; continue; }
+    if (priority === 'highest_hp' ? c.hp > best.hp : c.pathPos > best.pathPos) best = c;
   }
   return best;
 }

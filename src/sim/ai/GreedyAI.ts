@@ -21,6 +21,7 @@ const QUALITY_NAMES: Record<number, string> = {
 const GEM_NAMES: Record<string, string> = {
   ruby: 'Ruby', sapphire: 'Sapphire', emerald: 'Emerald', topaz: 'Topaz',
   amethyst: 'Amethyst', opal: 'Opal', diamond: 'Diamond', aquamarine: 'Aquamarine',
+  garnet: 'Garnet', spinel: 'Spinel', carnelian: 'Carnelian',
 };
 
 function gemLabel(gem: string, quality: number): string {

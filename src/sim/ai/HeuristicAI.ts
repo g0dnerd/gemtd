@@ -14,6 +14,7 @@ const QUALITY_NAMES: Record<number, string> = {
 const GEM_NAMES: Record<string, string> = {
   ruby: 'Ruby', sapphire: 'Sapphire', emerald: 'Emerald', topaz: 'Topaz',
   amethyst: 'Amethyst', opal: 'Opal', diamond: 'Diamond', aquamarine: 'Aquamarine',
+  garnet: 'Garnet', spinel: 'Spinel', carnelian: 'Carnelian',
 };
 
 function gemLabel(gem: string, quality: number): string {
@@ -38,6 +39,7 @@ function estimateComboDps(combo: ComboRecipe): number {
     else if (e.kind === 'multi_target') dps *= Math.min(e.count, 5);
     else if (e.kind === 'prox_burn') dps += e.dps * 3;
     else if (e.kind === 'prox_armor_reduce') dps += e.value * 15;
+    else if (e.kind === 'charge_burst') dps *= 1.5;
   }
   return dps;
 }

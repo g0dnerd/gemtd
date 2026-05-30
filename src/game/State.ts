@@ -164,6 +164,10 @@ export interface ProjectileState {
   wasCrit?: boolean;
   /** Set when this is the Nth demote shot — grounds air targets on impact. */
   isDemoteShot?: boolean;
+  /** Splash at landing position, no direct hit tracking (mortar). */
+  isGroundTarget?: boolean;
+  /** Parabolic arc height in pixels for rendering. */
+  arcHeight?: number;
 }
 
 export interface DrawOffer {

@@ -374,6 +374,7 @@ const GEM_COLORS = {
   ruby: '#f87171', sapphire: '#60a5fa', emerald: '#4ade80',
   topaz: '#fbbf24', amethyst: '#c084fc', opal: '#e2e8f0',
   diamond: '#f0f9ff', aquamarine: '#5eead4',
+  garnet: '#d06848', spinel: '#f080c0', carnelian: '#e89060',
 };
 
 const COMBO_TIER_NAMES = {
