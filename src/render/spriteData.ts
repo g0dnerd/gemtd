@@ -1146,11 +1146,14 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
   },
   paraiba_tourmaline: {
     glow: hex("#3cf0e0"),
-    halo: 0.7,
+    halo: 0.5,
     pulse: 1.8,
     orbit: false,
     aura: false,
-    ground: hex("#0a4858"),
+    // No ground tint: the old #0a4858 square filled the whole 2×2 footprint
+    // and, under the near-white gem + bright halo, read as glow flooding the
+    // tile. Keep the glow emanating from the crystal instead.
+    ground: null,
   },
   yellow_sapphire: {
     glow: hex("#ffd048"),
