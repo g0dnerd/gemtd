@@ -7,12 +7,15 @@ description: >-
   analysis, what's over/underpowered, which gems/creeps/waves are outliers, which
   special-gem UPGRADE TIERS are worth their gold (damage-per-gold ROI), or about the
   WAVE-1 STARTER CHOICE (Malachite vs Silver) and its impact on how far runs get.
-  Also use for "look at the telemetry / sim data for balance." Reads
-  `.local/telemetry.db` directly (HeuristicAI sim runs at the current game version).
-  It explains every deduction in full, makes NO assumptions about a target/desirable
-  balance state the user hasn't confirmed, and asks the user (AskUserQuestion) before
-  drawing evaluative conclusions when intent is unconfirmed. Does NOT judge overall
-  difficulty and does NOT edit data files.
+  Also use for "look at the telemetry / sim data for balance," and whenever the user
+  wants to be WALKED THROUGH the findings, decide what (if anything) to change, or
+  "help me decide what to tune." Reads `.local/telemetry.db` directly (HeuristicAI sim
+  runs at the current game version). It explains every deduction in full, makes NO
+  assumptions about a target/desirable balance state the user hasn't confirmed, then
+  INTERVIEWS the user finding-by-finding (AskUserQuestion) — keep or change, and if
+  change, which lever — and, only after explicit confirmation, can apply the resulting
+  edits to the data files. Does NOT judge overall difficulty; never edits data files
+  without the user's explicit go-ahead.
 ---
 
 # Balance Observations
@@ -42,7 +45,8 @@ not to impose a target.
 3. **When unsure, ask — don't conclude.** Where a recommendation hinges on intent you
    can't confirm (is this dominant combo an intended power pick or an accident? is this
    creep meant to be a standout threat?), use **AskUserQuestion** to ask the user before
-   recommending anything. Prefer asking over guessing. See "Step 4" for how to batch this.
+   recommending anything. Prefer asking over guessing. Step 4 turns this into a finding-by-finding
+   interview — one decision per finding, with its numbers in view.
 
 The severity markers 🔴/🟡 in the report mean **how large the deviation from peers is**
 (🔴 = large, 🟡 = moderate) — a measure of how far the outlier sits from the pack, NOT a
@@ -366,37 +370,97 @@ wave numbers are not a difficulty claim.
 Rules: every finding shows its supporting numbers; order each section 🔴 before 🟡; if a domain
 has no notable deviations, say so in one line (a clean domain is a real result). Keep it scannable.
 
-## Step 4 — Ask about intent, then advise (only after observations)
+This report is the shared reference for the interview that follows — after presenting it, move
+into Step 4 and walk the findings one at a time. (If the user explicitly asked only for
+observations and no decisions, stop here and skip the interview.)
 
-After the observations, decide which findings could warrant a change. A recommendation is only
-honest if you know the intended design — and you usually don't. So:
+## Step 4 — Walk the findings one at a time (the interview)
 
-- **If the user's request already stated the goal** (e.g. "find gems that are too dominant",
-  "I want a smooth curve"), apply that goal, and state that you're applying it.
-- **Otherwise, ask before recommending.** Use **AskUserQuestion** to confirm intent for the
-  findings where it's the crux. Batch the most consequential ones into a single call (the tool
-  allows up to 4 questions). Frame each around the observation and the design fork, e.g.:
-  *"Chrysalid's leak rate is ~2.9× its standard-group median (0.041 vs 0.014). Is that its
-  intended role (a deliberate standout mid-game threat), or should it sit closer to the other
-  runners?"* — with options like "Intended — leave it", "Should be reined in", etc. If more than ~4 findings need intent, ask
-  about the top ones and list the rest as "intent unconfirmed — tell me the goal and I'll advise."
-- **For the new finding types, the same rule holds.** A tier whose `cum_dmg_per_gold` is far
-  off its tier's median may be an intended power/utility spike or a mispriced upgrade — ask
-  before recommending a `cost`/`stats` change in `combos.ts`. A Wave-1 cohort gap may be a
-  deliberate risk/reward fork or an imbalance — ask whether the two starters are *meant* to be
-  even before suggesting a buff to the weaker special's stats/recipe (or a change to the wave-1
-  offer itself).
+The report told the user *what stands out*. This step turns each notable finding into a
+decision: **is this the intended design, or do you want to change it — and if so, how?**
+Walking findings one at a time (rather than firing a batch of intent questions) keeps each
+decision in its own context, with that finding's numbers and kit fresh, so the user is never
+choosing in the abstract. The keep-or-change question *is* the intent check the skill used to
+batch — anchoring it to a single finding with its numbers in view makes the answer grounded,
+not guessed.
 
-Only **after** intent is established do you give a recommendation, and each recommendation must:
-- **Name the assumption it rests on** ("Given you want chrysalid in line with its archetype…").
-- **Explain the deduction** from observation → lever, in full.
-- **Name the specific lever and direction**: which gem/quality damage or effect scaling in
-  `gems.ts`, which combo recipe/stats/upgrade cost in `combos.ts`, which creep `hpMult`/`speed`/
-  `armor` in `creeps.ts`, or which wave's composition in `waves.ts`, and roughly how much.
-- Stay a **suggestion** — never edit data files unless the user explicitly asks.
+**Which findings to walk.** Every 🔴 and 🟡 from the report — across all four domains plus the
+Wave-1 choice. Order by salience: 🔴 before 🟡, and within that follow the report's section
+order (Gems → Special Gems → Creeps → Waves → Wave-1). Before the first question, tell the user
+how many findings you'll walk and that they can stop at any point — an interview with no exit is
+worse than none. If a domain was clean, there's simply nothing to walk there; say so and move on.
 
-If you genuinely can't reduce a finding to a confident lever even after intent is clear, say so
-and ask a follow-up rather than guessing.
+**The two-question shape per finding.** Use **AskUserQuestion**. First, the keep/change decision:
 
-Since these touch balance-affecting data, you may offer `/sim-compare` to validate any change the
-user decides to make — but don't run it unprompted.
+- Restate the finding in one line *inside the question header/text* — the numbers and the
+  kit-based reason — so the user isn't scrolling back to the report to answer.
+- Options:
+  - **"Intended — leave it"** — the deviation is by design; nothing to do.
+  - **"Change it"** — something should move.
+  - (Add a third concrete option when one is natural, e.g. *"Not sure — explain more"*; the
+    user can always use "Other" to say *stop the interview here* or ask a question.)
+- A **leave-it is a real outcome**, not a dead end: it confirms intent and is worth recording.
+  Record it and move straight to the next finding with no second question.
+
+If they choose **change it**, immediately ask the second question — **which lever?** Options must
+be concrete, each naming a *direction* (buff/nerf and roughly where), drawn from the item's kit
+and the data file that actually holds the lever. When you have a confident read, make your
+recommended lever the **first** option and append "(Recommended)". Leave "Other" for a lever you
+didn't list. Build the options from this menu — pick the 2–4 that genuinely fit the finding:
+
+| Domain (file holding the lever) | Typical levers (direction depends on whether it's over/under) |
+|---|---|
+| **Gem** (`gems.ts`) | damage scaling for a quality band · range · attack speed · effect potency (slow %, poison dps, splash radius, crit chance/mult) — and *which quality* moves |
+| **Special gem / combo** (`combos.ts`) | base stats · re-price a specific upgrade tier's `cost` · a tier's stats · the recipe (input quality → how easily it's built) |
+| **Creep** (`creeps.ts`) | `hpMult` · `speed` · `armor` · its count in the waves it appears in (`waves.ts`) |
+| **Wave** (`waves.ts`) | creep counts · which kinds spawn · HP/armor of that wave's pack · payload tree — or, instead of touching the wave, buff/nerf a *counter* gem elsewhere |
+| **Wave-1 choice** (`combos.ts` / `BuildPhase`) | buff the weaker starter's stats/recipe · nerf the stronger · or change the wave-1 forced offer itself |
+
+When you genuinely can't reduce a finding to a confident lever, say so in the question and offer
+a *"help me think it through"* option rather than inventing a false-precision one.
+
+**Record as you go; don't edit yet.** Keep a running ledger: finding → keep / change → chosen
+lever + direction + rough magnitude + exact file. Hold all edits for Step 5. Collecting the full
+set first lets the user see decisions in relation to each other before anything lands, and avoids
+half-applied changes if they stop the interview early.
+
+## Step 5 — Summarize decisions and offer to apply
+
+When the walk is done (or the user stops early), present the full ledger:
+
+```
+## Interview decisions — <N> findings reviewed
+
+Leaving as-is (intended): <finding>, <finding>, …
+Changing:
+- <Finding> → <file>: <lever, direction, rough magnitude> — assumption: <the intent it rests on>
+- …
+Undecided: <finding> — <what you still need from the user to advise>
+```
+
+Each "Changing" row keeps the discipline the skill has always required: the **assumption** it
+rests on, the **deduction** from observation → lever, and the **specific lever, file, and
+direction**. If a finding never reduced to a confident lever, leave it under "Undecided" and say
+what would resolve it — don't manufacture a change.
+
+Then **offer to apply** the changes — never apply unprompted. Editing a data file is a real,
+balance-affecting action, so it waits for an explicit yes *here* even though the user already
+signaled intent during the interview: intent to change is not approval of a specific diff. When
+they confirm:
+
+- Make the edits to the named data files (`gems.ts` / `combos.ts` / `creeps.ts` / `waves.ts`),
+  touching only the levers agreed in the ledger.
+- **Confirm the lever actually moves the number before editing.** A combo's damage may come from
+  an *effect* (`prox_burn` dps, `poison` dps, `eruption`) while `dmgMin/dmgMax` are 0 — trimming
+  the weapon stats would do nothing. Read the kit and edit the field that produced the telemetry.
+- **Round to clean values.** When a percentage change yields an ugly number, round to a tidy one
+  (creep `hp` to the nearest 100 is a good default; costs/damage to sensible round figures) so the
+  data files stay readable — unless the user asked for the exact computed value.
+- These changes are balance-affecting by definition. Per the repo's rules, update
+  `tests/balance.test.ts` if the change crosses a threshold it asserts, and **call out which
+  threshold moved and why** — don't bury it in the diff.
+- Offer **`/sim-compare`** to validate the change set (don't run it unprompted — it's slow).
+- Offer **`/release`** for the version bump + changelog once the change is ready to ship.
+
+If they decline to apply, the ledger *is* the deliverable — a complete, self-contained change
+plan they can act on whenever they like.

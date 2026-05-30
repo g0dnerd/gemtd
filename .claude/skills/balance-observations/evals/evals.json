@@ -24,6 +24,14 @@
       "expected_output": "Full report with provenance (N runs @ version, HeuristicAI), a marker legend, and all sections: Gems, Special Gems (including upgrade-tier ROI), Creeps, Waves, and Wave-1 Choice. Relative-only framing; markers = deviation size not desirability.",
       "files": [],
       "assertions": []
+    },
+    {
+      "id": 3,
+      "name": "interview-decide",
+      "prompt": "Pull the balance data and then walk me through the findings one by one — for each, help me decide whether to leave it or change it, and if I want to change it, what to actually tune.",
+      "expected_output": "Produces the Step-3 observations report first, then enters the finding-by-finding interview (Step 4): walks every red/yellow finding across all domains + Wave-1, one AskUserQuestion at a time (keep vs change, finding restated inline with its numbers). On 'change', immediately asks a concrete lever follow-up grounded in the right data file + direction, with a recommended default. Records a ledger and, at the end (Step 5), summarizes decisions (leaving / changing / undecided) and OFFERS to apply edits — gated on explicit confirmation — then points at balance.test.ts, /sim-compare, /release. Never edits unprompted; never asserts an outlier is 'wrong' without the user's intent. Note: the interactive interview can't be fully exercised by a non-interactive subagent — it will stop at the first question.",
+      "files": [],
+      "assertions": []
     }
   ]
 }
