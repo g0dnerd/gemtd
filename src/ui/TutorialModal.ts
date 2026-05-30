@@ -311,6 +311,19 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.18",
+      notes: [
+        {
+          tag: "buff",
+          text: "Solar Core (Star Ruby) burn 150 -> 185 dps.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 37 mender HP 22300 -> 20000.",
+        },
+      ],
+    },
+    {
       ver: "1.5.17",
       notes: [
         {

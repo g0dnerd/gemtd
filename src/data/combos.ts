@@ -480,7 +480,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 150,
+              dps: 185,
               radius: 2.6,
               rampPct: 0.12,
               rampCap: 1.5,

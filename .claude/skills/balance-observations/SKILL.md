@@ -390,6 +390,13 @@ order (Gems → Special Gems → Creeps → Waves → Wave-1). Before the first 
 how many findings you'll walk and that they can stop at any point — an interview with no exit is
 worse than none. If a domain was clean, there's simply nothing to walk there; say so and move on.
 
+**Ask strictly serially — one finding at a time.** Issue exactly **one** `AskUserQuestion`
+call, wait for its answer, record it, and only then ask about the next finding. **Never** batch
+multiple findings into one call or fire several `AskUserQuestion` calls in the same turn — even
+though they're independent, parallel questions bury the user and make the interview unusable.
+The "change it" follow-up (the lever question) is also its own separate call, asked only after
+the keep/change answer comes back. One question on screen at any moment, always.
+
 **The two-question shape per finding.** Use **AskUserQuestion**. First, the keep/change decision:
 
 - Restate the finding in one line *inside the question header/text* — the numbers and the
