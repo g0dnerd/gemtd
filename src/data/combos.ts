@@ -116,8 +116,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Ancient Bloodstone",
         cost: 310,
         stats: {
-          dmgMin: 290,
-          dmgMax: 440,
+          dmgMin: 270,
+          dmgMax: 410,
           range: 3.5,
           atkSpeed: 1.3,
           effects: [
@@ -161,10 +161,10 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Venomous Emerald",
-        cost: 250,
+        cost: 300,
         stats: {
-          dmgMin: 220,
-          dmgMax: 340,
+          dmgMin: 200,
+          dmgMax: 300,
           range: 4.75,
           atkSpeed: 1.2,
           effects: [
@@ -615,8 +615,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Ancient Paraiba",
         cost: 350,
         stats: {
-          dmgMin: 360,
-          dmgMax: 500,
+          dmgMin: 330,
+          dmgMax: 470,
           range: 4.5,
           atkSpeed: 0.7,
           effects: [
@@ -667,7 +667,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 4.75,
           atkSpeed: 1.0,
           effects: [
-            { kind: "prox_burn", dps: 130, radius: 4.75 },
+            { kind: "prox_burn", dps: 115, radius: 4.75 },
             { kind: "prox_slow", factor: 0.5, radius: 4.75 },
             {
               kind: "armor_decay_aura",

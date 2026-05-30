@@ -311,6 +311,31 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.16",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Venomous Emerald cost 250 -> 300, damage 220-340 -> 200-300.",
+        },
+        {
+          tag: "nerf",
+          text: "Uranium 235 burn 130 -> 115 dps.",
+        },
+        {
+          tag: "nerf",
+          text: "Ancient Bloodstone damage 290-440 -> 270-410.",
+        },
+        {
+          tag: "nerf",
+          text: "Ancient Paraiba damage 360-500 -> 330-470.",
+        },
+        {
+          tag: "bal",
+          text: "Wave 46 interval 0.35 -> 0.5, -5% HP; waves 23/28/32/39/42/45 +25% HP.",
+        },
+      ],
+    },
+    {
       ver: "1.5.15",
       notes: [
         {

@@ -35,15 +35,23 @@ Otherwise, ask the user:
 
 If yes:
 
-- Summarize the conversation's changes into short changelog bullet strings (use the same `<b>Tag</b> — description` HTML format as the existing entries).
-- Present the proposed bullets to the user for approval/editing.
-- Insert a **new version block** at the top of the `versions` array in the `changesBody()` function of `src/ui/TutorialModal.ts`, matching the existing format:
+- Summarize the conversation's changes into changelog notes, then present them for approval/editing.
+- **Always use specific numeric values, never prose.** Each note states the concrete before/after,
+  e.g. `Ancient Bloodstone damage 290-440 -> 270-410.` — not "trimmed Bloodstone's damage." Use ` -> `
+  (spaces around the arrow) to match existing entries.
+- **One note per changed special gem** (so each is individually scannable). **Wave changes may be
+  grouped** into a single note, since they're usually many small per-wave number tweaks.
+- Each note is `{ tag, text }`. `tag` is one of `new | buff | nerf | bal | fix`. Use `buff`/`nerf`
+  for a single-direction stat change, `bal` for a mixed or neutral retune (e.g. some waves up, one
+  down), `new` for content, `fix` for bugfixes.
+- Insert a **new version block** at the top of the `versions` array in the `changesBody()` function
+  of `src/ui/TutorialModal.ts`, matching the existing format:
 
   ```ts
       {
-        ver: 'X.Y.Z',
+        ver: "X.Y.Z",
         notes: [
-          '<b>Tag</b> — description.',
+          { tag: "nerf", text: "Ancient Bloodstone damage 290-440 -> 270-410." },
         ],
       },
   ```
