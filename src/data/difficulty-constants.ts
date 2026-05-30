@@ -22,7 +22,7 @@ export const DIFFICULTY: DifficultyConstants = {
     wizard: 1.6,
     mycoid: 1.4,
   },
-  slowResistWeight: 0.4,
+  slowResistWeight: 0.5,
   stunResistWeight: 0.4,
   payloadBaseDiscount: 0.7,
   interactions: {

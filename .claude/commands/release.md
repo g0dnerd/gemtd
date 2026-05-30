@@ -56,7 +56,14 @@ If yes:
       },
   ```
 
-### 4. Commit
+### 4. Verify tests pass (always)
+
+**Before committing, always run `npm test` and confirm it passes.** This applies on every release, including `none`.
+
+- If any test fails, **stop** — do not commit. Report the failures to the user and fix them (or get direction) before proceeding to the commit step.
+- Note: `npm test` excludes the heavy `sim.test.ts` / `sim-run.test.ts` by design — that's expected, don't run those here.
+
+### 5. Commit
 
 Commit **all** uncommitted changes related to the current work — not just the version bump files. This includes any code changes the user made or asked Claude to make across the session.
 

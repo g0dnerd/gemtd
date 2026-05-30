@@ -311,6 +311,27 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.17",
+      notes: [
+        {
+          tag: "buff",
+          text: "Star Ruby burn dps — Plasma Star 36 -> 50, Solar Core 105 -> 150.",
+        },
+        {
+          tag: "nerf",
+          text: "Mighty Malachite damage 78-108 -> 70-98.",
+        },
+        {
+          tag: "nerf",
+          text: "Silver Knight damage 230-270 -> 205-245.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 37 carapace HP 31840 -> 28700.",
+        },
+      ],
+    },
+    {
       ver: "1.5.16",
       notes: [
         {

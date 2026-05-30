@@ -322,8 +322,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Mighty Malachite",
         cost: 250,
         stats: {
-          dmgMin: 78,
-          dmgMax: 108,
+          dmgMin: 70,
+          dmgMax: 98,
           range: 4.5,
           atkSpeed: 1.8,
           effects: [{ kind: "multi_target", count: 99 }],
@@ -414,8 +414,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Silver Knight",
         cost: 270,
         stats: {
-          dmgMin: 230,
-          dmgMax: 270,
+          dmgMin: 205,
+          dmgMax: 245,
           range: 4.0,
           atkSpeed: 1.0,
           effects: [
@@ -459,7 +459,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 36,
+              dps: 50,
               radius: 2.4375,
               rampPct: 0.08,
               rampCap: 0.8,
@@ -480,7 +480,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 105,
+              dps: 150,
               radius: 2.6,
               rampPct: 0.12,
               rampCap: 1.5,
