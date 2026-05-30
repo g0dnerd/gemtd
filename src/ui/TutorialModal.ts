@@ -311,6 +311,23 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.14",
+      notes: [
+        {
+          tag: "buff",
+          text: "Red Crystal +25% damage at all tiers; air-grounding cadence improved 13/12/11 → 12/11/10 hits.",
+        },
+        {
+          tag: "nerf",
+          text: "Uranium 235 upgrade cost raised 190 → 285.",
+        },
+        {
+          tag: "buff",
+          text: "Increased wave 28/33/34/43 health ~15%.",
+        },
+      ],
+    },
+    {
       ver: "1.5.12",
       notes: [
         {
