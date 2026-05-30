@@ -311,6 +311,31 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.19",
+      notes: [
+        {
+          tag: "bal",
+          text: "Vivid Malachite dmg 45-66 -> 55-78, atkSpd 1.5 -> 1.6. Mighty Malachite dmg 70-98 -> 62-87, atkSpd 1.8 -> 1.7.",
+        },
+        {
+          tag: "bal",
+          text: "Silver base atkSpd 1.5 -> 1.56. Frosted Silver dmg 110-150 -> 130-170, atkSpd 1.3 -> 1.35. Silver Knight dmg 205-245 -> 185-225.",
+        },
+        {
+          tag: "nerf",
+          text: "Uranium 235 armor decay 1/sec -> 0.75/sec.",
+        },
+        {
+          tag: "buff",
+          text: "Shambler hpMult 1.0 -> 1.15. Skitter hpMult 0.95 -> 1.05.",
+        },
+        {
+          tag: "bal",
+          text: "Wave 42/45 HP increased. Wave 46 spawn interval 0.5 -> 0.65.",
+        },
+      ],
+    },
+    {
       ver: "1.5.18",
       notes: [
         {

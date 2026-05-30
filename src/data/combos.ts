@@ -309,10 +309,10 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Vivid Malachite",
         cost: 75,
         stats: {
-          dmgMin: 45,
-          dmgMax: 66,
+          dmgMin: 55,
+          dmgMax: 78,
           range: 3.75,
-          atkSpeed: 1.5,
+          atkSpeed: 1.6,
           effects: [{ kind: "multi_target", count: 5 }],
           blurb: "Attacks 5 enemies at once.",
           targeting: "all",
@@ -322,10 +322,10 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Mighty Malachite",
         cost: 250,
         stats: {
-          dmgMin: 70,
-          dmgMax: 98,
+          dmgMin: 62,
+          dmgMax: 87,
           range: 4.5,
-          atkSpeed: 1.8,
+          atkSpeed: 1.7,
           effects: [{ kind: "multi_target", count: 99 }],
           blurb: "Attacks all enemies in range.",
           targeting: "all",
@@ -384,7 +384,7 @@ const ALL_COMBOS: ComboRecipe[] = [
       dmgMin: 34,
       dmgMax: 37,
       range: 3.5,
-      atkSpeed: 1.5,
+      atkSpeed: 1.56,
       effects: [
         { kind: "splash", radius: 1.2, falloff: 0.5 },
         { kind: "slow", factor: 0.75, duration: 1.5 },
@@ -397,10 +397,10 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Frosted Silver",
         cost: 110,
         stats: {
-          dmgMin: 110,
-          dmgMax: 150,
+          dmgMin: 130,
+          dmgMax: 170,
           range: 3.75,
-          atkSpeed: 1.3,
+          atkSpeed: 1.35,
           effects: [
             { kind: "splash", radius: 1.5, falloff: 0.5 },
             { kind: "slow", factor: 0.65, duration: 1.5 },
@@ -414,8 +414,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Silver Knight",
         cost: 270,
         stats: {
-          dmgMin: 205,
-          dmgMax: 245,
+          dmgMin: 185,
+          dmgMax: 225,
           range: 4.0,
           atkSpeed: 1.0,
           effects: [
@@ -671,7 +671,7 @@ const ALL_COMBOS: ComboRecipe[] = [
             { kind: "prox_slow", factor: 0.5, radius: 4.75 },
             {
               kind: "armor_decay_aura",
-              armorPerSec: 1,
+              armorPerSec: 0.75,
               radius: 4.75,
               maxReduction: 4,
             },
