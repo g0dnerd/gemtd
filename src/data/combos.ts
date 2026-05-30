@@ -309,8 +309,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Vivid Malachite",
         cost: 75,
         stats: {
-          dmgMin: 55,
-          dmgMax: 78,
+          dmgMin: 60,
+          dmgMax: 86,
           range: 3.75,
           atkSpeed: 1.6,
           effects: [{ kind: "multi_target", count: 5 }],
@@ -322,8 +322,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Mighty Malachite",
         cost: 250,
         stats: {
-          dmgMin: 62,
-          dmgMax: 87,
+          dmgMin: 68,
+          dmgMax: 96,
           range: 4.5,
           atkSpeed: 1.7,
           effects: [{ kind: "multi_target", count: 99 }],
@@ -381,8 +381,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "sapphire", quality: 1 },
     ],
     stats: {
-      dmgMin: 34,
-      dmgMax: 37,
+      dmgMin: 36,
+      dmgMax: 38,
       range: 3.5,
       atkSpeed: 1.56,
       effects: [
@@ -450,22 +450,22 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Plasma Star",
-        cost: 30,
+        cost: 100,
         stats: {
           dmgMin: 0,
           dmgMax: 0,
-          range: 2.4375,
+          range: 2.6,
           atkSpeed: 1.0,
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 50,
-              radius: 2.4375,
-              rampPct: 0.08,
-              rampCap: 0.8,
+              dps: 75,
+              radius: 2.6,
+              rampPct: 0.1,
+              rampCap: 1.0,
             },
           ],
-          blurb: "Burn ramps +8%/s, up to +80%.",
+          blurb: "Burn ramps +10%/s, up to +100%.",
           targeting: "all",
         },
       },
@@ -475,13 +475,13 @@ const ALL_COMBOS: ComboRecipe[] = [
         stats: {
           dmgMin: 0,
           dmgMax: 0,
-          range: 2.6,
+          range: 2.8,
           atkSpeed: 1.0,
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 185,
-              radius: 2.6,
+              dps: 210,
+              radius: 2.8,
               rampPct: 0.12,
               rampCap: 1.5,
             },
@@ -651,10 +651,10 @@ const ALL_COMBOS: ComboRecipe[] = [
       range: 4.5,
       atkSpeed: 1.0,
       effects: [
-        { kind: "prox_burn", dps: 95, radius: 4.5 },
+        { kind: "prox_burn", dps: 80, radius: 4.5 },
         { kind: "prox_slow", factor: 0.55, radius: 4.5 },
       ],
-      blurb: "Burns enemies for 95/s and slows 45% within range.",
+      blurb: "Burns enemies for 80/s and slows 45% within range.",
       targeting: "all",
     },
     upgrades: [

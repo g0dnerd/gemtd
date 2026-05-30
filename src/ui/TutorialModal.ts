@@ -311,6 +311,29 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.22",
+      notes: [
+        { tag: "nerf", text: "Uranium base burn 95 -> 80 dps." },
+        {
+          tag: "bal",
+          text: "Star Ruby Plasma Star cost 30 -> 100g, burn 50 -> 75 dps, ramp +8%/s -> +10%/s, cap 80% -> 100%, radius 2.4375 -> 2.6. Solar Core burn 185 -> 210 dps, radius 2.6 -> 2.8.",
+        },
+        {
+          tag: "buff",
+          text: "Malachite Vivid dmg 55-78 -> 60-86. Mighty dmg 62-87 -> 68-96.",
+        },
+        { tag: "buff", text: "Silver base dmgMin 34 -> 36." },
+        {
+          tag: "buff",
+          text: "Shambler hpMult 1.15 -> 1.27. Skitter hpMult 1.05 -> 1.16.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 46 burrowers 8 -> 7, HP reduced ~5% across all groups.",
+        },
+      ],
+    },
+    {
       ver: "1.5.21",
       notes: [
         { tag: "nerf", text: "Wave 50 inner payload menders per coral 2 -> 1." },
