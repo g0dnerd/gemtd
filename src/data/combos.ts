@@ -406,7 +406,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "amethyst",
+    visualGem: "spinel",
   },
   {
     key: "uranium",
@@ -532,7 +532,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "topaz",
+    visualGem: "garnet",
   },
 
   // ─── Q4 recipes ─────────────────────────────────────────────────────────
@@ -690,7 +690,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "aquamarine",
+    visualGem: "carnelian",
   },
 
   // ─── Q2 recipes ─────────────────────────────────────────────────────────
