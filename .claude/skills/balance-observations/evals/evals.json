@@ -1,0 +1,29 @@
+{
+  "skill_name": "balance-observations",
+  "evals": [
+    {
+      "id": 0,
+      "name": "tier-roi",
+      "prompt": "Look at the sim telemetry for balance and tell me which special-gem upgrade tiers are over- or under-performing for their gold cost. I want to know where upgrade gold is well or poorly spent.",
+      "expected_output": "Runs the bundled query script, reads combos.tierRoi, and reports damage-per-gold per upgrade tier compared ACROSS combos within each tier (using cum_dmg_per_gold + ratio_to_tier_median, and the marginal metric where it disagrees). Names specific tier outliers with numbers and build counts. Flags low-ROI utility combos (e.g. Silver) as CC-not-in-damage rather than weak. Stays descriptive (no 'this is wrong / buff it' without asking intent).",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 1,
+      "name": "wave1-choice",
+      "prompt": "On wave 1 the game always pushes me toward either Malachite or Silver as my first special. Does that starter choice actually change how far a run gets? Pull the balance/sim data and show me.",
+      "expected_output": "Splits runs into Malachite-offered vs Silver-offered cohorts (waveOneChoice), reports the BETWEEN-COHORT wave-reached delta (not absolute level as a difficulty claim), states both cohort sizes, and identifies at least one wave range where one cohort struggles more using per-wave death_rate/avg_leaks. Ties divergence to each special's kit. Descriptive stance (doesn't declare the weaker starter needs a buff without asking intent).",
+      "files": [],
+      "assertions": []
+    },
+    {
+      "id": 2,
+      "name": "full-report",
+      "prompt": "Give me the latest balance observations from the sim runs.",
+      "expected_output": "Full report with provenance (N runs @ version, HeuristicAI), a marker legend, and all sections: Gems, Special Gems (including upgrade-tier ROI), Creeps, Waves, and Wave-1 Choice. Relative-only framing; markers = deviation size not desirability.",
+      "files": [],
+      "assertions": []
+    }
+  ]
+}

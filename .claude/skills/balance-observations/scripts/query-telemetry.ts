@@ -49,6 +49,22 @@ function pkgVersion(): string {
   }
 }
 const round = (n: number, d = 4) => (Number.isFinite(n) ? Number(n.toFixed(d)) : n);
+// Median is robust to a group's own outliers; used for both tier-ROI and creep peer comparisons.
+const median = (xs: number[]) => {
+  if (!xs.length) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const m = Math.floor(s.length / 2);
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
+// p-quantile (0..1) via linear interpolation — for wave-reached distribution per cohort.
+const quantile = (xs: number[], p: number) => {
+  if (!xs.length) return 0;
+  const s = [...xs].sort((a, b) => a - b);
+  const idx = (s.length - 1) * p;
+  const lo = Math.floor(idx);
+  const hi = Math.ceil(idx);
+  return lo === hi ? s[lo] : s[lo] + (s[hi] - s[lo]) * (idx - lo);
+};
 
 const ai = arg("ai") ?? "HeuristicAI";
 const version = arg("version") ?? pkgVersion();
@@ -193,6 +209,106 @@ const combos = {
     .sort((a, b) => b.build_rate - a.build_rate),
 };
 
+// ── Combo upgrade-tier ROI: damage vs gold, compared across combos per tier ─────
+// Damage is attributed to the tier the tower was AT when it dealt it
+// (wave_gem_damage.upgrade_tier), so a tower that later upgrades contributes to
+// each tier's row in turn. Gold comes from the static upgrade costs in combos.ts —
+// it is never re-derived from telemetry. We report, per (combo, tier):
+//   • dmg_per_build_at_tier — damage one tower deals while sitting at this tier
+//     (total tier damage ÷ towers that reached at least this tier).
+//   • marginal_dmg_per_gold — that tier's productivity ÷ the gold for THAT upgrade
+//     step (the ROI of buying *this* tier; null for base, which costs no gold).
+//   • cum_dmg_per_gold — total damage a tower deals from build through this tier
+//     ÷ total gold invested to reach it (the headline cross-combo number; null for base).
+// Outliers are read ACROSS combos WITHIN a tier bucket (gold scales differ by tier),
+// so each row carries the tier's median cum_dmg_per_gold and a ratio to it.
+const comboUpgradeCosts = new Map(COMBOS.map((c) => [c.key, c.upgrades.map((u) => u.cost)]));
+const tierDmgRows = q<{ combo_key: string; upgrade_tier: number; total_damage: number; total_kills: number; runs: number }>(
+  `SELECT combo_key, upgrade_tier, sum(damage) AS total_damage, sum(kills) AS total_kills, count(DISTINCT run_id) AS runs
+   FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key, upgrade_tier`,
+);
+const towerTierRows = q<{ combo_key: string; upgrade_tier: number; n: number }>(
+  `SELECT combo_key, upgrade_tier, count(*) AS n FROM towers WHERE combo_key != '' AND ${scope("run_id")}
+   GROUP BY combo_key, upgrade_tier`,
+);
+// final-tier tower counts → how many towers PAID to reach (≥) each tier
+const finalTierByCombo = new Map<string, Map<number, number>>();
+for (const r of towerTierRows) {
+  if (!finalTierByCombo.has(r.combo_key)) finalTierByCombo.set(r.combo_key, new Map());
+  finalTierByCombo.get(r.combo_key)!.set(r.upgrade_tier, r.n);
+}
+const buildsToTier = (combo: string, tier: number) => {
+  const m = finalTierByCombo.get(combo);
+  if (!m) return 0;
+  let s = 0;
+  for (const [ft, n] of m) if (ft >= tier) s += n;
+  return s;
+};
+const cumGold = (combo: string, tier: number) => (comboUpgradeCosts.get(combo) ?? []).slice(0, tier).reduce((s, c) => s + c, 0);
+const marginalGold = (combo: string, tier: number) => (tier >= 1 ? (comboUpgradeCosts.get(combo)?.[tier - 1] ?? 0) : 0);
+// damage-per-build at each (combo, tier)
+const dmgPerBuildAt = new Map<string, Map<number, number>>();
+const tierDmgByKey = new Map<string, { total_damage: number; total_kills: number; runs: number }>();
+for (const r of tierDmgRows) {
+  tierDmgByKey.set(`${r.combo_key}|${r.upgrade_tier}`, r);
+  const builds = buildsToTier(r.combo_key, r.upgrade_tier);
+  if (!dmgPerBuildAt.has(r.combo_key)) dmgPerBuildAt.set(r.combo_key, new Map());
+  dmgPerBuildAt.get(r.combo_key)!.set(r.upgrade_tier, builds ? r.total_damage / builds : 0);
+}
+const cumDmgPerBuild = (combo: string, tier: number) => {
+  const m = dmgPerBuildAt.get(combo);
+  if (!m) return 0;
+  let s = 0;
+  for (let t = 0; t <= tier; t++) s += m.get(t) ?? 0;
+  return s;
+};
+const tierRoiRaw = tierDmgRows.map((r) => {
+  const builds = buildsToTier(r.combo_key, r.upgrade_tier);
+  const dpb = builds ? r.total_damage / builds : 0;
+  const mGold = marginalGold(r.combo_key, r.upgrade_tier);
+  const cGold = cumGold(r.combo_key, r.upgrade_tier);
+  const tierNames = COMBOS.find((c) => c.key === r.combo_key)?.upgrades.map((u) => u.name) ?? [];
+  return {
+    combo_key: r.combo_key,
+    name: comboName.get(r.combo_key) ?? r.combo_key,
+    tier: r.upgrade_tier,
+    tier_name: r.upgrade_tier === 0 ? "base" : tierNames[r.upgrade_tier - 1] ?? `tier ${r.upgrade_tier}`,
+    runs: r.runs,
+    total_damage: r.total_damage,
+    total_kills: r.total_kills,
+    builds_to_tier: builds,
+    dmg_per_build_at_tier: round(dpb, 0),
+    marginal_gold: mGold,
+    cum_gold: cGold,
+    // ROI numbers are null at base (no gold spent) — base is reported on raw productivity only.
+    marginal_dmg_per_gold: r.upgrade_tier >= 1 && mGold > 0 ? round(dpb / mGold, 1) : null,
+    cum_dmg_per_gold: r.upgrade_tier >= 1 && cGold > 0 ? round(cumDmgPerBuild(r.combo_key, r.upgrade_tier) / cGold, 1) : null,
+  };
+});
+// within-tier (across-combo) median of the headline cum_dmg_per_gold → deviation ratio
+const cumByTier = new Map<number, number[]>();
+for (const r of tierRoiRaw) {
+  if (r.cum_dmg_per_gold === null) continue;
+  if (!cumByTier.has(r.tier)) cumByTier.set(r.tier, []);
+  cumByTier.get(r.tier)!.push(r.cum_dmg_per_gold);
+}
+const combos2 = {
+  ...combos,
+  tierRoi: tierRoiRaw
+    .map((r) => {
+      const peers = cumByTier.get(r.tier) ?? [];
+      const med = median(peers);
+      return {
+        ...r,
+        tier_group_size: peers.length,
+        tier_median_cum_dmg_per_gold: peers.length ? round(med) : null,
+        // null at base (no ROI) or when the tier has only one combo to compare against
+        ratio_to_tier_median: r.cum_dmg_per_gold !== null && peers.length >= 2 && med > 0 ? round(r.cum_dmg_per_gold / med, 2) : null,
+      };
+    })
+    .sort((a, b) => a.tier - b.tier || (b.cum_dmg_per_gold ?? -1) - (a.cum_dmg_per_gold ?? -1)),
+};
+
 // ── Creeps: within-archetype leak rates ────────────────────────────────────────
 const creepRows = q<{
   creep_kind: string;
@@ -229,12 +345,6 @@ const enrichedCreeps = creepRows.map((r) => {
   };
 });
 // Group-relative stats (median is robust to the group's own outliers).
-const median = (xs: number[]) => {
-  if (!xs.length) return 0;
-  const s = [...xs].sort((a, b) => a - b);
-  const m = Math.floor(s.length / 2);
-  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
-};
 const byGroup = new Map<string, number[]>();
 for (const c of enrichedCreeps) {
   if (!byGroup.has(c.group)) byGroup.set(c.group, []);
@@ -327,5 +437,105 @@ const waves = {
   }),
 };
 
-console.log(JSON.stringify({ ...meta, overview, gems, combos, creeps, waves }, null, 2));
+// ── Wave-1 choice: Malachite vs Silver cohorts (by the forced starter offer) ────
+// On wave 1 the game guarantees ingredients for exactly ONE of two early specials
+// (BuildPhase.rollDraws): Malachite = opal/emerald/aquamarine, Silver = topaz/diamond/
+// sapphire. Every run is therefore in exactly one cohort. We recover the offer from the
+// run's wave-1 keeper event — `detail` carries the kept combo_key (malachite/silver),
+// the direct record of the forced choice. (Older runs predating per-wave keeper events
+// won't have one; we fall back to the kept gem's recipe membership.) This is a
+// BETWEEN-COHORT comparison: both cohorts are driven by the same AI, so the *relative*
+// gap in wave reached is a valid signal even though the absolute level is not (the skill
+// states this caveat). 'unassigned' counts runs whose wave-1 keeper matches neither
+// special (expected to be ~0).
+const MALACHITE_RECIPE = new Set(["opal", "emerald", "aquamarine"]);
+const SILVER_RECIPE = new Set(["topaz", "diamond", "sapphire"]);
+type Cohort = "malachite" | "silver";
+const w1Keepers = q<{ run_id: string; gem: string; combo_key: string }>(
+  `SELECT run_id, gem, detail AS combo_key FROM events
+   WHERE event_type = 'keeper' AND wave = 1 AND ${scope("run_id")}`,
+);
+const cohortByRun = new Map<string, Cohort>();
+let unassigned = 0;
+for (const r of w1Keepers) {
+  // Prefer the kept combo (direct signal); fall back to the kept gem's recipe.
+  if (r.combo_key === "malachite" || (!r.combo_key && MALACHITE_RECIPE.has(r.gem))) cohortByRun.set(r.run_id, "malachite");
+  else if (r.combo_key === "silver" || (!r.combo_key && SILVER_RECIPE.has(r.gem))) cohortByRun.set(r.run_id, "silver");
+  else unassigned++;
+}
+const runMetaRows = q<{ run_id: string; wave_reached: number; outcome: string }>(
+  `SELECT run_id, wave_reached, outcome FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
+);
+const cohortWaves: Record<Cohort, number[]> = { malachite: [], silver: [] };
+const cohortVictories: Record<Cohort, number> = { malachite: 0, silver: 0 };
+for (const r of runMetaRows) {
+  const c = cohortByRun.get(r.run_id);
+  if (!c) continue;
+  cohortWaves[c].push(r.wave_reached);
+  if (r.outcome === "victory") cohortVictories[c]++;
+}
+const cohortSummary = (c: Cohort) => {
+  const xs = cohortWaves[c];
+  const n = xs.length;
+  return {
+    runs: n,
+    avg_wave: n ? round(xs.reduce((s, x) => s + x, 0) / n, 2) : null,
+    median_wave: n ? round(median(xs), 1) : null,
+    q1_wave: n ? round(quantile(xs, 0.25), 1) : null,
+    q3_wave: n ? round(quantile(xs, 0.75), 1) : null,
+    max_wave: n ? Math.max(...xs) : null,
+    victories: cohortVictories[c],
+  };
+};
+// per-wave death & leak, split by cohort, so we can see WHERE each choice falls behind
+const waveLeakRows = q<{ run_id: string; wave: number; leaks: number }>(
+  `SELECT run_id, wave, leaks FROM waves WHERE ${scope("run_id")}`,
+);
+type WaveAgg = { reached: number; leakSum: number };
+const perWaveCohort = new Map<number, Record<Cohort, WaveAgg>>();
+const ensureWave = (w: number) => {
+  if (!perWaveCohort.has(w)) perWaveCohort.set(w, { malachite: { reached: 0, leakSum: 0 }, silver: { reached: 0, leakSum: 0 } });
+  return perWaveCohort.get(w)!;
+};
+for (const r of waveLeakRows) {
+  const c = cohortByRun.get(r.run_id);
+  if (!c) continue;
+  const agg = ensureWave(r.wave)[c];
+  agg.reached += 1;
+  agg.leakSum += r.leaks;
+}
+// deaths at a wave = runs whose run ended (gameover) at that wave_reached, per cohort
+const deathsByWaveCohort = new Map<number, Record<Cohort, number>>();
+for (const r of runMetaRows) {
+  if (r.outcome !== "gameover") continue;
+  const c = cohortByRun.get(r.run_id);
+  if (!c) continue;
+  if (!deathsByWaveCohort.has(r.wave_reached)) deathsByWaveCohort.set(r.wave_reached, { malachite: 0, silver: 0 });
+  deathsByWaveCohort.get(r.wave_reached)![c] += 1;
+}
+const cohortWaveStats = (w: number, c: Cohort) => {
+  const agg = perWaveCohort.get(w)![c];
+  const deaths = deathsByWaveCohort.get(w)?.[c] ?? 0;
+  return {
+    reached: agg.reached,
+    deaths,
+    death_rate: agg.reached ? round(deaths / agg.reached) : 0,
+    avg_leaks: agg.reached ? round(agg.leakSum / agg.reached) : 0,
+    thin_sample: agg.reached < thinCutoff,
+  };
+};
+const mSum = cohortSummary("malachite");
+const sSum = cohortSummary("silver");
+const waveOneChoice = {
+  detector: "wave-1 keeper event combo_key (Malachite / Silver; falls back to the kept gem's recipe for runs without keeper events)",
+  unassigned,
+  cohorts: { malachite: mSum, silver: sSum },
+  // positive → Silver reaches further on average; relative gap only (same AI both sides).
+  silver_minus_malachite_avg_wave: mSum.avg_wave !== null && sSum.avg_wave !== null ? round(sSum.avg_wave - mSum.avg_wave, 2) : null,
+  perWave: [...perWaveCohort.keys()]
+    .sort((a, b) => a - b)
+    .map((w) => ({ wave: w, malachite: cohortWaveStats(w, "malachite"), silver: cohortWaveStats(w, "silver") })),
+};
+
+console.log(JSON.stringify({ ...meta, overview, gems, combos: combos2, creeps, waves, waveOneChoice }, null, 2));
 db.close();

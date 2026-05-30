@@ -4,12 +4,14 @@ description: >-
   Analyze local sim-run telemetry to surface gem, special-gem (combo), creep,
   and wave BALANCE OUTLIERS in the GemTD project — which items stand out from
   their peers. Use this whenever the user asks for balance observations, balance
-  analysis, what's over/underpowered, which gems/creeps/waves are outliers, or to
-  "look at the telemetry / sim data for balance." Reads `.local/telemetry.db`
-  directly (HeuristicAI sim runs at the current game version). It explains every
-  deduction in full, makes NO assumptions about a target/desirable balance state
-  the user hasn't confirmed, and asks the user (AskUserQuestion) before drawing
-  evaluative conclusions when intent is unconfirmed. Does NOT judge overall
+  analysis, what's over/underpowered, which gems/creeps/waves are outliers, which
+  special-gem UPGRADE TIERS are worth their gold (damage-per-gold ROI), or about the
+  WAVE-1 STARTER CHOICE (Malachite vs Silver) and its impact on how far runs get.
+  Also use for "look at the telemetry / sim data for balance." Reads
+  `.local/telemetry.db` directly (HeuristicAI sim runs at the current game version).
+  It explains every deduction in full, makes NO assumptions about a target/desirable
+  balance state the user hasn't confirmed, and asks the user (AskUserQuestion) before
+  drawing evaluative conclusions when intent is unconfirmed. Does NOT judge overall
   difficulty and does NOT edit data files.
 ---
 
@@ -52,7 +54,9 @@ claim that it is undesirable. Say this in the report so the reader doesn't read 
   win rate, absolute wave-reached, and "the game is too hard/easy" are **not valid
   signals** — never report them. Every observation is item-vs-comparable-items or
   wave-vs-adjacent-waves; relative structure survives the AI's weakness, absolute outcomes
-  don't.
+  don't. **One scoped exception:** the Wave-1 choice analysis compares wave-reached *between
+  two cohorts that share the same AI* (Malachite-offered vs Silver-offered), so their relative
+  gap is valid — report the delta, never the absolute level. See "Wave-1 starter choice" in Step 2.
 - **Only what's deployed.** Analyze only the gems / combos / creeps that actually appear
   in the script output. The codebase defines content that the current wave list may never
   spawn (e.g. some creep kinds). If a defined type is absent from the data, you may note it
@@ -97,6 +101,17 @@ gems.perGem[]       { gem, isSupport, total_damage, total_kills, damage_share, k
                       ratio_to_dealer_mean }      // ratio null for support gems
 combos.perCombo[]   { key, name, built, built_runs, build_rate, total_damage, total_kills,
                       damage_runs, dmg_per_build } // sorted by build_rate desc
+combos.tierRoi[]    { combo_key, name, tier, tier_name, runs, total_damage, total_kills,
+                      builds_to_tier, dmg_per_build_at_tier, marginal_gold, cum_gold,
+                      marginal_dmg_per_gold, cum_dmg_per_gold, tier_group_size,
+                      tier_median_cum_dmg_per_gold, ratio_to_tier_median }
+                      // ROI fields null at base (tier 0, no gold); ratio null if tier has <2 combos.
+                      // sorted by tier asc, then cum_dmg_per_gold desc
+waveOneChoice       { detector, unassigned, silver_minus_malachite_avg_wave,
+                      cohorts.{malachite,silver}.{runs,avg_wave,median_wave,q1_wave,q3_wave,
+                                                   max_wave,victories},
+                      perWave[]{ wave, malachite{reached,deaths,death_rate,avg_leaks,thin_sample},
+                                       silver{...} } }
 creeps.perKind[]    { kind, group(air|boss|container|standard), deployed, spawned, kills,
                       leaks, leak_rate, avg_progress, avg_ticks_to_kill, speed, hpMult,
                       group_size, group_median_leak_rate, ratio_to_group_median }
@@ -146,8 +161,9 @@ Read `gems.perGem[]`: each gem's `damage_share`, `kill_share`, and `ratio_to_dea
 spread (highest to lowest), not just the extremes. Read share correctly: of the five forced
 draws each build, only **one** tower is kept (the rest become rocks), so a gem accumulates
 damage across waves only when it's actually kept and used — share is therefore a combined
-signal of raw strength and how often the AI keeps it. (Sim telemetry records no keeper
-choices, so there's no separate "kept" field.)
+signal of raw strength and how often the AI keeps it. (Sim telemetry now records per-wave
+keeper events, but this skill doesn't yet break out a separate keep-rate, so continue to read
+share as that combined signal.)
 
 Mechanical kit, to interpret numbers (from `gems.ts` — verify current effects there):
 
@@ -191,6 +207,43 @@ How to describe:
   may need the user's read on intent.
 - Low damage-per-build is expected for support/utility combos (auras, air-grounding,
   prox-effects); name the mechanical reason from `combos.ts` rather than calling them weak.
+
+#### Upgrade-tier ROI (`combos.tierRoi[]`)
+
+`perCombo` treats a combo as one thing; this layer asks a sharper question: **is each
+upgrade tier's gold worth the damage it buys?** Each combo has a base (tier 0, made by
+combining gems — no gold) and gold-priced upgrades in `combos.ts` (`upgrades[].cost`,
+e.g. Malachite → Vivid 25g → Mighty 280g). Damage is attributed to the tier a tower was
+**at** when it dealt it, so the same tower feeds tier 0, then tier 1, then tier 2 as it
+upgrades.
+
+Read `combos.tierRoi[]`. The two gold metrics (both are per-tower, so combos with
+different build rates stay comparable):
+- **`cum_dmg_per_gold`** — total damage a tower deals from build through this tier ÷ total
+  gold invested to reach it. The **headline** number. Null at base (no gold spent → base is
+  reported on raw `dmg_per_build_at_tier` only).
+- **`marginal_dmg_per_gold`** — that tier's own productivity ÷ the gold for **that** upgrade
+  step. Isolates whether buying *this specific* tier pays off (a great combo can still have a
+  weak final tier, or vice-versa).
+
+Compare **across combos within the same tier** — gold scales differ between tiers, so a
+tier-1 number isn't comparable to a tier-2 number. The script does this grouping for you:
+`ratio_to_tier_median` is each row's `cum_dmg_per_gold` ÷ the median across all combos at
+that tier (null at base, or when a tier has only one combo). Mark 🔴 for a ratio above ~2×
+or below ~0.5×, 🟡 for ~1.5–2× or ~0.5–0.66×.
+
+How to describe:
+- Lead with the cross-combo outliers per tier: "At tier 1, Uranium's cum dmg/gold is 2.81×
+  the tier-1 median (raw vs median), over N builds — its 165g upgrade buys far more damage
+  per gold than the field." Show the numbers and the build count (`builds_to_tier`); thin
+  builds are a weak signal, say so.
+- When `cum` and `marginal` **disagree**, surface it — e.g. a combo strong cumulatively but
+  whose top tier is a poor marginal buy means "the early tiers carry it; the last upgrade is
+  overpriced for what it adds." That split is the actionable part.
+- A low ratio is **not automatically weak**: a splash/slow/utility combo (Silver) trades raw
+  damage for crowd-control that isn't in damage telemetry — name that from `combos.ts` before
+  reading a low dmg/gold as underpowered, exactly as for `dmg_per_build`. Whether any ROI gap
+  is a problem is the user's call (Step 4).
 
 ### Creeps (`creeps.ts`)
 
@@ -236,6 +289,40 @@ payload tree) to ground the finding. Mark 🔴 for a large, well-supported devia
 milder or `thin_sample` one. Troughs (a wave far softer than both neighbors) are equally valid
 observations — report them the same way.
 
+### Wave-1 starter choice — Malachite vs Silver (`waveOneChoice`)
+
+On wave 1 the game forces the player toward **one** of two early specials by guaranteeing its
+ingredients (`BuildPhase.rollDraws`): **Malachite** (opal/emerald/aquamarine) or **Silver**
+(topaz/diamond/sapphire). Every run is in exactly one cohort. The script recovers the offer
+from the run's **wave-1 keeper event** — its `combo_key` directly records which special was
+kept (older runs without per-wave keeper events fall back to the kept gem's recipe) — and
+splits all runs into the two cohorts (`detector` names the rule; `unassigned` should be ~0 —
+if it isn't, say so, the split is leaky).
+
+**Why absolute wave-reached is allowed *here* (the one carve-out).** Everywhere else this
+skill forbids absolute wave-reached, because the sim AI is weaker than a human so the absolute
+level is meaningless. This comparison is different: **both cohorts are driven by the same AI**,
+so the AI's weakness cancels out and the *relative gap between the two cohorts* is a valid
+signal. Report the **delta**, never the absolute level as a difficulty claim. (`avg_wave` per
+cohort is shown only so the reader can see where the delta comes from — frame it as "Silver
+reaches +2.1 waves further than Malachite," not "runs reach wave 35.")
+
+Read `waveOneChoice`:
+- **The gap.** `silver_minus_malachite_avg_wave` (positive → Silver gets further) plus each
+  cohort's `avg_wave` / `median_wave` and the spread (`q1_wave`, `q3_wave`, `max_wave`). Report
+  median alongside mean — if they disagree the distribution is skewed. State both cohort sizes;
+  a lopsided split (e.g. 165 vs 135) is itself worth a line.
+- **Where each choice struggles.** Walk `perWave[]`: for each wave, both cohorts' `death_rate`
+  and `avg_leaks` side by side. Find the waves where one cohort's death-rate or leaks clearly
+  exceed the other's (respect `thin_sample` / `reached` counts — late waves thin out fast). This
+  is the *mechanism* behind the headline gap: "Silver dies more around waves 20–22 (dr 0.09 vs
+  0.02) but pulls ahead later," or "Malachite leaks more from wave 24 on." Tie a divergence to
+  what's spawning then (open `waves.ts`) and to each special's kit (`combos.ts`: Malachite =
+  multi-target, Silver = splash + slow) — that's what makes the finding actionable.
+- Keep it **descriptive**. That one choice outperforms the other is an observation, not a
+  verdict that the weaker one needs buffing — whether the gap is intended (a deliberate
+  risk/reward fork) or a balance problem is the user's call (Step 4).
+
 ## Step 3 — Present observations (factual layer)
 
 Lead with provenance, then the four sections. This first pass is **observations only** — what
@@ -255,15 +342,25 @@ item sits from its comparison group — not a judgment that it is undesirable.
 ### Special Gems
 🟡 <Combo display name> — <build rate, dmg/build, recipe note> · <availability-vs-value read>
 
+**Upgrade-tier ROI** (damage per gold, compared across combos within each tier):
+🔴 <Combo, tier name> — <cum_dmg_per_gold vs tier median → ratio, over N builds> · <marginal note if it disagrees> · <kit reason if low ROI is utility>
+
 ### Creeps
 🔴 <Creep> — <leak rate vs named same-archetype peers, over N spawns>
 
 ### Waves
 🔴 Wave <N> — <death rate & avg leaks, absolute + vs-neighbor (guarded)> · <creep attribution> · <composition from waves.ts>
 
+### Wave-1 Choice (Malachite vs Silver)
+Cohorts: Malachite <n>, Silver <n> (by forced starter offer; unassigned <n>).
+Gap: <Silver/Malachite> reaches +<Δ> waves on average (median <m> vs <m>) — relative, same AI both sides.
+Where it diverges: <wave range> <which cohort> <death_rate / leaks vs the other> · <kit / waves.ts tie-in>
+
 ---
 Basis: HeuristicAI sim runs only (weaker than human play); all findings are relative outliers,
 not a difficulty assessment. Markers = deviation size, not desirability. Low-sample items noted inline.
+The Wave-1 Choice gap is a between-cohort delta (valid because both cohorts share the AI); its absolute
+wave numbers are not a difficulty claim.
 ```
 
 Rules: every finding shows its supporting numbers; order each section 🔴 before 🟡; if a domain
@@ -283,6 +380,12 @@ honest if you know the intended design — and you usually don't. So:
   intended role (a deliberate standout mid-game threat), or should it sit closer to the other
   runners?"* — with options like "Intended — leave it", "Should be reined in", etc. If more than ~4 findings need intent, ask
   about the top ones and list the rest as "intent unconfirmed — tell me the goal and I'll advise."
+- **For the new finding types, the same rule holds.** A tier whose `cum_dmg_per_gold` is far
+  off its tier's median may be an intended power/utility spike or a mispriced upgrade — ask
+  before recommending a `cost`/`stats` change in `combos.ts`. A Wave-1 cohort gap may be a
+  deliberate risk/reward fork or an imbalance — ask whether the two starters are *meant* to be
+  even before suggesting a buff to the weaker special's stats/recipe (or a change to the wave-1
+  offer itself).
 
 Only **after** intent is established do you give a recommendation, and each recommendation must:
 - **Name the assumption it rests on** ("Given you want chrysalid in line with its archetype…").
