@@ -311,6 +311,12 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "1.5.21",
+      notes: [
+        { tag: "nerf", text: "Wave 50 inner payload menders per coral 2 -> 1." },
+      ],
+    },
+    {
       ver: "1.5.20",
       notes: [
         { tag: "nerf", text: "Wave 30 amalgam count 8 -> 7." },

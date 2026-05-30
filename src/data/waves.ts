@@ -501,7 +501,7 @@ export const WAVES: WaveDef[] = [
                   },
                   {
                     kind: "mender" as CreepKind,
-                    count: 2,
+                    count: 1,
                     hp: 75000,
                     bounty: 0,
                     armor: 16,
