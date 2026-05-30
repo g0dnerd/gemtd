@@ -69,6 +69,23 @@ interface PyriteFx {
   tier: number;
 }
 
+interface GoldenBerylFx {
+  rings: Graphics[];
+  motes: Graphics[];
+  tier: number;
+}
+
+interface ThunderstoneFx {
+  arc?: Graphics;
+  tier: number;
+}
+
+interface AmetrineFx {
+  wash?: Graphics;
+  motes: Graphics[];
+  tier: number;
+}
+
 interface TowerEntry {
   obj: Container;
   /** Cached comboKey so we can rebuild the sprite if a tower is upgraded. */
@@ -119,6 +136,13 @@ interface TowerEntry {
   paraibaFx?: ParaibaFx;
   pyriteBobWrap?: Container;
   pyriteFx?: PyriteFx;
+  goldenBerylBobWrap?: Container;
+  goldenBerylFx?: GoldenBerylFx;
+  tigersEyeBobWrap?: Container;
+  thunderstoneBobWrap?: Container;
+  thunderstoneFx?: ThunderstoneFx;
+  ametrineBobWrap?: Container;
+  ametrineFx?: AmetrineFx;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -216,6 +240,13 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let paraibaFx: ParaibaFx | undefined;
       let pyriteBobWrap: Container | undefined;
       let pyriteFx: PyriteFx | undefined;
+      let goldenBerylBobWrap: Container | undefined;
+      let goldenBerylFx: GoldenBerylFx | undefined;
+      let tigersEyeBobWrap: Container | undefined;
+      let thunderstoneBobWrap: Container | undefined;
+      let thunderstoneFx: ThunderstoneFx | undefined;
+      let ametrineBobWrap: Container | undefined;
+      let ametrineFx: AmetrineFx | undefined;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -368,6 +399,29 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           pyriteFx = makePyriteFx(wrap, tier);
           obj.addChild(wrap);
           pyriteBobWrap = wrap;
+        } else if (t.comboKey === 'golden_beryl') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          goldenBerylFx = makeGoldenBerylFx(wrap, tier);
+          obj.addChild(wrap);
+          goldenBerylBobWrap = wrap;
+        } else if (t.comboKey === 'tigers_eye') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          obj.addChild(wrap);
+          tigersEyeBobWrap = wrap;
+        } else if (t.comboKey === 'thunderstone') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          thunderstoneFx = makeThunderstoneFx(wrap, tier);
+          obj.addChild(wrap);
+          thunderstoneBobWrap = wrap;
+        } else if (t.comboKey === 'ametrine') {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          ametrineFx = makeAmetrineFx(wrap, tier);
+          obj.addChild(wrap);
+          ametrineBobWrap = wrap;
         } else {
           obj.addChild(towerSprite);
         }
@@ -383,7 +437,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx, pyriteBobWrap, pyriteFx };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx, pyriteBobWrap, pyriteFx, goldenBerylBobWrap, goldenBerylFx, tigersEyeBobWrap, thunderstoneBobWrap, thunderstoneFx, ametrineBobWrap, ametrineFx };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -397,6 +451,10 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     else if (entry.starRubyBobWrap) animateStarRubyFx(entry, now);
     else if (entry.paraibaBobWrap) animateParaibaArcFx(entry, now);
     else if (entry.pyriteBobWrap) animatePyriteFx(entry, now);
+    else if (entry.goldenBerylBobWrap) animateGoldenBerylFx(entry, now);
+    else if (entry.tigersEyeBobWrap) animateTigersEyeFx(entry, now);
+    else if (entry.thunderstoneBobWrap) animateThunderstoneFx(entry, now);
+    else if (entry.ametrineBobWrap) animateAmetrineFx(entry, now);
     else if (entry.fx) animateTowerFx(entry.fx, now);
     if (entry.opalFrames && entry.opalSprite) {
       const frame = Math.floor(now / 225) % OPAL_FRAME_COUNT;
@@ -1032,6 +1090,270 @@ function pyriteJaggedLine(x1: number, y1: number, x2: number, y2: number, seed: 
   }
   pts.push({ x: x2, y: y2 });
   return pts;
+}
+
+// ===== Golden Beryl — Heat Rings + Orbiting Motes ============================
+
+function makeGoldenBerylFx(parent: Container, tier: number): GoldenBerylFx {
+  const rings: Graphics[] = [];
+  const motes: Graphics[] = [];
+
+  if (tier >= 1) {
+    const ringCount = tier >= 2 ? 2 : 1;
+    for (let i = 0; i < ringCount; i++) {
+      const ring = new Graphics();
+      parent.addChild(ring);
+      rings.push(ring);
+    }
+  }
+
+  if (tier >= 1) {
+    const moteCount = tier >= 2 ? 4 : 2;
+    for (let i = 0; i < moteCount; i++) {
+      const mote = new Graphics();
+      parent.addChild(mote);
+      motes.push(mote);
+    }
+  }
+
+  return { rings, motes, tier };
+}
+
+function animateGoldenBerylFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const breathePeriod = 3.0;
+  const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+  const breatheAmp = 0.04 + tier * 0.01;
+  entry.goldenBerylBobWrap!.scale.set(1 + breatheAmp * breathePhase);
+
+  if (tier >= 1) {
+    const bobPeriod = 2.8;
+    entry.goldenBerylBobWrap!.y = -2 * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  }
+
+  const fx = entry.goldenBerylFx!;
+
+  for (let i = 0; i < fx.rings.length; i++) {
+    const ring = fx.rings[i];
+    ring.clear();
+    const ringPeriod = 3.5;
+    const rPhase = ((sec / ringPeriod) + i * 0.5) % 1;
+    const ringR = rPhase * TILE * 1.0;
+    const ringAlpha = 0.25 * (1 - rPhase);
+    if (ringAlpha > 0.01) {
+      ring.circle(0, 0, ringR).stroke({ width: 1.5, color: 0xfff0a0, alpha: ringAlpha });
+    }
+  }
+
+  const moteOrbitR = TILE * (0.55 + tier * 0.12);
+  const orbitPeriod = 5.0;
+  const rotAngle = (sec / orbitPeriod) * Math.PI * 2;
+  const moteCount = fx.motes.length;
+  for (let i = 0; i < moteCount; i++) {
+    const mote = fx.motes[i];
+    mote.clear();
+    const ang = rotAngle + (i / moteCount) * Math.PI * 2;
+    const mx = Math.cos(ang) * moteOrbitR;
+    const my = Math.sin(ang) * moteOrbitR * 0.85;
+    const moteAlpha = 0.5 + 0.3 * Math.sin(ang * 2 + sec * 1.5);
+    mote.circle(mx, my, 2).fill({ color: 0xfff0a0, alpha: moteAlpha });
+    mote.circle(mx, my, 1).fill({ color: 0xffffff, alpha: moteAlpha * 0.5 });
+  }
+
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 2.8) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.4 + 0.6 * haloPulse);
+  }
+}
+
+// ===== Tiger's Eye — Sentry Scope ============================================
+
+function animateTigersEyeFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const breathePeriod = 4.0;
+  const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+  entry.tigersEyeBobWrap!.scale.set(1 + 0.025 * breathePhase);
+
+  if (entry.fx) {
+    const haloAlpha = 0.2 + 0.25 * breathePhase;
+    entry.fx.halo.alpha = entry.fx.haloPeak * haloAlpha;
+  }
+
+  if (tier >= 1) {
+    const driftPeriod = 6.0;
+    entry.tigersEyeBobWrap!.x = Math.sin((2 * Math.PI * sec) / driftPeriod);
+  }
+}
+
+// ===== Thunderstone — Static Discharge =======================================
+
+function makeThunderstoneFx(parent: Container, tier: number): ThunderstoneFx {
+  let arc: Graphics | undefined;
+  if (tier >= 1) {
+    arc = new Graphics();
+    parent.addChild(arc);
+  }
+  return { arc, tier };
+}
+
+function thunderJaggedLine(x1: number, y1: number, x2: number, y2: number, seed: number): { x: number; y: number }[] {
+  const pts = [{ x: x1, y: y1 }];
+  const segments = 4;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const perpX = -dy / len;
+  const perpY = dx / len;
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const mx = x1 + dx * t;
+    const my = y1 + dy * t;
+    const bulge = Math.sin(t * Math.PI);
+    const jitter = Math.sin(seed * 5.3 + i * 3.7) * 4 * bulge;
+    pts.push({ x: mx + perpX * jitter, y: my + perpY * jitter });
+  }
+  pts.push({ x: x2, y: y2 });
+  return pts;
+}
+
+function animateThunderstoneFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const jitterSeed = Math.floor(sec * 4);
+  const jitterX = (Math.sin(jitterSeed * 7.1) > 0.5 ? 0.5 : 0) * (tier >= 1 ? 1.5 : 1);
+  const jitterY = (Math.sin(jitterSeed * 3.3) > 0.6 ? 0.5 : 0) * (tier >= 1 ? 1.5 : 1);
+  entry.thunderstoneBobWrap!.x = jitterX;
+
+  if (tier >= 1) {
+    const bobPeriod = 2.5;
+    entry.thunderstoneBobWrap!.y = -1.5 * Math.sin((2 * Math.PI * sec) / bobPeriod) + jitterY;
+  } else {
+    entry.thunderstoneBobWrap!.y = jitterY;
+  }
+
+  const fx = entry.thunderstoneFx!;
+  if (fx.arc) {
+    fx.arc.clear();
+    const arcPeriod = 4.0;
+    const arcPhase = (sec % arcPeriod) / arcPeriod;
+    let arcAlpha = 0;
+    if (arcPhase < 0.1) arcAlpha = arcPhase / 0.1;
+    else if (arcPhase < 0.25) arcAlpha = 1;
+    else if (arcPhase < 0.35) arcAlpha = 1 - (arcPhase - 0.25) / 0.1;
+    arcAlpha *= 0.5;
+
+    if (arcAlpha > 0.02) {
+      const tip1 = { x: -9, y: -15 };
+      const tip2 = { x: 9, y: -10 };
+      const seed = Math.floor(sec * 1.5);
+      const pts = thunderJaggedLine(tip1.x, tip1.y, tip2.x, tip2.y, seed);
+
+      fx.arc.moveTo(pts[0].x, pts[0].y);
+      for (let p = 1; p < pts.length; p++) fx.arc.lineTo(pts[p].x, pts[p].y);
+      fx.arc.stroke({ width: 3, color: 0x5858c8, alpha: arcAlpha * 0.3 });
+
+      fx.arc.moveTo(pts[0].x, pts[0].y);
+      for (let p = 1; p < pts.length; p++) fx.arc.lineTo(pts[p].x, pts[p].y);
+      fx.arc.stroke({ width: 1.5, color: 0xe0e8ff, alpha: arcAlpha });
+
+      fx.arc.circle(tip1.x, tip1.y, 1.5).fill({ color: 0xffffff, alpha: arcAlpha * 0.8 });
+      fx.arc.circle(tip2.x, tip2.y, 1.5).fill({ color: 0xffffff, alpha: arcAlpha * 0.8 });
+    }
+  }
+
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 2.0) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.7 * haloPulse);
+  }
+}
+
+// ===== Ametrine — Mode Phase =================================================
+
+const AMETRINE_PURPLE = 0x8848b0;
+const AMETRINE_GOLD = 0xf0c038;
+
+function makeAmetrineFx(parent: Container, tier: number): AmetrineFx {
+  let wash: Graphics | undefined;
+  const motes: Graphics[] = [];
+
+  if (tier >= 1) {
+    wash = new Graphics();
+    parent.addChild(wash);
+  }
+
+  if (tier >= 2) {
+    for (let i = 0; i < 2; i++) {
+      const mote = new Graphics();
+      parent.addChild(mote);
+      motes.push(mote);
+    }
+  }
+
+  return { wash, motes, tier };
+}
+
+function animateAmetrineFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const breathePeriod = 3.5 - tier * 0.3;
+  const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+  entry.ametrineBobWrap!.scale.set(1 + (0.03 + tier * 0.01) * breathePhase);
+
+  if (tier >= 1) {
+    const bobPeriod = 3.0;
+    entry.ametrineBobWrap!.y = -1.5 * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  }
+
+  const modePeriod = 5.0;
+  const modePhase = (Math.sin((2 * Math.PI * sec) / modePeriod) + 1) / 2;
+
+  const fx = entry.ametrineFx!;
+
+  if (fx.wash) {
+    fx.wash.clear();
+    const washR = TILE * 0.45;
+    const tintStrength = 0.08 + tier * 0.04;
+    const purpleTint = (1 - modePhase) * tintStrength;
+    const goldTint = modePhase * tintStrength;
+    if (purpleTint > 0.01) {
+      fx.wash.circle(0, 0, washR).fill({ color: AMETRINE_PURPLE, alpha: purpleTint });
+    }
+    if (goldTint > 0.01) {
+      fx.wash.circle(0, 0, washR).fill({ color: AMETRINE_GOLD, alpha: goldTint });
+    }
+  }
+
+  const orbitR = TILE * 0.75;
+  const orbitPeriod = 3.5;
+  const ang = (sec / orbitPeriod) * Math.PI * 2;
+  for (let i = 0; i < fx.motes.length; i++) {
+    const mote = fx.motes[i];
+    mote.clear();
+    const a = ang + i * Math.PI;
+    const mx = Math.cos(a) * orbitR;
+    const my = Math.sin(a) * orbitR * 0.85;
+    const color = i === 0 ? AMETRINE_GOLD : 0xd098e8;
+    mote.circle(mx, my, 2).fill({ color, alpha: 0.7 });
+    mote.circle(mx, my, 1).fill({ color: 0xffffff, alpha: 0.5 });
+  }
+
+  if (entry.fx) {
+    const haloColor = modePhase > 0.5 ? AMETRINE_GOLD : AMETRINE_PURPLE;
+    const haloPulse = (Math.sin((sec / 2.4) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.clear();
+    const r = TILE * 0.9;
+    for (let i = 6; i > 0; i--) {
+      const t = i / 6;
+      entry.fx.halo.circle(0, 0, r * t).fill({ color: haloColor, alpha: 0.12 });
+    }
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.4 + 0.6 * haloPulse);
+  }
 }
 
 // ===== Red Crystal — Sky Watcher Pulse ======================================

@@ -158,28 +158,76 @@ describe('combine: recipe path', () => {
     expect(h.game.state.rocks.length).toBe(2 * 4);
   });
 
-  it('matches Bloodstone (Perfect Ruby + Flawless Aquamarine + Normal Amethyst)', () => {
+  it('matches Bloodstone (Flawless Garnet + Perfect Ruby + Normal Aquamarine)', () => {
     const h = setup();
     const ts = [
-      placeTower(h.game, 4, 4, 'ruby', 5),
-      placeTower(h.game, 4, 6, 'aquamarine', 4),
-      placeTower(h.game, 4, 8, 'amethyst', 3),
+      placeTower(h.game, 4, 4, 'garnet', 4),
+      placeTower(h.game, 4, 6, 'ruby', 5),
+      placeTower(h.game, 4, 8, 'aquamarine', 3),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers[0].comboKey).toBe('bloodstone');
   });
 
-  it('matches Gold (2× Amethyst Perfect+Flawless + Flawed Diamond)', () => {
+  it('matches Gold (Flawless Spinel + Normal Amethyst + Perfect Amethyst)', () => {
     const h = setup();
     const ts = [
-      placeTower(h.game, 4, 4, 'amethyst', 5),
-      placeTower(h.game, 4, 6, 'amethyst', 4),
-      placeTower(h.game, 4, 8, 'diamond', 2),
+      placeTower(h.game, 4, 4, 'spinel', 4),
+      placeTower(h.game, 4, 6, 'amethyst', 3),
+      placeTower(h.game, 4, 8, 'amethyst', 5),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
     expect(h.game.state.towers[0].comboKey).toBe('gold');
+  });
+
+  it('matches Golden Beryl (Flawed Garnet + Flawed Aquamarine + Normal Diamond)', () => {
+    const h = setup();
+    const ts = [
+      placeTower(h.game, 4, 4, 'garnet', 2),
+      placeTower(h.game, 4, 6, 'aquamarine', 2),
+      placeTower(h.game, 4, 8, 'diamond', 3),
+    ];
+    h.game.state.draws = asDraws(ts);
+    expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers[0].comboKey).toBe('golden_beryl');
+  });
+
+  it("matches Tiger's Eye (Flawed Amethyst + Perfect Garnet + Flawed Diamond)", () => {
+    const h = setup();
+    const ts = [
+      placeTower(h.game, 4, 4, 'amethyst', 2),
+      placeTower(h.game, 4, 6, 'garnet', 5),
+      placeTower(h.game, 4, 8, 'diamond', 2),
+    ];
+    h.game.state.draws = asDraws(ts);
+    expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers[0].comboKey).toBe('tigers_eye');
+  });
+
+  it('matches Thunderstone (Perfect Spinel + Flawless Emerald + Flawed Topaz)', () => {
+    const h = setup();
+    const ts = [
+      placeTower(h.game, 4, 4, 'spinel', 5),
+      placeTower(h.game, 4, 6, 'emerald', 4),
+      placeTower(h.game, 4, 8, 'topaz', 2),
+    ];
+    h.game.state.draws = asDraws(ts);
+    expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers[0].comboKey).toBe('thunderstone');
+  });
+
+  it('matches Raw Ametrine (Flawed Sapphire + Flawless Amethyst + Perfect Carnelian)', () => {
+    const h = setup();
+    const ts = [
+      placeTower(h.game, 4, 4, 'sapphire', 2),
+      placeTower(h.game, 4, 6, 'amethyst', 4),
+      placeTower(h.game, 4, 8, 'carnelian', 5),
+    ];
+    h.game.state.draws = asDraws(ts);
+    expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
+    expect(h.game.state.towers[0].comboKey).toBe('ametrine');
   });
 
   it('refuses recipe match with wrong qualities', () => {
@@ -226,16 +274,16 @@ describe('combine: recipe path', () => {
 
   it('allows recipe with single current-round piece completing kept towers', () => {
     const h = setup();
-    // Jade = emerald:3 + opal:3 + sapphire:2
-    const keptEmerald = placeTower(h.game, 4, 4, 'emerald', 3);
-    const keptOpal = placeTower(h.game, 4, 6, 'opal', 3);
-    const currentSapphire = placeTower(h.game, 4, 8, 'sapphire', 2);
+    // Jade = sapphire:3 + emerald:3 + opal:2
+    const keptSapphire = placeTower(h.game, 4, 4, 'sapphire', 3);
+    const keptEmerald = placeTower(h.game, 4, 6, 'emerald', 3);
+    const currentOpal = placeTower(h.game, 4, 8, 'opal', 2);
     h.game.state.draws = [
-      { slotId: 0, gem: 'sapphire', quality: 2 as any, placedTowerId: currentSapphire.id },
+      { slotId: 0, gem: 'opal', quality: 2 as any, placedTowerId: currentOpal.id },
       { slotId: 1, gem: 'ruby', quality: 1 as any, placedTowerId: null },
       { slotId: 2, gem: 'ruby', quality: 1 as any, placedTowerId: null },
     ];
-    expect(h.phase.combine([keptEmerald.id, keptOpal.id, currentSapphire.id])).toBe(true);
+    expect(h.phase.combine([keptSapphire.id, keptEmerald.id, currentOpal.id])).toBe(true);
     expect(h.game.state.towers.find((t) => t.comboKey === 'jade')).toBeTruthy();
   });
 

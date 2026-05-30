@@ -586,6 +586,10 @@ function estimateComboDps(combo: ComboRecipe): number {
     else if (e.kind === 'stun') dps *= 1 + e.chance * 2;
     else if (e.kind === 'crit') dps *= 1 + e.chance * (e.multiplier - 1);
     else if (e.kind === 'aura_atkspeed') dps *= 1 + e.pct * 3;
+    else if (e.kind === 'speed_damage_aura') dps += e.dps * 3;
+    else if (e.kind === 'distance_scaling') dps *= (e.minMult + e.maxMult) / 2;
+    else if (e.kind === 'amplifying_chain') dps *= 1 + e.bounces * (1 + e.ampPerBounce) * 0.3;
+    else if (e.kind === 'adaptive_mode') dps *= 1 + e.scatterCount * e.scatterDmgMult * 0.3;
   }
   return dps;
 }

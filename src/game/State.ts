@@ -71,6 +71,8 @@ export interface TowerState {
   pressureStacks?: number;
   /** Momentum stacks for Pyrite-style towers (resets when idle). */
   momentumStacks?: number;
+  /** Ametrine adaptive tower: current firing mode. */
+  ametrineMode?: 'focus' | 'scatter';
 }
 
 export interface RockState {

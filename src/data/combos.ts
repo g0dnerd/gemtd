@@ -4,6 +4,8 @@
  * Each recipe demands an exact set of (gem, quality) tuples. Match key is
  * sorted "gem:quality" tuples joined by '+'. Quality words from recipes.md:
  *   Chipped=1, Flawed=2, Normal=3, Flawless=4, Perfect=5.
+ *
+ * Ordered by tier: highest max-quality first, then descending by quality sum.
  */
 
 import { GemType, Quality } from "../render/theme";
@@ -49,13 +51,67 @@ const sortKey = (xs: ComboInput[]): string =>
     .join("+");
 
 const ALL_COMBOS: ComboRecipe[] = [
+  // ─── Q5 recipes (descending by quality sum) ─────────────────────────────
+  {
+    key: "paraiba_tourmaline",
+    name: "Paraiba Tourmaline",
+    inputs: [
+      { gem: "aquamarine", quality: 5 },
+      { gem: "topaz", quality: 4 },
+      { gem: "opal", quality: 4 },
+      { gem: "emerald", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 120,
+      dmgMax: 200,
+      range: 4.25,
+      atkSpeed: 0.75,
+      effects: [
+        {
+          kind: "prox_armor_reduce",
+          radius: 4.25,
+          value: 4,
+          targets: "ground",
+        },
+        { kind: "splash", radius: 1.5, falloff: 0.5, chance: 0.33 },
+      ],
+      blurb: "-4 armor to ground in range. 33% frost nova.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Ancient Paraiba",
+        cost: 350,
+        stats: {
+          dmgMin: 330,
+          dmgMax: 470,
+          range: 4.5,
+          atkSpeed: 0.7,
+          effects: [
+            { kind: "splash", radius: 2.0, falloff: 0.5, chance: 1.0 },
+            {
+              kind: "stacking_armor_reduce",
+              perHit: 3,
+              maxStacks: 8,
+              decayInterval: 3,
+            },
+            { kind: "prox_slow", factor: 0.85, radius: 4.5 },
+          ],
+          blurb:
+            "100% splash. Stacking armor shred -3/hit (max 8). Proximity slow.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "aquamarine",
+  },
   {
     key: "black_opal",
     name: "Black Opal",
     inputs: [
       { gem: "opal", quality: 5 },
+      { gem: "carnelian", quality: 4 },
       { gem: "diamond", quality: 4 },
-      { gem: "aquamarine", quality: 3 },
     ],
     stats: {
       dmgMin: 80,
@@ -91,8 +147,8 @@ const ALL_COMBOS: ComboRecipe[] = [
     name: "Bloodstone",
     inputs: [
       { gem: "ruby", quality: 5 },
-      { gem: "aquamarine", quality: 4 },
-      { gem: "amethyst", quality: 3 },
+      { gem: "garnet", quality: 4 },
+      { gem: "aquamarine", quality: 3 },
     ],
     stats: {
       dmgMin: 250,
@@ -139,55 +195,12 @@ const ALL_COMBOS: ComboRecipe[] = [
     visualGem: "ruby",
   },
   {
-    key: "dark_emerald",
-    name: "Dark Emerald",
-    inputs: [
-      { gem: "emerald", quality: 5 },
-      { gem: "sapphire", quality: 4 },
-      { gem: "topaz", quality: 2 },
-    ],
-    stats: {
-      dmgMin: 200,
-      dmgMax: 320,
-      range: 4.5,
-      atkSpeed: 1.1,
-      effects: [
-        { kind: "stun", chance: 0.175, duration: 1.0 },
-        { kind: "stun_bonus_dmg", multiplier: 1.5 },
-      ],
-      blurb: "17.5% stun 1s. 1.5x dmg to stunned.",
-      targeting: "all",
-    },
-    upgrades: [
-      {
-        name: "Venomous Emerald",
-        cost: 300,
-        stats: {
-          dmgMin: 200,
-          dmgMax: 300,
-          range: 4.75,
-          atkSpeed: 1.2,
-          effects: [
-            { kind: "stun", chance: 0.23, duration: 2.0 },
-            { kind: "stun_bonus_dmg", multiplier: 1.5 },
-            { kind: "poison", dps: 340, duration: 5 },
-            { kind: "death_spread", count: 5, radius: 2 },
-          ],
-          blurb:
-            "23% stun. 1.5x dmg to stunned. Poison 340/s 5s. Plague on death.",
-          targeting: "all",
-        },
-      },
-    ],
-    visualGem: "emerald",
-  },
-  {
     key: "gold",
     name: "Gold",
     inputs: [
       { gem: "amethyst", quality: 5 },
-      { gem: "amethyst", quality: 4 },
-      { gem: "diamond", quality: 2 },
+      { gem: "spinel", quality: 4 },
+      { gem: "amethyst", quality: 3 },
     ],
     stats: {
       dmgMin: 220,
@@ -228,12 +241,357 @@ const ALL_COMBOS: ComboRecipe[] = [
     visualGem: "amethyst",
   },
   {
+    key: "pink_diamond",
+    name: "Pink Diamond",
+    inputs: [
+      { gem: "diamond", quality: 5 },
+      { gem: "ruby", quality: 4 },
+      { gem: "spinel", quality: 3 },
+    ],
+    stats: {
+      dmgMin: 250,
+      dmgMax: 350,
+      range: 4.0,
+      atkSpeed: 1.0,
+      effects: [{ kind: "crit", chance: 0.1, multiplier: 5.0 }],
+      blurb: "10% chance for x5 crit. Ground only.",
+      targeting: "ground",
+    },
+    upgrades: [
+      {
+        name: "Living Diamond",
+        cost: 300,
+        stats: {
+          dmgMin: 300,
+          dmgMax: 470,
+          range: 4.5,
+          atkSpeed: 1.1,
+          effects: [
+            { kind: "crit", chance: 0.09, multiplier: 6 },
+            { kind: "focus_crit", pctPerHit: 0.06, maxBonus: 0.18 },
+            { kind: "execute", dmgBonus: 0.4, hpThreshold: 0.25 },
+          ],
+          blurb: "9% crit ×6. Focus: +6% crit/hit. Execute below 25% HP.",
+          targeting: "ground",
+        },
+      },
+    ],
+    visualGem: "diamond",
+  },
+  {
+    key: "ametrine",
+    name: "Raw Ametrine",
+    inputs: [
+      { gem: "carnelian", quality: 5 },
+      { gem: "amethyst", quality: 4 },
+      { gem: "sapphire", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 60,
+      dmgMax: 100,
+      range: 4.0,
+      atkSpeed: 0.8,
+      effects: [{ kind: "adaptive_mode", threshold: 3, scatterCount: 5, scatterDmgMult: 0.4 }],
+      blurb: "Adapts: focus vs scatter based on creep count.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Imperial Ametrine",
+        cost: 120,
+        stats: {
+          dmgMin: 100,
+          dmgMax: 160,
+          range: 4.5,
+          atkSpeed: 0.9,
+          effects: [{ kind: "adaptive_mode", threshold: 3, scatterCount: 6, scatterDmgMult: 0.5 }],
+          blurb: "Enhanced adaptive modes.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Ametrine Sovereign",
+        cost: 280,
+        stats: {
+          dmgMin: 150,
+          dmgMax: 240,
+          range: 5.0,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "adaptive_mode", threshold: 3, scatterCount: 8, scatterDmgMult: 0.6 },
+            { kind: "execute", dmgBonus: 0.4, hpThreshold: 0.25 },
+          ],
+          blurb: "Adaptive master. Execute in focus mode.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "amethyst",
+  },
+  {
+    key: "dark_emerald",
+    name: "Dark Emerald",
+    inputs: [
+      { gem: "emerald", quality: 5 },
+      { gem: "garnet", quality: 3 },
+      { gem: "topaz", quality: 3 },
+    ],
+    stats: {
+      dmgMin: 200,
+      dmgMax: 320,
+      range: 4.5,
+      atkSpeed: 1.1,
+      effects: [
+        { kind: "stun", chance: 0.175, duration: 1.0 },
+        { kind: "stun_bonus_dmg", multiplier: 1.5 },
+      ],
+      blurb: "17.5% stun 1s. 1.5x dmg to stunned.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Venomous Emerald",
+        cost: 300,
+        stats: {
+          dmgMin: 200,
+          dmgMax: 300,
+          range: 4.75,
+          atkSpeed: 1.2,
+          effects: [
+            { kind: "stun", chance: 0.23, duration: 2.0 },
+            { kind: "stun_bonus_dmg", multiplier: 1.5 },
+            { kind: "poison", dps: 340, duration: 5 },
+            { kind: "death_spread", count: 5, radius: 2 },
+          ],
+          blurb:
+            "23% stun. 1.5x dmg to stunned. Poison 340/s 5s. Plague on death.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "emerald",
+  },
+  {
+    key: "thunderstone",
+    name: "Thunderstone",
+    inputs: [
+      { gem: "spinel", quality: 5 },
+      { gem: "emerald", quality: 4 },
+      { gem: "topaz", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 80,
+      dmgMax: 120,
+      range: 4.5,
+      atkSpeed: 0.8,
+      effects: [{ kind: "amplifying_chain", bounces: 3, ampPerBounce: 0.3 }],
+      blurb: "Chain bounces hit harder each jump.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Storm Crown",
+        cost: 300,
+        stats: {
+          dmgMin: 150,
+          dmgMax: 220,
+          range: 5.0,
+          atkSpeed: 0.9,
+          effects: [
+            { kind: "amplifying_chain", bounces: 4, ampPerBounce: 0.4 },
+            { kind: "poison", dps: 60, duration: 3 },
+          ],
+          blurb: "Amplifying chain + poison on each bounce.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "amethyst",
+  },
+  {
+    key: "uranium",
+    name: "Uranium",
+    inputs: [
+      { gem: "topaz", quality: 5 },
+      { gem: "carnelian", quality: 3 },
+      { gem: "opal", quality: 3 },
+    ],
+    stats: {
+      dmgMin: 0,
+      dmgMax: 0,
+      range: 4.5,
+      atkSpeed: 1.0,
+      effects: [
+        { kind: "prox_burn", dps: 80, radius: 4.5 },
+        { kind: "prox_slow", factor: 0.55, radius: 4.5 },
+      ],
+      blurb: "Burns enemies for 80/s and slows 45% within range.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Uranium 235",
+        cost: 285,
+        stats: {
+          dmgMin: 0,
+          dmgMax: 0,
+          range: 4.75,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "prox_burn", dps: 115, radius: 4.75 },
+            { kind: "prox_slow", factor: 0.5, radius: 4.75 },
+            {
+              kind: "armor_decay_aura",
+              armorPerSec: 0.75,
+              radius: 4.75,
+              maxReduction: 4,
+            },
+            { kind: "linger_burn", duration: 2 },
+          ],
+          blurb: "Burn + slow. Permanent armor decay. Lingering burn.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "topaz",
+  },
+  {
+    key: "yellow_sapphire",
+    name: "Yellow Sapphire",
+    inputs: [
+      { gem: "sapphire", quality: 5 },
+      { gem: "aquamarine", quality: 4 },
+      { gem: "carnelian", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 120,
+      dmgMax: 180,
+      range: 4.0,
+      atkSpeed: 1.0,
+      effects: [
+        { kind: "splash", radius: 2.0, falloff: 0.5 },
+        { kind: "slow", factor: 0.75, duration: 2.5 },
+      ],
+      blurb: "Huge AoE slow 25% for 2.5s.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Blizzard Sapphire",
+        cost: 210,
+        stats: {
+          dmgMin: 200,
+          dmgMax: 300,
+          range: 4.25,
+          atkSpeed: 0.9,
+          effects: [
+            { kind: "splash", radius: 2.0, falloff: 0.5 },
+            { kind: "slow", factor: 0.6, duration: 2.5 },
+            { kind: "periodic_freeze", interval: 3, duration: 0.5 },
+            { kind: "frostbite", speedThreshold: 0.4, dmgBonus: 0.3 },
+          ],
+          blurb: "AoE slow. Periodic freeze. Frostbite: +30% dmg to slowed.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "sapphire",
+  },
+  {
+    key: "tigers_eye",
+    name: "Tiger's Eye",
+    inputs: [
+      { gem: "garnet", quality: 5 },
+      { gem: "amethyst", quality: 2 },
+      { gem: "diamond", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 100,
+      dmgMax: 180,
+      range: 7.0,
+      atkSpeed: 0.5,
+      effects: [{ kind: "distance_scaling", minMult: 0.5, maxMult: 1.5 }],
+      blurb: "More damage the farther the target.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Dragon's Eye",
+        cost: 300,
+        stats: {
+          dmgMin: 200,
+          dmgMax: 350,
+          range: 8.0,
+          atkSpeed: 0.6,
+          effects: [
+            { kind: "distance_scaling", minMult: 0.4, maxMult: 2.0 },
+            { kind: "pierce", count: 1 },
+          ],
+          blurb: "Devastating at range. Shots pierce.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "topaz",
+  },
+
+  // ─── Q4 recipes ─────────────────────────────────────────────────────────
+  {
+    key: "red_crystal",
+    name: "Red Crystal",
+    inputs: [
+      { gem: "sapphire", quality: 4 },
+      { gem: "ruby", quality: 3 },
+      { gem: "spinel", quality: 2 },
+    ],
+    stats: {
+      dmgMin: 85,
+      dmgMax: 160,
+      range: 5.0,
+      atkSpeed: 0.72,
+      effects: [{ kind: "demote_air", everyN: 12 }],
+      blurb: "Every 12th hit grounds air units.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Red Crystal Facet",
+        cost: 100,
+        stats: {
+          dmgMin: 170,
+          dmgMax: 266,
+          range: 6.5,
+          atkSpeed: 0.72,
+          effects: [{ kind: "demote_air", everyN: 11 }],
+          blurb: "Every 11th hit grounds air units.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Rose Quartz Crystal",
+        cost: 100,
+        stats: {
+          dmgMin: 255,
+          dmgMax: 319,
+          range: 8.0,
+          atkSpeed: 0.72,
+          effects: [{ kind: "demote_air", everyN: 10 }],
+          blurb: "Every 10th hit grounds air units.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "amethyst",
+  },
+
+  // ─── Q3 recipes ─────────────────────────────────────────────────────────
+  {
     key: "jade",
     name: "Jade",
     inputs: [
+      { gem: "sapphire", quality: 3 },
       { gem: "emerald", quality: 3 },
-      { gem: "opal", quality: 3 },
-      { gem: "sapphire", quality: 2 },
+      { gem: "opal", quality: 2 },
     ],
     stats: {
       dmgMin: 50,
@@ -288,148 +646,54 @@ const ALL_COMBOS: ComboRecipe[] = [
     visualGem: "emerald",
   },
   {
-    key: "malachite",
-    name: "Malachite",
+    key: "golden_beryl",
+    name: "Golden Beryl",
     inputs: [
-      { gem: "opal", quality: 1 },
-      { gem: "emerald", quality: 1 },
-      { gem: "topaz", quality: 1 },
+      { gem: "diamond", quality: 3 },
+      { gem: "garnet", quality: 2 },
+      { gem: "aquamarine", quality: 2 },
     ],
     stats: {
-      dmgMin: 19,
-      dmgMax: 26,
-      range: 3.5,
-      atkSpeed: 1.4,
-      effects: [{ kind: "multi_target", count: 3 }],
-      blurb: "Attacks 3 enemies at once.",
+      dmgMin: 0,
+      dmgMax: 0,
+      range: 3.0,
+      atkSpeed: 1.0,
+      effects: [{ kind: "speed_damage_aura", dps: 25, radius: 3.0 }],
+      blurb: "Aura damages creeps based on their speed.",
       targeting: "all",
     },
     upgrades: [
       {
-        name: "Vivid Malachite",
-        cost: 75,
+        name: "Radiant Beryl",
+        cost: 80,
         stats: {
-          dmgMin: 60,
-          dmgMax: 86,
-          range: 3.75,
-          atkSpeed: 1.6,
-          effects: [{ kind: "multi_target", count: 5 }],
-          blurb: "Attacks 5 enemies at once.",
+          dmgMin: 0,
+          dmgMax: 0,
+          range: 3.5,
+          atkSpeed: 1.0,
+          effects: [{ kind: "speed_damage_aura", dps: 50, radius: 3.5 }],
+          blurb: "Stronger speed-reactive aura.",
           targeting: "all",
         },
       },
       {
-        name: "Mighty Malachite",
+        name: "Prismatic Beryl",
         cost: 250,
         stats: {
-          dmgMin: 68,
-          dmgMax: 96,
-          range: 4.5,
-          atkSpeed: 1.7,
-          effects: [{ kind: "multi_target", count: 99 }],
-          blurb: "Attacks all enemies in range.",
-          targeting: "all",
-        },
-      },
-    ],
-    visualGem: "emerald",
-  },
-  {
-    key: "pink_diamond",
-    name: "Pink Diamond",
-    inputs: [
-      { gem: "diamond", quality: 5 },
-      { gem: "topaz", quality: 3 },
-      { gem: "diamond", quality: 3 },
-    ],
-    stats: {
-      dmgMin: 250,
-      dmgMax: 350,
-      range: 4.0,
-      atkSpeed: 1.0,
-      effects: [{ kind: "crit", chance: 0.1, multiplier: 5.0 }],
-      blurb: "10% chance for x5 crit. Ground only.",
-      targeting: "ground",
-    },
-    upgrades: [
-      {
-        name: "Living Diamond",
-        cost: 300,
-        stats: {
-          dmgMin: 300,
-          dmgMax: 470,
-          range: 4.5,
-          atkSpeed: 1.1,
-          effects: [
-            { kind: "crit", chance: 0.09, multiplier: 6 },
-            { kind: "focus_crit", pctPerHit: 0.06, maxBonus: 0.18 },
-            { kind: "execute", dmgBonus: 0.4, hpThreshold: 0.25 },
-          ],
-          blurb: "9% crit ×6. Focus: +6% crit/hit. Execute below 25% HP.",
-          targeting: "ground",
-        },
-      },
-    ],
-    visualGem: "diamond",
-  },
-  {
-    key: "silver",
-    name: "Silver",
-    inputs: [
-      { gem: "sapphire", quality: 1 },
-      { gem: "garnet", quality: 1 },
-      { gem: "diamond", quality: 1 },
-    ],
-    stats: {
-      dmgMin: 36,
-      dmgMax: 38,
-      range: 3.5,
-      atkSpeed: 1.56,
-      effects: [
-        { kind: "splash", radius: 1.2, falloff: 0.5 },
-        { kind: "slow", factor: 0.75, duration: 1.5 },
-      ],
-      blurb: "Splash slow 25%.",
-      targeting: "all",
-    },
-    upgrades: [
-      {
-        name: "Frosted Silver",
-        cost: 110,
-        stats: {
-          dmgMin: 130,
-          dmgMax: 170,
-          range: 3.75,
-          atkSpeed: 1.35,
-          effects: [
-            { kind: "splash", radius: 1.5, falloff: 0.5 },
-            { kind: "slow", factor: 0.65, duration: 1.5 },
-            { kind: "freeze_chance", chance: 0.1, duration: 0.8 },
-          ],
-          blurb: "Splash slow. 10% freeze chance.",
-          targeting: "all",
-        },
-      },
-      {
-        name: "Silver Knight",
-        cost: 270,
-        stats: {
-          dmgMin: 185,
-          dmgMax: 225,
+          dmgMin: 0,
+          dmgMax: 0,
           range: 4.0,
           atkSpeed: 1.0,
-          effects: [
-            { kind: "splash", radius: 1.8, falloff: 0.5 },
-            { kind: "slow", factor: 0.55, duration: 2.0 },
-            { kind: "periodic_nova", everyN: 10 },
-          ],
-          blurb: "Wide splash. 45% slow. Nova every 10th attack at 50% dmg.",
+          effects: [{ kind: "speed_damage_aura", dps: 90, radius: 4.0 }],
+          blurb: "Intense prismatic aura shreds fast creeps.",
           targeting: "all",
         },
       },
     ],
-    visualGem: "sapphire",
+    visualGem: "aquamarine",
   },
+
+  // ─── Q2 recipes ─────────────────────────────────────────────────────────
   {
     key: "star_ruby",
     name: "Star Ruby",
@@ -495,6 +759,55 @@ const ALL_COMBOS: ComboRecipe[] = [
     ],
     visualGem: "ruby",
   },
+
+  // ─── Q1 recipes (R1 starters) ──────────────────────────────────────────
+  {
+    key: "malachite",
+    name: "Malachite",
+    inputs: [
+      { gem: "opal", quality: 1 },
+      { gem: "emerald", quality: 1 },
+      { gem: "topaz", quality: 1 },
+    ],
+    stats: {
+      dmgMin: 19,
+      dmgMax: 26,
+      range: 3.5,
+      atkSpeed: 1.4,
+      effects: [{ kind: "multi_target", count: 3 }],
+      blurb: "Attacks 3 enemies at once.",
+      targeting: "all",
+    },
+    upgrades: [
+      {
+        name: "Vivid Malachite",
+        cost: 75,
+        stats: {
+          dmgMin: 60,
+          dmgMax: 86,
+          range: 3.75,
+          atkSpeed: 1.6,
+          effects: [{ kind: "multi_target", count: 5 }],
+          blurb: "Attacks 5 enemies at once.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Mighty Malachite",
+        cost: 250,
+        stats: {
+          dmgMin: 68,
+          dmgMax: 96,
+          range: 4.5,
+          atkSpeed: 1.7,
+          effects: [{ kind: "multi_target", count: 99 }],
+          blurb: "Attacks all enemies in range.",
+          targeting: "all",
+        },
+      },
+    ],
+    visualGem: "emerald",
+  },
   {
     key: "pyrite",
     name: "Pyrite",
@@ -547,194 +860,65 @@ const ALL_COMBOS: ComboRecipe[] = [
     visualGem: "spinel",
   },
   {
-    key: "yellow_sapphire",
-    name: "Yellow Sapphire",
+    key: "silver",
+    name: "Silver",
     inputs: [
-      { gem: "sapphire", quality: 5 },
-      { gem: "topaz", quality: 4 },
-      { gem: "ruby", quality: 4 },
+      { gem: "sapphire", quality: 1 },
+      { gem: "garnet", quality: 1 },
+      { gem: "diamond", quality: 1 },
     ],
     stats: {
-      dmgMin: 120,
-      dmgMax: 180,
-      range: 4.0,
-      atkSpeed: 1.0,
+      dmgMin: 36,
+      dmgMax: 38,
+      range: 3.5,
+      atkSpeed: 1.56,
       effects: [
-        { kind: "splash", radius: 2.0, falloff: 0.5 },
-        { kind: "slow", factor: 0.75, duration: 2.5 },
+        { kind: "splash", radius: 1.2, falloff: 0.5 },
+        { kind: "slow", factor: 0.75, duration: 1.5 },
       ],
-      blurb: "Huge AoE slow 25% for 2.5s.",
+      blurb: "Splash slow 25%.",
       targeting: "all",
     },
     upgrades: [
       {
-        name: "Blizzard Sapphire",
-        cost: 210,
+        name: "Frosted Silver",
+        cost: 110,
         stats: {
-          dmgMin: 200,
-          dmgMax: 300,
-          range: 4.25,
-          atkSpeed: 0.9,
+          dmgMin: 130,
+          dmgMax: 170,
+          range: 3.75,
+          atkSpeed: 1.35,
           effects: [
-            { kind: "splash", radius: 2.0, falloff: 0.5 },
-            { kind: "slow", factor: 0.6, duration: 2.5 },
-            { kind: "periodic_freeze", interval: 3, duration: 0.5 },
-            { kind: "frostbite", speedThreshold: 0.4, dmgBonus: 0.3 },
+            { kind: "splash", radius: 1.5, falloff: 0.5 },
+            { kind: "slow", factor: 0.65, duration: 1.5 },
+            { kind: "freeze_chance", chance: 0.1, duration: 0.8 },
           ],
-          blurb: "AoE slow. Periodic freeze. Frostbite: +30% dmg to slowed.",
+          blurb: "Splash slow. 10% freeze chance.",
+          targeting: "all",
+        },
+      },
+      {
+        name: "Silver Knight",
+        cost: 270,
+        stats: {
+          dmgMin: 185,
+          dmgMax: 225,
+          range: 4.0,
+          atkSpeed: 1.0,
+          effects: [
+            { kind: "splash", radius: 1.8, falloff: 0.5 },
+            { kind: "slow", factor: 0.55, duration: 2.0 },
+            { kind: "periodic_nova", everyN: 10 },
+          ],
+          blurb: "Wide splash. 45% slow. Nova every 10th attack at 50% dmg.",
           targeting: "all",
         },
       },
     ],
     visualGem: "sapphire",
   },
-  {
-    key: "red_crystal",
-    name: "Red Crystal",
-    inputs: [
-      { gem: "emerald", quality: 4 },
-      { gem: "amethyst", quality: 2 },
-      { gem: "ruby", quality: 3 },
-    ],
-    stats: {
-      dmgMin: 85,
-      dmgMax: 160,
-      range: 5.0,
-      atkSpeed: 0.72,
-      effects: [{ kind: "demote_air", everyN: 12 }],
-      blurb: "Every 12th hit grounds air units.",
-      targeting: "all",
-    },
-    upgrades: [
-      {
-        name: "Red Crystal Facet",
-        cost: 100,
-        stats: {
-          dmgMin: 170,
-          dmgMax: 266,
-          range: 6.5,
-          atkSpeed: 0.72,
-          effects: [{ kind: "demote_air", everyN: 11 }],
-          blurb: "Every 11th hit grounds air units.",
-          targeting: "all",
-        },
-      },
-      {
-        name: "Rose Quartz Crystal",
-        cost: 100,
-        stats: {
-          dmgMin: 255,
-          dmgMax: 319,
-          range: 8.0,
-          atkSpeed: 0.72,
-          effects: [{ kind: "demote_air", everyN: 10 }],
-          blurb: "Every 10th hit grounds air units.",
-          targeting: "all",
-        },
-      },
-    ],
-    visualGem: "amethyst",
-  },
-  {
-    key: "paraiba_tourmaline",
-    name: "Paraiba Tourmaline",
-    inputs: [
-      { gem: "aquamarine", quality: 5 },
-      { gem: "opal", quality: 4 },
-      { gem: "emerald", quality: 2 },
-      { gem: "aquamarine", quality: 2 },
-    ],
-    stats: {
-      dmgMin: 120,
-      dmgMax: 200,
-      range: 4.25,
-      atkSpeed: 0.75,
-      effects: [
-        {
-          kind: "prox_armor_reduce",
-          radius: 4.25,
-          value: 4,
-          targets: "ground",
-        },
-        { kind: "splash", radius: 1.5, falloff: 0.5, chance: 0.33 },
-      ],
-      blurb: "-4 armor to ground in range. 33% frost nova.",
-      targeting: "all",
-    },
-    upgrades: [
-      {
-        name: "Ancient Paraiba",
-        cost: 350,
-        stats: {
-          dmgMin: 330,
-          dmgMax: 470,
-          range: 4.5,
-          atkSpeed: 0.7,
-          effects: [
-            { kind: "splash", radius: 2.0, falloff: 0.5, chance: 1.0 },
-            {
-              kind: "stacking_armor_reduce",
-              perHit: 3,
-              maxStacks: 8,
-              decayInterval: 3,
-            },
-            { kind: "prox_slow", factor: 0.85, radius: 4.5 },
-          ],
-          blurb:
-            "100% splash. Stacking armor shred -3/hit (max 8). Proximity slow.",
-          targeting: "all",
-        },
-      },
-    ],
-    visualGem: "aquamarine",
-  },
-  {
-    key: "uranium",
-    name: "Uranium",
-    inputs: [
-      { gem: "topaz", quality: 5 },
-      { gem: "sapphire", quality: 3 },
-      { gem: "opal", quality: 2 },
-    ],
-    stats: {
-      dmgMin: 0,
-      dmgMax: 0,
-      range: 4.5,
-      atkSpeed: 1.0,
-      effects: [
-        { kind: "prox_burn", dps: 80, radius: 4.5 },
-        { kind: "prox_slow", factor: 0.55, radius: 4.5 },
-      ],
-      blurb: "Burns enemies for 80/s and slows 45% within range.",
-      targeting: "all",
-    },
-    upgrades: [
-      {
-        name: "Uranium 235",
-        cost: 285,
-        stats: {
-          dmgMin: 0,
-          dmgMax: 0,
-          range: 4.75,
-          atkSpeed: 1.0,
-          effects: [
-            { kind: "prox_burn", dps: 115, radius: 4.75 },
-            { kind: "prox_slow", factor: 0.5, radius: 4.75 },
-            {
-              kind: "armor_decay_aura",
-              armorPerSec: 0.75,
-              radius: 4.75,
-              maxReduction: 4,
-            },
-            { kind: "linger_burn", duration: 2 },
-          ],
-          blurb: "Burn + slow. Permanent armor decay. Lingering burn.",
-          targeting: "all",
-        },
-      },
-    ],
-    visualGem: "topaz",
-  },
+
+  // ─── Special ────────────────────────────────────────────────────────────
   {
     key: "stargem",
     name: "Stargem",

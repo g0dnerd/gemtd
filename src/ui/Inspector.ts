@@ -1467,6 +1467,30 @@ function effectChiclet(e: EffectKind): ChicletData | null {
         text: `r=${e.radius.toFixed(1)}`,
         tone: "aoe",
       };
+    case "speed_damage_aura":
+      return {
+        label: "SPEED BURN",
+        text: `${Math.round(e.dps)}/s r=${e.radius.toFixed(1)}`,
+        tone: "debuff",
+      };
+    case "distance_scaling":
+      return {
+        label: "RANGE DMG",
+        text: `${Math.round(e.minMult * 100)}–${Math.round(e.maxMult * 100)}%`,
+        tone: "buff",
+      };
+    case "amplifying_chain":
+      return {
+        label: "AMP CHAIN",
+        text: `${e.bounces}× +${Math.round(e.ampPerBounce * 100)}%/jump`,
+        tone: "aoe",
+      };
+    case "adaptive_mode":
+      return {
+        label: "ADAPTIVE",
+        text: `focus/<${e.threshold} scatter/${e.scatterCount}`,
+        tone: "buff",
+      };
   }
 }
 

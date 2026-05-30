@@ -92,7 +92,7 @@ export class Combat {
         if (t.isTrap) continue;
         const stats = effectiveStats(t);
         // Passive burn towers don't fire projectiles.
-        if (stats.effects.some((e) => e.kind === 'prox_burn' || e.kind === 'prox_burn_ramp')) continue;
+        if (stats.effects.some((e) => e.kind === 'prox_burn' || e.kind === 'prox_burn_ramp' || e.kind === 'speed_damage_aura')) continue;
         const atkMult = auras.atkSpeed.get(t.id) ?? 0;
         // Momentum: scale attack speed with stacks
         const momentumEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'momentum' }> => e.kind === 'momentum');
@@ -106,7 +106,22 @@ export class Combat {
         const beamEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'beam_ramp' }> => e.kind === 'beam_ramp');
         const multiEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'multi_target' }> => e.kind === 'multi_target');
         const demoteEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'demote_air' }> => e.kind === 'demote_air');
-        if (multiEffect) {
+        const adaptiveEffect = stats.effects.find((e): e is Extract<EffectKind, { kind: 'adaptive_mode' }> => e.kind === 'adaptive_mode');
+        if (adaptiveEffect) {
+          const inRange = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, Infinity);
+          if (inRange.length === 0) continue;
+          const prevFireTickA = t.lastFireTick;
+          t.lastFireTick = tick;
+          const dmgMult = auras.dmg.get(t.id) ?? 0;
+          if (inRange.length >= adaptiveEffect.threshold) {
+            t.ametrineMode = 'scatter';
+            const targets = inRange.slice(0, adaptiveEffect.scatterCount);
+            for (const tgt of targets) this.fire(t, tgt, stats, dmgMult, false, adaptiveEffect.scatterDmgMult, prevFireTickA);
+          } else {
+            t.ametrineMode = 'focus';
+            this.fire(t, inRange[0], stats, dmgMult, false, 1, prevFireTickA);
+          }
+        } else if (multiEffect) {
           const targets = pickTargets(t, stats.range, state.creeps, stats.targeting, tick, multiEffect.count);
           if (targets.length === 0) continue;
           const prevFireTickM = t.lastFireTick;
@@ -241,6 +256,16 @@ export class Combat {
     const fromY = (tower.y + 1) * FINE_TILE;
     const baseDmg = randInt(this.game.rng, stats.dmgMin, stats.dmgMax);
     let dmg = Math.round(baseDmg * baseDmgMult * (1 + dmgAuraMult));
+
+    // Distance scaling: damage multiplier based on distance to target
+    const distScale = stats.effects.find((e): e is Extract<EffectKind, { kind: 'distance_scaling' }> => e.kind === 'distance_scaling');
+    if (distScale) {
+      const dx = target.px - fromX, dy = target.py - fromY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const maxDist = stats.range * TILE;
+      const t = Math.min(1, dist / maxDist);
+      dmg = Math.round(dmg * (distScale.minMult + (distScale.maxMult - distScale.minMult) * t));
+    }
 
     // Charge burst: scale damage based on idle time since last fire
     const chargeBurst = stats.effects.find((e): e is Extract<EffectKind, { kind: 'charge_burst' }> => e.kind === 'charge_burst');
@@ -465,6 +490,24 @@ export class Combat {
           if (!next) break;
           this.applyDamage(next, dmg, owner);
           this.applyEffects(next, stats.effects.filter((ee) => ee.kind !== 'chain'), owner);
+          hit.add(next.id);
+          chainPoints.push({ x: next.px, y: next.py, id: next.id });
+          last = next;
+        }
+        if (chainPoints.length > 1) {
+          this.game.bus.emit('vfx:chainPulse', { points: chainPoints });
+        }
+      } else if (e.kind === 'amplifying_chain' && target) {
+        let last = target;
+        let dmg = p.damage;
+        const hit = new Set<number>([target.id]);
+        const chainPoints = [{ x: target.px, y: target.py, id: target.id }];
+        for (let i = 0; i < e.bounces; i++) {
+          dmg = Math.round(dmg * (1 + e.ampPerBounce));
+          const next = nearest(state.creeps, last.px, last.py, hit, stats.range * TILE, tick);
+          if (!next) break;
+          this.applyDamage(next, dmg, owner);
+          this.applyEffects(next, stats.effects.filter((ee) => ee.kind !== 'amplifying_chain'), owner);
           hit.add(next.id);
           chainPoints.push({ x: next.px, y: next.py, id: next.id });
           last = next;
@@ -714,6 +757,15 @@ export class Combat {
             if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
           }
           src.burnExposure = newExposure;
+        } else if (e.kind === 'speed_damage_aura') {
+          const r2 = (e.radius * TILE) ** 2;
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx, dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            const dmg = Math.max(1, Math.round((e.dps * c.speed) / SIM_HZ));
+            this.applyDamage(c, dmg, src);
+          }
         } else if (e.kind === 'prox_slow') {
           const r2 = (e.radius * TILE) ** 2;
           for (const c of creeps) {
@@ -878,6 +930,7 @@ function scaleBurnEffects(effects: EffectKind[], mult: number): EffectKind[] {
   return effects.map(e => {
     if (e.kind === 'prox_burn') return { ...e, dps: Math.round(e.dps * mult) };
     if (e.kind === 'prox_burn_ramp') return { ...e, dps: Math.round(e.dps * mult) };
+    if (e.kind === 'speed_damage_aura') return { ...e, dps: Math.round(e.dps * mult) };
     return e;
   });
 }

@@ -56,7 +56,11 @@ export type EffectKind =
   | { kind: 'charge_burst'; maxMultiplier: number; chargeSeconds: number }
   | { kind: 'momentum'; maxStacks: number; rampSpeed: number; rampDmg?: number }
   | { kind: 'pierce'; count: number }
-  | { kind: 'kill_explode'; radius: number; falloff: number };
+  | { kind: 'kill_explode'; radius: number; falloff: number }
+  | { kind: 'speed_damage_aura'; dps: number; radius: number }
+  | { kind: 'distance_scaling'; minMult: number; maxMult: number }
+  | { kind: 'amplifying_chain'; bounces: number; ampPerBounce: number }
+  | { kind: 'adaptive_mode'; threshold: number; scatterCount: number; scatterDmgMult: number };
 
 export type Targeting = 'all' | 'ground' | 'air';
 
@@ -424,6 +428,14 @@ export function effectSummary(e: EffectKind): string {
       return `Pierce ${e.count} additional target${e.count > 1 ? 's' : ''}`;
     case 'kill_explode':
       return `Kill explosion r=${e.radius.toFixed(1)}`;
+    case 'speed_damage_aura':
+      return `Speed burn ${Math.round(e.dps)}/s · ${e.radius.toFixed(1)} tiles`;
+    case 'distance_scaling':
+      return `Range dmg ${Math.round(e.minMult * 100)}–${Math.round(e.maxMult * 100)}%`;
+    case 'amplifying_chain':
+      return `Amp chain ${e.bounces}× +${Math.round(e.ampPerBounce * 100)}%/jump`;
+    case 'adaptive_mode':
+      return `Adaptive: focus <${e.threshold}, scatter ×${e.scatterCount}`;
     case 'none':
       return '';
   }

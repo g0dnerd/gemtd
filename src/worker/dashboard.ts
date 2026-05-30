@@ -393,6 +393,10 @@ const COMBO_TIER_NAMES = {
   uranium: ['Uranium', 'Uranium 235'],
   stargem: ['Stargem'],
   pyrite: ['Pyrite', 'Molten Pyrite', 'Pyroclast'],
+  golden_beryl: ['Golden Beryl', 'Radiant Beryl', 'Prismatic Beryl'],
+  tigers_eye: ["Tiger's Eye", "Dragon's Eye"],
+  thunderstone: ['Thunderstone', 'Storm Crown'],
+  ametrine: ['Raw Ametrine', 'Imperial Ametrine', 'Ametrine Sovereign'],
 };
 
 const AXIS_OPTS = {
