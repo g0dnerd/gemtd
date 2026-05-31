@@ -111,9 +111,10 @@ extra raw fields also appear; these are the ones you'll use):
 
 ```
 overview            { runs, avg_wave, max_wave, victories }
-gems.dealerMeanDamageShare, gems.supportGems   // supportGems is now DERIVED from effect kinds
+gems.dealerMeanDamageShare, gems.dealerMeanDmgPerHp, gems.supportGems   // supportGems is now DERIVED from effect kinds
 gems.perGem[]       { gem, isSupport, total_damage, total_kills, damage_share, kill_share,
                       ratio_to_dealer_mean,        // ratio null for support gems
+                      dmg_per_hp, dmg_per_hp_ratio_to_dealer_mean,  // DMG/HP (dashboard "Dmg/HP") + ratio to dealer mean; gold/run-length agnostic; ratio null for support
                       keep_incidence, keep_share } // A1: keep_incidence = distinct runs kept ÷ runs;
                                                    //     keep_share = this gem's keeper events ÷ all
 gems.assist         // A3 — null/absent on pre-instrumentation runs (then OMIT it entirely):
@@ -131,7 +132,8 @@ gems.presenceConditioning  // A2 — CORRELATIONAL (see `caveat`); support gems 
                                    present{avg_ticks_to_kill,avg_path_progress,avg_total_damage,avg_leaks},
                                    absent{...} } } }   // present/absent null below the thin cutoff
 combos.perCombo[]   { key, name, built, built_runs, build_rate, total_damage, total_kills,
-                      damage_runs, dmg_per_build, keep_incidence, keep_share } // sorted by build_rate desc
+                      damage_runs, dmg_per_build, dmg_per_hp,  // dmg_per_hp = DMG/HP (dashboard "Dmg/HP"); run-length agnostic; null if it never dealt damage
+                      keep_incidence, keep_share } // sorted by build_rate desc
 combos.assist       // A3 — same shape as gems.assist but perCombo[]{ key, name, ... }; null → OMIT
 combos.presenceConditioning  // A2 — { caveat, items[]{ key, name, outcomeSplit, perWave } }
 combos.tierRoi[]    { combo_key, name, tier, tier_name, runs, total_damage, total_kills,
@@ -225,6 +227,15 @@ Mechanical kit, to interpret numbers (from `gems.ts` — verify current effects 
 How to describe (the deviation, with its size):
 - Use `ratio_to_dealer_mean`. Mark 🔴 for a ratio above ~2× or below ~0.4×, 🟡 for ~1.5–2× or
   ~0.4–0.66×. Say you excluded the support gem(s) from the mean and why.
+- **Also read `dmg_per_hp` (DMG/HP)** — the same metric the telemetry dashboard shows (its
+  `Dmg/HP` column): this gem's damage per unit of enemy HP that spawned, averaged across the
+  waves it fought (the script mirrors the dashboard's formula exactly). Unlike `damage_share`
+  it's **gold- AND run-length-agnostic**, so it's the cleanest cross-gem damage-output lens.
+  Mark deviations off `dmg_per_hp_ratio_to_dealer_mean` with the same bands as
+  `ratio_to_dealer_mean` (🔴 above ~2× or below ~0.4×, 🟡 ~1.5–2× or ~0.4–0.66×; null for
+  support gems). When it and `ratio_to_dealer_mean` **disagree** — high damage_share but low
+  DMG/HP, or vice-versa — call out the tension: it usually means the gem concentrates its
+  damage on a few (high- or low-HP) waves rather than spreading it across the run.
 - For a gem low in **both** `damage_share` and `kill_share` relative to its kit, say so
   plainly with the numbers — it's contributing little when kept. Whether that's a problem is
   the user's call (Step 4).
@@ -267,6 +278,13 @@ How to describe:
 - Report each combo's `build_rate` and `dmg_per_build` and show the distribution. Don't
   impose a hard "dead content" cutoff — describe where each sits (e.g. "built in 38% of runs,
   the lowest; mid-pack damage-per-build").
+- **Also read `dmg_per_hp` (DMG/HP)** — the dashboard's `Dmg/HP` metric: the special's damage
+  per unit of enemy HP that spawned, averaged across the waves it fought. It's
+  **run-length-agnostic** (and, unlike `dmg_per_build`, doesn't depend on how the build cost was
+  split), so it's the cleanest way to compare raw damage output *across specials*. Report it
+  relative to the peer spread (e.g. "≈1.8× the median special's DMG/HP"), the same descriptive way
+  as the other ratios. Low `dmg_per_hp` carries the same support/utility caveat as low
+  `dmg_per_build` — name the kit reason from `combos.ts` before reading it as weak.
 - Distinguish **availability** from **value**: a rarely-built combo may simply need
   high-quality inputs (check its recipe in `combos.ts`) rather than being unrewarding. Inspect
   the recipe and say which it looks like — but flag that distinguishing them with confidence
@@ -415,11 +433,11 @@ Legend: 🔴 large deviation from peers · 🟡 moderate deviation. Markers meas
 item sits from its comparison group — not a judgment that it is undesirable.
 
 ### Gems
-🔴 <Gem> — <the numbers> · <how computed / compared> · <kit-based reason it looks this way> · <sample size if relevant>
+🔴 <Gem> — <damage_share / ratio_to_dealer_mean + dmg_per_hp (DMG/HP) ratio> · <how computed / compared> · <kit-based reason it looks this way> · <sample size if relevant>
 <Support gem> — assisted_damage_share <X> (<ratio_to_support_median>×) · keep_incidence <Y> · presence Δ <Z> · <primary assist channel> (omit the assist clause if assist data absent)
 
 ### Special Gems
-🟡 <Combo display name> — <build rate, dmg/build, recipe note> · <availability-vs-value read>
+🟡 <Combo display name> — <build rate, dmg/build, dmg/hp (DMG/HP), recipe note> · <availability-vs-value read>
 <Support combo> — assisted_damage_share <X> (channels) · keep_incidence <Y> · bonus_gold <G> gold · presence Δ <Z>
 
 **Upgrade-tier ROI** (damage per gold, compared across combos within each tier):

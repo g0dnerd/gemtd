@@ -271,6 +271,56 @@ const rosterKills = gemRows.reduce((s, r) => s + r.total_kills, 0) || 1;
 const dealerShares = gemRows.filter((r) => !supportGemSet.has(r.gem)).map((r) => r.total_damage / rosterDamage);
 const dealerMean = dealerShares.length ? dealerShares.reduce((s, x) => s + x, 0) / dealerShares.length : 0;
 
+// ── DMG/HP: damage normalized by the incoming HP pool (mirrors dashboard.ts "Dmg/HP") ──
+// For each wave an item dealt damage on: (its damage that wave / runs that dealt it) ÷
+// (avg enemy HP that spawned that wave), then averaged across those waves. Gold- AND
+// run-length-agnostic — a wave-by-wave share of the HP that actually walked the board — so
+// it's the cleanest cross-gem / cross-special damage-output lens. avg_hp_pool mirrors the
+// dashboard's waveHpPool query exactly (sum(total_hp_spawned) ÷ distinct runs, per wave).
+const hpPoolByWave = new Map(
+  q<{ wave: number; avg_hp_pool: number }>(
+    `SELECT wave, sum(total_hp_spawned) * 1.0 / count(DISTINCT run_id) AS avg_hp_pool
+     FROM wave_creep_stats WHERE ${scope("run_id")} GROUP BY wave`,
+  ).map((r) => [r.wave, r.avg_hp_pool] as const),
+);
+const dmgPerHpByKey = (rows: { key: string; wave: number; total_damage: number; runs: number }[]) => {
+  const byKey = new Map<string, { wave: number; total_damage: number; runs: number }[]>();
+  for (const r of rows) {
+    let a = byKey.get(r.key); if (!a) { a = []; byKey.set(r.key, a); }
+    a.push(r);
+  }
+  const out = new Map<string, number | null>();
+  for (const [k, rs] of byKey) {
+    let sum = 0, n = 0;
+    for (const r of rs) {
+      const hp = hpPoolByWave.get(r.wave);
+      if (hp && hp > 0 && r.runs > 0) { sum += r.total_damage / r.runs / hp; n++; }
+    }
+    out.set(k, n ? round(sum / n) : null);
+  }
+  return out;
+};
+const gemDmgPerHp = dmgPerHpByKey(
+  q<{ key: string; wave: number; total_damage: number; runs: number }>(
+    `SELECT gem AS key, wave, sum(damage) AS total_damage, count(DISTINCT run_id) AS runs
+     FROM wave_gem_damage WHERE is_combo = 0 AND ${scope("run_id")} GROUP BY gem, wave`,
+  ),
+);
+const comboDmgPerHp = dmgPerHpByKey(
+  q<{ key: string; wave: number; total_damage: number; runs: number }>(
+    `SELECT combo_key AS key, wave, sum(damage) AS total_damage, count(DISTINCT run_id) AS runs
+     FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key, wave`,
+  ),
+);
+// Dealer-gem mean DMG/HP → anchor for a per-gem deviation ratio (parallels dealerMeanDamageShare).
+const dealerDmgPerHps = gemRows
+  .filter((r) => !supportGemSet.has(r.gem))
+  .map((r) => gemDmgPerHp.get(r.gem))
+  .filter((x): x is number => typeof x === "number");
+const dealerMeanDmgPerHp = dealerDmgPerHps.length
+  ? dealerDmgPerHps.reduce((s, x) => s + x, 0) / dealerDmgPerHps.length
+  : 0;
+
 // ── Assist (A3): assisted damage credited to support sources, from wave_gem_assist ──
 // Pre-instrumentation runs (older versions) have no such table/rows; we omit the block
 // then (the script already version-filters, so it returns automatically once new runs land).
@@ -342,6 +392,7 @@ const gems = {
   rosterTotalDamage: rosterDamage,
   rosterTotalKills: rosterKills,
   dealerMeanDamageShare: round(dealerMean),
+  dealerMeanDmgPerHp: round(dealerMeanDmgPerHp),
   supportGems: [...supportGemSet],
   perGem: gemRows.map((r) => {
     const dmgShare = r.total_damage / rosterDamage;
@@ -355,6 +406,13 @@ const gems = {
       kill_share: round(r.total_kills / rosterKills),
       // ratio to the dealer mean; null for support gems (not measured against it)
       ratio_to_dealer_mean: supportGemSet.has(r.gem) || !dealerMean ? null : round(dmgShare / dealerMean, 2),
+      // DMG/HP (dashboard "Dmg/HP"): damage per unit of wave HP pool; gold- and run-length-
+      // agnostic, so comparable across gems regardless of cost or how far the run got.
+      dmg_per_hp: gemDmgPerHp.get(r.gem) ?? null,
+      dmg_per_hp_ratio_to_dealer_mean:
+        supportGemSet.has(r.gem) || !dealerMeanDmgPerHp || gemDmgPerHp.get(r.gem) == null
+          ? null
+          : round((gemDmgPerHp.get(r.gem) as number) / dealerMeanDmgPerHp, 2),
       ...gemKeep(r.gem),
     };
   }),
@@ -390,6 +448,9 @@ const combos = {
         total_kills: d?.total_kills ?? 0,
         damage_runs: d?.runs ?? 0, // runs where it dealt damage (≠ built_runs, different table)
         dmg_per_build: round((d?.total_damage ?? 0) / b.built, 0),
+        // DMG/HP (dashboard "Dmg/HP"): damage per unit of wave HP pool — run-length-agnostic,
+        // so it's the cleanest cross-special damage-output lens. null if it never dealt damage.
+        dmg_per_hp: comboDmgPerHp.get(b.combo_key) ?? null,
         ...comboKeep(b.combo_key),
       };
     })
