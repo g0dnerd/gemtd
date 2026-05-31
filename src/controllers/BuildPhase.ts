@@ -128,6 +128,9 @@ export class BuildPhase {
       });
     }
     state.activeDrawSlot = 0;
+    // Any leftover placed-gem selection from the prior keeper UI would double
+    // up with the new draw's recipe-partner highlight — clear it.
+    this.game.selectTower(null);
     this.game.bus.emit("draws:roll", { count: state.draws.length });
   }
 
@@ -137,6 +140,9 @@ export class BuildPhase {
     const slot = state.draws.find((d) => d.slotId === slotId);
     if (!slot || slot.placedTowerId !== null) return;
     state.activeDrawSlot = slotId;
+    // Clear any placed-gem selection so the two recipe-partner highlights
+    // (selected-tower vs. active-draw) can't be on screen at the same time.
+    this.game.selectTower(null);
   }
 
   /**
@@ -195,7 +201,9 @@ export class BuildPhase {
     setFootprint(state, x, y, Cell.Tower);
     slot.placedTowerId = id;
     state.activeDrawSlot = nextUnplacedSlot(state);
-    this.game.refreshRoute();
+    // Reuse the route `canPlace` just solved — the committed grid blocks exactly
+    // the cells we tested in `tentative`, so the route is identical (no re-A*).
+    this.game.refreshRoute(tryRoute);
     this.game.selectTower(null);
     this.game.selectRock(null);
 

@@ -146,7 +146,14 @@ export class GreedyAI implements SimAI {
         candidates = [fallback];
       }
 
-      const routeLen = state.flatRoute.length;
+      const baseFlat = state.flatRoute;
+      const routeLen = baseFlat.length;
+      // A* here sets cameFrom only on a strict g-improvement, so blocking a cell
+      // that isn't on the current route returns a byte-identical path. A candidate
+      // whose footprint misses the route therefore leaves the route unchanged —
+      // score it against the cached route with no A* call (same result as before).
+      const routeSet = new Set<number>();
+      for (const pt of baseFlat) routeSet.add(pt.y * GRID_W + pt.x);
       const stats = gemStats(slot.gem, slot.quality);
       const rangeFine = stats.range * GRID_SCALE;
       const r2 = rangeFine * rangeFine;
@@ -155,14 +162,27 @@ export class GreedyAI implements SimAI {
       let bestScore = -Infinity;
 
       for (const [cx, cy] of candidates) {
-        const extra = new Set<number>();
+        let touchesRoute = false;
         for (const [dx, dy] of FOOTPRINT) {
-          extra.add((cy + dy) * GRID_W + (cx + dx));
+          if (routeSet.has((cy + dy) * GRID_W + (cx + dx))) {
+            touchesRoute = true;
+            break;
+          }
         }
-        const tryRoute = findRoute(state.grid, extra);
-        if (!tryRoute) continue;
 
-        const flatTry = flattenRoute(tryRoute);
+        let flatTry: { x: number; y: number }[];
+        if (touchesRoute) {
+          const extra = new Set<number>();
+          for (const [dx, dy] of FOOTPRINT) {
+            extra.add((cy + dy) * GRID_W + (cx + dx));
+          }
+          const tryRoute = findRoute(state.grid, extra);
+          if (!tryRoute) continue;
+          flatTry = flattenRoute(tryRoute);
+        } else {
+          flatTry = baseFlat;
+        }
+
         const towerCx = cx + 1;
         const towerCy = cy + 1;
         let exposure = 0;

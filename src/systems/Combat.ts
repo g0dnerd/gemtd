@@ -40,12 +40,34 @@ export class Combat {
   /** Current-tick aura mults + source lists, set before the fire loop so
    *  fire-time assist attribution (dmg-aura, atk-speed) can reach the sources. */
   private auras: AuraMults | null = null;
+  /** Per-tick id→entity indexes, rebuilt at the top of step(). Kept off State
+   *  (State stays JSON-clean) and replace the O(N) towers/creeps Array.find
+   *  lookups the DoT/projectile/assist paths used to do every tick. */
+  private readonly towersById = new Map<number, TowerState>();
+  private readonly creepsById = new Map<number, CreepState>();
 
   constructor(private game: Game) {}
+
+  /** Tower lookup by id — O(1) via the per-tick index, with an array fallback
+   *  for callers that reach the assist/credit paths outside step() (unit tests,
+   *  and any future direct caller) where the index hasn't been built this tick. */
+  private towerById(id: number): TowerState | undefined {
+    return (
+      this.towersById.get(id) ??
+      this.game.state.towers.find((t) => t.id === id)
+    );
+  }
 
   step(): void {
     const state = this.game.state;
     const tick = state.tick;
+
+    // Rebuild id→entity indexes once per tick (towers/creeps are stable within a
+    // step) so the lookups below are O(1) instead of Array.find over all entities.
+    this.towersById.clear();
+    for (const t of state.towers) this.towersById.set(t.id, t);
+    this.creepsById.clear();
+    for (const c of state.creeps) this.creepsById.set(c.id, c);
 
     // Reset and recompute proximity auras each tick.
     if (state.phase === "wave") {
@@ -67,9 +89,7 @@ export class Combat {
           c.lingerBurn.ticksLeft > 0 &&
           !inBurnAura.has(c.id)
         ) {
-          const owner = state.towers.find(
-            (t) => t.id === c.lingerBurn!.ownerId,
-          );
+          const owner = this.towersById.get(c.lingerBurn!.ownerId);
           if (owner) {
             const dmg = Math.max(1, Math.round(c.lingerBurn.dps / SIM_HZ));
             this.applyDamage(c, dmg, owner);
@@ -79,9 +99,7 @@ export class Combat {
         }
         if (c.afterburn && c.afterburn.expiresAt > tick) {
           if (tick >= c.afterburn.nextTick) {
-            const owner = state.towers.find(
-              (t) => t.id === c.afterburn!.ownerId,
-            );
+            const owner = this.towersById.get(c.afterburn!.ownerId);
             if (owner) {
               this.applyDamage(
                 c,
@@ -100,7 +118,7 @@ export class Combat {
               1,
               Math.round(c.poison.dps * (1 - c.poisonResist)),
             );
-            const owner = state.towers.find((t) => t.id === c.poison!.ownerId);
+            const owner = this.towersById.get(c.poison!.ownerId);
             if (!owner) {
               c.poison = undefined;
             } else {
@@ -538,10 +556,11 @@ export class Combat {
 
   private impact(p: ProjectileState): void {
     const state = this.game.state;
-    const owner = state.towers.find((t) => t.id === p.ownerTowerId);
+    const owner = this.towersById.get(p.ownerTowerId);
     if (!owner) return;
     const stats = effectiveStats(owner);
-    const target = state.creeps.find((c) => c.id === p.targetId && c.alive);
+    const tc = this.creepsById.get(p.targetId);
+    const target = tc && tc.alive ? tc : undefined;
     const tick = state.tick;
 
     // Ground-target (mortar): splash at landing position, no direct hit
@@ -966,7 +985,7 @@ export class Combat {
     const sum = contrib.reduce((s, x) => s + x.pts, 0);
     if (sum <= 0) return;
     for (const { id, pts } of contrib) {
-      const t = this.game.state.towers.find((tt) => tt.id === id);
+      const t = this.towerById(id);
       if (t)
         t.armorShredAssist = (t.armorShredAssist ?? 0) + amount * (pts / sum);
     }
@@ -979,7 +998,7 @@ export class Combat {
     const sum = vals.reduce((s, [, v]) => s + v, 0);
     if (sum <= 0) return;
     for (const [id, v] of vals) {
-      const t = this.game.state.towers.find((tt) => tt.id === +id);
+      const t = this.towerById(+id);
       if (t) t.vulnAssist = (t.vulnAssist ?? 0) + amount * (v / sum);
     }
   }
@@ -1003,7 +1022,7 @@ export class Combat {
         const total = dmg * (dmgAuraMult / (1 + dmgAuraMult));
         const sumPct = sources.reduce((s, x) => s + x.pct, 0) || 1;
         for (const { src, pct } of sources) {
-          const t = this.game.state.towers.find((tt) => tt.id === src);
+          const t = this.towerById(src);
           if (t)
             t.dmgAuraAssist = (t.dmgAuraAssist ?? 0) + total * (pct / sumPct);
         }
@@ -1016,7 +1035,7 @@ export class Combat {
         const total = dmg * (atkMult / (1 + atkMult));
         const sumPct = sources.reduce((s, x) => s + x.pct, 0) || 1;
         for (const { src, pct } of sources) {
-          const t = this.game.state.towers.find((tt) => tt.id === src);
+          const t = this.towerById(src);
           if (t)
             t.atkSpeedAssist = (t.atkSpeedAssist ?? 0) + total * (pct / sumPct);
         }
@@ -1451,14 +1470,26 @@ function scaleBurnEffects(effects: EffectKind[], mult: number): EffectKind[] {
   });
 }
 
+/**
+ * Resolved stats are a pure function of (comboKey|gem, quality, upgradeTier,
+ * towerLevel), so they are memoized — this used to allocate a fresh object plus
+ * (via gemStats/scaleBurnEffects) one or two effect arrays on every call, and is
+ * invoked ~4× per tower per tick (two aura passes, aura-mults, fire) plus per
+ * projectile/death. The cached object is shared and read-only to all callers.
+ */
+const effectiveStatsCache = new Map<string, ResolvedStats>();
+
 function effectiveStats(t: TowerState): ResolvedStats {
   const lvl = towerLevel(t);
+  const cacheKey = `${t.comboKey ?? ""}:${t.gem}:${t.quality}:${t.upgradeTier ?? 0}:${lvl}`;
+  const cached = effectiveStatsCache.get(cacheKey);
+  if (cached) return cached;
   const mult = 1 + (0.05 * lvl) / (1 + 0.06 * lvl);
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
       const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
-      return {
+      const result: ResolvedStats = {
         dmgMin: Math.round(s.dmgMin * mult),
         dmgMax: Math.round(s.dmgMax * mult),
         range: s.range,
@@ -1467,10 +1498,12 @@ function effectiveStats(t: TowerState): ResolvedStats {
         visualGem: combo.visualGem,
         targeting: s.targeting,
       };
+      effectiveStatsCache.set(cacheKey, result);
+      return result;
     }
   }
   const s = gemStats(t.gem, t.quality);
-  return {
+  const result: ResolvedStats = {
     dmgMin: Math.round(s.dmgMin * mult),
     dmgMax: Math.round(s.dmgMax * mult),
     range: s.range,
@@ -1482,6 +1515,8 @@ function effectiveStats(t: TowerState): ResolvedStats {
     projectileSpeed: s.projectileSpeed,
     groundTarget: s.groundTarget,
   };
+  effectiveStatsCache.set(cacheKey, result);
+  return result;
 }
 
 /** A single aura contribution to a buffed tower: which source, and at what pct. */

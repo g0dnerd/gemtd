@@ -141,8 +141,8 @@ export class HeadlessGame {
     this.enterBuild();
   }
 
-  refreshRoute(): boolean {
-    const route = findRoute(this.state.grid);
+  refreshRoute(precomputed?: ReturnType<typeof findRoute>): boolean {
+    const route = precomputed ?? findRoute(this.state.grid);
     if (!route) return false;
     this.state.routeSegments = route;
     this.state.flatRoute = flattenRoute(route);

@@ -363,12 +363,25 @@ const QUALITY_LABELS: Record<Quality, string> = {
   5: "Perfect",
 };
 
+/**
+ * `gemStats` is a pure function of (gem, quality) — only ~55 combinations — so
+ * each result is computed once and shared. It is called per-tower-per-tick from
+ * the combat loop (via `effectiveStats`) and per-tower-per-frame from the
+ * renderers, where the old per-call object + `scaleEffects` array allocations
+ * were a real GC-churn source. Callers MUST treat the result (and its `effects`
+ * array) as read-only — the same instance is handed to every consumer.
+ */
+const gemStatsCache = new Map<string, GemStats>();
+
 export function gemStats(gem: GemType, quality: Quality): GemStats {
+  const cacheKey = `${gem}:${quality}`;
+  const cached = gemStatsCache.get(cacheKey);
+  if (cached) return cached;
   const base = GEM_BASE[gem];
   const dmgMult = base.qualityDmgMult?.[quality] ?? QUALITY_DMG_MULT[quality];
   const dmgMid = base.baseDmg * dmgMult;
   const half = dmgMid * base.spread;
-  return {
+  const result: GemStats = {
     gem,
     quality,
     name: base.name,
@@ -385,6 +398,8 @@ export function gemStats(gem: GemType, quality: Quality): GemStats {
     projectileSpeed: base.projectileSpeed,
     groundTarget: base.groundTarget,
   };
+  gemStatsCache.set(cacheKey, result);
+  return result;
 }
 
 export function effectSummary(e: EffectKind): string {
