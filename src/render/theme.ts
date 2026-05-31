@@ -17,11 +17,20 @@ export const THEME = {
 } as const;
 
 export const CELL = {
-  grass: 0x395636,
-  grassAlt1: 0x3c5a3a,
-  grassAlt2: 0x365234,
-  grassHi: 0x4a7c46,
-  grassLo: 0x2c4228,
+  // Soft-horror "Caul" ground — a near-black liver membrane that replaces the
+  // old verdant grass. Four value stops (dark -> light) drive a warped value-
+  // noise field; vein/sheen are sparse feature colours. Rendered per 3px block
+  // by drawGrassCell so the field breaks the 18px tile grid (no cell tiling).
+  ground0: 0x1b1518,
+  ground1: 0x221a1d,
+  ground2: 0x281e22,
+  ground3: 0x2e242a,
+  groundVein: 0x3a2228,
+  groundSheen: 0x352b32,
+  // Worn "ideal path" road baked into the tissue under the rocks: a lifted
+  // desaturated core with a sunken darker rim just outside it.
+  groundRoadCore: 0x473b3d,
+  groundRoadLip: 0x130d10,
   path: 0x6b5230,
   pathHi: 0x8a6c44,
   pathLo: 0x4a3820,
@@ -40,12 +49,6 @@ export const CELL = {
   pathStone: 0x9a7c54,
   pathStoneAlt: 0x7a5e38,
   pathMortar: 0x3a2818,
-  grassBlade: 0x4a7c46,
-  grassFlowerYellow: 0xd8d050,
-  grassFlowerWhite: 0xc8dcc0,
-  grassStripe: 0x4e8a4e,
-  grassPebble: 0x585048,
-  grassTuft: 0x5a8a60,
   crystalLight: 0xc8e0ff,
   crystalCore: 0x78a8f8,
   crystalDeep: 0x3868c8,

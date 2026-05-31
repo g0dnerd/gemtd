@@ -118,7 +118,6 @@ const MIRROR: [string, string][] = [
   ['CELL.pathStone', '--px-path-stone'],
   ['CELL.pathStoneAlt', '--px-path-stone-alt'],
   ['CELL.pathMortar', '--px-path-mortar'],
-  ['CELL.grassTuft', '--px-grass-tuft'],
   ['CELL.crystalLight', '--px-crystal-light'],
   ['CELL.crystalCore', '--px-crystal-core'],
   ['CELL.crystalDeep', '--px-crystal-deep'],
