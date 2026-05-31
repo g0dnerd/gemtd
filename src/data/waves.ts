@@ -188,9 +188,9 @@ export const WAVES: WaveDef[] = [
     23,
     0.75,
     18,
-    ["carapace", 14, 13500, 4],
+    ["carapace", 14, 14500, 4],
     ["shambler", 3, 13500, 4, 0, 3],
-    ["burrower", 2, 9400, 6, 0, 3],
+    ["burrower", 4, 9400, 6, 0, 3],
   ),
   wm(
     24,
@@ -362,7 +362,7 @@ export const WAVES: WaveDef[] = [
     40,
     1.0,
     50,
-    ["amalgam", 9, 54000, 18, 0, 14],
+    ["amalgam", 9, 50000, 18, 0, 12],
     ["mender", 4, 24000, 13, 0, 11],
   ),
 
@@ -379,7 +379,7 @@ export const WAVES: WaveDef[] = [
     0.35,
     17,
     ["skitter", 24, 57000, 2, 0.54, 15],
-    ["chrysalid", 4, 39000, 2, 0.54, 15],
+    ["chrysalid", 7, 39000, 2, 0.54, 15],
   ),
   w(43, "carapace", 20, 49000, 2, 0.75, 18, 0.36, 45),
   wm(

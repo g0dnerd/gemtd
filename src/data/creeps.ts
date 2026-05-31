@@ -52,7 +52,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     kind: "skitter",
     speed: 2.6,
     color: "sapphire",
-    hpMult: 1.16,
+    hpMult: 1.30,
     bountyMult: 1.1,
     flags: {},
   },

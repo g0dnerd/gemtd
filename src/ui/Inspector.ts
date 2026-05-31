@@ -1515,6 +1515,8 @@ function effectChiclet(e: EffectKind): ChicletData | null {
         text: `focus/<${e.threshold} scatter/${e.scatterCount}`,
         tone: "buff",
       };
+    case "true_vs_air":
+      return { label: "TRUE vs AIR", text: "ignores armor", tone: "debuff" };
   }
 }
 

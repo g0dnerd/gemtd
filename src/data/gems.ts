@@ -94,7 +94,8 @@ export type EffectKind =
       threshold: number;
       scatterCount: number;
       scatterDmgMult: number;
-    };
+    }
+  | { kind: "true_vs_air" };
 
 export type Targeting = "all" | "ground" | "air";
 
@@ -507,6 +508,8 @@ export function effectSummary(e: EffectKind): string {
       return `Amp chain ${e.bounces}x +${Math.round(e.ampPerBounce * 100)}%/jump`;
     case "adaptive_mode":
       return `Adaptive: focus <${e.threshold}, scatter x${e.scatterCount}`;
+    case "true_vs_air":
+      return "True damage vs air";
     case "none":
       return "";
   }

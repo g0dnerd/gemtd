@@ -287,8 +287,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "sapphire", quality: 2 },
     ],
     stats: {
-      dmgMin: 60,
-      dmgMax: 100,
+      dmgMin: 80,
+      dmgMax: 130,
       range: 4.0,
       atkSpeed: 0.8,
       effects: [
@@ -296,7 +296,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           kind: "adaptive_mode",
           threshold: 3,
           scatterCount: 5,
-          scatterDmgMult: 0.6,
+          scatterDmgMult: 0.7,
         },
       ],
       blurb: "Adapts: focus vs scatter based on creep count.",
@@ -307,8 +307,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Imperial Ametrine",
         cost: 120,
         stats: {
-          dmgMin: 140,
-          dmgMax: 220,
+          dmgMin: 180,
+          dmgMax: 285,
           range: 4.5,
           atkSpeed: 0.9,
           effects: [
@@ -316,7 +316,7 @@ const ALL_COMBOS: ComboRecipe[] = [
               kind: "adaptive_mode",
               threshold: 3,
               scatterCount: 6,
-              scatterDmgMult: 0.8,
+              scatterDmgMult: 0.9,
             },
           ],
           blurb: "Enhanced adaptive modes.",
@@ -327,8 +327,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Ametrine Sovereign",
         cost: 280,
         stats: {
-          dmgMin: 210,
-          dmgMax: 330,
+          dmgMin: 275,
+          dmgMax: 430,
           range: 5.0,
           atkSpeed: 1.0,
           effects: [
@@ -336,7 +336,7 @@ const ALL_COMBOS: ComboRecipe[] = [
               kind: "adaptive_mode",
               threshold: 3,
               scatterCount: 8,
-              scatterDmgMult: 0.95,
+              scatterDmgMult: 1.05,
             },
             { kind: "execute", dmgBonus: 0.55, hpThreshold: 0.25 },
           ],
@@ -567,8 +567,11 @@ const ALL_COMBOS: ComboRecipe[] = [
       dmgMax: 160,
       range: 5.0,
       atkSpeed: 0.72,
-      effects: [{ kind: "demote_air", everyN: 12 }],
-      blurb: "Every 12th hit grounds air units.",
+      effects: [
+        { kind: "demote_air", everyN: 12 },
+        { kind: "true_vs_air" },
+      ],
+      blurb: "True damage vs air. Every 12th hit grounds air units.",
       targeting: "all",
     },
     upgrades: [
@@ -580,8 +583,11 @@ const ALL_COMBOS: ComboRecipe[] = [
           dmgMax: 266,
           range: 6.5,
           atkSpeed: 0.72,
-          effects: [{ kind: "demote_air", everyN: 11 }],
-          blurb: "Every 11th hit grounds air units.",
+          effects: [
+            { kind: "demote_air", everyN: 11 },
+            { kind: "true_vs_air" },
+          ],
+          blurb: "True damage vs air. Every 11th hit grounds air units.",
           targeting: "all",
         },
       },
@@ -593,8 +599,11 @@ const ALL_COMBOS: ComboRecipe[] = [
           dmgMax: 319,
           range: 8.0,
           atkSpeed: 0.72,
-          effects: [{ kind: "demote_air", everyN: 10 }],
-          blurb: "Every 10th hit grounds air units.",
+          effects: [
+            { kind: "demote_air", everyN: 10 },
+            { kind: "true_vs_air" },
+          ],
+          blurb: "True damage vs air. Every 10th hit grounds air units.",
           targeting: "all",
         },
       },
@@ -741,7 +750,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 110,
+              dps: 155,
               radius: 2.8,
               rampPct: 0.1,
               rampCap: 1.0,
@@ -762,7 +771,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 210,
+              dps: 275,
               radius: 2.8,
               rampPct: 0.12,
               rampCap: 1.5,
@@ -850,14 +859,14 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Molten Pyrite",
         cost: 100,
         stats: {
-          dmgMin: 78,
-          dmgMax: 100,
+          dmgMin: 72,
+          dmgMax: 92,
           range: 5.5,
           atkSpeed: 0.5,
           effects: [
-            { kind: "momentum", maxStacks: 15, rampSpeed: 4.0, rampDmg: 1.8 },
+            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.65 },
           ],
-          blurb: "Momentum ramps speed and damage (+80% at max).",
+          blurb: "Momentum ramps speed and damage (+65% at max).",
           targeting: "all",
         },
       },
@@ -865,12 +874,12 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Pyroclast",
         cost: 280,
         stats: {
-          dmgMin: 75,
-          dmgMax: 105,
+          dmgMin: 70,
+          dmgMax: 95,
           range: 5.5,
           atkSpeed: 0.55,
           effects: [
-            { kind: "momentum", maxStacks: 15, rampSpeed: 4.0, rampDmg: 2.0 },
+            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.85 },
             { kind: "pierce", count: 1 },
             { kind: "kill_explode", radius: 1.0, falloff: 0.4 },
           ],

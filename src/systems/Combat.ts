@@ -857,6 +857,15 @@ export class Combat {
         return;
       }
     }
+    if (!ignoreArmor && c.flags?.air) {
+      const ownerEffects = effectiveStats(owner).effects;
+      for (const e of ownerEffects) {
+        if (e.kind === "true_vs_air") {
+          ignoreArmor = true;
+          break;
+        }
+      }
+    }
     const incoming = dmg;
     let armorMultFull = 1;
     let armorMultBase = 1;
