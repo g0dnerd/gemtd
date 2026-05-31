@@ -1143,6 +1143,70 @@ export function partnerTowerIdSet(links: readonly DrawPartnerLink[]): Set<number
   return ids;
 }
 
+/** A special recipe fully completable from the gems in the current draw. */
+export interface DrawRecipeMatch {
+  combo: ComboRecipe;
+  /** slotIds of the draws assigned to this recipe's inputs (one per input). */
+  slotIds: number[];
+}
+
+/** Minimal draw shape needed to match recipes within the current draw set. */
+export interface DrawSlotCandidate {
+  slotId: number;
+  gem: GemType;
+  quality: Quality;
+}
+
+/**
+ * Find every special recipe whose entire ingredient list can be satisfied using
+ * only gems present in the current draw set. Matching is strict on (gem,
+ * quality) and consumes each draw at most once, so a recipe needing two
+ * identical inputs requires two matching draws. Open recipes with no fixed
+ * input list (the Stargem) are skipped.
+ */
+export function findCompletableDrawRecipes(
+  draws: readonly DrawSlotCandidate[],
+): DrawRecipeMatch[] {
+  // Available draw slotIds grouped by exact `(gem:quality)` key.
+  const pool = new Map<string, number[]>();
+  for (const d of draws) {
+    const k = `${d.gem}:${d.quality}`;
+    const list = pool.get(k);
+    if (list) list.push(d.slotId);
+    else pool.set(k, [d.slotId]);
+  }
+  const matches: DrawRecipeMatch[] = [];
+  for (const combo of COMBOS) {
+    if (combo.inputs.length === 0) continue; // open recipe (Stargem)
+    const need = new Map<string, number>();
+    for (const i of combo.inputs) {
+      const k = `${i.gem}:${i.quality}`;
+      need.set(k, (need.get(k) ?? 0) + 1);
+    }
+    let ok = true;
+    const slotIds: number[] = [];
+    for (const [k, n] of need) {
+      const avail = pool.get(k);
+      if (!avail || avail.length < n) {
+        ok = false;
+        break;
+      }
+      slotIds.push(...avail.slice(0, n));
+    }
+    if (ok) matches.push({ combo, slotIds });
+  }
+  return matches;
+}
+
+/** Flattened set of draw slotIds participating in any completable recipe. */
+export function completableDrawSlotSet(
+  matches: readonly DrawRecipeMatch[],
+): Set<number> {
+  const ids = new Set<number>();
+  for (const m of matches) for (const id of m.slotIds) ids.add(id);
+  return ids;
+}
+
 /** Find a recipe matching the given inputs (any order). Strict exact match on (gem, quality). */
 export function findCombo(inputs: ComboInput[]): ComboRecipe | null {
   const standard = COMBO_BY_KEY.get(sortKey(inputs));

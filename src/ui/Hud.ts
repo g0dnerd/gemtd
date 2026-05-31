@@ -20,6 +20,8 @@ import {
   ComboRecipe,
   findAllCombosFor,
   findDrawPartners,
+  findCompletableDrawRecipes,
+  completableDrawSlotSet,
 } from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
 import { mountTutorialModal } from "./TutorialModal";
@@ -1822,6 +1824,13 @@ export function mountHud(
     head.append(title, tagCol);
     r.appendChild(head);
 
+    // Combo banner: when the 5 gems in hand already contain a complete special
+    // recipe, name it here and glow the contributing cells (below). Persistent
+    // signal — shown regardless of which draw is selected.
+    const comboBanner = document.createElement("div");
+    comboBanner.className = "draw-combo-banner";
+    r.appendChild(comboBanner);
+
     const grid = document.createElement("div");
     grid.className = "draw-grid";
     r.appendChild(grid);
@@ -1885,11 +1894,51 @@ export function mountHud(
       });
     }
 
+    function renderComboBanner(
+      matches: ReturnType<typeof findCompletableDrawRecipes>,
+    ): void {
+      if (matches.length === 0 || g.state.phase !== "build") {
+        comboBanner.classList.remove("is-shown");
+        comboBanner.innerHTML = "";
+        return;
+      }
+      comboBanner.innerHTML = "";
+      comboBanner.classList.add("is-shown");
+
+      const mark = document.createElement("span");
+      mark.className = "combo-mark";
+      mark.textContent = "✦";
+      const lead = document.createElement("span");
+      lead.className = "combo-lead";
+      lead.textContent = " CRAFTABLE · ";
+      comboBanner.append(mark, lead);
+
+      matches.forEach((m, i) => {
+        if (i > 0) {
+          const sep = document.createElement("span");
+          sep.className = "combo-sep";
+          sep.textContent = " · ";
+          comboBanner.appendChild(sep);
+        }
+        const nm = document.createElement("span");
+        nm.className = "combo-name";
+        nm.textContent = m.combo.name.toUpperCase();
+        comboBanner.appendChild(nm);
+      });
+    }
+
     function refresh(): void {
       const draws = g.state.draws;
       const placed = draws.filter((d) => d.placedTowerId !== null).length;
       const total = draws.length || 5;
       title.textContent = `GEMS · ${placed}/${total}`;
+
+      // Recipes craftable entirely from the current hand, and the set of draw
+      // slots that feed them — drives the banner + per-cell glow. Only meaningful
+      // while building (the hand is locked in once a wave starts).
+      const comboMatches =
+        g.state.phase === "build" ? findCompletableDrawRecipes(draws) : [];
+      const comboSlots = completableDrawSlotSet(comboMatches);
 
       const fp =
         draws.length === 0
@@ -1923,6 +1972,7 @@ export function mountHud(
             tag.style.color = "var(--px-ink-dim)";
           }
           renderRecipeHint();
+          renderComboBanner(comboMatches);
           return;
         }
 
@@ -1941,6 +1991,7 @@ export function mountHud(
             cell.classList.add("is-active");
           }
           cell.style.setProperty("--gem-glow", GEM_PALETTE[d.gem].css.mid);
+          if (comboSlots.has(d.slotId)) cell.classList.add("is-combo");
           const host = document.createElement("div");
           host.className = "draw-sprite-host";
           host.appendChild(htmlGemTier(d.gem, d.quality, 22, d.quality > 2));
@@ -1989,6 +2040,7 @@ export function mountHud(
             d.placedTowerId !== null &&
             d.placedTowerId === g.state.designatedKeepTowerId;
           cell.classList.toggle("is-active", isActive && !isKeep);
+          cell.classList.toggle("is-combo", comboSlots.has(d.slotId));
         }
       }
 
@@ -2015,6 +2067,7 @@ export function mountHud(
       }
 
       renderRecipeHint();
+      renderComboBanner(comboMatches);
     }
 
     return { root: r, refresh };
