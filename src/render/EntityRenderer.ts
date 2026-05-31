@@ -2607,6 +2607,49 @@ export function renderDrawPartnerHighlight(layer: Container, state: State): void
   }
 }
 
+// Parallel to `renderDrawPartnerHighlight` but driven by the currently selected
+// placed gem: highlights other placed gems that complete one of its recipes.
+// Skipped when the selected gem is itself a finished special (no raw recipe).
+let selectedPartnerGfx: Graphics | null = null;
+
+export function renderSelectedTowerPartnerHighlight(
+  layer: Container,
+  state: State,
+): void {
+  if (!selectedPartnerGfx) {
+    selectedPartnerGfx = new Graphics();
+    layer.addChild(selectedPartnerGfx);
+  }
+  const g = selectedPartnerGfx;
+  g.clear();
+
+  const selId = state.selectedTowerId;
+  if (selId === null) return;
+  const sel = state.towers.find((t) => t.id === selId);
+  if (!sel || sel.comboKey) return;
+
+  const ids = partnerTowerIdSet(
+    findDrawPartners(sel.gem, sel.quality, state.towers),
+  );
+  ids.delete(sel.id);
+  if (ids.size === 0) return;
+
+  const pal = GEM_PALETTE[sel.gem];
+  const phase = (Math.sin((performance.now() / 1000) * Math.PI * 1.6) + 1) / 2;
+
+  for (const tower of state.towers) {
+    if (!ids.has(tower.id)) continue;
+    drawResonance(
+      g,
+      tower.x * FINE_TILE,
+      tower.y * FINE_TILE,
+      FINE_TILE * 2,
+      pal,
+      phase,
+    );
+  }
+}
+
 function drawResonance(
   g: Graphics,
   x: number,

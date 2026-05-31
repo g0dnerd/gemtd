@@ -64,6 +64,7 @@ import {
   renderHover,
   renderRangePreview,
   renderDrawPartnerHighlight,
+  renderSelectedTowerPartnerHighlight,
   renderAiOverlay,
   setAiHighlight,
   setAiCombo,
@@ -569,9 +570,13 @@ export class Game {
     this.enterBuild();
   }
 
-  /** Re-runs A* for all waypoints; updates state.routeSegments / flatRoute. */
-  refreshRoute(): boolean {
-    const route = findRoute(this.state.grid);
+  /**
+   * Refreshes state.routeSegments / flatRoute. Pass `precomputed` to reuse a
+   * route that was already solved for the identical grid (e.g. the placement
+   * validation route in BuildPhase.place), skipping a redundant A* sweep.
+   */
+  refreshRoute(precomputed?: ReturnType<typeof findRoute>): boolean {
+    const route = precomputed ?? findRoute(this.state.grid);
     if (!route) {
       return false;
     }
@@ -853,6 +858,7 @@ export class Game {
     );
     renderHover(this.layers.preview, this.state, this.hoverTile);
     renderDrawPartnerHighlight(this.layers.preview, this.state);
+    renderSelectedTowerPartnerHighlight(this.layers.preview, this.state);
     renderAiOverlay(this.layers.preview);
     if (this.hoverPixel) this.lastHoverPixel = this.hoverPixel;
     if (this.hoverTile) this.lastHoverTile = this.hoverTile;
