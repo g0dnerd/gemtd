@@ -17,7 +17,7 @@ import { OPAL_FRAME_COUNT, SPECIAL_SPRITES, SPECIAL_TIER_GRIDS } from "./spriteD
 import { gemStats } from "../data/gems";
 import { COMBO_BY_NAME, comboStatsAtTier } from "../data/combos";
 import { SPRITE_BY_KIND, SPRITE_CHRYSALID_AWAKE, SPRITE_GESTATION_ENRAGED } from "./sprites";
-import { drawPixelGrid } from "./pixelTexture";
+import { drawPixelGrid, generateRingTexture } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX } from "./spriteData";
 import { rasterizeToTexture } from "./pixelTexture";
@@ -143,8 +143,8 @@ interface TowerEntry {
   thunderstoneFx?: ThunderstoneFx;
   ametrineBobWrap?: Container;
   ametrineFx?: AmetrineFx;
-  /** Carnelian charge ring — hairline track + clockwise fill arc reading the idle wind-up. */
-  carnelianChargeFx?: Graphics;
+  /** Carnelian charge ring — antialiased track + clockwise fill arc reading the idle wind-up. */
+  carnelianChargeFx?: CarnelianChargeFx;
   /** Idle ticks needed for a full charge (chargeSeconds × SIM_HZ), cached at build. */
   carnelianChargeTicks?: number;
   /** Last seen lastFireTick, to detect a shot and trigger the discharge flash. */
@@ -255,7 +255,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let thunderstoneFx: ThunderstoneFx | undefined;
       let ametrineBobWrap: Container | undefined;
       let ametrineFx: AmetrineFx | undefined;
-      let carnelianChargeFx: Graphics | undefined;
+      let carnelianChargeFx: CarnelianChargeFx | undefined;
       let carnelianChargeTicks = 0;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
@@ -439,8 +439,20 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           opalFrames = cache.opalFrameTextures(t.quality);
         }
         if (t.gem === "carnelian" && !t.comboKey) {
-          carnelianChargeFx = new Graphics();
-          obj.addChild(carnelianChargeFx);
+          const { tex, scale } = carnelianRing(cache);
+          const track = new Sprite(tex);
+          track.anchor.set(0.5);
+          track.scale.set(scale);
+          track.tint = CARNELIAN_RING.dark;
+          track.alpha = 0.5;
+          const fill = new Sprite(tex);
+          fill.anchor.set(0.5);
+          fill.scale.set(scale);
+          const mask = new Graphics();
+          fill.mask = mask;
+          const extras = new Graphics();
+          obj.addChild(track, fill, mask, extras);
+          carnelianChargeFx = { track, fill, mask, extras };
           const cb = gemStats(t.gem as GemType, t.quality).effects.find((e) => e.kind === "charge_burst");
           carnelianChargeTicks = (cb && "chargeSeconds" in cb ? cb.chargeSeconds : 8) * SIM_HZ;
         }
@@ -971,6 +983,31 @@ const CARNELIAN_RING = {
   spec: 0xffd9b0,
 };
 const CARNELIAN_DISCHARGE_MS = 420;
+const CARNELIAN_RING_R = TILE * 0.5;
+const CARNELIAN_RING_W = 2;
+
+/**
+ * Carnelian charge ring. The persistent track + fill arc — the large, thin, static
+ * curve that staircased under the game's `antialias: false` renderer — are now AA
+ * sprites sharing one supersampled ring texture (`track` tinted dark, `fill` tinted
+ * warm and revealed by a per-frame pie-wedge `mask`). The pip/pulse/discharge stay
+ * on `extras` (Graphics): they're tiny or briefly expanding, where aliasing doesn't read.
+ */
+interface CarnelianChargeFx {
+  track: Sprite;
+  fill: Sprite;
+  mask: Graphics;
+  extras: Graphics;
+}
+
+/** Lazily-built, shared across all Carnelian towers (radius/width are constant). */
+let carnelianRingTex: { tex: Texture; scale: number } | undefined;
+function carnelianRing(cache: TowerSpriteCache): { tex: Texture; scale: number } {
+  if (!carnelianRingTex) {
+    carnelianRingTex = generateRingTexture(cache.renderer, CARNELIAN_RING_R, CARNELIAN_RING_W);
+  }
+  return carnelianRingTex;
+}
 
 /** Lerp between two packed RGB colors. */
 function lerpColor(a: number, b: number, t: number): number {
@@ -983,7 +1020,7 @@ function lerpColor(a: number, b: number, t: number): number {
 }
 
 function animateCarnelianChargeFx(entry: TowerEntry, t: TowerState, tick: number, now: number): void {
-  const g = entry.carnelianChargeFx!;
+  const fx = entry.carnelianChargeFx!;
 
   // Detect a shot (lastFireTick advanced) → flash, but skip the very first shot,
   // which is uncharged (Combat only charges when prevFireTick > 0).
@@ -1000,34 +1037,42 @@ function animateCarnelianChargeFx(entry: TowerEntry, t: TowerState, tick: number
     ? Math.max(0, 1 - (now - entry.carnelianDischargeStart) / CARNELIAN_DISCHARGE_MS)
     : 0;
 
-  g.clear();
-  const R = TILE * 0.5;
+  const R = CARNELIAN_RING_R;
 
-  // Faint track — the "this is a charge gem" affordance, always present.
-  g.circle(0, 0, R).stroke({ width: 1.5, color: CARNELIAN_RING.dark, alpha: 0.5 });
-
-  // Clockwise fill arc from the top, warming and brightening toward full.
+  // Fill arc — the AA ring sprite revealed by a pie-wedge mask sweeping clockwise
+  // from the top, warming and brightening toward full. The curved edge is smooth
+  // (it comes from the supersampled texture); only the short radial cut is hard.
   if (f > 0.001) {
+    fx.fill.visible = true;
+    fx.fill.tint = lerpColor(CARNELIAN_RING.mid, CARNELIAN_RING.light, f);
+    const base = 0.5 + f * 0.45;
+    // Gentle alpha pulse once fully charged; steady ramp otherwise.
+    fx.fill.alpha = f >= 0.999 ? base * (0.8 + 0.2 * Math.sin(now * 0.006)) : base;
+
     const start = -Math.PI / 2;
     const end = start + f * Math.PI * 2;
-    const col = lerpColor(CARNELIAN_RING.mid, CARNELIAN_RING.light, f);
-    g.moveTo(Math.cos(start) * R, Math.sin(start) * R)
-      .arc(0, 0, R, start, end)
-      .stroke({ width: 2, color: col, alpha: 0.5 + f * 0.45 });
-    // Leading pip at the wind-up head.
-    g.rect(Math.cos(end) * R - 1.5, Math.sin(end) * R - 1.5, 3, 3)
+    const rad = R + 6;
+    fx.mask.clear();
+    if (f >= 0.999) {
+      fx.mask.circle(0, 0, rad).fill(0xffffff);
+    } else {
+      fx.mask.moveTo(0, 0).arc(0, 0, rad, start, end).lineTo(0, 0).fill(0xffffff);
+    }
+  } else {
+    fx.fill.visible = false;
+  }
+
+  // Leading pip (a square — no curve to staircase) + the discharge shockwave (brief
+  // and expanding, where motion hides aliasing). Both stay on the lightweight Graphics.
+  const ex = fx.extras;
+  ex.clear();
+  if (f > 0.001 && f < 0.999) {
+    const end = -Math.PI / 2 + f * Math.PI * 2;
+    ex.rect(Math.cos(end) * R - 1.5, Math.sin(end) * R - 1.5, 3, 3)
       .fill({ color: CARNELIAN_RING.spec, alpha: 0.9 });
   }
-
-  // Gentle pulse once fully charged.
-  if (f >= 0.999) {
-    const pulse = 0.25 + 0.25 * Math.sin(now * 0.006);
-    g.circle(0, 0, R + 2.5).stroke({ width: 1.5, color: CARNELIAN_RING.light, alpha: pulse });
-  }
-
-  // Spend the charge: a short outward flash on fire.
   if (dis > 0.01) {
-    g.circle(0, 0, R + dis * 8).stroke({ width: 2, color: CARNELIAN_RING.spec, alpha: dis * 0.7 });
+    ex.circle(0, 0, R + dis * 8).stroke({ width: 2, color: CARNELIAN_RING.spec, alpha: dis * 0.7 });
   }
 }
 

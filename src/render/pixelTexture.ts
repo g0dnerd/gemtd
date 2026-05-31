@@ -109,3 +109,33 @@ export function spriteFromTexture(tex: Texture): Sprite {
   s.anchor.set(0.5);
   return s;
 }
+
+/**
+ * Render a smooth (antialiased) ring stroke to a reusable white texture.
+ *
+ * The global renderer runs `antialias: false` to keep pixel sprites crisp, which
+ * leaves thin curved strokes (e.g. a charge ring) badly staircased. We dodge that
+ * by supersampling: draw the ring `ss`× larger, then display the sprite at 1/ss —
+ * the linear downscale on the texture's own sampler smooths the curve, independent
+ * of MSAA support. Texture is white so callers can `sprite.tint` it any color.
+ *
+ * Returned texture is `(radius + pad) * 2` CSS px square at unit scale; the caller
+ * sets the sprite anchor to 0.5 and `scale = 1 / ss` (exposed as `tex.__ss`-free —
+ * callers know ss). Keep one per (radius,width) and cache it.
+ */
+export function generateRingTexture(
+  renderer: Renderer,
+  radius: number,
+  strokeWidth: number,
+  ss = 4,
+  pad = 6,
+): { tex: Texture; scale: number } {
+  const dim = (radius + pad) * 2;
+  const rt = RenderTexture.create({ width: dim * ss, height: dim * ss, antialias: true });
+  const g = new Graphics();
+  const c = (dim * ss) / 2;
+  g.circle(c, c, radius * ss).stroke({ width: strokeWidth * ss, color: 0xffffff, alpha: 1 });
+  renderer.render({ container: g, target: rt });
+  g.destroy();
+  return { tex: rt, scale: 1 / ss };
+}
