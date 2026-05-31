@@ -119,11 +119,15 @@ describe('new special combo data', () => {
     expect(t2.effects.some(e => e.kind === 'pierce')).toBe(true);
   });
 
-  it('Storm Crown (Thunderstone T2) gains poison', () => {
+  it('Storm Crown (Thunderstone T2) strengthens the amplifying chain', () => {
     const combo = COMBO_BY_NAME.get('thunderstone');
     expect(combo!.upgrades.length).toBeGreaterThan(0);
-    const t2 = combo!.upgrades[0].stats;
-    expect(t2.effects.some(e => e.kind === 'poison')).toBe(true);
+    const base = combo!.stats.effects.find(e => e.kind === 'amplifying_chain');
+    const t2 = combo!.upgrades[0].stats.effects.find(e => e.kind === 'amplifying_chain');
+    expect(base?.kind === 'amplifying_chain' && t2?.kind === 'amplifying_chain').toBe(true);
+    if (base?.kind === 'amplifying_chain' && t2?.kind === 'amplifying_chain') {
+      expect(t2.bounces).toBeGreaterThan(base.bounces);
+    }
   });
 
   it('Ametrine Sovereign (T3) gains execute', () => {

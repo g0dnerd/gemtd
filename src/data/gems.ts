@@ -182,10 +182,10 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseDmg: 50,
     spread: 0.2,
     baseRange: 7.5,
-    baseAtkSpeed: 0.2,
+    baseAtkSpeed: 0.16,
     effects: [{ kind: 'splash', radius: 1.5, falloff: 0.5 }],
     targeting: 'ground',
-    projectileSpeed: 160,
+    projectileSpeed: 125,
     groundTarget: true,
   },
   spinel: {
