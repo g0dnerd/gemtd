@@ -6,7 +6,7 @@ description: >-
   their peers. Use this whenever the user asks for balance observations, balance
   analysis, what's over/underpowered, which gems/creeps/waves are outliers, which
   special-gem UPGRADE TIERS are worth their gold (damage-per-gold ROI), or about the
-  WAVE-1 STARTER CHOICE (Malachite vs Silver) and its impact on how far runs get.
+  WAVE-1 STARTER CHOICE (Malachite / Silver / Pyrite) and its impact on how far runs get.
   Also use for "look at the telemetry / sim data for balance," and whenever the user
   wants to be WALKED THROUGH the findings, decide what (if anything) to change, or
   "help me decide what to tune." Reads `.local/telemetry.db` directly (HeuristicAI sim
@@ -59,8 +59,8 @@ claim that it is undesirable. Say this in the report so the reader doesn't read 
   signals** — never report them. Every observation is item-vs-comparable-items or
   wave-vs-adjacent-waves; relative structure survives the AI's weakness, absolute outcomes
   don't. **One scoped exception:** the Wave-1 choice analysis compares wave-reached *between
-  two cohorts that share the same AI* (Malachite-offered vs Silver-offered), so their relative
-  gap is valid — report the delta, never the absolute level. See "Wave-1 starter choice" in Step 2.
+  three cohorts that share the same AI* (Malachite / Silver / Pyrite-offered), so their relative
+  gaps are valid — report the deltas, never the absolute level. See "Wave-1 starter choice" in Step 2.
 - **Only what's deployed.** Analyze only the gems / combos / creeps that actually appear
   in the script output. The codebase defines content that the current wave list may never
   spawn (e.g. some creep kinds). If a defined type is absent from the data, you may note it
@@ -111,11 +111,12 @@ combos.tierRoi[]    { combo_key, name, tier, tier_name, runs, total_damage, tota
                       tier_median_cum_dmg_per_gold, ratio_to_tier_median }
                       // ROI fields null at base (tier 0, no gold); ratio null if tier has <2 combos.
                       // sorted by tier asc, then cum_dmg_per_gold desc
-waveOneChoice       { detector, unassigned, silver_minus_malachite_avg_wave,
-                      cohorts.{malachite,silver}.{runs,avg_wave,median_wave,q1_wave,q3_wave,
-                                                   max_wave,victories},
-                      perWave[]{ wave, malachite{reached,deaths,death_rate,avg_leaks,thin_sample},
-                                       silver{...} } }
+waveOneChoice       { detector, unassigned,
+                      deltas.{<b>_minus_<a>_avg_wave} (pairwise, positive → b further),
+                      cohorts.{malachite,silver,pyrite}.{runs,avg_wave,median_wave,q1_wave,
+                                                          q3_wave,max_wave,victories},
+                      perWave[]{ wave, malachite{reached,deaths,death_rate,avg_leaks,
+                                                  thin_sample}, silver{...}, pyrite{...} } }
 creeps.perKind[]    { kind, group(air|boss|container|standard), deployed, spawned, kills,
                       leaks, leak_rate, avg_progress, avg_ticks_to_kill, speed, hpMult,
                       group_size, group_median_leak_rate, ratio_to_group_median }
@@ -181,6 +182,9 @@ Mechanical kit, to interpret numbers (from `gems.ts` — verify current effects 
 | sapphire | frost slow (crowd control) — much of its value is the slow, which is not in damage telemetry |
 | diamond | crit burst; **ground-only targeting** caps how much it can hit |
 | opal | **support aura (attack-speed buff)** — deals no direct damage; near-zero damage share is mechanically inevitable, not an outlier |
+| garnet | mortar — slow-firing, long-range, ground-target splash (hits a position, not a creep); **ground-only** |
+| spinel | sniper — high damage, long range, slow fire; targets highest-HP creep |
+| carnelian | charged burst — first shot after idle deals up to 4× damage; quality scales the multiplier |
 
 How to describe (the deviation, with its size):
 - Use `ratio_to_dealer_mean`. Mark 🔴 for a ratio above ~2× or below ~0.4×, 🟡 for ~1.5–2× or
@@ -293,39 +297,39 @@ payload tree) to ground the finding. Mark 🔴 for a large, well-supported devia
 milder or `thin_sample` one. Troughs (a wave far softer than both neighbors) are equally valid
 observations — report them the same way.
 
-### Wave-1 starter choice — Malachite vs Silver (`waveOneChoice`)
+### Wave-1 starter choice — Malachite / Silver / Pyrite (`waveOneChoice`)
 
-On wave 1 the game forces the player toward **one** of two early specials by guaranteeing its
-ingredients (`BuildPhase.rollDraws`): **Malachite** (opal/emerald/aquamarine) or **Silver**
-(topaz/diamond/sapphire). Every run is in exactly one cohort. The script recovers the offer
-from the run's **wave-1 keeper event** — its `combo_key` directly records which special was
-kept (older runs without per-wave keeper events fall back to the kept gem's recipe) — and
-splits all runs into the two cohorts (`detector` names the rule; `unassigned` should be ~0 —
-if it isn't, say so, the split is leaky).
+On wave 1 the game forces the player toward **one** of three early specials by guaranteeing its
+ingredients (`BuildPhase.rollDraws`): **Malachite** (opal/emerald/topaz), **Silver**
+(sapphire/garnet/diamond), or **Pyrite** (carnelian/spinel/aquamarine). Every run is in exactly
+one cohort. The script recovers the offer from the run's **wave-1 keeper event** — its
+`combo_key` directly records which special was kept (older runs without per-wave keeper events
+fall back to the kept gem's recipe) — and splits all runs into the three cohorts (`detector`
+names the rule; `unassigned` should be ~0 — if it isn't, say so, the split is leaky).
 
 **Why absolute wave-reached is allowed *here* (the one carve-out).** Everywhere else this
 skill forbids absolute wave-reached, because the sim AI is weaker than a human so the absolute
-level is meaningless. This comparison is different: **both cohorts are driven by the same AI**,
-so the AI's weakness cancels out and the *relative gap between the two cohorts* is a valid
-signal. Report the **delta**, never the absolute level as a difficulty claim. (`avg_wave` per
-cohort is shown only so the reader can see where the delta comes from — frame it as "Silver
-reaches +2.1 waves further than Malachite," not "runs reach wave 35.")
+level is meaningless. This comparison is different: **all cohorts are driven by the same AI**,
+so the AI's weakness cancels out and the *relative gaps between cohorts* are valid signals.
+Report the **deltas**, never the absolute level as a difficulty claim. (`avg_wave` per cohort
+is shown only so the reader can see where the deltas come from — frame it as "Silver reaches
++2.1 waves further than Malachite," not "runs reach wave 35.")
 
 Read `waveOneChoice`:
-- **The gap.** `silver_minus_malachite_avg_wave` (positive → Silver gets further) plus each
-  cohort's `avg_wave` / `median_wave` and the spread (`q1_wave`, `q3_wave`, `max_wave`). Report
-  median alongside mean — if they disagree the distribution is skewed. State both cohort sizes;
-  a lopsided split (e.g. 165 vs 135) is itself worth a line.
-- **Where each choice struggles.** Walk `perWave[]`: for each wave, both cohorts' `death_rate`
-  and `avg_leaks` side by side. Find the waves where one cohort's death-rate or leaks clearly
-  exceed the other's (respect `thin_sample` / `reached` counts — late waves thin out fast). This
-  is the *mechanism* behind the headline gap: "Silver dies more around waves 20–22 (dr 0.09 vs
-  0.02) but pulls ahead later," or "Malachite leaks more from wave 24 on." Tie a divergence to
-  what's spawning then (open `waves.ts`) and to each special's kit (`combos.ts`: Malachite =
-  multi-target, Silver = splash + slow) — that's what makes the finding actionable.
-- Keep it **descriptive**. That one choice outperforms the other is an observation, not a
-  verdict that the weaker one needs buffing — whether the gap is intended (a deliberate
-  risk/reward fork) or a balance problem is the user's call (Step 4).
+- **The gaps.** `deltas` contains pairwise `<b>_minus_<a>_avg_wave` values (positive → b gets
+  further). Show each cohort's `avg_wave` / `median_wave` and spread (`q1_wave`, `q3_wave`,
+  `max_wave`). Report median alongside mean — if they disagree the distribution is skewed. State
+  all cohort sizes; a lopsided split is itself worth a line.
+- **Where each choice struggles.** Walk `perWave[]`: for each wave, all three cohorts'
+  `death_rate` and `avg_leaks` side by side. Find the waves where one cohort's death-rate or
+  leaks clearly exceed the others (respect `thin_sample` / `reached` counts — late waves thin
+  out fast). This is the *mechanism* behind the headline gaps: "Pyrite dies more around waves
+  10–12 but pulls ahead later," etc. Tie a divergence to what's spawning then (open `waves.ts`)
+  and to each special's kit (`combos.ts`: Malachite = multi-target, Silver = splash + slow,
+  Pyrite = momentum ramp) — that's what makes the finding actionable.
+- Keep it **descriptive**. That one choice outperforms another is an observation, not a verdict
+  that the weaker one needs buffing — whether the gap is intended (a deliberate risk/reward fork)
+  or a balance problem is the user's call (Step 4).
 
 ## Step 3 — Present observations (factual layer)
 
@@ -355,15 +359,15 @@ item sits from its comparison group — not a judgment that it is undesirable.
 ### Waves
 🔴 Wave <N> — <death rate & avg leaks, absolute + vs-neighbor (guarded)> · <creep attribution> · <composition from waves.ts>
 
-### Wave-1 Choice (Malachite vs Silver)
-Cohorts: Malachite <n>, Silver <n> (by forced starter offer; unassigned <n>).
-Gap: <Silver/Malachite> reaches +<Δ> waves on average (median <m> vs <m>) — relative, same AI both sides.
-Where it diverges: <wave range> <which cohort> <death_rate / leaks vs the other> · <kit / waves.ts tie-in>
+### Wave-1 Choice (Malachite / Silver / Pyrite)
+Cohorts: Malachite <n>, Silver <n>, Pyrite <n> (by forced starter offer; unassigned <n>).
+Gaps: <pairwise deltas, e.g. Silver +2.1 over Malachite, Pyrite +0.5 over Malachite> — relative, same AI all sides.
+Where it diverges: <wave range> <which cohort> <death_rate / leaks vs the others> · <kit / waves.ts tie-in>
 
 ---
 Basis: HeuristicAI sim runs only (weaker than human play); all findings are relative outliers,
 not a difficulty assessment. Markers = deviation size, not desirability. Low-sample items noted inline.
-The Wave-1 Choice gap is a between-cohort delta (valid because both cohorts share the AI); its absolute
+The Wave-1 Choice gaps are between-cohort deltas (valid because all cohorts share the AI); their absolute
 wave numbers are not a difficulty claim.
 ```
 

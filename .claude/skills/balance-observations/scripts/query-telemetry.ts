@@ -437,20 +437,23 @@ const waves = {
   }),
 };
 
-// ── Wave-1 choice: Malachite vs Silver cohorts (by the forced starter offer) ────
-// On wave 1 the game guarantees ingredients for exactly ONE of two early specials
-// (BuildPhase.rollDraws): Malachite = opal/emerald/aquamarine, Silver = topaz/diamond/
-// sapphire. Every run is therefore in exactly one cohort. We recover the offer from the
-// run's wave-1 keeper event — `detail` carries the kept combo_key (malachite/silver),
-// the direct record of the forced choice. (Older runs predating per-wave keeper events
-// won't have one; we fall back to the kept gem's recipe membership.) This is a
-// BETWEEN-COHORT comparison: both cohorts are driven by the same AI, so the *relative*
-// gap in wave reached is a valid signal even though the absolute level is not (the skill
-// states this caveat). 'unassigned' counts runs whose wave-1 keeper matches neither
-// special (expected to be ~0).
-const MALACHITE_RECIPE = new Set(["opal", "emerald", "aquamarine"]);
-const SILVER_RECIPE = new Set(["topaz", "diamond", "sapphire"]);
-type Cohort = "malachite" | "silver";
+// ── Wave-1 choice: Malachite / Silver / Pyrite cohorts (by the forced starter offer) ──
+// On wave 1 the game guarantees ingredients for exactly ONE of three early specials
+// (BuildPhase.rollDraws): Malachite = opal/emerald/topaz, Silver = sapphire/garnet/diamond,
+// Pyrite = carnelian/spinel/aquamarine. Every run is therefore in exactly one cohort. We
+// recover the offer from the run's wave-1 keeper event — `detail` carries the kept combo_key
+// (malachite/silver/pyrite), the direct record of the forced choice. (Older runs predating
+// per-wave keeper events won't have one; we fall back to the kept gem's recipe membership.)
+// This is a BETWEEN-COHORT comparison: all cohorts are driven by the same AI, so the *relative*
+// gap in wave reached is a valid signal even though the absolute level is not (the skill states
+// this caveat). 'unassigned' counts runs whose wave-1 keeper matches no special (expected ~0).
+const STARTER_RECIPES: Record<string, Set<string>> = {
+  malachite: new Set(["opal", "emerald", "topaz"]),
+  silver: new Set(["sapphire", "garnet", "diamond"]),
+  pyrite: new Set(["carnelian", "spinel", "aquamarine"]),
+};
+type Cohort = "malachite" | "silver" | "pyrite";
+const COHORT_KEYS = Object.keys(STARTER_RECIPES) as Cohort[];
 const w1Keepers = q<{ run_id: string; gem: string; combo_key: string }>(
   `SELECT run_id, gem, detail AS combo_key FROM events
    WHERE event_type = 'keeper' AND wave = 1 AND ${scope("run_id")}`,
@@ -459,15 +462,17 @@ const cohortByRun = new Map<string, Cohort>();
 let unassigned = 0;
 for (const r of w1Keepers) {
   // Prefer the kept combo (direct signal); fall back to the kept gem's recipe.
-  if (r.combo_key === "malachite" || (!r.combo_key && MALACHITE_RECIPE.has(r.gem))) cohortByRun.set(r.run_id, "malachite");
-  else if (r.combo_key === "silver" || (!r.combo_key && SILVER_RECIPE.has(r.gem))) cohortByRun.set(r.run_id, "silver");
+  const matched = COHORT_KEYS.find(
+    (c) => r.combo_key === c || (!r.combo_key && STARTER_RECIPES[c].has(r.gem)),
+  );
+  if (matched) cohortByRun.set(r.run_id, matched);
   else unassigned++;
 }
 const runMetaRows = q<{ run_id: string; wave_reached: number; outcome: string }>(
   `SELECT run_id, wave_reached, outcome FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
 );
-const cohortWaves: Record<Cohort, number[]> = { malachite: [], silver: [] };
-const cohortVictories: Record<Cohort, number> = { malachite: 0, silver: 0 };
+const cohortWaves = Object.fromEntries(COHORT_KEYS.map((c) => [c, []])) as Record<Cohort, number[]>;
+const cohortVictories = Object.fromEntries(COHORT_KEYS.map((c) => [c, 0])) as Record<Cohort, number>;
 for (const r of runMetaRows) {
   const c = cohortByRun.get(r.run_id);
   if (!c) continue;
@@ -493,8 +498,10 @@ const waveLeakRows = q<{ run_id: string; wave: number; leaks: number }>(
 );
 type WaveAgg = { reached: number; leakSum: number };
 const perWaveCohort = new Map<number, Record<Cohort, WaveAgg>>();
+const emptyWaveAgg = (): Record<Cohort, WaveAgg> =>
+  Object.fromEntries(COHORT_KEYS.map((c) => [c, { reached: 0, leakSum: 0 }])) as Record<Cohort, WaveAgg>;
 const ensureWave = (w: number) => {
-  if (!perWaveCohort.has(w)) perWaveCohort.set(w, { malachite: { reached: 0, leakSum: 0 }, silver: { reached: 0, leakSum: 0 } });
+  if (!perWaveCohort.has(w)) perWaveCohort.set(w, emptyWaveAgg());
   return perWaveCohort.get(w)!;
 };
 for (const r of waveLeakRows) {
@@ -510,7 +517,7 @@ for (const r of runMetaRows) {
   if (r.outcome !== "gameover") continue;
   const c = cohortByRun.get(r.run_id);
   if (!c) continue;
-  if (!deathsByWaveCohort.has(r.wave_reached)) deathsByWaveCohort.set(r.wave_reached, { malachite: 0, silver: 0 });
+  if (!deathsByWaveCohort.has(r.wave_reached)) deathsByWaveCohort.set(r.wave_reached, Object.fromEntries(COHORT_KEYS.map((c) => [c, 0])) as Record<Cohort, number>);
   deathsByWaveCohort.get(r.wave_reached)![c] += 1;
 }
 const cohortWaveStats = (w: number, c: Cohort) => {
@@ -524,17 +531,23 @@ const cohortWaveStats = (w: number, c: Cohort) => {
     thin_sample: agg.reached < thinCutoff,
   };
 };
-const mSum = cohortSummary("malachite");
-const sSum = cohortSummary("silver");
+const cohortSummaries = Object.fromEntries(COHORT_KEYS.map((c) => [c, cohortSummary(c)])) as Record<Cohort, ReturnType<typeof cohortSummary>>;
+const pairwiseDeltas: Record<string, number | null> = {};
+for (let i = 0; i < COHORT_KEYS.length; i++) {
+  for (let j = i + 1; j < COHORT_KEYS.length; j++) {
+    const a = COHORT_KEYS[i], b = COHORT_KEYS[j];
+    const aAvg = cohortSummaries[a].avg_wave, bAvg = cohortSummaries[b].avg_wave;
+    pairwiseDeltas[`${b}_minus_${a}_avg_wave`] = aAvg !== null && bAvg !== null ? round(bAvg - aAvg, 2) : null;
+  }
+}
 const waveOneChoice = {
-  detector: "wave-1 keeper event combo_key (Malachite / Silver; falls back to the kept gem's recipe for runs without keeper events)",
+  detector: "wave-1 keeper event combo_key (Malachite / Silver / Pyrite; falls back to the kept gem's recipe for runs without keeper events)",
   unassigned,
-  cohorts: { malachite: mSum, silver: sSum },
-  // positive → Silver reaches further on average; relative gap only (same AI both sides).
-  silver_minus_malachite_avg_wave: mSum.avg_wave !== null && sSum.avg_wave !== null ? round(sSum.avg_wave - mSum.avg_wave, 2) : null,
+  cohorts: cohortSummaries,
+  deltas: pairwiseDeltas,
   perWave: [...perWaveCohort.keys()]
     .sort((a, b) => a - b)
-    .map((w) => ({ wave: w, malachite: cohortWaveStats(w, "malachite"), silver: cohortWaveStats(w, "silver") })),
+    .map((w) => ({ wave: w, ...Object.fromEntries(COHORT_KEYS.map((c) => [c, cohortWaveStats(w, c)])) })),
 };
 
 console.log(JSON.stringify({ ...meta, overview, gems, combos: combos2, creeps, waves, waveOneChoice }, null, 2));
