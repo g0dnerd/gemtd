@@ -22,6 +22,7 @@ export function openDb(): Database.Database {
     "0004_wave_gem_combo_key.sql",
     "0005_wave_gem_upgrade_tier.sql",
     "0006_sim_run_meta.sql",
+    "0007_wave_gem_assist.sql",
   ];
 
   db.exec(

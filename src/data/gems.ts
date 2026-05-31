@@ -1,5 +1,5 @@
 /**
- * Gem catalog: 8 gem types × 5 qualities, plus a small set of multi-gem
+ * Gem catalog: 8 gem types x 5 qualities, plus a small set of multi-gem
  * specials (defined in combos.ts).
  *
  * Stats are derived from a per-gem base stat block, scaled by quality.
@@ -7,62 +7,96 @@
  * to the 7-gem palette imposed by the design handoff.
  */
 
-import { GemType, Quality } from '../render/theme';
-import { QUALITY_BASE_COST } from '../game/constants';
+import { GemType, Quality } from "../render/theme";
+import { QUALITY_BASE_COST } from "../game/constants";
 
 export type EffectKind =
-  | { kind: 'none' }
-  | { kind: 'slow'; factor: number; duration: number; chance?: number }
-  | { kind: 'poison'; dps: number; duration: number }
-  | { kind: 'splash'; radius: number; falloff?: number; chance?: number }
-  | { kind: 'chain'; bounces: number; falloff: number }
-  | { kind: 'stun'; duration: number; chance: number }
-  | { kind: 'crit'; chance: number; multiplier: number }
-  | { kind: 'true'; chance: number }
-  | { kind: 'aura_atkspeed'; radius: number; pct: number }
-  | { kind: 'aura_dmg'; radius: number; pct: number }
-  | { kind: 'prox_armor_reduce'; radius: number; value: number; targets: 'ground' | 'air' | 'all' }
-  | { kind: 'trap_slow'; factor: number; duration: number }
-  | { kind: 'trap_dot'; dps: number; duration: number }
-  | { kind: 'trap_explode'; radius: number; falloff: number }
-  | { kind: 'trap_root'; duration: number }
-  | { kind: 'trap_knockback'; distance: number }
-  | { kind: 'air_bonus'; multiplier: number }
-  | { kind: 'beam_ramp'; rampPerHit: number; maxStacks: number }
-  | { kind: 'multi_target'; count: number }
-  | { kind: 'prox_burn'; dps: number; radius: number }
-  | { kind: 'prox_slow'; factor: number; radius: number }
-  | { kind: 'armor_reduce'; value: number; duration: number }
-  | { kind: 'bonus_gold'; chance: number; multiplier: number }
-  | { kind: 'vulnerability_aura'; radius: number; pct: number }
-  | { kind: 'crit_splash'; radius: number; falloff: number }
-  | { kind: 'focus_crit'; pctPerHit: number; maxBonus: number }
-  | { kind: 'execute'; dmgBonus: number; hpThreshold: number }
-  | { kind: 'freeze_chance'; chance: number; duration: number }
-  | { kind: 'periodic_nova'; everyN: number }
-  | { kind: 'prox_burn_ramp'; dps: number; radius: number; rampPct: number; rampCap: number }
-  | { kind: 'death_nova'; hpPct: number; radius: number }
-  | { kind: 'armor_pierce_burn' }
-  | { kind: 'periodic_freeze'; interval: number; duration: number }
-  | { kind: 'frostbite'; speedThreshold: number; dmgBonus: number }
-  | { kind: 'stun_poison'; dps: number; duration: number }
-  | { kind: 'death_spread'; count: number; radius: number }
-  | { kind: 'stacking_armor_reduce'; perHit: number; maxStacks: number; decayInterval: number }
-  | { kind: 'armor_decay_aura'; armorPerSec: number; radius: number; maxReduction: number }
-  | { kind: 'linger_burn'; duration: number }
-  | { kind: 'stun_bonus_dmg'; multiplier: number }
-  | { kind: 'eruption'; threshold: number; damage: number; radius: number; falloff: number; afterburnDps?: number; afterburnDuration?: number }
-  | { kind: 'demote_air'; everyN: number }
-  | { kind: 'charge_burst'; maxMultiplier: number; chargeSeconds: number }
-  | { kind: 'momentum'; maxStacks: number; rampSpeed: number; rampDmg?: number }
-  | { kind: 'pierce'; count: number }
-  | { kind: 'kill_explode'; radius: number; falloff: number }
-  | { kind: 'speed_damage_aura'; dps: number; radius: number }
-  | { kind: 'distance_scaling'; minMult: number; maxMult: number }
-  | { kind: 'amplifying_chain'; bounces: number; ampPerBounce: number }
-  | { kind: 'adaptive_mode'; threshold: number; scatterCount: number; scatterDmgMult: number };
+  | { kind: "none" }
+  | { kind: "slow"; factor: number; duration: number; chance?: number }
+  | { kind: "poison"; dps: number; duration: number }
+  | { kind: "splash"; radius: number; falloff?: number; chance?: number }
+  | { kind: "chain"; bounces: number; falloff: number }
+  | { kind: "stun"; duration: number; chance: number }
+  | { kind: "crit"; chance: number; multiplier: number }
+  | { kind: "true"; chance: number }
+  | { kind: "aura_atkspeed"; radius: number; pct: number }
+  | { kind: "aura_dmg"; radius: number; pct: number }
+  | {
+      kind: "prox_armor_reduce";
+      radius: number;
+      value: number;
+      targets: "ground" | "air" | "all";
+    }
+  | { kind: "trap_slow"; factor: number; duration: number }
+  | { kind: "trap_dot"; dps: number; duration: number }
+  | { kind: "trap_explode"; radius: number; falloff: number }
+  | { kind: "trap_root"; duration: number }
+  | { kind: "trap_knockback"; distance: number }
+  | { kind: "air_bonus"; multiplier: number }
+  | { kind: "beam_ramp"; rampPerHit: number; maxStacks: number }
+  | { kind: "multi_target"; count: number }
+  | { kind: "prox_burn"; dps: number; radius: number }
+  | { kind: "prox_slow"; factor: number; radius: number }
+  | { kind: "armor_reduce"; value: number; duration: number }
+  | { kind: "bonus_gold"; chance: number; multiplier: number }
+  | { kind: "vulnerability_aura"; radius: number; pct: number }
+  | { kind: "crit_splash"; radius: number; falloff: number }
+  | { kind: "focus_crit"; pctPerHit: number; maxBonus: number }
+  | { kind: "execute"; dmgBonus: number; hpThreshold: number }
+  | { kind: "freeze_chance"; chance: number; duration: number }
+  | { kind: "periodic_nova"; everyN: number }
+  | {
+      kind: "prox_burn_ramp";
+      dps: number;
+      radius: number;
+      rampPct: number;
+      rampCap: number;
+    }
+  | { kind: "death_nova"; hpPct: number; radius: number }
+  | { kind: "armor_pierce_burn" }
+  | { kind: "periodic_freeze"; interval: number; duration: number }
+  | { kind: "frostbite"; speedThreshold: number; dmgBonus: number }
+  | { kind: "stun_poison"; dps: number; duration: number }
+  | { kind: "death_spread"; count: number; radius: number }
+  | {
+      kind: "stacking_armor_reduce";
+      perHit: number;
+      maxStacks: number;
+      decayInterval: number;
+    }
+  | {
+      kind: "armor_decay_aura";
+      armorPerSec: number;
+      radius: number;
+      maxReduction: number;
+    }
+  | { kind: "linger_burn"; duration: number }
+  | { kind: "stun_bonus_dmg"; multiplier: number }
+  | {
+      kind: "eruption";
+      threshold: number;
+      damage: number;
+      radius: number;
+      falloff: number;
+      afterburnDps?: number;
+      afterburnDuration?: number;
+    }
+  | { kind: "demote_air"; everyN: number }
+  | { kind: "charge_burst"; maxMultiplier: number; chargeSeconds: number }
+  | { kind: "momentum"; maxStacks: number; rampSpeed: number; rampDmg?: number }
+  | { kind: "pierce"; count: number }
+  | { kind: "kill_explode"; radius: number; falloff: number }
+  | { kind: "speed_damage_aura"; dps: number; radius: number }
+  | { kind: "distance_scaling"; minMult: number; maxMult: number }
+  | { kind: "amplifying_chain"; bounces: number; ampPerBounce: number }
+  | {
+      kind: "adaptive_mode";
+      threshold: number;
+      scatterCount: number;
+      scatterDmgMult: number;
+    };
 
-export type Targeting = 'all' | 'ground' | 'air';
+export type Targeting = "all" | "ground" | "air";
 
 export interface GemBase {
   /** Display name (without quality prefix). */
@@ -86,7 +120,7 @@ export interface GemBase {
   /** Per-gem override for QUALITY_DMG_MULT. Entries omitted fall through to the global table. */
   qualityDmgMult?: Partial<Record<Quality, number>>;
   /** Targeting priority override ('furthest' is default). */
-  targetPriority?: 'furthest' | 'highest_hp';
+  targetPriority?: "furthest" | "highest_hp";
   /** Projectile speed in px/sec (default = 480). */
   projectileSpeed?: number;
   /** Projectile targets ground position, not the creep — splash at landing. */
@@ -96,118 +130,121 @@ export interface GemBase {
 /** Per-gem stat block. */
 export const GEM_BASE: Record<GemType, GemBase> = {
   ruby: {
-    name: 'Ruby',
-    blurb: 'Steady, splashing fire damage.',
+    name: "Ruby",
+    blurb: "Steady, splashing fire damage.",
     baseDmg: 15,
     spread: 0.2,
     baseRange: 3.5,
     baseAtkSpeed: 1.0,
-    effects: [{ kind: 'splash', radius: 1.0, falloff: 0.5 }],
-    targeting: 'all',
+    effects: [{ kind: "splash", radius: 1.0, falloff: 0.5 }],
+    targeting: "all",
     qualityDmgMult: { 1: 0.9, 2: 2.0, 3: 4.5, 4: 8.2, 5: 16.0 },
   },
   sapphire: {
-    name: 'Sapphire',
-    blurb: 'Frost bolt — slows on hit.',
+    name: "Sapphire",
+    blurb: "Frost bolt — slows on hit.",
     baseDmg: 15,
     spread: 0.15,
     baseRange: 4.0,
     baseAtkSpeed: 0.9,
-    effects: [{ kind: 'slow', factor: 0.7, duration: 1.5 }],
-    targeting: 'all',
+    effects: [{ kind: "slow", factor: 0.7, duration: 1.5 }],
+    targeting: "all",
   },
   emerald: {
-    name: 'Emerald',
-    blurb: 'Lingering venom over time.',
+    name: "Emerald",
+    blurb: "Lingering venom over time.",
     baseDmg: 13,
     spread: 0.15,
     baseRange: 3.5,
     baseAtkSpeed: 1.0,
-    effects: [{ kind: 'poison', dps: 11, duration: 4 }],
-    targeting: 'all',
+    effects: [{ kind: "poison", dps: 11, duration: 4 }],
+    targeting: "all",
   },
   topaz: {
-    name: 'Topaz',
-    blurb: 'Rapid arcs — chain to nearby foes.',
+    name: "Topaz",
+    blurb: "Rapid arcs — chain to nearby foes.",
     baseDmg: 8,
     spread: 0.2,
     baseRange: 3.0,
     baseAtkSpeed: 1.6,
-    effects: [{ kind: 'chain', bounces: 2, falloff: 0.6 }],
-    targeting: 'all',
+    effects: [{ kind: "chain", bounces: 2, falloff: 0.6 }],
+    targeting: "all",
   },
   amethyst: {
-    name: 'Amethyst',
-    blurb: 'Arcane lance — true damage, devastating vs air.',
+    name: "Amethyst",
+    blurb: "Arcane lance — true damage, devastating vs air.",
     baseDmg: 21,
     spread: 0.2,
     baseRange: 4.5,
     baseAtkSpeed: 0.9,
-    effects: [{ kind: 'true', chance: 0.3 }, { kind: 'air_bonus', multiplier: 2.5 }],
-    targeting: 'all',
+    effects: [
+      { kind: "true", chance: 0.3 },
+      { kind: "air_bonus", multiplier: 2.5 },
+    ],
+    targeting: "all",
   },
   opal: {
-    name: 'Opal',
-    blurb: 'Support aura — boosts attack speed of nearby towers.',
+    name: "Opal",
+    blurb: "Support aura — boosts attack speed of nearby towers.",
     baseDmg: 4,
     spread: 0.2,
     baseRange: 3.0,
     baseAtkSpeed: 0.7,
-    effects: [{ kind: 'aura_atkspeed', radius: 3.0, pct: 0.10 }],
-    targeting: 'all',
+    effects: [{ kind: "aura_atkspeed", radius: 3.0, pct: 0.1 }],
+    targeting: "all",
   },
   diamond: {
-    name: 'Diamond',
-    blurb: 'Crystalline edge — devastating crits. Ground only.',
+    name: "Diamond",
+    blurb: "Crystalline edge — devastating crits. Ground only.",
     baseDmg: 25,
     spread: 0.3,
     baseRange: 4.0,
     baseAtkSpeed: 0.8,
-    effects: [{ kind: 'crit', chance: 0.25, multiplier: 2.0 }],
-    targeting: 'ground',
+    effects: [{ kind: "crit", chance: 0.25, multiplier: 2.0 }],
+    targeting: "ground",
   },
   aquamarine: {
-    name: 'Aquamarine',
-    blurb: 'Focusing beam — damage ramps on the same target.',
+    name: "Aquamarine",
+    blurb: "Focusing beam — damage ramps on the same target.",
     baseDmg: 3,
     spread: 0.15,
     baseRange: 3.0,
     baseAtkSpeed: 3.0,
-    effects: [{ kind: 'beam_ramp', rampPerHit: 0.21, maxStacks: 30 }],
-    targeting: 'all',
+    effects: [{ kind: "beam_ramp", rampPerHit: 0.21, maxStacks: 30 }],
+    targeting: "all",
   },
   garnet: {
-    name: 'Garnet',
-    blurb: 'Mortar — arcing shell splashes at ground position.',
-    baseDmg: 50,
+    name: "Garnet",
+    blurb: "Mortar — arcing shell splashes at ground position.",
+    baseDmg: 40,
     spread: 0.2,
     baseRange: 7.5,
     baseAtkSpeed: 0.16,
-    effects: [{ kind: 'splash', radius: 1.5, falloff: 0.5 }],
-    targeting: 'ground',
+    effects: [{ kind: "splash", radius: 1.5, falloff: 0.5 }],
+    targeting: "ground",
     projectileSpeed: 125,
     groundTarget: true,
   },
   spinel: {
-    name: 'Spinel',
-    blurb: 'Sniper — targets highest-HP creep. Pure damage.',
+    name: "Spinel",
+    blurb: "Sniper — targets highest-HP creep. Pure damage.",
     baseDmg: 60,
     spread: 0.15,
     baseRange: 7.5,
     baseAtkSpeed: 0.2,
     effects: [],
-    targeting: 'all',
-    targetPriority: 'highest_hp',
+    targeting: "all",
+    targetPriority: "highest_hp",
   },
   carnelian: {
-    name: 'Carnelian',
-    blurb: 'Charged burst — first shot after idle hits hard.',
+    name: "Carnelian",
+    blurb: "Charged burst — first shot after idle hits hard.",
     baseDmg: 18,
     spread: 0.2,
     baseRange: 4.0,
     baseAtkSpeed: 0.8,
-    effects: [{ kind: 'charge_burst', maxMultiplier: 4.0, chargeSeconds: 8 }],
-    targeting: 'all',
+    effects: [{ kind: "charge_burst", maxMultiplier: 4.0, chargeSeconds: 8 }],
+    targeting: "all",
   },
 };
 
@@ -225,7 +262,7 @@ export interface GemStats {
   cost: number;
   effects: EffectKind[];
   targeting: Targeting;
-  targetPriority?: 'furthest' | 'highest_hp';
+  targetPriority?: "furthest" | "highest_hp";
   projectileSpeed?: number;
   groundTarget?: boolean;
 }
@@ -255,44 +292,62 @@ const QUALITY_SPEED_BONUS: Record<Quality, number> = {
 };
 
 /** Effect potency typically scales with quality too. */
-function scaleEffects(effects: EffectKind[], quality: Quality, dmgScale: number): EffectKind[] {
+function scaleEffects(
+  effects: EffectKind[],
+  quality: Quality,
+  dmgScale: number,
+): EffectKind[] {
   return effects.map((e) => {
     switch (e.kind) {
-      case 'poison':
+      case "poison":
         return { ...e, dps: e.dps * dmgScale };
-      case 'splash':
+      case "splash":
         return { ...e, radius: e.radius * (1 + (quality - 1) * 0.08) };
-      case 'chain':
+      case "chain":
         return { ...e, bounces: e.bounces + (quality - 1) };
-      case 'stun':
+      case "stun":
         return { ...e, chance: Math.min(0.5, e.chance + (quality - 1) * 0.04) };
-      case 'crit': {
+      case "crit": {
         const critChance = Math.min(0.6, e.chance + (quality - 1) * 0.03);
         const critMult = quality >= 3 ? e.multiplier * 0.9 : e.multiplier;
         return { ...e, chance: critChance, multiplier: critMult };
       }
-      case 'slow':
+      case "slow":
         return { ...e, factor: Math.max(0.4, e.factor - (quality - 1) * 0.04) };
-      case 'true':
+      case "true":
         return { ...e, chance: Math.min(0.5, e.chance + (quality - 1) * 0.04) };
-      case 'air_bonus':
+      case "air_bonus":
         return { ...e, multiplier: e.multiplier + (quality - 1) * 0.25 };
-      case 'aura_atkspeed': {
+      case "aura_atkspeed": {
         const pct = e.pct + (quality - 1) * 0.03;
         const radius = e.radius + QUALITY_RANGE_BONUS[quality];
         return { ...e, pct, radius };
       }
-      case 'beam_ramp':
-        return { ...e, rampPerHit: +(e.rampPerHit + (quality - 1) * 0.01).toFixed(2) };
-      case 'prox_burn':
-        return { ...e, dps: e.dps * dmgScale, radius: e.radius * (1 + (quality - 1) * 0.08) };
-      case 'prox_slow':
+      case "beam_ramp":
+        return {
+          ...e,
+          rampPerHit: +(e.rampPerHit + (quality - 1) * 0.01).toFixed(2),
+        };
+      case "prox_burn":
+        return {
+          ...e,
+          dps: e.dps * dmgScale,
+          radius: e.radius * (1 + (quality - 1) * 0.08),
+        };
+      case "prox_slow":
         return { ...e, factor: Math.max(0.3, e.factor - (quality - 1) * 0.04) };
-      case 'armor_reduce':
-        return { ...e, value: e.value + (quality - 1), duration: e.duration + (quality - 1) * 0.5 };
-      case 'bonus_gold':
-        return { ...e, chance: Math.min(0.05, e.chance + (quality - 1) * 0.005) };
-      case 'charge_burst':
+      case "armor_reduce":
+        return {
+          ...e,
+          value: e.value + (quality - 1),
+          duration: e.duration + (quality - 1) * 0.5,
+        };
+      case "bonus_gold":
+        return {
+          ...e,
+          chance: Math.min(0.05, e.chance + (quality - 1) * 0.005),
+        };
+      case "charge_burst":
         return { ...e, maxMultiplier: e.maxMultiplier + (quality - 1) * 0.5 };
       default:
         return e;
@@ -301,11 +356,11 @@ function scaleEffects(effects: EffectKind[], quality: Quality, dmgScale: number)
 }
 
 const QUALITY_LABELS: Record<Quality, string> = {
-  1: 'Chipped',
-  2: 'Flawed',
-  3: 'Normal',
-  4: 'Flawless',
-  5: 'Perfect',
+  1: "Chipped",
+  2: "Flawed",
+  3: "Normal",
+  4: "Flawless",
+  5: "Perfect",
 };
 
 export function gemStats(gem: GemType, quality: Quality): GemStats {
@@ -334,109 +389,110 @@ export function gemStats(gem: GemType, quality: Quality): GemStats {
 
 export function effectSummary(e: EffectKind): string {
   switch (e.kind) {
-    case 'slow':
-      return `Slow ×${e.factor.toFixed(2)} for ${e.duration}s`;
-    case 'poison':
+    case "slow":
+      return `Slow x${e.factor.toFixed(2)} for ${e.duration}s`;
+    case "poison":
       return `Poison ${Math.round(e.dps)}/s for ${e.duration}s`;
-    case 'splash':
+    case "splash":
       return `Splash r=${e.radius.toFixed(1)}`;
-    case 'chain':
+    case "chain":
       return `Chain to ${e.bounces} more`;
-    case 'stun':
+    case "stun":
       return `${Math.round(e.chance * 100)}% stun ${e.duration}s`;
-    case 'crit':
-      return `${Math.round(e.chance * 100)}% crit ×${e.multiplier}`;
-    case 'true':
+    case "crit":
+      return `${Math.round(e.chance * 100)}% crit x${e.multiplier}`;
+    case "true":
       return `${Math.round(e.chance * 100)}% true dmg`;
-    case 'aura_atkspeed':
+    case "aura_atkspeed":
       return `Aura: +${Math.round(e.pct * 100)}% atk spd · ${e.radius.toFixed(1)} tiles`;
-    case 'aura_dmg':
+    case "aura_dmg":
       return `Aura: +${Math.round(e.pct * 100)}% dmg · ${e.radius.toFixed(1)} tiles`;
-    case 'prox_armor_reduce':
+    case "prox_armor_reduce":
       return `-${e.value} armor to ${e.targets} · ${e.radius.toFixed(1)} tiles`;
-    case 'trap_slow':
-      return `Trap: Slow ×${e.factor.toFixed(2)} for ${e.duration}s`;
-    case 'trap_dot':
+    case "trap_slow":
+      return `Trap: Slow x${e.factor.toFixed(2)} for ${e.duration}s`;
+    case "trap_dot":
       return `Trap: ${Math.round(e.dps)}/s for ${e.duration}s`;
-    case 'trap_explode':
+    case "trap_explode":
       return `Trap: Explode r=${e.radius.toFixed(1)}`;
-    case 'trap_root':
+    case "trap_root":
       return `Trap: Root ${e.duration}s`;
-    case 'trap_knockback':
+    case "trap_knockback":
       return `Trap: Knockback ${e.distance} tiles`;
-    case 'air_bonus':
-      return `×${e.multiplier.toFixed(1)} vs air`;
-    case 'beam_ramp':
-      return `Beam: +${Math.round(e.rampPerHit * 100)}%/hit, max ×${(1 + e.maxStacks * e.rampPerHit).toFixed(1)}`;
-    case 'multi_target':
+    case "air_bonus":
+      return `x${e.multiplier.toFixed(1)} vs air`;
+    case "beam_ramp":
+      return `Beam: +${Math.round(e.rampPerHit * 100)}%/hit, max x${(1 + e.maxStacks * e.rampPerHit).toFixed(1)}`;
+    case "multi_target":
       return `Attacks ${e.count} targets`;
-    case 'prox_burn':
+    case "prox_burn":
       return `Burn ${Math.round(e.dps)}/s · ${e.radius.toFixed(1)} tiles`;
-    case 'prox_slow':
-      return `Slow ×${e.factor.toFixed(2)} nearby · ${e.radius.toFixed(1)} tiles`;
-    case 'armor_reduce':
+    case "prox_slow":
+      return `Slow x${e.factor.toFixed(2)} nearby · ${e.radius.toFixed(1)} tiles`;
+    case "armor_reduce":
       return `-${e.value} armor for ${e.duration}s`;
-    case 'bonus_gold':
+    case "bonus_gold":
       const pct = e.chance * 100;
-      return `${pct % 1 ? pct.toFixed(1) : pct}% ×${e.multiplier} bonus gold on hit`;
-    case 'vulnerability_aura':
+      return `${pct % 1 ? pct.toFixed(1) : pct}% x${e.multiplier} bonus gold on hit`;
+    case "vulnerability_aura":
       return `Vuln +${Math.round(e.pct * 100)}% · ${e.radius.toFixed(1)} tiles`;
-    case 'crit_splash':
-      return `Crit splash r=${e.radius.toFixed(1)} ×${e.falloff}`;
-    case 'focus_crit':
+    case "crit_splash":
+      return `Crit splash r=${e.radius.toFixed(1)} x${e.falloff}`;
+    case "focus_crit":
       return `Focus: +${Math.round(e.pctPerHit * 100)}%/hit, max +${Math.round(e.maxBonus * 100)}%`;
-    case 'execute':
+    case "execute":
       return `Execute +${Math.round(e.dmgBonus * 100)}% below ${Math.round(e.hpThreshold * 100)}% HP`;
-    case 'freeze_chance':
+    case "freeze_chance":
       return `${Math.round(e.chance * 100)}% freeze ${e.duration}s`;
-    case 'periodic_nova':
+    case "periodic_nova":
       return `Nova every ${e.everyN} attacks (50% dmg)`;
-    case 'prox_burn_ramp':
+    case "prox_burn_ramp":
       return `Burn ${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s · ${e.radius.toFixed(1)} tiles`;
-    case 'death_nova':
+    case "death_nova":
       return `Death: ${Math.round(e.hpPct * 100)}% maxHP nova r=${e.radius.toFixed(1)}`;
-    case 'armor_pierce_burn':
+    case "armor_pierce_burn":
       return `Burn ignores armor`;
-    case 'periodic_freeze':
+    case "periodic_freeze":
       return `Freeze all ${e.interval}s for ${e.duration}s`;
-    case 'frostbite':
+    case "frostbite":
       return `Frostbite: +${Math.round(e.dmgBonus * 100)}% dmg when ≤${Math.round(e.speedThreshold * 100)}% speed`;
-    case 'stun_poison':
+    case "stun_poison":
       return `Stun → Poison ${Math.round(e.dps)}/s for ${e.duration}s`;
-    case 'death_spread':
+    case "death_spread":
       return `Plague: spreads to ${e.count} on death`;
-    case 'stacking_armor_reduce':
+    case "stacking_armor_reduce":
       return `-${e.perHit} armor/hit, max ${e.maxStacks} stacks`;
-    case 'armor_decay_aura':
+    case "armor_decay_aura":
       return `-${e.armorPerSec} armor/s · ${e.radius.toFixed(1)} tiles`;
-    case 'linger_burn':
+    case "linger_burn":
       return `Linger burn ${e.duration}s`;
-    case 'stun_bonus_dmg':
-      return `×${e.multiplier} dmg to stunned`;
-    case 'eruption': {
+    case "stun_bonus_dmg":
+      return `x${e.multiplier} dmg to stunned`;
+    case "eruption": {
       let s = `Eruption every ${e.threshold} hits: ${e.damage} AoE r=${e.radius.toFixed(1)}`;
-      if (e.afterburnDps) s += ` + burn ${e.afterburnDps}/s ${e.afterburnDuration}s`;
+      if (e.afterburnDps)
+        s += ` + burn ${e.afterburnDps}/s ${e.afterburnDuration}s`;
       return s;
     }
-    case 'demote_air':
+    case "demote_air":
       return `Every ${e.everyN}th hit grounds air units`;
-    case 'charge_burst':
-      return `Charge: up to ×${e.maxMultiplier.toFixed(1)} after ${e.chargeSeconds}s idle`;
-    case 'momentum':
-      return `Momentum: ${e.rampSpeed.toFixed(1)}× speed at ${e.maxStacks} stacks${e.rampDmg ? `, +${Math.round((e.rampDmg - 1) * 100)}% dmg` : ''}`;
-    case 'pierce':
-      return `Pierce ${e.count} additional target${e.count > 1 ? 's' : ''}`;
-    case 'kill_explode':
+    case "charge_burst":
+      return `Charge: up to x${e.maxMultiplier.toFixed(1)} after ${e.chargeSeconds}s idle`;
+    case "momentum":
+      return `Momentum: ${e.rampSpeed.toFixed(1)}x speed at ${e.maxStacks} stacks${e.rampDmg ? `, +${Math.round((e.rampDmg - 1) * 100)}% dmg` : ""}`;
+    case "pierce":
+      return `Pierce ${e.count} additional target${e.count > 1 ? "s" : ""}`;
+    case "kill_explode":
       return `Kill explosion r=${e.radius.toFixed(1)}`;
-    case 'speed_damage_aura':
+    case "speed_damage_aura":
       return `Speed burn ${Math.round(e.dps)}/s · ${e.radius.toFixed(1)} tiles`;
-    case 'distance_scaling':
+    case "distance_scaling":
       return `Range dmg ${Math.round(e.minMult * 100)}–${Math.round(e.maxMult * 100)}%`;
-    case 'amplifying_chain':
-      return `Amp chain ${e.bounces}× +${Math.round(e.ampPerBounce * 100)}%/jump`;
-    case 'adaptive_mode':
-      return `Adaptive: focus <${e.threshold}, scatter ×${e.scatterCount}`;
-    case 'none':
-      return '';
+    case "amplifying_chain":
+      return `Amp chain ${e.bounces}x +${Math.round(e.ampPerBounce * 100)}%/jump`;
+    case "adaptive_mode":
+      return `Adaptive: focus <${e.threshold}, scatter x${e.scatterCount}`;
+    case "none":
+      return "";
   }
 }

@@ -233,7 +233,7 @@ const ALL_COMBOS: ComboRecipe[] = [
               targets: "ground",
             },
           ],
-          blurb: "18% crit ×2.5. Crit splashes. -6 armor to ground.",
+          blurb: "18% crit x2.5. Crit splashes. -6 armor to ground.",
           targeting: "all",
         },
       },
@@ -271,7 +271,7 @@ const ALL_COMBOS: ComboRecipe[] = [
             { kind: "focus_crit", pctPerHit: 0.06, maxBonus: 0.18 },
             { kind: "execute", dmgBonus: 0.4, hpThreshold: 0.25 },
           ],
-          blurb: "9% crit ×6. Focus: +6% crit/hit. Execute below 25% HP.",
+          blurb: "9% crit x6. Focus: +6% crit/hit. Execute below 25% HP.",
           targeting: "ground",
         },
       },
@@ -656,7 +656,7 @@ const ALL_COMBOS: ComboRecipe[] = [
             { kind: "bonus_gold", chance: 0.01, multiplier: 3 },
           ],
           blurb:
-            "Poison 75 dps 4s. 50% slow. Lucky crits, stuns, and 1% ×3 bonus gold on hit.",
+            "Poison 75 dps 4s. 50% slow. Lucky crits, stuns, and 1% x3 bonus gold on hit.",
           targeting: "all",
         },
       },
@@ -1085,12 +1085,70 @@ export function findAllCombosFor(
   );
 }
 
+/** A placed gem that shares a recipe with a selected draw, grouped by recipe. */
+export interface DrawPartnerLink {
+  combo: ComboRecipe;
+  /** ids of placed gems that fill a *different* input slot of `combo`. */
+  partnerTowerIds: number[];
+}
+
+/** Minimal placed-gem shape needed to match against recipe inputs. */
+export interface PartnerCandidate {
+  id: number;
+  gem: GemType;
+  quality: Quality;
+  comboKey?: string;
+}
+
+/**
+ * Given a selected draw `(gem, quality)` and the gems currently on the board,
+ * find which placed gems share a special recipe with it.
+ *
+ * A placed gem is a "partner" for a recipe when, after the selected draw claims
+ * one matching input slot, the placed gem's exact `(gem, quality)` still
+ * satisfies one of the recipe's remaining inputs. Matching is strict on quality
+ * (recipes demand an exact tier), so a same-type gem at the wrong quality is
+ * intentionally not highlighted. Already-combined gems (those carrying a
+ * `comboKey`) are finished specials, not raw ingredients, so they're skipped.
+ */
+export function findDrawPartners(
+  gem: GemType,
+  quality: Quality,
+  towers: readonly PartnerCandidate[],
+): DrawPartnerLink[] {
+  const raw = towers.filter((t) => !t.comboKey);
+  const links: DrawPartnerLink[] = [];
+  for (const combo of findAllCombosFor(gem, quality)) {
+    // Remaining inputs after the selected draw consumes one matching slot.
+    const remaining = combo.inputs.slice();
+    const claimIdx = remaining.findIndex(
+      (i) => i.gem === gem && i.quality === quality,
+    );
+    if (claimIdx >= 0) remaining.splice(claimIdx, 1);
+    const remainingKeys = new Set(remaining.map((i) => `${i.gem}:${i.quality}`));
+    if (remainingKeys.size === 0) continue;
+    const partnerTowerIds: number[] = [];
+    for (const t of raw) {
+      if (remainingKeys.has(`${t.gem}:${t.quality}`)) partnerTowerIds.push(t.id);
+    }
+    if (partnerTowerIds.length > 0) links.push({ combo, partnerTowerIds });
+  }
+  return links;
+}
+
+/** Flattened unique set of partner ids across every shared recipe. */
+export function partnerTowerIdSet(links: readonly DrawPartnerLink[]): Set<number> {
+  const ids = new Set<number>();
+  for (const l of links) for (const id of l.partnerTowerIds) ids.add(id);
+  return ids;
+}
+
 /** Find a recipe matching the given inputs (any order). Strict exact match on (gem, quality). */
 export function findCombo(inputs: ComboInput[]): ComboRecipe | null {
   const standard = COMBO_BY_KEY.get(sortKey(inputs));
   if (standard) return standard;
 
-  // Stargem: 4× same gem at Perfect quality
+  // Stargem: 4x same gem at Perfect quality
   if (
     inputs.length === 4 &&
     inputs.every((i) => i.quality === 5) &&

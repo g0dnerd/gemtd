@@ -66,6 +66,17 @@ claim that it is undesirable. Say this in the report so the reader doesn't read 
   spawn (e.g. some creep kinds). If a defined type is absent from the data, you may note it
   in one line as "currently not deployed in waves 1–50," but do not analyze its balance —
   there's nothing to analyze.
+- **Support value is now partially measured — but still imperfect.** Support gems/combos
+  (the *derived* support set: items whose every effect only helps other towers / the creep
+  clock / economy) carry value that never lands on their own damage row. The script now
+  surfaces three new axes for them: **assisted damage** (B-instrumentation: damage-aura,
+  vulnerability, armor-shred, attack-speed credited back to the source), **keep-rate** (A1),
+  and **presence-conditioning** (A2). This means a support gem that's low on *all* of these
+  is a stronger weakness signal than damage_share alone ever was. But the coverage is still
+  incomplete: assisted damage is an **attribution approximation** (per-channel marginal credit,
+  normalized — not a ground-truth counterfactual), and **slow / crowd-control duration,
+  path-distance-denied, and air-grounding value remain unmeasured**. So absence of assist data
+  is *not* proof of weakness — name what's still unmeasured before reading a low number as a problem.
 
 ## Step 1 — Check data freshness (do this first, always)
 
@@ -100,11 +111,29 @@ extra raw fields also appear; these are the ones you'll use):
 
 ```
 overview            { runs, avg_wave, max_wave, victories }
-gems.dealerMeanDamageShare, gems.supportGems
+gems.dealerMeanDamageShare, gems.supportGems   // supportGems is now DERIVED from effect kinds
 gems.perGem[]       { gem, isSupport, total_damage, total_kills, damage_share, kill_share,
-                      ratio_to_dealer_mean }      // ratio null for support gems
+                      ratio_to_dealer_mean,        // ratio null for support gems
+                      keep_incidence, keep_share } // A1: keep_incidence = distinct runs kept ÷ runs;
+                                                   //     keep_share = this gem's keeper events ÷ all
+gems.assist         // A3 — null/absent on pre-instrumentation runs (then OMIT it entirely):
+                    { rosterTotalDamage, support_median_assisted_damage_share,
+                      perGem[]{ gem, isSupport, dmg_aura_assist, vuln_assist, armor_shred_assist,
+                                atkspeed_assist, assisted_damage, assisted_damage_share,
+                                bonus_gold, ratio_to_support_median } }
+                      // assisted_damage_share uses the GEM roster total → comparable to damage_share;
+                      // ratio_to_support_median null for non-support; bonus_gold is GOLD, not damage
+gems.presenceConditioning  // A2 — CORRELATIONAL (see `caveat`); support gems only:
+                    { caveat, items[]{ gem,
+                        outcomeSplit{ kept_runs, never_runs, thin_sample,
+                                      kept{avg_wave_reached,avg_total_leaks}, never{...} },
+                        perWave[]{ wave, present_runs, absent_runs, thin_sample,
+                                   present{avg_ticks_to_kill,avg_path_progress,avg_total_damage,avg_leaks},
+                                   absent{...} } } }   // present/absent null below the thin cutoff
 combos.perCombo[]   { key, name, built, built_runs, build_rate, total_damage, total_kills,
-                      damage_runs, dmg_per_build } // sorted by build_rate desc
+                      damage_runs, dmg_per_build, keep_incidence, keep_share } // sorted by build_rate desc
+combos.assist       // A3 — same shape as gems.assist but perCombo[]{ key, name, ... }; null → OMIT
+combos.presenceConditioning  // A2 — { caveat, items[]{ key, name, outcomeSplit, perWave } }
 combos.tierRoi[]    { combo_key, name, tier, tier_name, runs, total_damage, total_kills,
                       builds_to_tier, dmg_per_build_at_tier, marginal_gold, cum_gold,
                       marginal_dmg_per_gold, cum_dmg_per_gold, tier_group_size,
@@ -147,7 +176,13 @@ finishes.
 **Sample-size honesty:** even when `ok: true`, late-wave rows have small samples because few
 runs get there. When `targetRunCount` is low (say < 50) or a wave's `reached` / `samples`
 count is tiny, state the sample size next to the finding and label it a weak signal. Thin
-data is a caveat you must surface, not hide.
+data is a caveat you must surface, not hide. **Assisted-damage and presence rows inherit the
+same thin-sample caveats** (presence-conditioning nulls out `present`/`absent` below the cutoff
+and flags `thin_sample`; honor it). And spell out that **presence-conditioning is
+*correlational*, not a counterfactual** — a support item's presence correlates with run
+progression and stronger boards, so "present" cohorts can look better simply because better
+runs keep more towers (the script's `caveat` field says this; repeat it in the report). The
+only clean marginal-value measure is a leave-one-out sim, which is **out of scope** here.
 
 ## Step 2 — Measure outliers (describe, don't judge)
 
@@ -166,9 +201,10 @@ Read `gems.perGem[]`: each gem's `damage_share`, `kill_share`, and `ratio_to_dea
 spread (highest to lowest), not just the extremes. Read share correctly: of the five forced
 draws each build, only **one** tower is kept (the rest become rocks), so a gem accumulates
 damage across waves only when it's actually kept and used — share is therefore a combined
-signal of raw strength and how often the AI keeps it. (Sim telemetry now records per-wave
-keeper events, but this skill doesn't yet break out a separate keep-rate, so continue to read
-share as that combined signal.)
+signal of raw strength and how often the AI keeps it. The script now **also** breaks out
+`keep_incidence` / `keep_share` (A1) so you can separate the two: a high keep-rate with a low
+damage_share means the AI values it for something other than raw damage (a support role) — read
+the two together rather than collapsing them.
 
 Mechanical kit, to interpret numbers (from `gems.ts` — verify current effects there):
 
@@ -181,7 +217,7 @@ Mechanical kit, to interpret numbers (from `gems.ts` — verify current effects 
 | aquamarine | single-target beam that ramps |
 | sapphire | frost slow (crowd control) — much of its value is the slow, which is not in damage telemetry |
 | diamond | crit burst; **ground-only targeting** caps how much it can hit |
-| opal | **support aura (attack-speed buff)** — deals no direct damage; near-zero damage share is mechanically inevitable, not an outlier |
+| opal | **support aura (attack-speed buff)** — the one derived-support *gem*; near-zero damage share is mechanically inevitable. Primary assist channel: `atkspeed_assist`. Read it on assist/keep/presence, not damage |
 | garnet | mortar — slow-firing, long-range, ground-target splash (hits a position, not a creep); **ground-only** |
 | spinel | sniper — high damage, long range, slow fire; targets highest-HP creep |
 | carnelian | charged burst — first shot after idle deals up to 4× damage; quality scales the multiplier |
@@ -192,9 +228,31 @@ How to describe (the deviation, with its size):
 - For a gem low in **both** `damage_share` and `kill_share` relative to its kit, say so
   plainly with the numbers — it's contributing little when kept. Whether that's a problem is
   the user's call (Step 4).
-- CC/support gems (sapphire's slow, opal's aura) won't appear as damage outliers; their value
-  isn't in damage telemetry. State that their absence from damage findings is expected and
-  move on — do not infer they're weak.
+- **Derived support gems** (those in `gems.supportGems` — currently just opal; the set is
+  derived from effect kinds, not hardcoded). For these, **don't** read damage_share as the
+  headline. Lead instead, in this order:
+  1. **`assisted_damage_share`** (from `gems.assist`, if present) — the support item's enabled
+     damage as a share of the gem roster total, so you can put it *next to* dealers'
+     `damage_share` and see whether it's pulling its weight on a comparable axis. Name its
+     primary channel (opal → `atkspeed_assist`).
+  2. **Keep-rate** (`keep_incidence` / `keep_share`) — a support gem the AI keeps despite ~0
+     direct damage is earning its slot; that's a signal, not noise.
+  3. **Presence-conditioning** (`gems.presenceConditioning`) — how the roster does in waves
+     where it's on the board vs not (read with the loud confound caveat — it's correlational).
+  Only if it's low on *all* of these is "weak" a defensible read — and even then, say which
+  unmeasured value (slow/CC, path-denied) might still justify it. If `gems.assist` is absent
+  (pre-instrumentation runs), say the assist axis isn't available yet and fall back to keep-rate
+  + presence; do **not** infer weakness from its absence. Note: sapphire's slow is **not** in
+  the support set (sapphire is a damage dealer) — its CC value is genuinely unmeasured, so its
+  absence from damage findings is expected; state that and move on.
+
+**Assist-deviation band (new — gems *and* combos).** When `assist` data is present, mark
+assist outliers off **`ratio_to_support_median`** = a support item's `assisted_damage_share` ÷
+the support-set median (the script computes both; `support_median_assisted_damage_share` is the
+anchor). Mark 🔴 for a ratio above ~2× or below ~0.5×, 🟡 for ~1.5–2× or ~0.5–0.66×, with the
+same disclaimer as every other marker — **deviation size, not "undesirable."** `bonus_gold` is
+reported in **gold units** and is **not** folded into `assisted_damage` / the shares; report it
+as its own line (e.g. "Red Crystal generated N gold over the run set"), never as a damage share.
 
 ### Special gems / combos (`combos.ts`)
 
@@ -215,6 +273,14 @@ How to describe:
   may need the user's read on intent.
 - Low damage-per-build is expected for support/utility combos (auras, air-grounding,
   prox-effects); name the mechanical reason from `combos.ts` rather than calling them weak.
+- **Derived support combos** (those in the support set — currently Black Opal and Red Crystal;
+  Void Opal is Black Opal's tier-1, same key). Treat them exactly like support gems: lead with
+  **`assisted_damage_share`** from `combos.assist` (Black/Void Opal earn on `dmg_aura_assist` +
+  `vuln_assist`; Red Crystal's value is `demote_air` air-grounding, which is **unmeasured** —
+  its `bonus_gold` and tiny direct damage are all that show, so read it on keep-rate + presence,
+  not assist), then **keep-rate** (`keep_incidence` / `keep_share`), then
+  **`combos.presenceConditioning`** (correlational caveat). If `combos.assist` is absent
+  (pre-instrumentation), say so and fall back to keep-rate + presence.
 
 #### Upgrade-tier ROI (`combos.tierRoi[]`)
 
@@ -252,6 +318,10 @@ How to describe:
   damage for crowd-control that isn't in damage telemetry — name that from `combos.ts` before
   reading a low dmg/gold as underpowered, exactly as for `dmg_per_build`. Whether any ROI gap
   is a problem is the user's call (Step 4).
+- For a **derived support combo**, a tier that buys aura radius/pct/vuln shows up in
+  **`assisted_damage`**, not in this tier's damage ROI — so read its low `dmg_per_gold`
+  **alongside** its per-tier assist (e.g. Void Opal's 300g upgrade adds a vulnerability aura;
+  that gold buys assist, not weapon damage). Don't call such a tier a weak buy on damage ROI alone.
 
 ### Creeps (`creeps.ts`)
 
@@ -346,9 +416,11 @@ item sits from its comparison group — not a judgment that it is undesirable.
 
 ### Gems
 🔴 <Gem> — <the numbers> · <how computed / compared> · <kit-based reason it looks this way> · <sample size if relevant>
+<Support gem> — assisted_damage_share <X> (<ratio_to_support_median>×) · keep_incidence <Y> · presence Δ <Z> · <primary assist channel> (omit the assist clause if assist data absent)
 
 ### Special Gems
 🟡 <Combo display name> — <build rate, dmg/build, recipe note> · <availability-vs-value read>
+<Support combo> — assisted_damage_share <X> (channels) · keep_incidence <Y> · bonus_gold <G> gold · presence Δ <Z>
 
 **Upgrade-tier ROI** (damage per gold, compared across combos within each tier):
 🔴 <Combo, tier name> — <cum_dmg_per_gold vs tier median → ratio, over N builds> · <marginal note if it disagrees> · <kit reason if low ROI is utility>
@@ -422,6 +494,7 @@ didn't list. Build the options from this menu — pick the 2–4 that genuinely 
 | Domain (file holding the lever) | Typical levers (direction depends on whether it's over/under) |
 |---|---|
 | **Gem** (`gems.ts`) | damage scaling for a quality band · range · attack speed · effect potency (slow %, poison dps, splash radius, crit chance/mult) — and *which quality* moves |
+| **Support gem / combo** (`gems.ts` / `combos.ts`) | aura `radius` / `pct` (`aura_atkspeed`, `aura_dmg`) · vulnerability `pct` (`vulnerability_aura`) · armor-reduction `value` (`prox_armor_reduce` / `armor_reduce` / `stacking_armor_reduce` / `armor_decay_aura`) · `bonus_gold` `chance` / `multiplier` · `demote_air` `everyN` — and *which quality / upgrade tier* moves. Use when an `assist`/keep/presence finding (not a damage finding) becomes a "change it" |
 | **Special gem / combo** (`combos.ts`) | base stats · re-price a specific upgrade tier's `cost` · a tier's stats · the recipe (input quality → how easily it's built) |
 | **Creep** (`creeps.ts`) | `hpMult` · `speed` · `armor` · its count in the waves it appears in (`waves.ts`) |
 | **Wave** (`waves.ts`) | creep counts · which kinds spawn · HP/armor of that wave's pack · payload tree — or, instead of touching the wave, buff/nerf a *counter* gem elsewhere |

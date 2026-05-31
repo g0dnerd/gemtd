@@ -46,10 +46,10 @@ describe('chrysalid (berserker)', () => {
       // Apply debuffs before awakening (no stun — stun blocks advanceCreep entirely)
       c.slow = { factor: 0.5, expiresAt: game.state.tick + 999 };
       c.poison = { dps: 50, expiresAt: game.state.tick + 999, nextTick: game.state.tick + 999, ownerId: -1 };
-      c.armorDebuff = { value: 5, expiresAt: game.state.tick + 999 };
+      c.armorDebuff = { value: 5, expiresAt: game.state.tick + 999, ownerId: -1 };
 
-      // Drop HP to 50% threshold
-      c.hp = Math.floor(c.maxHp * 0.5);
+      // Drop HP to the 40% awaken threshold
+      c.hp = Math.floor(c.maxHp * 0.4);
       game.simStep();
 
       expect(c.chrysalidAwakened).toBe(true);

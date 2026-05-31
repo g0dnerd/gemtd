@@ -466,6 +466,7 @@ describe("stacking_armor_reduce", () => {
       armorPer: 2,
       decayTicks: 3 * SIM_HZ,
       lastDecayTick: game.state.tick,
+      ownerId: tower.id,
     };
 
     directDamage(combat, tower, creep, 1000);
@@ -485,6 +486,7 @@ describe("stacking_armor_reduce", () => {
       armorPer: 2,
       decayTicks: Math.round(3 * SIM_HZ),
       lastDecayTick: game.state.tick,
+      ownerId: 0,
     };
 
     // Advance past decay interval
@@ -509,6 +511,7 @@ describe("stacking_armor_reduce", () => {
       armorPer: 2,
       decayTicks: 180,
       lastDecayTick: game.state.tick,
+      ownerId: 0,
     };
 
     // Already at max (6), count should stay at 6

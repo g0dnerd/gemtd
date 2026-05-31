@@ -25,17 +25,34 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CREEP_ARCHETYPES } from "../../../../src/data/creeps.ts";
 import { COMBOS } from "../../../../src/data/combos.ts";
+import { GEM_BASE, type EffectKind } from "../../../../src/data/gems.ts";
 import { WAVES, type PayloadGroup, type WaveGroup } from "../../../../src/data/waves.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "../../../.."); // <root>/.claude/skills/balance-observations/scripts
 const DB_PATH = join(ROOT, ".local", "telemetry.db");
 
-// Opal is the one pure-support gem: its value is the attack-speed aura, not its
-// (incidental) hit damage. This is a mechanical-role fact, not a balance target —
-// it lets us report a damage-dealer mean that isn't dragged down by a gem that was
-// never meant to top the damage charts. The skill explains this in the report.
-const SUPPORT_GEMS = new Set(["opal"]);
+// Support items are derived from their effect kinds, not hardcoded — a gem/combo is
+// "support" when EVERY one of its effects only helps OTHER towers / the creep clock /
+// economy (auras, vulnerability, armor shred, air-grounding, bonus gold) and it has no
+// damaging effect of its own. Their value lands on other rows, never their own damage
+// row, so we exclude them from the damage-dealer mean (which would otherwise be dragged
+// down) and report them on the assist/keep/presence axes instead. This is a
+// mechanical-role classification, not a balance target; it auto-updates as content
+// changes. On the current roster this resolves to opal (gem) + black_opal, red_crystal
+// (combos); sapphire et al. stay damage dealers (their slow/CC is not in this set).
+const SUPPORT_KINDS = new Set<EffectKind["kind"]>([
+  "aura_atkspeed", "aura_dmg", "vulnerability_aura", "prox_armor_reduce",
+  "stacking_armor_reduce", "armor_decay_aura", "demote_air", "bonus_gold",
+]);
+const isSupportEffects = (effects: EffectKind[]): boolean =>
+  effects.length > 0 && effects.every((e) => SUPPORT_KINDS.has(e.kind));
+const supportGemSet = new Set(
+  Object.entries(GEM_BASE).filter(([, b]) => isSupportEffects(b.effects)).map(([g]) => g),
+);
+const supportComboSet = new Set(
+  COMBOS.filter((c) => isSupportEffects(c.stats.effects)).map((c) => c.key),
+);
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -140,6 +157,101 @@ const scope = (col: string) =>
 const bind = { ai, version };
 const q = <T>(sql: string) => db.prepare(sql).all(bind) as T[];
 
+// ── Keeper events → keep-rate (A1) + presence reconstruction (A2) ──────────────
+// Exactly one tower is kept per wave; the keeper event records (gem, detail=combo_key,
+// wave, run). Raw-gem keeps carry detail=''; combo keeps carry the combo_key. We split
+// keep credit so raw-gem and combo shares are disjoint (a combo keeper counts for the
+// combo, not its base gem), so gem keep_share + combo keep_share ≈ 1 across kept items.
+const keeperRows = q<{ gem: string; combo_key: string; run_id: string; wave: number }>(
+  `SELECT gem, detail AS combo_key, run_id, wave FROM events
+   WHERE event_type='keeper' AND ${scope("run_id")}`,
+);
+const totalKeepers = keeperRows.length || 1;
+const gemKeepCount = new Map<string, number>();
+const gemKeepRuns = new Map<string, Set<string>>();
+const comboKeepCount = new Map<string, number>();
+const comboKeepRuns = new Map<string, Set<string>>();
+// earliest keep wave per (item, run) — kept towers persist, so item is "present" from then on.
+const gemKeepWave = new Map<string, Map<string, number>>();
+const comboKeepWave = new Map<string, Map<string, number>>();
+const bumpKeep = (
+  cnt: Map<string, number>, runs: Map<string, Set<string>>, wave: Map<string, Map<string, number>>,
+  key: string, run: string, w: number,
+) => {
+  cnt.set(key, (cnt.get(key) ?? 0) + 1);
+  let s = runs.get(key); if (!s) { s = new Set(); runs.set(key, s); } s.add(run);
+  let m = wave.get(key); if (!m) { m = new Map(); wave.set(key, m); }
+  m.set(run, Math.min(m.get(run) ?? Infinity, w));
+};
+for (const r of keeperRows) {
+  if (r.combo_key) bumpKeep(comboKeepCount, comboKeepRuns, comboKeepWave, r.combo_key, r.run_id, r.wave);
+  else bumpKeep(gemKeepCount, gemKeepRuns, gemKeepWave, r.gem, r.run_id, r.wave);
+}
+const gemKeep = (gem: string) => ({
+  keep_incidence: round((gemKeepRuns.get(gem)?.size ?? 0) / targetRunCount),
+  keep_share: round((gemKeepCount.get(gem) ?? 0) / totalKeepers),
+});
+const comboKeep = (key: string) => ({
+  keep_incidence: round((comboKeepRuns.get(key)?.size ?? 0) / targetRunCount),
+  keep_share: round((comboKeepCount.get(key) ?? 0) / totalKeepers),
+});
+
+// Presence-conditioning data (support items only). CORRELATIONAL, not a counterfactual:
+// presence correlates with progression and stronger boards. The skill must caveat loudly.
+const runFull = q<{ run_id: string; wave_reached: number; total_leaks: number }>(
+  `SELECT run_id, wave_reached, total_leaks FROM runs
+   WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
+);
+const waveDetail = q<{ run_id: string; wave: number; leaks: number; total_damage: number; avg_ticks_to_kill: number; avg_path_progress: number }>(
+  `SELECT run_id, wave, leaks, total_damage, avg_ticks_to_kill, avg_path_progress
+   FROM waves WHERE ${scope("run_id")}`,
+);
+const waveDetailByWave = new Map<number, typeof waveDetail>();
+for (const r of waveDetail) {
+  let a = waveDetailByWave.get(r.wave); if (!a) { a = []; waveDetailByWave.set(r.wave, a); }
+  a.push(r);
+}
+const avgBy = <T>(rows: T[], f: (r: T) => number) =>
+  rows.length ? rows.reduce((s, r) => s + f(r), 0) / rows.length : 0;
+function presenceForItem(keepWaveByRun: Map<string, number> | undefined) {
+  const kw = keepWaveByRun ?? new Map<string, number>();
+  const ever = new Set(kw.keys());
+  const kept = runFull.filter((r) => ever.has(r.run_id));
+  const never = runFull.filter((r) => !ever.has(r.run_id));
+  const outcomeSplit = {
+    kept_runs: kept.length,
+    never_runs: never.length,
+    thin_sample: kept.length < thinCutoff || never.length < thinCutoff,
+    kept: kept.length ? { avg_wave_reached: round(avgBy(kept, (r) => r.wave_reached), 2), avg_total_leaks: round(avgBy(kept, (r) => r.total_leaks), 2) } : null,
+    never: never.length ? { avg_wave_reached: round(avgBy(never, (r) => r.wave_reached), 2), avg_total_leaks: round(avgBy(never, (r) => r.total_leaks), 2) } : null,
+  };
+  const perWave = [...waveDetailByWave.keys()].sort((a, b) => a - b).map((w) => {
+    const rows = waveDetailByWave.get(w)!;
+    const present = rows.filter((r) => { const k = kw.get(r.run_id); return k !== undefined && k <= w; });
+    const absent = rows.filter((r) => { const k = kw.get(r.run_id); return k === undefined || k > w; });
+    const adequate = present.length >= thinCutoff && absent.length >= thinCutoff;
+    const agg = (rs: typeof rows) => ({
+      avg_ticks_to_kill: round(avgBy(rs, (r) => r.avg_ticks_to_kill), 0),
+      avg_path_progress: round(avgBy(rs, (r) => r.avg_path_progress)),
+      avg_total_damage: round(avgBy(rs, (r) => r.total_damage), 0),
+      avg_leaks: round(avgBy(rs, (r) => r.leaks)),
+    });
+    return {
+      wave: w,
+      present_runs: present.length,
+      absent_runs: absent.length,
+      thin_sample: !adequate,
+      present: adequate ? agg(present) : null,
+      absent: adequate ? agg(absent) : null,
+    };
+  });
+  return { outcomeSplit, perWave };
+}
+const PRESENCE_CAVEAT =
+  "Correlational, NOT a counterfactual: a support item's presence correlates with run " +
+  "progression and stronger boards, so 'present' cohorts look better partly because " +
+  "better runs keep more towers. Only a leave-one-out sim measures marginal value.";
+
 const overview = db
   .prepare(
     `SELECT count(*) AS runs, avg(wave_reached) AS avg_wave, max(wave_reached) AS max_wave,
@@ -156,27 +268,101 @@ const gemRows = q<{ gem: string; total_damage: number; total_kills: number; runs
 );
 const rosterDamage = gemRows.reduce((s, r) => s + r.total_damage, 0) || 1;
 const rosterKills = gemRows.reduce((s, r) => s + r.total_kills, 0) || 1;
-const dealerShares = gemRows.filter((r) => !SUPPORT_GEMS.has(r.gem)).map((r) => r.total_damage / rosterDamage);
+const dealerShares = gemRows.filter((r) => !supportGemSet.has(r.gem)).map((r) => r.total_damage / rosterDamage);
 const dealerMean = dealerShares.length ? dealerShares.reduce((s, x) => s + x, 0) / dealerShares.length : 0;
+
+// ── Assist (A3): assisted damage credited to support sources, from wave_gem_assist ──
+// Pre-instrumentation runs (older versions) have no such table/rows; we omit the block
+// then (the script already version-filters, so it returns automatically once new runs land).
+const hasAssistTable = !!db
+  .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='wave_gem_assist'`)
+  .get();
+type AssistAgg = { dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number };
+const zeroAssist = (): AssistAgg => ({ dmg_aura: 0, vuln: 0, armor_shred: 0, atkspeed: 0, bonus_gold: 0 });
+const assistByGem = new Map<string, AssistAgg>();
+const assistByCombo = new Map<string, AssistAgg>();
+if (hasAssistTable) {
+  const assistRows = q<{ gem: string; combo_key: string; dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number }>(
+    `SELECT gem, combo_key,
+            sum(dmg_aura_assist) AS dmg_aura, sum(vuln_assist) AS vuln,
+            sum(armor_shred_assist) AS armor_shred, sum(atkspeed_assist) AS atkspeed,
+            sum(bonus_gold) AS bonus_gold
+     FROM wave_gem_assist WHERE ${scope("run_id")} GROUP BY gem, combo_key`,
+  );
+  for (const r of assistRows) {
+    const target = r.combo_key ? assistByCombo : assistByGem;
+    const key = r.combo_key || r.gem;
+    const a = target.get(key) ?? zeroAssist();
+    a.dmg_aura += r.dmg_aura; a.vuln += r.vuln; a.armor_shred += r.armor_shred;
+    a.atkspeed += r.atkspeed; a.bonus_gold += r.bonus_gold;
+    target.set(key, a);
+  }
+}
+const assistedTotal = (a: AssistAgg) => a.dmg_aura + a.vuln + a.armor_shred + a.atkspeed;
+// Support-set median assisted_damage_share → deviation band (parallels the dealer mean).
+const supportShares: number[] = [];
+for (const [g, a] of assistByGem) if (supportGemSet.has(g)) supportShares.push(assistedTotal(a) / rosterDamage);
+for (const [k, a] of assistByCombo) if (supportComboSet.has(k)) supportShares.push(assistedTotal(a) / rosterDamage);
+const supportMedianShare = supportShares.length ? median(supportShares) : 0;
+const assistRow = (isSupport: boolean, a: AssistAgg) => {
+  const assisted = assistedTotal(a);
+  const share = assisted / rosterDamage;
+  return {
+    isSupport,
+    dmg_aura_assist: round(a.dmg_aura, 0),
+    vuln_assist: round(a.vuln, 0),
+    armor_shred_assist: round(a.armor_shred, 0),
+    atkspeed_assist: round(a.atkspeed, 0),
+    assisted_damage: round(assisted, 0),
+    // share against the GEM roster total, so it's directly comparable to dealers' damage_share
+    assisted_damage_share: round(share),
+    // gold units, NOT folded into damage shares
+    bonus_gold: round(a.bonus_gold, 0),
+    ratio_to_support_median: isSupport && supportMedianShare > 0 ? round(share / supportMedianShare, 2) : null,
+  };
+};
+const gemAssist = hasAssistTable ? {
+  rosterTotalDamage: rosterDamage,
+  support_median_assisted_damage_share: supportShares.length ? round(supportMedianShare) : null,
+  perGem: [...assistByGem.entries()]
+    .map(([gem, a]) => ({ gem, ...assistRow(supportGemSet.has(gem), a) }))
+    .filter((r) => r.assisted_damage > 0 || r.bonus_gold > 0)
+    .sort((x, y) => y.assisted_damage - x.assisted_damage),
+} : null;
+const comboAssist = hasAssistTable ? {
+  rosterTotalDamage: rosterDamage,
+  support_median_assisted_damage_share: supportShares.length ? round(supportMedianShare) : null,
+  perCombo: [...assistByCombo.entries()]
+    .map(([key, a]) => ({ key, name: comboName.get(key) ?? key, ...assistRow(supportComboSet.has(key), a) }))
+    .filter((r) => r.assisted_damage > 0 || r.bonus_gold > 0)
+    .sort((x, y) => y.assisted_damage - x.assisted_damage),
+} : null;
+
 const gems = {
   rosterTotalDamage: rosterDamage,
   rosterTotalKills: rosterKills,
   dealerMeanDamageShare: round(dealerMean),
-  supportGems: [...SUPPORT_GEMS],
+  supportGems: [...supportGemSet],
   perGem: gemRows.map((r) => {
     const dmgShare = r.total_damage / rosterDamage;
     return {
       gem: r.gem,
-      isSupport: SUPPORT_GEMS.has(r.gem),
+      isSupport: supportGemSet.has(r.gem),
       total_damage: r.total_damage,
       total_kills: r.total_kills,
       runs: r.runs,
       damage_share: round(dmgShare),
       kill_share: round(r.total_kills / rosterKills),
       // ratio to the dealer mean; null for support gems (not measured against it)
-      ratio_to_dealer_mean: SUPPORT_GEMS.has(r.gem) || !dealerMean ? null : round(dmgShare / dealerMean, 2),
+      ratio_to_dealer_mean: supportGemSet.has(r.gem) || !dealerMean ? null : round(dmgShare / dealerMean, 2),
+      ...gemKeep(r.gem),
     };
   }),
+  assist: gemAssist,
+  presenceConditioning: {
+    caveat: PRESENCE_CAVEAT,
+    items: [...supportGemSet].map((g) => ({ gem: g, ...presenceForItem(gemKeepWave.get(g)) })),
+  },
 };
 
 // ── Combos: build rate + damage per build (two source tables differ by design) ──
@@ -204,6 +390,7 @@ const combos = {
         total_kills: d?.total_kills ?? 0,
         damage_runs: d?.runs ?? 0, // runs where it dealt damage (≠ built_runs, different table)
         dmg_per_build: round((d?.total_damage ?? 0) / b.built, 0),
+        ...comboKeep(b.combo_key),
       };
     })
     .sort((a, b) => b.build_rate - a.build_rate),
@@ -307,6 +494,15 @@ const combos2 = {
       };
     })
     .sort((a, b) => a.tier - b.tier || (b.cum_dmg_per_gold ?? -1) - (a.cum_dmg_per_gold ?? -1)),
+  assist: comboAssist,
+  presenceConditioning: {
+    caveat: PRESENCE_CAVEAT,
+    items: [...supportComboSet].map((k) => ({
+      key: k,
+      name: comboName.get(k) ?? k,
+      ...presenceForItem(comboKeepWave.get(k)),
+    })),
+  },
 };
 
 // ── Creeps: within-archetype leak rates ────────────────────────────────────────

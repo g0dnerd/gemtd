@@ -30,6 +30,10 @@ const TABLES: Record<string, string[]> = {
   wave_gem_damage: [
     "run_id", "wave", "gem", "is_combo", "combo_key", "upgrade_tier", "damage", "kills",
   ],
+  wave_gem_assist: [
+    "run_id", "wave", "gem", "combo_key", "upgrade_tier",
+    "dmg_aura_assist", "vuln_assist", "armor_shred_assist", "atkspeed_assist", "bonus_gold",
+  ],
 };
 
 export async function handleExport(

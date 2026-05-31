@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { armorDamageMultiplier } from "../src/systems/Combat";
-import { ARMOR_REDUCTION, ARMOR_NEGATIVE_BONUS } from "../src/data/gemtd-reference";
+import {
+  ARMOR_REDUCTION,
+  ARMOR_NEGATIVE_BONUS,
+} from "../src/data/gemtd-reference";
 import { emptyState, CreepState, TowerState } from "../src/game/State";
 import { Combat } from "../src/systems/Combat";
 import { BASE } from "../src/data/map";
@@ -34,8 +37,14 @@ describe("armorDamageMultiplier", () => {
   });
 
   it("clamps negative armor at -10", () => {
-    expect(armorDamageMultiplier(-10)).toBeCloseTo(armorDamageMultiplier(-15), 5);
-    expect(armorDamageMultiplier(-10)).toBeCloseTo(armorDamageMultiplier(-100), 5);
+    expect(armorDamageMultiplier(-10)).toBeCloseTo(
+      armorDamageMultiplier(-15),
+      5,
+    );
+    expect(armorDamageMultiplier(-10)).toBeCloseTo(
+      armorDamageMultiplier(-100),
+      5,
+    );
   });
 
   it("positive armor always reduces damage (multiplier < 1)", () => {
@@ -50,7 +59,7 @@ describe("armorDamageMultiplier", () => {
     }
   });
 
-  it("armor 7 ≈ old armored flag 0.7×", () => {
+  it("armor 7 ≈ old armored flag 0.7x", () => {
     expect(armorDamageMultiplier(7)).toBeCloseTo(0.704, 2);
   });
 });
@@ -76,7 +85,14 @@ function makeFakeGame() {
   return { game, state };
 }
 
-function makeCreep(game: Game, opts: { armor?: number; armorReduction?: number; armorDebuff?: CreepState["armorDebuff"] } = {}): CreepState {
+function makeCreep(
+  game: Game,
+  opts: {
+    armor?: number;
+    armorReduction?: number;
+    armorDebuff?: CreepState["armorDebuff"];
+  } = {},
+): CreepState {
   const creep: CreepState = {
     id: game.nextId(),
     kind: "shambler",
@@ -109,13 +125,22 @@ function makeTower(game: Game): TowerState {
     gem: "ruby",
     quality: 1 as Quality,
     lastFireTick: 0,
-    kills: 0, totalDamage: 0, waveDamage: 0, placedWave: 1,
+    kills: 0,
+    totalDamage: 0,
+    waveDamage: 0,
+    placedWave: 1,
   };
   game.state.towers.push(tower);
   return tower;
 }
 
-function fireProjectileAndStep(game: Game, combat: Combat, tower: TowerState, creep: CreepState, damage: number) {
+function fireProjectileAndStep(
+  game: Game,
+  combat: Combat,
+  tower: TowerState,
+  creep: CreepState,
+  damage: number,
+) {
   game.state.projectiles.push({
     id: game.nextId(),
     fromX: creep.px,
@@ -143,7 +168,7 @@ describe("armor in combat", () => {
     expect(creep.hp).toBe(10000 - 100);
   });
 
-  it("armor 7 reduces damage by ~0.704×", () => {
+  it("armor 7 reduces damage by ~0.704x", () => {
     const { game } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeTower(game);
@@ -179,7 +204,11 @@ describe("armor in combat", () => {
     const tower = makeTower(game);
     const creep = makeCreep(game, {
       armor: 7,
-      armorDebuff: { value: 3, expiresAt: game.state.tick + 300 },
+      armorDebuff: {
+        value: 3,
+        expiresAt: game.state.tick + 300,
+        ownerId: tower.id,
+      },
     });
     fireProjectileAndStep(game, combat, tower, creep, 1000);
     const expected = Math.round(1000 * armorDamageMultiplier(7 - 3));
@@ -193,7 +222,11 @@ describe("armor in combat", () => {
     const creep = makeCreep(game, {
       armor: 10,
       armorReduction: 4,
-      armorDebuff: { value: 3, expiresAt: game.state.tick + 300 },
+      armorDebuff: {
+        value: 3,
+        expiresAt: game.state.tick + 300,
+        ownerId: tower.id,
+      },
     });
     fireProjectileAndStep(game, combat, tower, creep, 1000);
     const expected = Math.round(1000 * armorDamageMultiplier(10 - 4 - 3));
@@ -228,7 +261,11 @@ describe("armor in combat", () => {
     const tower = makeTower(game);
     const creep = makeCreep(game, {
       armor: 7,
-      armorDebuff: { value: 5, expiresAt: game.state.tick - 1 },
+      armorDebuff: {
+        value: 5,
+        expiresAt: game.state.tick - 1,
+        ownerId: tower.id,
+      },
     });
     fireProjectileAndStep(game, combat, tower, creep, 1000);
     const expected = Math.round(1000 * armorDamageMultiplier(7));
@@ -242,7 +279,11 @@ describe("armor in combat", () => {
     const creep = makeCreep(game, {
       armor: 7,
       armorReduction: 5,
-      armorDebuff: { value: 5, expiresAt: game.state.tick + 300 },
+      armorDebuff: {
+        value: 5,
+        expiresAt: game.state.tick + 300,
+        ownerId: tower.id,
+      },
     });
     fireProjectileAndStep(game, combat, tower, creep, 1000);
     const effectiveArmor = 7 - 5 - 5; // -3

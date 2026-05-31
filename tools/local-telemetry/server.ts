@@ -99,11 +99,17 @@ const insertWaveGemDamage = db.prepare(
    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 );
 
+const insertWaveGemAssist = db.prepare(
+  `INSERT INTO wave_gem_assist (run_id, wave, gem, combo_key, upgrade_tier,
+     dmg_aura_assist, vuln_assist, armor_shred_assist, atkspeed_assist, bonus_gold)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+);
+
 const ingestTx = db.transaction(
   (runId: string, version: string, mode: string, outcome: string,
    ai: string, seed: number,
    run: any, waves: any[], towers: any[], events: any[],
-   waveCreepStats: any[], waveGemDamage: any[]) => {
+   waveCreepStats: any[], waveGemDamage: any[], waveGemAssign: any[]) => {
     insertRun.run(
       runId, version, mode, outcome,
       run.waveReached, run.finalLives, run.finalGold, run.totalKills,
@@ -148,6 +154,13 @@ const ingestTx = db.transaction(
         runId, wgd.wave, wgd.gem, wgd.isCombo ? 1 : 0, wgd.comboKey ?? "", wgd.upgradeTier ?? 0, wgd.damage, wgd.kills,
       );
     }
+    for (const wga of waveGemAssign) {
+      insertWaveGemAssist.run(
+        runId, wga.wave, wga.gem, wga.comboKey ?? "", wga.upgradeTier ?? 0,
+        wga.dmgAuraAssist ?? 0, wga.vulnAssist ?? 0, wga.armorShredAssist ?? 0,
+        wga.atkspeedAssist ?? 0, wga.bonusGold ?? 0,
+      );
+    }
   },
 );
 
@@ -163,7 +176,7 @@ function handleIngest(req: IncomingMessage, res: ServerResponse): void {
     const { runId, version, mode, outcome, run } = body;
 
     try {
-      ingestTx(runId, version, mode, outcome, body.ai ?? "", body.seed ?? 0, run, body.waves ?? [], body.towers ?? [], body.events ?? [], body.waveCreepStats ?? [], body.waveGemDamage ?? []);
+      ingestTx(runId, version, mode, outcome, body.ai ?? "", body.seed ?? 0, run, body.waves ?? [], body.towers ?? [], body.events ?? [], body.waveCreepStats ?? [], body.waveGemDamage ?? [], body.waveGemAssign ?? []);
       console.log(`Ingested run ${runId} (${mode}${body.ai ? `/${body.ai}` : ""}, wave ${run.waveReached}, ${outcome})`);
       cors(res);
       res.writeHead(204);
@@ -396,6 +409,10 @@ const TABLES: Record<string, string[]> = {
   ],
   wave_gem_damage: [
     "run_id", "wave", "gem", "is_combo", "combo_key", "upgrade_tier", "damage", "kills",
+  ],
+  wave_gem_assist: [
+    "run_id", "wave", "gem", "combo_key", "upgrade_tier",
+    "dmg_aura_assist", "vuln_assist", "armor_shred_assist", "atkspeed_assist", "bonus_gold",
   ],
 };
 
