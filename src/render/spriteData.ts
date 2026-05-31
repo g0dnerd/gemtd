@@ -1371,7 +1371,7 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     pulse: 1.2,
     orbit: false,
     aura: false,
-    ground: hex("#446618"),
+    ground: null,
   },
   black_opal: {
     glow: hex("#a0a0ff"),
