@@ -273,7 +273,7 @@ export const WAVES: WaveDef[] = [
     ["skitter", 15, 27000, 2, 0.34, 8],
     ["chrysalid", 12, 27800, 2, 0.34, 8],
   ),
-  w(33, "carapace", 18, 32700, 2, 0.75, 14, 0.06, 38),
+  w(33, "carapace", 18, 30000, 2, 0.75, 14, 0.06, 35),
   wm(34, 0.55, 14, ["chrysalid", 17, 33100, 2, 0.28, 9]),
   {
     number: 35,
@@ -301,7 +301,7 @@ export const WAVES: WaveDef[] = [
                   {
                     kind: "anemone" as CreepKind,
                     count: 3,
-                    hp: 10000,
+                    hp: 8000,
                     bounty: 2,
                   },
                   {

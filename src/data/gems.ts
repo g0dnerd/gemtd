@@ -210,7 +210,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     spread: 0.15,
     baseRange: 3.0,
     baseAtkSpeed: 3.0,
-    effects: [{ kind: "beam_ramp", rampPerHit: 0.21, maxStacks: 30 }],
+    effects: [{ kind: "beam_ramp", rampPerHit: 0.27, maxStacks: 30 }],
     targeting: "all",
   },
   garnet: {
@@ -219,7 +219,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseDmg: 40,
     spread: 0.2,
     baseRange: 7.5,
-    baseAtkSpeed: 0.16,
+    baseAtkSpeed: 0.14,
     effects: [{ kind: "splash", radius: 1.5, falloff: 0.5 }],
     targeting: "ground",
     projectileSpeed: 125,

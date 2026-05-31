@@ -81,7 +81,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Ancient Paraiba",
-        cost: 350,
+        cost: 400,
         stats: {
           dmgMin: 330,
           dmgMax: 470,
@@ -410,7 +410,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Storm Crown",
-        cost: 300,
+        cost: 360,
         stats: {
           dmgMin: 150,
           dmgMax: 220,
@@ -449,7 +449,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Uranium 235",
-        cost: 285,
+        cost: 340,
         stats: {
           dmgMin: 0,
           dmgMax: 0,
@@ -524,11 +524,11 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "diamond", quality: 2 },
     ],
     stats: {
-      dmgMin: 100,
-      dmgMax: 180,
+      dmgMin: 120,
+      dmgMax: 220,
       range: 7.0,
       atkSpeed: 0.5,
-      effects: [{ kind: "distance_scaling", minMult: 0.5, maxMult: 1.5 }],
+      effects: [{ kind: "distance_scaling", minMult: 0.5, maxMult: 1.8 }],
       blurb: "More damage the farther the target.",
       targeting: "all",
     },
@@ -736,13 +736,13 @@ const ALL_COMBOS: ComboRecipe[] = [
         stats: {
           dmgMin: 0,
           dmgMax: 0,
-          range: 2.6,
+          range: 2.8,
           atkSpeed: 1.0,
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 75,
-              radius: 2.6,
+              dps: 110,
+              radius: 2.8,
               rampPct: 0.1,
               rampCap: 1.0,
             },
@@ -801,9 +801,9 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Vivid Malachite",
         cost: 75,
         stats: {
-          dmgMin: 62,
-          dmgMax: 90,
-          range: 3.75,
+          dmgMin: 80,
+          dmgMax: 120,
+          range: 4.0,
           atkSpeed: 1.6,
           effects: [{ kind: "multi_target", count: 6 }],
           blurb: "Attacks 6 enemies at once.",
@@ -838,9 +838,11 @@ const ALL_COMBOS: ComboRecipe[] = [
       dmgMin: 32,
       dmgMax: 40,
       range: 5.5,
-      atkSpeed: 1.0,
-      effects: [{ kind: "momentum", maxStacks: 12, rampSpeed: 2.5 }],
-      blurb: "Builds momentum - attacks faster the longer it fires.",
+      atkSpeed: 0.65,
+      effects: [
+        { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.5 },
+      ],
+      blurb: "Slow start. Builds momentum - faster and harder each shot.",
       targeting: "all",
     },
     upgrades: [
@@ -848,8 +850,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Molten Pyrite",
         cost: 100,
         stats: {
-          dmgMin: 55,
-          dmgMax: 70,
+          dmgMin: 78,
+          dmgMax: 100,
           range: 5.5,
           atkSpeed: 0.5,
           effects: [
@@ -904,13 +906,13 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Frosted Silver",
         cost: 110,
         stats: {
-          dmgMin: 130,
-          dmgMax: 170,
+          dmgMin: 155,
+          dmgMax: 210,
           range: 3.75,
           atkSpeed: 1.35,
           effects: [
             { kind: "splash", radius: 1.5, falloff: 0.5 },
-            { kind: "slow", factor: 0.65, duration: 1.5 },
+            { kind: "slow", factor: 0.6, duration: 1.5 },
             { kind: "freeze_chance", chance: 0.1, duration: 0.8 },
           ],
           blurb: "Splash slow. 10% freeze chance.",
