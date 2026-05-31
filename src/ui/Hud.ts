@@ -804,7 +804,14 @@ export function mountHud(
 
   function rebuildRecipes(): void {
     recipesList.innerHTML = "";
-    for (const c of COMBOS) {
+    const tierCost = (c: ComboRecipe): number =>
+      c.inputs.reduce((sum, i) => sum + i.quality, 0);
+    const sortRank = (c: ComboRecipe): number =>
+      c.key === "stargem" ? Infinity : tierCost(c);
+    const ordered = [...COMBOS].sort(
+      (a, b) => sortRank(a) - sortRank(b) || a.name.localeCompare(b.name),
+    );
+    for (const c of ordered) {
       const card = document.createElement("div");
       card.className = "px-panel-inset recipe-card v2c";
       card.dataset.recipeKey = c.key;
