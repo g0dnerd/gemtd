@@ -10,7 +10,7 @@
 import { Container, Graphics, Sprite, Texture } from "pixi.js";
 import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
 import { activeDraw } from "../game/State";
-import { FINE_TILE, TILE } from "../game/constants";
+import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
 import { GEM_PALETTE, type GemType, RUNE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
 import { OPAL_FRAME_COUNT, SPECIAL_SPRITES, SPECIAL_TIER_GRIDS } from "./spriteData";
@@ -143,6 +143,14 @@ interface TowerEntry {
   thunderstoneFx?: ThunderstoneFx;
   ametrineBobWrap?: Container;
   ametrineFx?: AmetrineFx;
+  /** Carnelian charge ring — hairline track + clockwise fill arc reading the idle wind-up. */
+  carnelianChargeFx?: Graphics;
+  /** Idle ticks needed for a full charge (chargeSeconds × SIM_HZ), cached at build. */
+  carnelianChargeTicks?: number;
+  /** Last seen lastFireTick, to detect a shot and trigger the discharge flash. */
+  carnelianLastFireTick?: number;
+  /** Wall-clock ms of the most recent fire, for the discharge-flash envelope. */
+  carnelianDischargeStart?: number;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -205,7 +213,7 @@ const projectileObjs = new Map<number, PerEntity>();
 
 const runeTextureCache = new Map<string, Texture>();
 
-export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, selectedTowerId: number | null = null, hoveredTowerId: number | null = null): void {
+export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, tick: number, selectedTowerId: number | null = null, hoveredTowerId: number | null = null): void {
   const now = performance.now();
   const seen = new Set<number>();
   for (const t of towers) {
@@ -247,6 +255,8 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let thunderstoneFx: ThunderstoneFx | undefined;
       let ametrineBobWrap: Container | undefined;
       let ametrineFx: AmetrineFx | undefined;
+      let carnelianChargeFx: Graphics | undefined;
+      let carnelianChargeTicks = 0;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
@@ -428,6 +438,12 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         if (t.gem === "opal" && !t.comboKey) {
           opalFrames = cache.opalFrameTextures(t.quality);
         }
+        if (t.gem === "carnelian" && !t.comboKey) {
+          carnelianChargeFx = new Graphics();
+          obj.addChild(carnelianChargeFx);
+          const cb = gemStats(t.gem as GemType, t.quality).effects.find((e) => e.kind === "charge_burst");
+          carnelianChargeTicks = (cb && "chargeSeconds" in cb ? cb.chargeSeconds : 8) * SIM_HZ;
+        }
         if (t.comboKey === 'red_crystal') {
           redCrystalFx = makeRedCrystalFx(obj, tier);
         }
@@ -437,7 +453,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       }
       layer.addChild(obj);
       const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx, pyriteBobWrap, pyriteFx, goldenBerylBobWrap, goldenBerylFx, tigersEyeBobWrap, thunderstoneBobWrap, thunderstoneFx, ametrineBobWrap, ametrineFx };
+      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx, pyriteBobWrap, pyriteFx, goldenBerylBobWrap, goldenBerylFx, tigersEyeBobWrap, thunderstoneBobWrap, thunderstoneFx, ametrineBobWrap, ametrineFx, carnelianChargeFx, carnelianChargeTicks, carnelianLastFireTick: t.lastFireTick };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -472,6 +488,7 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     }
     if (entry.redCrystalFx) animateRedCrystalFx(entry.redCrystalFx, now);
     if (entry.malachiteFx) animateMalachiteFx(entry.malachiteFx, now);
+    if (entry.carnelianChargeFx) animateCarnelianChargeFx(entry, t, tick, now);
     const isSelected = t.id === selectedTowerId;
     if (isSelected && !entry.selBracket) {
       const palette = GEM_PALETTE[t.gem as GemType];
@@ -937,6 +954,80 @@ function animateParaibaArcFx(entry: TowerEntry, now: number): void {
   if (entry.fx) {
     const basePulse = (Math.sin((sec / 1.8) * Math.PI * 2) + 1) / 2;
     entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.4 * basePulse + 0.3 * maxArcAlpha);
+  }
+}
+
+// ===== Carnelian — Charge Ring ================================================
+// A hairline ring around the gem fills clockwise as the tower sits idle and
+// the charge_burst multiplier builds (matches Combat's idle-since-lastFire
+// model). A leading pip marks the wind-up head, the ring pulses gently at full,
+// and a short outward flash plays when the charged shot is spent. Local to the
+// tile and quiet until near-full — clear without being attention-grabbing.
+
+const CARNELIAN_RING = {
+  light: 0xe89060,
+  mid: 0xc06030,
+  dark: 0x502818,
+  spec: 0xffd9b0,
+};
+const CARNELIAN_DISCHARGE_MS = 420;
+
+/** Lerp between two packed RGB colors. */
+function lerpColor(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 255, ag = (a >> 8) & 255, ab = a & 255;
+  const br = (b >> 16) & 255, bg = (b >> 8) & 255, bb = b & 255;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bl;
+}
+
+function animateCarnelianChargeFx(entry: TowerEntry, t: TowerState, tick: number, now: number): void {
+  const g = entry.carnelianChargeFx!;
+
+  // Detect a shot (lastFireTick advanced) → flash, but skip the very first shot,
+  // which is uncharged (Combat only charges when prevFireTick > 0).
+  const prev = entry.carnelianLastFireTick ?? 0;
+  if (t.lastFireTick > prev && prev > 0) entry.carnelianDischargeStart = now;
+  entry.carnelianLastFireTick = t.lastFireTick;
+
+  // Charge fraction mirrors Combat: idle ticks since last fire / charge window.
+  // Before the first shot (lastFireTick === 0) there is no charge yet.
+  const chargeTicks = entry.carnelianChargeTicks || SIM_HZ * 8;
+  const f = t.lastFireTick > 0 ? Math.min(1, (tick - t.lastFireTick) / chargeTicks) : 0;
+
+  const dis = entry.carnelianDischargeStart
+    ? Math.max(0, 1 - (now - entry.carnelianDischargeStart) / CARNELIAN_DISCHARGE_MS)
+    : 0;
+
+  g.clear();
+  const R = TILE * 0.5;
+
+  // Faint track — the "this is a charge gem" affordance, always present.
+  g.circle(0, 0, R).stroke({ width: 1.5, color: CARNELIAN_RING.dark, alpha: 0.5 });
+
+  // Clockwise fill arc from the top, warming and brightening toward full.
+  if (f > 0.001) {
+    const start = -Math.PI / 2;
+    const end = start + f * Math.PI * 2;
+    const col = lerpColor(CARNELIAN_RING.mid, CARNELIAN_RING.light, f);
+    g.moveTo(Math.cos(start) * R, Math.sin(start) * R)
+      .arc(0, 0, R, start, end)
+      .stroke({ width: 2, color: col, alpha: 0.5 + f * 0.45 });
+    // Leading pip at the wind-up head.
+    g.rect(Math.cos(end) * R - 1.5, Math.sin(end) * R - 1.5, 3, 3)
+      .fill({ color: CARNELIAN_RING.spec, alpha: 0.9 });
+  }
+
+  // Gentle pulse once fully charged.
+  if (f >= 0.999) {
+    const pulse = 0.25 + 0.25 * Math.sin(now * 0.006);
+    g.circle(0, 0, R + 2.5).stroke({ width: 1.5, color: CARNELIAN_RING.light, alpha: pulse });
+  }
+
+  // Spend the charge: a short outward flash on fire.
+  if (dis > 0.01) {
+    g.circle(0, 0, R + dis * 8).stroke({ width: 2, color: CARNELIAN_RING.spec, alpha: dis * 0.7 });
   }
 }
 
