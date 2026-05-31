@@ -78,7 +78,7 @@ export function opalFleckHue(frame: number): number {
   );
 }
 
-// ===== Tier silhouettes (10×10) =========================================
+// ===== Tier silhouettes (10x10) =========================================
 
 /** T1 Chipped — three broken pieces. */
 export const TIER_SHARD: PixelGrid = [
@@ -158,7 +158,7 @@ export const TIER_GRIDS: Record<1 | 2 | 3 | 4 | 5, PixelGrid> = {
   5: TIER_CROWN,
 };
 
-// ===== Special silhouettes (8×8) =========================================
+// ===== Special silhouettes (8x8) =========================================
 
 const STAR_RUBY: PixelGrid = [
   [0, 0, 0, 4, 4, 0, 0, 0],
@@ -667,7 +667,7 @@ const YELLOW_SAPPH_T2: PixelGrid = [
   [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
 ];
 
-// PYRITE — T1: Fractured Core (8×8), dark iron shell with glowing vein seams
+// PYRITE — T1: Fractured Core (8x8), dark iron shell with glowing vein seams
 const PYRITE_T1: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 0, 0],
   [0, 4, 3, 1, 2, 3, 4, 0],
@@ -679,7 +679,7 @@ const PYRITE_T1: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 0, 0],
 ];
 
-// PYRITE — T2: Molten Pyrite (10×10), more fractures, brighter core
+// PYRITE — T2: Molten Pyrite (10x10), more fractures, brighter core
 const PYRITE_T2: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 4, 0, 0, 0],
   [0, 4, 3, 3, 1, 2, 3, 3, 4, 0],
@@ -693,7 +693,7 @@ const PYRITE_T2: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
 ];
 
-// PYRITE — T3: Pyroclast (12×12), white-hot core, volcanic black crust
+// PYRITE — T3: Pyroclast (12x12), white-hot core, volcanic black crust
 const PYRITE_T3: PixelGrid = [
   [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
   [0, 0, 4, 3, 3, 1, 2, 3, 3, 4, 0, 0],
@@ -709,7 +709,7 @@ const PYRITE_T3: PixelGrid = [
   [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
 ];
 
-// GOLDEN BERYL — T1: hexagonal prism with detached sparkle corona (8×8)
+// GOLDEN BERYL — T1: hexagonal prism with detached sparkle corona (8x8)
 const GOLDEN_BERYL_T1: PixelGrid = [
   [0, 0, 0, 5, 5, 0, 0, 0],
   [0, 0, 4, 4, 4, 4, 0, 0],
@@ -721,7 +721,7 @@ const GOLDEN_BERYL_T1: PixelGrid = [
   [0, 0, 0, 5, 5, 0, 0, 0],
 ];
 
-// GOLDEN BERYL — T2: Radiant Beryl (10×10)
+// GOLDEN BERYL — T2: Radiant Beryl (10x10)
 const GOLDEN_BERYL_T2: PixelGrid = [
   [0, 0, 0, 0, 5, 5, 0, 0, 0, 0],
   [0, 0, 5, 4, 4, 4, 4, 5, 0, 0],
@@ -735,7 +735,7 @@ const GOLDEN_BERYL_T2: PixelGrid = [
   [0, 0, 0, 0, 5, 5, 0, 0, 0, 0],
 ];
 
-// GOLDEN BERYL — T3: Prismatic Beryl (12×12)
+// GOLDEN BERYL — T3: Prismatic Beryl (12x12)
 const GOLDEN_BERYL_T3: PixelGrid = [
   [0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0],
   [0, 0, 0, 5, 4, 4, 4, 4, 5, 0, 0, 0],
@@ -751,7 +751,7 @@ const GOLDEN_BERYL_T3: PixelGrid = [
   [0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0],
 ];
 
-// TIGER'S EYE — T1: Obsidian Eye, dark anthracite with gold eye (8×8)
+// TIGER'S EYE — T1: Obsidian Eye, dark anthracite with gold eye (8x8)
 const TIGERS_EYE_T1: PixelGrid = [
   [0, 4, 4, 4, 4, 4, 4, 0],
   [4, 1, 1, 2, 2, 2, 2, 4],
@@ -763,7 +763,7 @@ const TIGERS_EYE_T1: PixelGrid = [
   [0, 4, 4, 4, 4, 4, 4, 0],
 ];
 
-// TIGER'S EYE — T2: Dragon's Eye (10×10)
+// TIGER'S EYE — T2: Dragon's Eye (10x10)
 const TIGERS_EYE_T2: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
   [0, 4, 1, 1, 1, 5, 2, 2, 4, 0],
@@ -777,7 +777,7 @@ const TIGERS_EYE_T2: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
 ];
 
-// THUNDERSTONE — T1: Raw Bolt, jagged asymmetric shard (8×8)
+// THUNDERSTONE — T1: Raw Bolt, jagged asymmetric shard (8x8)
 const THUNDERSTONE_T1: PixelGrid = [
   [0, 0, 4, 4, 0, 0, 0, 0],
   [0, 4, 1, 1, 4, 4, 0, 0],
@@ -789,7 +789,7 @@ const THUNDERSTONE_T1: PixelGrid = [
   [0, 0, 0, 4, 4, 0, 0, 0],
 ];
 
-// THUNDERSTONE — T2: Storm Crown (10×10)
+// THUNDERSTONE — T2: Storm Crown (10x10)
 const THUNDERSTONE_T2: PixelGrid = [
   [0, 0, 4, 4, 0, 0, 4, 4, 0, 0],
   [0, 4, 1, 1, 4, 4, 1, 2, 4, 0],
@@ -803,7 +803,7 @@ const THUNDERSTONE_T2: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
 ];
 
-// AMETRINE — T1: Raw chunk, jagged asymmetric (8×8)
+// AMETRINE — T1: Raw chunk, jagged asymmetric (8x8)
 const AMETRINE_T1: PixelGrid = [
   [0, 0, 0, 4, 4, 4, 0, 0],
   [0, 0, 4, 5, 5, 2, 4, 0],
@@ -815,7 +815,7 @@ const AMETRINE_T1: PixelGrid = [
   [0, 0, 4, 4, 4, 0, 0, 0],
 ];
 
-// AMETRINE — T2: Imperial Ametrine, tall emerald-cut rectangle (10×12)
+// AMETRINE — T2: Imperial Ametrine, tall emerald-cut rectangle (10x12)
 const AMETRINE_T2: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
   [0, 4, 5, 5, 5, 2, 2, 2, 4, 0],
@@ -831,7 +831,7 @@ const AMETRINE_T2: PixelGrid = [
   [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
 ];
 
-// AMETRINE — T3: Ametrine Sovereign, tall crowned jewel (12×12)
+// AMETRINE — T3: Ametrine Sovereign, tall crowned jewel (12x12)
 const AMETRINE_T3: PixelGrid = [
   [0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0],
   [0, 0, 0, 0, 5, 5, 5, 5, 0, 0, 0, 0],
@@ -1443,7 +1443,7 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     pulse: 1.8,
     orbit: false,
     aura: false,
-    // No ground tint: the old #0a4858 square filled the whole 2×2 footprint
+    // No ground tint: the old #0a4858 square filled the whole 2x2 footprint
     // and, under the near-white gem + bright halo, read as glow flooding the
     // tile. Keep the glow emanating from the crystal instead.
     ground: null,
@@ -1498,7 +1498,7 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
   },
 };
 
-// ===== Rocks (16×16, tile-filling) =======================================
+// ===== Rocks (16x16, tile-filling) =======================================
 
 export const ROCK_BOULDER: PixelGrid = [
   [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],

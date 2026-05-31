@@ -1,6 +1,6 @@
 """AI players for the Zig sim — Python ports of the TS heuristic AIs.
 
-GreedyAI: exposure × 2 + mazeGain scoring, DPS-based keeper selection
+GreedyAI: exposure x 2 + mazeGain scoring, DPS-based keeper selection
 BlueprintAI: follows MAZE_BLUEPRINT positions, falls back to Greedy
 StrategistAI: weighted multi-factor keeper scoring with wave awareness
 """
@@ -8,16 +8,31 @@ StrategistAI: weighted multi-factor keeper scoring with wave awareness
 from __future__ import annotations
 
 from .sim import (
-    SimWrapper, GameState, DrawSlot, TowerSnapshot,
-    GRID_W, GRID_H, GRID_SCALE, FINE_TILE,
-    PHASE_BUILD, PHASE_GAMEOVER, PHASE_VICTORY,
+    SimWrapper,
+    GameState,
+    DrawSlot,
+    TowerSnapshot,
+    GRID_SCALE,
+    PHASE_BUILD,
+    PHASE_GAMEOVER,
+    PHASE_VICTORY,
 )
 from .data import (
-    gem_stats, COMBOS, COMBO_BY_KEY, find_all_combos_for, combo_stats_at_tier,
-    next_upgrade, combo_input_cost, estimate_combo_dps, combo_value,
-    QUALITY_BASE_COST, MAX_CHANCE_TIER, GOLD_RESERVE,
-    MAZE_BLUEPRINT, TILE,
-    wave_has_air, wave_has_boss, NUM_WAVES,
+    gem_stats,
+    COMBOS,
+    COMBO_BY_KEY,
+    find_all_combos_for,
+    combo_stats_at_tier,
+    next_upgrade,
+    combo_input_cost,
+    estimate_combo_dps,
+    combo_value,
+    MAX_CHANCE_TIER,
+    GOLD_RESERVE,
+    MAZE_BLUEPRINT,
+    wave_has_air,
+    wave_has_boss,
+    NUM_WAVES,
 )
 
 FOOTPRINT = [(0, 0), (1, 0), (0, 1), (1, 1)]
@@ -36,22 +51,6 @@ def _exposure(route: list[tuple[int, int]], tx: int, ty: int, gem_range: float) 
             count += 1
     return count
 
-
-def _is_adjacent_to_maze(sim: SimWrapper, towers: list[TowerSnapshot], x: int, y: int) -> bool:
-    """Check if position is adjacent to existing towers/rocks/path.
-
-    Simplified: check if any tower is within distance 3 of this position.
-    Also always return True for the first placement.
-    """
-    if not towers:
-        return True
-    for t in towers:
-        if abs(t.x - x) <= 3 and abs(t.y - y) <= 3:
-            return True
-    return False
-
-
-# ── GreedyAI ────────────────────────────────────────────────────────
 
 class GreedyAI:
     name = "GreedyAI"
@@ -138,7 +137,9 @@ class GreedyAI:
             if best_pos:
                 sim.place_gem(active.slot_id, best_pos[0], best_pos[1])
 
-    def _get_candidates(self, sim: SimWrapper, towers: list[TowerSnapshot]) -> list[tuple[int, int]]:
+    def _get_candidates(
+        self, sim: SimWrapper, towers: list[TowerSnapshot]
+    ) -> list[tuple[int, int]]:
         """Get valid placements filtered to positions near existing maze."""
         all_valid = sim.get_valid_placements()
         if not towers:
@@ -173,7 +174,9 @@ class GreedyAI:
             return
 
         draws = sim.get_draws()
-        current_round_ids = {d.placed_tower_id for d in draws if d.placed_tower_id is not None}
+        current_round_ids = {
+            d.placed_tower_id for d in draws if d.placed_tower_id is not None
+        }
         towers = sim.get_towers()
 
         best_individual_dps = self._best_round_gem_dps(towers, current_round_ids)
@@ -214,9 +217,13 @@ class GreedyAI:
             return
 
         draws = sim.get_draws()
-        fresh_round_ids = {d.placed_tower_id for d in draws if d.placed_tower_id is not None}
+        fresh_round_ids = {
+            d.placed_tower_id for d in draws if d.placed_tower_id is not None
+        }
         towers = sim.get_towers()
-        round_towers = [t for t in towers if t.id in fresh_round_ids and not t.combo_key]
+        round_towers = [
+            t for t in towers if t.id in fresh_round_ids and not t.combo_key
+        ]
 
         groups: dict[str, list[TowerSnapshot]] = {}
         for t in round_towers:
@@ -237,12 +244,19 @@ class GreedyAI:
             result_q = min(5, q + (2 if count == 4 else 1))
             combine_ids = {t.id for t in towers_group[:count]}
 
-            if not self._should_level_up(towers_group[0].gem, result_q, combine_ids, round_towers):
+            if not self._should_level_up(
+                towers_group[0].gem, result_q, combine_ids, round_towers
+            ):
                 continue
             sim.combine([t.id for t in towers_group[:count]])
 
-    def _should_level_up(self, gem: str, result_quality: int,
-                          combine_ids: set[int], round_towers: list[TowerSnapshot]) -> bool:
+    def _should_level_up(
+        self,
+        gem: str,
+        result_quality: int,
+        combine_ids: set[int],
+        round_towers: list[TowerSnapshot],
+    ) -> bool:
         for t in round_towers:
             if t.id in combine_ids or t.combo_key:
                 continue
@@ -252,8 +266,9 @@ class GreedyAI:
                 return False
         return True
 
-    def _best_round_gem_dps(self, towers: list[TowerSnapshot],
-                             current_round_ids: set[int]) -> float:
+    def _best_round_gem_dps(
+        self, towers: list[TowerSnapshot], current_round_ids: set[int]
+    ) -> float:
         best = 0.0
         for t in towers:
             if t.id not in current_round_ids or t.combo_key:
@@ -279,10 +294,14 @@ class GreedyAI:
 
     def _designate_keeper(self, sim: SimWrapper) -> None:
         draws = sim.get_draws()
-        current_round_ids = {d.placed_tower_id for d in draws if d.placed_tower_id is not None}
+        current_round_ids = {
+            d.placed_tower_id for d in draws if d.placed_tower_id is not None
+        }
         towers = sim.get_towers()
         round_towers = [t for t in towers if t.id in current_round_ids]
-        kept_towers = [t for t in towers if t.id not in current_round_ids and not t.combo_key]
+        kept_towers = [
+            t for t in towers if t.id not in current_round_ids and not t.combo_key
+        ]
 
         if not round_towers:
             return
@@ -304,8 +323,12 @@ class GreedyAI:
                     score *= 1 + e.bounces * 0.3
                 elif e.kind == "aura_atkspeed":
                     aura_r2 = (e.radius * GRID_SCALE) ** 2
-                    nearby = sum(1 for o in towers if o.id != tower.id
-                                 and (o.x - tower.x) ** 2 + (o.y - tower.y) ** 2 <= aura_r2)
+                    nearby = sum(
+                        1
+                        for o in towers
+                        if o.id != tower.id
+                        and (o.x - tower.x) ** 2 + (o.y - tower.y) ** 2 <= aura_r2
+                    )
                     score *= 1 + nearby * 0.4
 
             if stats.targeting == "air":
@@ -316,7 +339,9 @@ class GreedyAI:
             combo_bonus = _combo_ingredient_bonus(tower, kept_towers)
             score += combo_bonus
 
-            same_gem_kept = sum(1 for t in kept_towers if t.gem == tower.gem and not t.combo_key)
+            same_gem_kept = sum(
+                1 for t in kept_towers if t.gem == tower.gem and not t.combo_key
+            )
             if same_gem_kept > 0 and combo_bonus == 0:
                 score *= 0.5
 
@@ -328,6 +353,7 @@ class GreedyAI:
 
 
 # ── BlueprintAI ─────────────────────────────────────────────────────
+
 
 class BlueprintAI(GreedyAI):
     name = "BlueprintAI"
@@ -344,7 +370,11 @@ class BlueprintAI(GreedyAI):
             return
 
         positions = MAZE_BLUEPRINT[round_index]
-        keeper_pos_idx = self._keeper_indices[round_index] if round_index < len(self._keeper_indices) else -1
+        keeper_pos_idx = (
+            self._keeper_indices[round_index]
+            if round_index < len(self._keeper_indices)
+            else -1
+        )
 
         draws = sim.get_draws()
         unplaced = [d for d in draws if d.placed_tower_id is None]
@@ -370,8 +400,9 @@ class BlueprintAI(GreedyAI):
             pos_idx += 1
             self._fallback_place(sim, slot_id)
 
-    def _build_slot_order(self, unplaced: list[DrawSlot], keeper_pos_idx: int,
-                           position_count: int) -> list[int]:
+    def _build_slot_order(
+        self, unplaced: list[DrawSlot], keeper_pos_idx: int, position_count: int
+    ) -> list[int]:
         if not unplaced:
             return []
         if keeper_pos_idx < 0 or keeper_pos_idx >= position_count:
@@ -469,6 +500,7 @@ class BlueprintAI(GreedyAI):
 
 # ── StrategistAI ────────────────────────────────────────────────────
 
+
 class StrategistAI(BlueprintAI):
     name = "StrategistAI"
 
@@ -491,8 +523,12 @@ class StrategistAI(BlueprintAI):
 
             current_stats = combo_stats_at_tier(combo, current_tier)
             next_stats = upgrade.stats
-            current_dps = ((current_stats.dmg_min + current_stats.dmg_max) / 2) * current_stats.atk_speed
-            next_dps = ((next_stats.dmg_min + next_stats.dmg_max) / 2) * next_stats.atk_speed
+            current_dps = (
+                (current_stats.dmg_min + current_stats.dmg_max) / 2
+            ) * current_stats.atk_speed
+            next_dps = (
+                (next_stats.dmg_min + next_stats.dmg_max) / 2
+            ) * next_stats.atk_speed
             dps_gain_per_gold = (next_dps - current_dps) / upgrade.cost
 
             upgradeable.append((t.id, upgrade.cost, dps_gain_per_gold))
@@ -511,7 +547,9 @@ class StrategistAI(BlueprintAI):
             return
 
         draws = sim.get_draws()
-        current_round_ids = {d.placed_tower_id for d in draws if d.placed_tower_id is not None}
+        current_round_ids = {
+            d.placed_tower_id for d in draws if d.placed_tower_id is not None
+        }
         towers = sim.get_towers()
 
         best_individual_dps = self._best_round_gem_dps(towers, current_round_ids)
@@ -551,9 +589,13 @@ class StrategistAI(BlueprintAI):
             return
 
         draws = sim.get_draws()
-        fresh_round_ids = {d.placed_tower_id for d in draws if d.placed_tower_id is not None}
+        fresh_round_ids = {
+            d.placed_tower_id for d in draws if d.placed_tower_id is not None
+        }
         towers = sim.get_towers()
-        fresh_round_towers = [t for t in towers if t.id in fresh_round_ids and not t.combo_key]
+        fresh_round_towers = [
+            t for t in towers if t.id in fresh_round_ids and not t.combo_key
+        ]
 
         groups: dict[str, list[TowerSnapshot]] = {}
         for t in fresh_round_towers:
@@ -573,14 +615,18 @@ class StrategistAI(BlueprintAI):
 
             result_q = min(5, q + (2 if count == 4 else 1))
             combine_ids = {t.id for t in towers_group[:count]}
-            if not self._should_level_up(towers_group[0].gem, result_q, combine_ids, fresh_round_towers):
+            if not self._should_level_up(
+                towers_group[0].gem, result_q, combine_ids, fresh_round_towers
+            ):
                 continue
             sim.combine([t.id for t in towers_group[:count]])
 
     def _designate_keeper(self, sim: SimWrapper) -> None:
         state = sim.get_state()
         draws = sim.get_draws()
-        current_round_ids = {d.placed_tower_id for d in draws if d.placed_tower_id is not None}
+        current_round_ids = {
+            d.placed_tower_id for d in draws if d.placed_tower_id is not None
+        }
         towers = sim.get_towers()
         round_towers = [t for t in towers if t.id in current_round_ids]
 
@@ -589,7 +635,9 @@ class StrategistAI(BlueprintAI):
 
         route = sim.get_route()
         wave_idx = min(state.wave - 1, NUM_WAVES - 1)
-        has_air_next = wave_has_air(wave_idx + 2)  # +2 because wave is 1-based, looking at NEXT wave
+        has_air_next = wave_has_air(
+            wave_idx + 2
+        )  # +2 because wave is 1-based, looking at NEXT wave
         is_boss_next = wave_has_boss(wave_idx + 2)
 
         best_id = round_towers[0].id
@@ -609,7 +657,12 @@ class StrategistAI(BlueprintAI):
 
         for tower in round_towers:
             score = self._score_tower_keeper(
-                tower, towers, kept_towers, route, has_air_next, is_boss_next,
+                tower,
+                towers,
+                kept_towers,
+                route,
+                has_air_next,
+                is_boss_next,
             )
             if tower.id == blueprint_keeper_id:
                 blueprint_keeper_score = score
@@ -617,10 +670,12 @@ class StrategistAI(BlueprintAI):
                 best_score = score
                 best_id = tower.id
 
-        if (blueprint_keeper_id is not None
-                and blueprint_keeper_score > 0
-                and best_id != blueprint_keeper_id
-                and best_score <= blueprint_keeper_score * 1.3):
+        if (
+            blueprint_keeper_id is not None
+            and blueprint_keeper_score > 0
+            and best_id != blueprint_keeper_id
+            and best_score <= blueprint_keeper_score * 1.3
+        ):
             best_id = blueprint_keeper_id
 
         sim.designate_keeper(best_id)
@@ -654,8 +709,12 @@ class StrategistAI(BlueprintAI):
                 exposure_dps *= 1 + e.bounces * 0.3
             elif e.kind == "aura_atkspeed":
                 aura_r2 = (e.radius * GRID_SCALE) ** 2
-                nearby = sum(1 for o in all_towers if o.id != tower.id
-                             and (o.x - tower.x) ** 2 + (o.y - tower.y) ** 2 <= aura_r2)
+                nearby = sum(
+                    1
+                    for o in all_towers
+                    if o.id != tower.id
+                    and (o.x - tower.x) ** 2 + (o.y - tower.y) ** 2 <= aura_r2
+                )
                 exposure_dps *= 1 + nearby * 0.4
 
         # Combo contribution
@@ -669,7 +728,9 @@ class StrategistAI(BlueprintAI):
                 elif readiness[1] == 1:
                     combo_score += combo_value(combo) * 1.2
                 else:
-                    combo_score += combo_value(combo) * (readiness[0] / readiness[2]) * 0.5
+                    combo_score += (
+                        combo_value(combo) * (readiness[0] / readiness[2]) * 0.5
+                    )
         elif tower.combo_key:
             combo = COMBO_BY_KEY.get(tower.combo_key)
             if combo:
@@ -715,7 +776,9 @@ class StrategistAI(BlueprintAI):
 
         # Diversity penalty
         if not tower.combo_key and combo_score == 0:
-            same_gem_kept = sum(1 for t in kept_towers if t.gem == tower.gem and not t.combo_key)
+            same_gem_kept = sum(
+                1 for t in kept_towers if t.gem == tower.gem and not t.combo_key
+            )
             if same_gem_kept > 0:
                 portfolio_mult *= 0.5
 
@@ -729,13 +792,21 @@ class StrategistAI(BlueprintAI):
 
 # ── Shared helpers ──────────────────────────────────────────────────
 
-def _match_combo_inputs(combo, towers: list[TowerSnapshot]) -> list[TowerSnapshot] | None:
+
+def _match_combo_inputs(
+    combo, towers: list[TowerSnapshot]
+) -> list[TowerSnapshot] | None:
     used: set[int] = set()
     result = []
     for inp in combo.inputs:
         match = None
         for t in towers:
-            if t.id not in used and t.gem == inp.gem and t.quality == inp.quality and not t.combo_key:
+            if (
+                t.id not in used
+                and t.gem == inp.gem
+                and t.quality == inp.quality
+                and not t.combo_key
+            ):
                 match = t
                 break
         if match is None:
@@ -745,7 +816,9 @@ def _match_combo_inputs(combo, towers: list[TowerSnapshot]) -> list[TowerSnapsho
     return result
 
 
-def _combo_ingredient_bonus(tower: TowerSnapshot, kept_towers: list[TowerSnapshot]) -> float:
+def _combo_ingredient_bonus(
+    tower: TowerSnapshot, kept_towers: list[TowerSnapshot]
+) -> float:
     if tower.combo_key:
         return 0
     relevant = find_all_combos_for(tower.gem, tower.quality)
@@ -756,8 +829,11 @@ def _combo_ingredient_bonus(tower: TowerSnapshot, kept_towers: list[TowerSnapsho
     for combo in relevant:
         needed = list(combo.inputs)
         self_idx = next(
-            (i for i, inp in enumerate(needed)
-             if inp.gem == tower.gem and inp.quality == tower.quality),
+            (
+                i
+                for i, inp in enumerate(needed)
+                if inp.gem == tower.gem and inp.quality == tower.quality
+            ),
             -1,
         )
         if self_idx < 0:
@@ -768,8 +844,13 @@ def _combo_ingredient_bonus(tower: TowerSnapshot, kept_towers: list[TowerSnapsho
         have = 0
         for inp in needed:
             match = next(
-                (t for t in kept_towers
-                 if t.id not in used and t.gem == inp.gem and t.quality == inp.quality),
+                (
+                    t
+                    for t in kept_towers
+                    if t.id not in used
+                    and t.gem == inp.gem
+                    and t.quality == inp.quality
+                ),
                 None,
             )
             if match:
@@ -789,8 +870,9 @@ def _combo_ingredient_bonus(tower: TowerSnapshot, kept_towers: list[TowerSnapsho
     return best_bonus
 
 
-def _combo_readiness(combo, towers: list[TowerSnapshot],
-                      exclude_id: int) -> tuple[int, int, int]:
+def _combo_readiness(
+    combo, towers: list[TowerSnapshot], exclude_id: int
+) -> tuple[int, int, int]:
     """Returns (have, missing, total)."""
     total = len(combo.inputs)
     tower = next((t for t in towers if t.id == exclude_id), None)
@@ -809,9 +891,15 @@ def _combo_readiness(combo, towers: list[TowerSnapshot],
         if i in matched_inputs:
             continue
         match = next(
-            (t for t in towers
-             if t.id != exclude_id and t.id not in used
-             and t.gem == inp.gem and t.quality == inp.quality and not t.combo_key),
+            (
+                t
+                for t in towers
+                if t.id != exclude_id
+                and t.id not in used
+                and t.gem == inp.gem
+                and t.quality == inp.quality
+                and not t.combo_key
+            ),
             None,
         )
         if match:
@@ -894,13 +982,19 @@ def _compute_keeper_indices() -> list[int]:
             # Designate the keeper and let the sim transition
             draws = sim.get_draws()
             keeper_draw = next(
-                (d for d in draws if d.slot_id == keeper_bp_idx and d.placed_tower_id is not None),
+                (
+                    d
+                    for d in draws
+                    if d.slot_id == keeper_bp_idx and d.placed_tower_id is not None
+                ),
                 None,
             )
             if keeper_draw:
                 sim.designate_keeper(keeper_draw.placed_tower_id)
             else:
-                first_placed = next((d for d in draws if d.placed_tower_id is not None), None)
+                first_placed = next(
+                    (d for d in draws if d.placed_tower_id is not None), None
+                )
                 if first_placed:
                     sim.designate_keeper(first_placed.placed_tower_id)
 

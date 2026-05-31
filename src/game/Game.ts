@@ -15,7 +15,11 @@ import { attachTelemetry } from "../telemetry";
 import { RNG } from "./rng";
 import { BASE, Cell, GRID_W, GRID_H, isBuildable } from "../data/map";
 import { findRoute, flattenRoute, buildAirRoute } from "../systems/Pathfinding";
-import { spawnContainerPayload as spawnPayload, drainPendingSpawns as drainPayload, type PendingSpawn } from "../systems/PayloadSpawner";
+import {
+  spawnContainerPayload as spawnPayload,
+  drainPendingSpawns as drainPayload,
+  type PendingSpawn,
+} from "../systems/PayloadSpawner";
 import {
   BoardLayers,
   makeBoardLayers,
@@ -34,7 +38,11 @@ import {
 import { BuildPhase } from "../controllers/BuildPhase";
 import { WavePhase } from "../controllers/WavePhase";
 import { WAVES, type WaveDef } from "../data/waves";
-import { MAZE_BLUEPRINT, MAZE_REMOVALS, MAZE_KEEPER_INDICES } from "../data/maze-blueprint";
+import {
+  MAZE_BLUEPRINT,
+  MAZE_REMOVALS,
+  MAZE_KEEPER_INDICES,
+} from "../data/maze-blueprint";
 import { exposureAt } from "../sim/blueprintKeeper";
 import {
   CHANCE_TIER_UPGRADE_COST,
@@ -55,6 +63,7 @@ import {
   renderBeams,
   renderHover,
   renderRangePreview,
+  renderDrawPartnerHighlight,
   renderAiOverlay,
   setAiHighlight,
   setAiCombo,
@@ -174,9 +183,12 @@ export class Game {
 
     this.app.ticker.add(this.tick, this);
 
-    this.bus.on('ai:highlight', (h) => setAiHighlight(h));
-    this.bus.on('ai:combo', ({ towerIds }) => setAiCombo(towerIds));
-    this.bus.on('ai:clear', () => { setAiHighlight(null); setAiCombo(null); });
+    this.bus.on("ai:highlight", (h) => setAiHighlight(h));
+    this.bus.on("ai:combo", ({ towerIds }) => setAiCombo(towerIds));
+    this.bus.on("ai:clear", () => {
+      setAiHighlight(null);
+      setAiCombo(null);
+    });
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
@@ -302,7 +314,7 @@ export class Game {
 
     const grid = this.state.grid;
 
-    // Build gem spec list: all gem×quality + all combos at every tier
+    // Build gem spec list: all gem x quality + all combos at every tier
     const specs: Array<{
       gem: GemType;
       quality: Quality;
@@ -528,7 +540,13 @@ export class Game {
   private spawnContainerPayload(
     dead: import("../game/State").CreepState,
   ): void {
-    spawnPayload(dead, this.state, this.bus, () => this.nextId(), this.pendingPayloadSpawns);
+    spawnPayload(
+      dead,
+      this.state,
+      this.bus,
+      () => this.nextId(),
+      this.pendingPayloadSpawns,
+    );
   }
 
   private drainPendingSpawns(): void {
@@ -702,7 +720,9 @@ export class Game {
     this.state.speed = s;
     try {
       localStorage.setItem("gemtd:sim-speed", String(s));
-    } catch { /* private mode */ }
+    } catch {
+      /* private mode */
+    }
   }
 
   private loadStoredSpeed(): number {
@@ -712,7 +732,9 @@ export class Game {
         const n = Number(v);
         if (SPEEDS.includes(n as SpeedMultiplier)) return n;
       }
-    } catch { /* private mode */ }
+    } catch {
+      /* private mode */
+    }
     return 2;
   }
 
@@ -830,6 +852,7 @@ export class Game {
       this.selectedTowerId,
     );
     renderHover(this.layers.preview, this.state, this.hoverTile);
+    renderDrawPartnerHighlight(this.layers.preview, this.state);
     renderAiOverlay(this.layers.preview);
     if (this.hoverPixel) this.lastHoverPixel = this.hoverPixel;
     if (this.hoverTile) this.lastHoverTile = this.hoverTile;
@@ -924,8 +947,15 @@ export class Game {
     if (keeperIdx >= 0 && keeperIdx < positions.length) {
       const [kx, ky] = positions[keeperIdx];
       const removed = new Set<number>();
-      for (const [dx, dy] of [[0,0],[1,0],[0,1],[1,1]] as const) {
-        const rock = this.state.rocks.find((r) => r.x === kx + dx && r.y === ky + dy);
+      for (const [dx, dy] of [
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [1, 1],
+      ] as const) {
+        const rock = this.state.rocks.find(
+          (r) => r.x === kx + dx && r.y === ky + dy,
+        );
         if (rock && !removed.has(rock.id)) {
           removed.add(rock.id);
           this.cmdRemoveRock(rock.id);
@@ -1015,7 +1045,7 @@ export class Game {
     this.aiDriver?.cancel();
     this.aiDriver = null;
     this.state.speed = 1;
-    this.bus.emit('ai:clear', {});
+    this.bus.emit("ai:clear", {});
     this.bus.emit("toast", { kind: "good", text: "You have taken over" });
   }
 
@@ -1080,4 +1110,3 @@ export class Game {
     return true;
   }
 }
-

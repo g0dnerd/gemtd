@@ -2,7 +2,7 @@
  * Rock sprite — the mossy-boulder material used for permanent maze blockers
  * (former non-kept gem towers).
  *
- * `buildMossRock(seed)` returns a 32×32 `grid` (slot values 0..7 → palette
+ * `buildMossRock(seed)` returns a 32x32 `grid` (slot values 0..7 → palette
  * colours via drawPixelGrid) plus the `palette` to rasterise it with, and a
  * separate low-alpha `shadow` grid: a sculpted ground-contact shadow with real
  * form (wider at the base, fading outward through a dithered penumbra) — NOT a
@@ -107,7 +107,11 @@ function topHighlight(grid: number[][], sil: Sil, slot = 1): void {
     if (!r) continue;
     for (let x = r[0] + 1; x <= r[1] - 1; x++) {
       const above = sil[y - 1];
-      if ((!above || x < above[0] || x > above[1]) && grid[y][x] && grid[y][x] !== 4) {
+      if (
+        (!above || x < above[0] || x > above[1]) &&
+        grid[y][x] &&
+        grid[y][x] !== 4
+      ) {
         if (grid[y + 1]?.[x] && grid[y + 1][x] !== 4) grid[y + 1][x] = slot;
       }
     }
@@ -145,7 +149,8 @@ function castShadow(sil: Sil, rnd: () => number): PixelGrid {
       const dx = (x - cx) / halfW;
       const dy = (y - cy) / halfH;
       const d = dx * dx + dy * dy;
-      if (d <= 1.0) g[y][x] = 1; // dense, fully-covered core
+      if (d <= 1.0)
+        g[y][x] = 1; // dense, fully-covered core
       else if (d <= 1.45 && ((x + y) & 1) === 0) g[y][x] = 1; // dithered penumbra
     }
   }
@@ -159,7 +164,7 @@ const SHADOW_PAL = (color: number): SpriteColors => ({
 });
 
 // ===========================================================================
-// Mossy boulder. Chunky greened granite that fills its 2×2 footprint, top
+// Mossy boulder. Chunky greened granite that fills its 2x2 footprint, top
 // crusted with moss + tufts. Squarer, slightly-broken crown (not a clean dome)
 // with a planted wide base.
 // ===========================================================================

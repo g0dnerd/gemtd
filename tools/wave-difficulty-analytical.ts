@@ -4,11 +4,9 @@ import { waveDifficulty } from "../src/data/wave-difficulty";
 const diffs = WAVES.map((w) => ({
   wave: w.number,
   diff: waveDifficulty(w),
-  kinds: w.groups.map((g) => `${g.kind}×${g.count}`).join(", "),
+  kinds: w.groups.map((g) => `${g.kind}x${g.count}`).join(", "),
   hasAir: w.groups.some((g) => g.kind === "shrike"),
-  isBoss: w.groups.some(
-    (g) => g.kind === "amalgam" || g.kind === "gestation",
-  ),
+  isBoss: w.groups.some((g) => g.kind === "amalgam" || g.kind === "gestation"),
   isContainer: w.groups.some((g) =>
     ["vessel", "coral", "anemone", "gestation"].includes(g.kind),
   ),
@@ -29,11 +27,7 @@ for (const d of diffs) {
         : "    ";
   const r = parseFloat(ratio);
   const flag =
-    r < 0.85 && prev > 0
-      ? " ◄ DIP"
-      : r > 3.0 && prev > 0
-        ? " ◄ SPIKE"
-        : "";
+    r < 0.85 && prev > 0 ? " ◄ DIP" : r > 3.0 && prev > 0 ? " ◄ SPIKE" : "";
   console.log(
     `${String(d.wave).padStart(4)} | ${String(d.diff).padStart(14)} | ${ratio} | ${tag} | ${d.kinds}${flag}`,
   );

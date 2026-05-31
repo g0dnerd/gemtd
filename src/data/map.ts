@@ -6,8 +6,8 @@
  * towers between waypoints; A* re-routes around them as long as connectivity
  * remains intact.
  *
- * Grid is the *fine* placement grid at 2× the canonical (coarse) tile
- * resolution — 42 wide × 34 tall fine cells. Each tower / rock occupies one
+ * Grid is the *fine* placement grid at 2x the canonical (coarse) tile
+ * resolution — 42 wide x 34 tall fine cells. Each tower / rock occupies one
  * fine cell. The board's outer wall ring and the start/end corridors are
  * 2 fine cells thick to preserve the original visual proportions.
  */
@@ -138,7 +138,7 @@ function buildBaseLayout(): { grid: Cell[][]; pathTiles: Set<string> } {
 
   const pathTiles = new Set<string>();
 
-  // Carve a 2×2 start "tile"
+  // Carve a 2x2 start "tile"
   for (let dy = 0; dy < 2; dy++) {
     for (let dx = 0; dx < 2; dx++) {
       const x = dx;

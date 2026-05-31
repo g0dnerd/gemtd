@@ -11,7 +11,7 @@
 export const TILE = 36;
 
 /**
- * The placement grid runs at 2× resolution: each coarse tile is 2×2 fine
+ * The placement grid runs at 2x resolution: each coarse tile is 2x2 fine
  * cells, each fine cell is FINE_TILE px on a side. Towers, rocks, and
  * pathfinding all live on the fine grid; creep movement and ranges still
  * use TILE for game-balance numbers.

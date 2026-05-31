@@ -15,7 +15,12 @@ import {
   htmlHeart,
   htmlSpecial,
 } from "../render/htmlSprites";
-import { COMBOS, ComboRecipe } from "../data/combos";
+import {
+  COMBOS,
+  ComboRecipe,
+  findAllCombosFor,
+  findDrawPartners,
+} from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
@@ -894,11 +899,11 @@ export function mountHud(
     pendingTapTile = null;
     game.cmdUndo();
   });
-  const speedBtn = makeBtn(`${game.state.speed}×`, () => {
+  const speedBtn = makeBtn(`${game.state.speed}x`, () => {
     const idx = SPEEDS.indexOf(game.state.speed as SpeedMultiplier);
     const nextSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
     game.setSpeed(nextSpeed);
-    speedBtn.textContent = `${nextSpeed}×`;
+    speedBtn.textContent = `${nextSpeed}x`;
   });
 
   const pathBtn = document.createElement("button");
@@ -937,7 +942,9 @@ export function mountHud(
 
   const systemRow = document.createElement("div");
   systemRow.className = "action-bar-system";
-  const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root, undefined, game.seed));
+  const helpBtn = makeBtn("? HELP", () =>
+    mountTutorialModal(root, undefined, game.seed),
+  );
   const exitBtn = makeBtn("EXIT", onExit);
   systemRow.append(helpBtn, muteBtn, exitBtn);
   actionBar.appendChild(systemRow);
@@ -1083,7 +1090,9 @@ export function mountHud(
     threatsList.innerHTML = "";
     const cur = Math.max(1, game.state.wave || 1);
     const start = cur;
-    const end = game.state.endless ? start + 2 : Math.min(WAVES.length, start + 2);
+    const end = game.state.endless
+      ? start + 2
+      : Math.min(WAVES.length, start + 2);
     for (let n = start; n <= end; n++) {
       const def = getWaveDef(n);
       if (!def) continue;
@@ -1181,7 +1190,7 @@ export function mountHud(
     hp.append(hpVal, hpUnit);
     const cnt = document.createElement("div");
     cnt.className = "threat-count";
-    cnt.textContent = `×${waveTotalCount(def)}`;
+    cnt.textContent = `x${waveTotalCount(def)}`;
     right.append(hp, cnt);
     row.appendChild(right);
 
@@ -1212,7 +1221,7 @@ export function mountHud(
     mobileWaveNum.textContent = game.state.endless
       ? `W${game.state.wave || 0}`
       : `W${game.state.wave || 0}/${WAVES.length}`;
-    speedBtn.textContent = `${game.state.speed}×`;
+    speedBtn.textContent = `${game.state.speed}x`;
     takeOverBtn.style.display = game.aiSpectator ? "" : "none";
   }
 
@@ -1303,14 +1312,14 @@ export function mountHud(
 
   // AI spectator annotation events
   unsubs.push(
-    game.bus.on('ai:keeper', ({ candidates, reason }) => {
+    game.bus.on("ai:keeper", ({ candidates, reason }) => {
       const lines = candidates
         .sort((a, b) => b.score - a.score)
         .slice(0, 5)
         .map((c) => `${c.label}: ${c.score}`)
-        .join(' | ');
-      game.bus.emit('toast', {
-        kind: 'info',
+        .join(" | ");
+      game.bus.emit("toast", {
+        kind: "info",
         text: `AI Keep: ${reason} (${lines})`,
         duration: 4000,
       });
@@ -1545,16 +1554,16 @@ export function mountHud(
       game.cmdUndo();
     } else if (ev.key === "1") {
       game.setSpeed(1);
-      speedBtn.textContent = "1×";
+      speedBtn.textContent = "1x";
     } else if (ev.key === "2") {
       game.setSpeed(2);
-      speedBtn.textContent = "2×";
+      speedBtn.textContent = "2x";
     } else if (ev.key === "4") {
       game.setSpeed(4);
-      speedBtn.textContent = "4×";
+      speedBtn.textContent = "4x";
     } else if (ev.key === "8") {
       game.setSpeed(8);
-      speedBtn.textContent = "8×";
+      speedBtn.textContent = "8x";
     } else if (ev.key === "Escape") {
       if (radialOpen) {
         closeRadial();
@@ -1799,9 +1808,18 @@ export function mountHud(
     const title = document.createElement("div");
     title.className = "panel-h px-h";
     title.textContent = "GEMS · 0/5";
+    const tagCol = document.createElement("div");
+    tagCol.className = "draw-tag-col";
     const tag = document.createElement("div");
     tag.className = "draw-keeper-tag";
-    head.append(title, tag);
+    // Recipe line: while a draw is selected, name the special recipe(s) it can
+    // form — rendered directly under the gem tag, same type style. Names whose
+    // partner gem is already on the board glow in the gem's colour (matching
+    // the board "resonance" highlight).
+    const recipeLine = document.createElement("div");
+    recipeLine.className = "draw-keeper-tag draw-recipe-line";
+    tagCol.append(tag, recipeLine);
+    head.append(title, tagCol);
     r.appendChild(head);
 
     const grid = document.createElement("div");
@@ -1810,6 +1828,62 @@ export function mountHud(
 
     let cellRefs: HTMLButtonElement[] = [];
     let lastFingerprint = "";
+    let lastHintKey = "";
+
+    function renderRecipeHint(): void {
+      const ad = activeDraw(g.state);
+      if (!ad || g.state.phase !== "build") {
+        if (lastHintKey !== "") {
+          lastHintKey = "";
+          recipeLine.innerHTML = "";
+          recipeLine.classList.remove("is-shown");
+        }
+        return;
+      }
+      const all = findAllCombosFor(ad.gem, ad.quality);
+      const counts = new Map<string, number>();
+      for (const l of findDrawPartners(ad.gem, ad.quality, g.state.towers)) {
+        counts.set(l.combo.key, l.partnerTowerIds.length);
+      }
+      const key =
+        `${ad.gem}:${ad.quality}|` +
+        all.map((c) => `${c.key}:${counts.get(c.key) ?? 0}`).join(",");
+      if (key === lastHintKey) return;
+      lastHintKey = key;
+
+      recipeLine.innerHTML = "";
+      recipeLine.classList.add("is-shown");
+      recipeLine.style.setProperty("--gem-glow", GEM_PALETTE[ad.gem].css.mid);
+
+      if (all.length === 0) {
+        recipeLine.classList.add("is-empty");
+        recipeLine.textContent = "RECIPE · —";
+        return;
+      }
+      recipeLine.classList.remove("is-empty");
+
+      const lead = document.createElement("span");
+      lead.className = "recipe-lead";
+      lead.textContent = all.length === 1 ? "RECIPE · " : "RECIPES · ";
+      recipeLine.appendChild(lead);
+
+      all.forEach((c, i) => {
+        if (i > 0) {
+          const sep = document.createElement("span");
+          sep.className = "recipe-sep";
+          sep.textContent = " · ";
+          recipeLine.appendChild(sep);
+        }
+        const count = counts.get(c.key) ?? 0;
+        const nm = document.createElement("span");
+        nm.className = "recipe-name" + (count > 0 ? " has-partner" : "");
+        nm.textContent = c.name.toUpperCase();
+        if (count > 0) {
+          nm.title = `${count} matching gem${count > 1 ? "s" : ""} on the board`;
+        }
+        recipeLine.appendChild(nm);
+      });
+    }
 
     function refresh(): void {
       const draws = g.state.draws;
@@ -1848,6 +1922,7 @@ export function mountHud(
             tag.textContent = g.state.phase === "wave" ? "IN WAVE" : "";
             tag.style.color = "var(--px-ink-dim)";
           }
+          renderRecipeHint();
           return;
         }
 
@@ -1938,6 +2013,8 @@ export function mountHud(
       } else {
         tag.textContent = "";
       }
+
+      renderRecipeHint();
     }
 
     return { root: r, refresh };

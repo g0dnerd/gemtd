@@ -61,12 +61,12 @@ def build_base_layout() -> np.ndarray:
     grid[:, :2] = Cell.Wall
     grid[:, -2:] = Cell.Wall
 
-    # Start: 2×2 path + 1 blocker (matches game map.ts)
-    grid[START.y:START.y + 2, 0:2] = Cell.Path
+    # Start: 2x2 path + 1 blocker (matches game map.ts)
+    grid[START.y : START.y + 2, 0:2] = Cell.Path
     grid[START.y, 2] = Cell.Path
 
-    # End: 2×2 path + 1 blocker (matches game map.ts)
-    grid[END.y:END.y + 2, GRID_W - 2:GRID_W] = Cell.Path
+    # End: 2x2 path + 1 blocker (matches game map.ts)
+    grid[END.y : END.y + 2, GRID_W - 2 : GRID_W] = Cell.Path
     grid[END.y, GRID_W - 3] = Cell.Path
 
     # Checkpoint zones around waypoints 1-6
@@ -95,7 +95,7 @@ def is_buildable(cell: int) -> bool:
 def can_place_2x2(grid: np.ndarray, x: int, y: int) -> bool:
     if x < PLACE_MIN or x > PLACE_MAX_X or y < PLACE_MIN or y > PLACE_MAX_Y:
         return False
-    return bool((grid[y:y + 2, x:x + 2] == Cell.Grass).all())
+    return bool((grid[y : y + 2, x : x + 2] == Cell.Grass).all())
 
 
 def is_adjacent_to_maze(grid: np.ndarray, ax: int, ay: int) -> bool:
@@ -114,17 +114,17 @@ def is_adjacent_to_maze(grid: np.ndarray, ax: int, ay: int) -> bool:
 
 
 def place_tower(grid: np.ndarray, x: int, y: int, cell_type: int = Cell.Tower) -> None:
-    grid[y:y + 2, x:x + 2] = cell_type
+    grid[y : y + 2, x : x + 2] = cell_type
 
 
 def place_trap(grid: np.ndarray, x: int, y: int) -> None:
     """Place a trap (walkable, non-buildable) at a 2x2 footprint."""
-    grid[y:y + 2, x:x + 2] = Cell.Trap
+    grid[y : y + 2, x : x + 2] = Cell.Trap
 
 
 def can_place_trap_2x2(grid: np.ndarray, x: int, y: int) -> bool:
     """Check if a trap can be placed — requires Grass or Path cells (traps are walkable)."""
     if x < PLACE_MIN or x > PLACE_MAX_X or y < PLACE_MIN or y > PLACE_MAX_Y:
         return False
-    block = grid[y:y + 2, x:x + 2]
+    block = grid[y : y + 2, x : x + 2]
     return bool(((block == Cell.Grass) | (block == Cell.Path)).all())

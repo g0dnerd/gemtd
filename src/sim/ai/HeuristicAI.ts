@@ -1,52 +1,71 @@
-import type { HeadlessGame } from '../HeadlessGame';
-import type { TowerState } from '../../game/State';
-import type { ComboRecipe } from '../../data/combos';
-import type { GemType, Quality } from '../../render/theme';
-import { COMBOS, COMBO_BY_NAME, findAllCombosFor, nextUpgrade } from '../../data/combos';
-import { GRID_SCALE, MAX_CHANCE_TIER } from '../../game/constants';
-import { BlueprintAI } from './BlueprintAI';
-import { MAZE_BLUEPRINT } from '../../data/maze-blueprint';
+import type { HeadlessGame } from "../HeadlessGame";
+import type { TowerState } from "../../game/State";
+import type { ComboRecipe } from "../../data/combos";
+import type { GemType, Quality } from "../../render/theme";
+import {
+  COMBOS,
+  COMBO_BY_NAME,
+  findAllCombosFor,
+  nextUpgrade,
+} from "../../data/combos";
+import { GRID_SCALE, MAX_CHANCE_TIER } from "../../game/constants";
+import { BlueprintAI } from "./BlueprintAI";
+import { MAZE_BLUEPRINT } from "../../data/maze-blueprint";
 
 const QUALITY_NAMES: Record<number, string> = {
-  1: 'Chipped', 2: 'Flawed', 3: 'Normal', 4: 'Flawless', 5: 'Perfect',
+  1: "Chipped",
+  2: "Flawed",
+  3: "Normal",
+  4: "Flawless",
+  5: "Perfect",
 };
 
 const GEM_NAMES: Record<string, string> = {
-  ruby: 'Ruby', sapphire: 'Sapphire', emerald: 'Emerald', topaz: 'Topaz',
-  amethyst: 'Amethyst', opal: 'Opal', diamond: 'Diamond', aquamarine: 'Aquamarine',
-  garnet: 'Garnet', spinel: 'Spinel', carnelian: 'Carnelian',
+  ruby: "Ruby",
+  sapphire: "Sapphire",
+  emerald: "Emerald",
+  topaz: "Topaz",
+  amethyst: "Amethyst",
+  opal: "Opal",
+  diamond: "Diamond",
+  aquamarine: "Aquamarine",
+  garnet: "Garnet",
+  spinel: "Spinel",
+  carnelian: "Carnelian",
 };
 
 function gemLabel(gem: string, quality: number): string {
-  return `${QUALITY_NAMES[quality] ?? '?'} ${GEM_NAMES[gem] ?? gem}`;
+  return `${QUALITY_NAMES[quality] ?? "?"} ${GEM_NAMES[gem] ?? gem}`;
 }
 
-const PRIORITY_COMBOS = new Set(['stargem', 'black_opal']);
+const PRIORITY_COMBOS = new Set(["stargem", "black_opal"]);
 
 function estimateComboDps(combo: ComboRecipe): number {
   const s = combo.stats;
   const avgDmg = (s.dmgMin + s.dmgMax) / 2;
   let dps = avgDmg * s.atkSpeed;
   for (const e of s.effects) {
-    if (e.kind === 'splash') dps *= 1.5;
-    else if (e.kind === 'chain') dps *= 1 + e.bounces * 0.3;
-    else if (e.kind === 'poison') dps += e.dps * e.duration * 0.3;
-    else if (e.kind === 'slow') dps *= 1.2;
-    else if (e.kind === 'stun') dps *= 1 + e.chance * 2;
-    else if (e.kind === 'crit') dps *= 1 + e.chance * (e.multiplier - 1);
-    else if (e.kind === 'aura_atkspeed') dps *= 1 + e.pct * 3;
-    else if (e.kind === 'aura_dmg') dps *= 1 + e.pct * 3;
-    else if (e.kind === 'multi_target') dps *= Math.min(e.count, 5);
-    else if (e.kind === 'prox_burn') dps += e.dps * 3;
-    else if (e.kind === 'prox_armor_reduce') dps += e.value * 15;
-    else if (e.kind === 'charge_burst') dps *= 1.5;
-    else if (e.kind === 'momentum') dps *= (1 + e.rampSpeed) / 2;
-    else if (e.kind === 'pierce') dps *= 1 + e.count * 0.4;
-    else if (e.kind === 'kill_explode') dps *= 1.3;
-    else if (e.kind === 'speed_damage_aura') dps += e.dps * 3;
-    else if (e.kind === 'distance_scaling') dps *= (e.minMult + e.maxMult) / 2;
-    else if (e.kind === 'amplifying_chain') dps *= 1 + e.bounces * (1 + e.ampPerBounce) * 0.3;
-    else if (e.kind === 'adaptive_mode') dps *= 1 + e.scatterCount * e.scatterDmgMult * 0.3;
+    if (e.kind === "splash") dps *= 1.5;
+    else if (e.kind === "chain") dps *= 1 + e.bounces * 0.3;
+    else if (e.kind === "poison") dps += e.dps * e.duration * 0.3;
+    else if (e.kind === "slow") dps *= 1.2;
+    else if (e.kind === "stun") dps *= 1 + e.chance * 2;
+    else if (e.kind === "crit") dps *= 1 + e.chance * (e.multiplier - 1);
+    else if (e.kind === "aura_atkspeed") dps *= 1 + e.pct * 3;
+    else if (e.kind === "aura_dmg") dps *= 1 + e.pct * 3;
+    else if (e.kind === "multi_target") dps *= Math.min(e.count, 5);
+    else if (e.kind === "prox_burn") dps += e.dps * 3;
+    else if (e.kind === "prox_armor_reduce") dps += e.value * 15;
+    else if (e.kind === "charge_burst") dps *= 1.5;
+    else if (e.kind === "momentum") dps *= (1 + e.rampSpeed) / 2;
+    else if (e.kind === "pierce") dps *= 1 + e.count * 0.4;
+    else if (e.kind === "kill_explode") dps *= 1.3;
+    else if (e.kind === "speed_damage_aura") dps += e.dps * 3;
+    else if (e.kind === "distance_scaling") dps *= (e.minMult + e.maxMult) / 2;
+    else if (e.kind === "amplifying_chain")
+      dps *= 1 + e.bounces * (1 + e.ampPerBounce) * 0.3;
+    else if (e.kind === "adaptive_mode")
+      dps *= 1 + e.scatterCount * e.scatterDmgMult * 0.3;
   }
   return dps;
 }
@@ -59,13 +78,20 @@ export class HeuristicAI extends BlueprintAI {
     const s = game.state;
     if (this.logging) {
       const ws = s.waveStats;
-      const prevWaveInfo = s.wave > 1 ? ` (prev: ${ws.killedThisWave}killed ${ws.leakedThisWave}leaked)` : '';
-      this.log.push(`\n── Wave ${s.wave} ── gold:${s.gold} lives:${s.lives} chanceTier:${s.chanceTier} towers:${s.towers.length} route:${s.flatRoute.length}${prevWaveInfo}`);
+      const prevWaveInfo =
+        s.wave > 1
+          ? ` (prev: ${ws.killedThisWave}killed ${ws.leakedThisWave}leaked)`
+          : "";
+      this.log.push(
+        `\n── Wave ${s.wave} ── gold:${s.gold} lives:${s.lives} chanceTier:${s.chanceTier} towers:${s.towers.length} route:${s.flatRoute.length}${prevWaveInfo}`,
+      );
       if (s.towers.length > 0) {
-        const towerList = s.towers.map((t) => {
-          const label = t.comboKey ?? gemLabel(t.gem, t.quality);
-          return `${label}@(${t.x},${t.y})`;
-        }).join(', ');
+        const towerList = s.towers
+          .map((t) => {
+            const label = t.comboKey ?? gemLabel(t.gem, t.quality);
+            return `${label}@(${t.x},${t.y})`;
+          })
+          .join(", ");
         this.log.push(`  existing: ${towerList}`);
       }
     }
@@ -75,7 +101,9 @@ export class HeuristicAI extends BlueprintAI {
       const goldBefore = s.gold;
       this.upgradeChanceTier(game);
       if (this.logging && s.chanceTier > tierBefore) {
-        this.log.push(`  chance tier ${tierBefore}→${s.chanceTier} (spent ${goldBefore - s.gold}g, left ${s.gold}g)`);
+        this.log.push(
+          `  chance tier ${tierBefore}→${s.chanceTier} (spent ${goldBefore - s.gold}g, left ${s.gold}g)`,
+        );
       }
       this.formKeptTowerCombos(game);
       this.upgradeComboTowers(game);
@@ -84,13 +112,13 @@ export class HeuristicAI extends BlueprintAI {
 
     if (this.logging) {
       const draws = s.draws.map((d) => gemLabel(d.gem, d.quality));
-      this.log.push(`  draws: ${draws.join(', ')}`);
+      this.log.push(`  draws: ${draws.join(", ")}`);
     }
 
     this.placeGems(game);
     this.tryCombos(game);
 
-    if (game.state.phase === 'build') {
+    if (game.state.phase === "build") {
       const demoted = this.designateKeeper(game);
       if (!demoted) {
         this.formComboWithKeeper(game);
@@ -109,7 +137,9 @@ export class HeuristicAI extends BlueprintAI {
     // until then every spare gold goes toward chance tier.
     if (state.chanceTier < MAX_CHANCE_TIER) {
       if (this.logging) {
-        this.log.push(`  no special upgrades yet (chance tier ${state.chanceTier}/${MAX_CHANCE_TIER})`);
+        this.log.push(
+          `  no special upgrades yet (chance tier ${state.chanceTier}/${MAX_CHANCE_TIER})`,
+        );
       }
       return;
     }
@@ -124,7 +154,7 @@ export class HeuristicAI extends BlueprintAI {
       const combo = COMBO_BY_NAME.get(tower.comboKey);
       if (!combo) continue;
       if (!nextUpgrade(combo, tower.upgradeTier ?? 0)) continue;
-      if (tower.comboKey === 'black_opal') {
+      if (tower.comboKey === "black_opal") {
         voidOpals.push(tower.id);
       } else {
         rest.push({ towerId: tower.id, kills: tower.kills });
@@ -148,12 +178,16 @@ export class HeuristicAI extends BlueprintAI {
         if (!upgrade) break;
         if (state.gold < upgrade.cost) {
           if (this.logging) {
-            this.log.push(`  saving for: ${combo.name} → ${upgrade.name} (${upgrade.cost}g, have ${state.gold}g)`);
+            this.log.push(
+              `  saving for: ${combo.name} → ${upgrade.name} (${upgrade.cost}g, have ${state.gold}g)`,
+            );
           }
           return;
         }
         if (this.logging) {
-          this.log.push(`  upgrade: ${combo.name} → ${upgrade.name} (${upgrade.cost}g, ${tower.kills} kills)`);
+          this.log.push(
+            `  upgrade: ${combo.name} → ${upgrade.name} (${upgrade.cost}g, ${tower.kills} kills)`,
+          );
         }
         game.cmdUpgradeTower(towerId);
       }
@@ -161,8 +195,9 @@ export class HeuristicAI extends BlueprintAI {
   }
 
   private formKeptTowerCombos(game: HeadlessGame): void {
-    const ranked = COMBOS.filter((c) => c.inputs.length > 0)
-      .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
+    const ranked = COMBOS.filter((c) => c.inputs.length > 0).sort(
+      (a, b) => estimateComboDps(b) - estimateComboDps(a),
+    );
 
     for (const combo of ranked) {
       const towers = game.state.towers.filter((t) => !t.comboKey);
@@ -171,7 +206,7 @@ export class HeuristicAI extends BlueprintAI {
 
       const reordered = this.reorderByExposure(matched);
       if (this.logging) {
-        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
+        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join("+");
         this.log.push(`  combo (kept towers): ${combo.name} (${inputs})`);
       }
       game.cmdCombine(reordered.map((t) => t.id));
@@ -179,7 +214,7 @@ export class HeuristicAI extends BlueprintAI {
   }
 
   private formComboWithKeeper(game: HeadlessGame): void {
-    if (game.state.phase !== 'build') return;
+    if (game.state.phase !== "build") return;
     const keepId = game.state.designatedKeepTowerId;
     if (keepId === null) return;
 
@@ -187,23 +222,26 @@ export class HeuristicAI extends BlueprintAI {
     if (!keeper || keeper.comboKey) return;
 
     const currentRoundIds = new Set(
-      game.state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
+      game.state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
     );
     const survivors = game.state.towers.filter(
       (t) => !t.comboKey && (!currentRoundIds.has(t.id) || t.id === keepId),
     );
 
-    const ranked = COMBOS.filter((c) => c.inputs.length > 0)
-      .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
+    const ranked = COMBOS.filter((c) => c.inputs.length > 0).sort(
+      (a, b) => estimateComboDps(b) - estimateComboDps(a),
+    );
 
     for (const combo of ranked) {
-      if (game.state.phase !== 'build') return;
+      if (game.state.phase !== "build") return;
       const matched = this.matchComboInputs(combo, survivors);
       if (!matched || !matched.some((t) => t.id === keepId)) continue;
 
       const reordered = this.reorderByExposure(matched);
       if (this.logging) {
-        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
+        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join("+");
         this.log.push(`  combo (with keeper): ${combo.name} (${inputs})`);
       }
       game.cmdCombine(reordered.map((t) => t.id));
@@ -236,7 +274,11 @@ export class HeuristicAI extends BlueprintAI {
     }
 
     const scored = unplaced.map((d) => {
-      let score = this.scoreDrawForKeeper(d.gem, d.quality as Quality, keptTowers);
+      let score = this.scoreDrawForKeeper(
+        d.gem,
+        d.quality as Quality,
+        keptTowers,
+      );
 
       if (comboSlots.has(d.slotId)) {
         score = Math.max(score, 50000);
@@ -245,8 +287,14 @@ export class HeuristicAI extends BlueprintAI {
       // If duplicates exist, consider the combined result's score too
       const count = groupCounts.get(`${d.gem}:${d.quality}`) ?? 0;
       if (count >= 2 && d.quality <= 4) {
-        const resultQ = Math.min(5, d.quality + (count >= 4 ? 2 : 1)) as Quality;
-        score = Math.max(score, this.scoreDrawForKeeper(d.gem, resultQ, keptTowers));
+        const resultQ = Math.min(
+          5,
+          d.quality + (count >= 4 ? 2 : 1),
+        ) as Quality;
+        score = Math.max(
+          score,
+          this.scoreDrawForKeeper(d.gem, resultQ, keptTowers),
+        );
       }
 
       return { slotId: d.slotId, score };
@@ -272,17 +320,22 @@ export class HeuristicAI extends BlueprintAI {
   private findComboSlotsInDraws(
     draws: Array<{ slotId: number; gem: GemType; quality: number }>,
   ): Set<number> {
-    const sorted = COMBOS.filter((c) => c.inputs.length > 0)
-      .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
+    const sorted = COMBOS.filter((c) => c.inputs.length > 0).sort(
+      (a, b) => estimateComboDps(b) - estimateComboDps(a),
+    );
 
     for (const combo of sorted) {
       const used = new Set<number>();
       let allFound = true;
       for (const inp of combo.inputs) {
         const idx = draws.findIndex(
-          (d, i) => !used.has(i) && d.gem === inp.gem && d.quality === inp.quality,
+          (d, i) =>
+            !used.has(i) && d.gem === inp.gem && d.quality === inp.quality,
         );
-        if (idx < 0) { allFound = false; break; }
+        if (idx < 0) {
+          allFound = false;
+          break;
+        }
         used.add(idx);
       }
       if (allFound) {
@@ -293,7 +346,7 @@ export class HeuristicAI extends BlueprintAI {
   }
 
   protected override tryCombos(game: HeadlessGame): void {
-    if (game.state.phase !== 'build') return;
+    if (game.state.phase !== "build") return;
 
     const currentRoundIds = new Set(
       game.state.draws
@@ -304,13 +357,14 @@ export class HeuristicAI extends BlueprintAI {
     // Top priority: always form combos that use only this round's gems
     this.formRoundOnlyCombos(game, currentRoundIds);
 
-    if (game.state.phase !== 'build') return;
+    if (game.state.phase !== "build") return;
 
-    const ranked = COMBOS.filter((c) => c.inputs.length > 0)
-      .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
+    const ranked = COMBOS.filter((c) => c.inputs.length > 0).sort(
+      (a, b) => estimateComboDps(b) - estimateComboDps(a),
+    );
 
     for (const combo of ranked) {
-      if (game.state.phase !== 'build') return;
+      if (game.state.phase !== "build") return;
       const matched = this.matchComboInputs(combo, game.state.towers);
       if (!matched) continue;
 
@@ -319,13 +373,13 @@ export class HeuristicAI extends BlueprintAI {
 
       const reordered = this.reorderByExposure(matched);
       if (this.logging) {
-        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
+        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join("+");
         this.log.push(`  combo: ${combo.name} (${inputs})`);
       }
       game.cmdCombine(reordered.map((t) => t.id));
     }
 
-    if (game.state.phase !== 'build') return;
+    if (game.state.phase !== "build") return;
 
     // Level-up combines (same as GreedyAI)
     const freshRoundIds = new Set(
@@ -345,7 +399,7 @@ export class HeuristicAI extends BlueprintAI {
     }
 
     for (const [, towers] of groups) {
-      if (game.state.phase !== 'build') return;
+      if (game.state.phase !== "build") return;
       const canCombine4 = towers.length >= 4 && towers[0].quality <= 4;
       const canCombine2 = towers.length >= 2 && towers[0].quality <= 4;
       const count = canCombine4 ? 4 : canCombine2 ? 2 : 0;
@@ -353,23 +407,38 @@ export class HeuristicAI extends BlueprintAI {
 
       const resultQ = Math.min(5, towers[0].quality + (count === 4 ? 2 : 1));
       const combineIds = new Set(towers.slice(0, count).map((t) => t.id));
-      if (!this.shouldLevelUp(game, towers[0].gem, resultQ, combineIds, roundTowers)) continue;
+      if (
+        !this.shouldLevelUp(
+          game,
+          towers[0].gem,
+          resultQ,
+          combineIds,
+          roundTowers,
+        )
+      )
+        continue;
 
       const combineGroup = this.ensureKeeperFirst(towers.slice(0, count));
 
       if (this.logging) {
-        this.log.push(`  level-up: ${count}×${gemLabel(towers[0].gem, towers[0].quality)} → q${resultQ}`);
+        this.log.push(
+          `  level-up: ${count}x${gemLabel(towers[0].gem, towers[0].quality)} → q${resultQ}`,
+        );
       }
       game.cmdCombine(combineGroup.map((t) => t.id));
     }
   }
 
-  protected override formRoundOnlyCombos(game: HeadlessGame, currentRoundIds: Set<number>): void {
-    const ranked = COMBOS.filter((c) => c.inputs.length > 0)
-      .sort((a, b) => estimateComboDps(b) - estimateComboDps(a));
+  protected override formRoundOnlyCombos(
+    game: HeadlessGame,
+    currentRoundIds: Set<number>,
+  ): void {
+    const ranked = COMBOS.filter((c) => c.inputs.length > 0).sort(
+      (a, b) => estimateComboDps(b) - estimateComboDps(a),
+    );
 
     for (const combo of ranked) {
-      if (game.state.phase !== 'build') return;
+      if (game.state.phase !== "build") return;
       const roundTowers = game.state.towers.filter(
         (t) => currentRoundIds.has(t.id) && !t.comboKey,
       );
@@ -379,8 +448,10 @@ export class HeuristicAI extends BlueprintAI {
 
       const reordered = this.ensureKeeperFirst(matched);
       if (this.logging) {
-        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join('+');
-        this.log.push(`  combo (round-only, always take): ${combo.name} (${inputs})`);
+        const inputs = matched.map((t) => gemLabel(t.gem, t.quality)).join("+");
+        this.log.push(
+          `  combo (round-only, always take): ${combo.name} (${inputs})`,
+        );
       }
       game.cmdCombine(reordered.map((t) => t.id));
     }
@@ -395,12 +466,16 @@ export class HeuristicAI extends BlueprintAI {
     return towers.slice().sort((a, b) => {
       let aExp = 0;
       let bExp = 0;
-      const aCx = a.x + 1, aCy = a.y + 1;
-      const bCx = b.x + 1, bCy = b.y + 1;
+      const aCx = a.x + 1,
+        aCy = a.y + 1;
+      const bCx = b.x + 1,
+        bCy = b.y + 1;
       for (const pt of route) {
-        const dax = pt.x - aCx, day = pt.y - aCy;
+        const dax = pt.x - aCx,
+          day = pt.y - aCy;
         if (dax * dax + day * day <= r2) aExp++;
-        const dbx = pt.x - bCx, dby = pt.y - bCy;
+        const dbx = pt.x - bCx,
+          dby = pt.y - bCy;
         if (dbx * dbx + dby * dby <= r2) bExp++;
       }
       return bExp - aExp;
@@ -444,12 +519,18 @@ export class HeuristicAI extends BlueprintAI {
     let bestIndividualScore = -Infinity;
     for (const t of roundTowers) {
       if (t.comboKey) continue;
-      const score = this.scoreDrawForKeeper(t.gem, t.quality as Quality, keptTowers);
+      const score = this.scoreDrawForKeeper(
+        t.gem,
+        t.quality as Quality,
+        keptTowers,
+      );
       if (score > bestIndividualScore) bestIndividualScore = score;
     }
 
     if (this.logging) {
-      this.log.push(`    level-up eval: ${gemLabel(gem, resultQuality)} score=${Math.round(combinedScore)} vs best individual=${Math.round(bestIndividualScore)}`);
+      this.log.push(
+        `    level-up eval: ${gemLabel(gem, resultQuality)} score=${Math.round(combinedScore)} vs best individual=${Math.round(bestIndividualScore)}`,
+      );
     }
 
     return combinedScore >= bestIndividualScore;
@@ -478,10 +559,16 @@ export class HeuristicAI extends BlueprintAI {
         const combo = COMBO_BY_NAME.get(tower.comboKey);
         score = combo ? 20000 + estimateComboDps(combo) : 10000;
       } else {
-        score = this.scoreDrawForKeeper(tower.gem, tower.quality as Quality, keptTowers);
+        score = this.scoreDrawForKeeper(
+          tower.gem,
+          tower.quality as Quality,
+          keptTowers,
+        );
         if (canDemote && tower.quality > 1) {
           const demotedScore = this.scoreDrawForKeeper(
-            tower.gem, (tower.quality - 1) as Quality, keptTowers,
+            tower.gem,
+            (tower.quality - 1) as Quality,
+            keptTowers,
           );
           if (demotedScore > score) {
             score = demotedScore;
@@ -495,17 +582,20 @@ export class HeuristicAI extends BlueprintAI {
     scored.sort((a, b) => b.score - a.score);
     const bestScore = scored[0].score;
     const tied = scored.filter((s) => s.score === bestScore);
-    const pick = tied.length > 1
-      ? tied[game.rng.int(tied.length)]
-      : scored[0];
+    const pick = tied.length > 1 ? tied[game.rng.int(tied.length)] : scored[0];
 
     if (this.logging) {
       for (const { tower, score, demote } of scored) {
         const label = tower.comboKey ?? gemLabel(tower.gem, tower.quality);
-        this.log.push(`    keeper candidate: ${label}${demote ? ' (demote)' : ''} score=${Math.round(score)}`);
+        this.log.push(
+          `    keeper candidate: ${label}${demote ? " (demote)" : ""} score=${Math.round(score)}`,
+        );
       }
-      const label = pick.tower.comboKey ?? gemLabel(pick.tower.gem, pick.tower.quality);
-      this.log.push(`  → KEEP: ${label}${pick.demote ? ' (will demote)' : ''} (score=${Math.round(bestScore)}${tied.length > 1 ? `, random from ${tied.length} tied` : ''})`);
+      const label =
+        pick.tower.comboKey ?? gemLabel(pick.tower.gem, pick.tower.quality);
+      this.log.push(
+        `  → KEEP: ${label}${pick.demote ? " (will demote)" : ""} (score=${Math.round(bestScore)}${tied.length > 1 ? `, random from ${tied.length} tied` : ""})`,
+      );
     }
 
     if (pick.demote) {
@@ -521,7 +611,11 @@ export class HeuristicAI extends BlueprintAI {
     keptTowers: TowerState[],
   ): number {
     // Rule 1: completes a combo → score 10000+
-    const completions = this.findCompletedCombosForDraw(gem, quality, keptTowers);
+    const completions = this.findCompletedCombosForDraw(
+      gem,
+      quality,
+      keptTowers,
+    );
     if (completions.length > 0) {
       const best = completions.sort((a, b) => {
         const aPri = PRIORITY_COMBOS.has(a.key);
@@ -529,7 +623,11 @@ export class HeuristicAI extends BlueprintAI {
         if (aPri !== bPri) return aPri ? -1 : 1;
         return estimateComboDps(b) - estimateComboDps(a);
       })[0];
-      return 10000 + estimateComboDps(best) + (PRIORITY_COMBOS.has(best.key) ? 100000 : 0);
+      return (
+        10000 +
+        estimateComboDps(best) +
+        (PRIORITY_COMBOS.has(best.key) ? 100000 : 0)
+      );
     }
 
     // Rule 2: uniqueness + quality
@@ -542,8 +640,11 @@ export class HeuristicAI extends BlueprintAI {
 
     // Chipped: below duplicate flawed (200), unless first chipped ruby/amethyst
     if (quality === 1) {
-      const isFirstSpecial = (gem === 'ruby' || gem === 'amethyst') &&
-        !keptTowers.some((t) => t.gem === gem && t.quality === 1 && !t.comboKey);
+      const isFirstSpecial =
+        (gem === "ruby" || gem === "amethyst") &&
+        !keptTowers.some(
+          (t) => t.gem === gem && t.quality === 1 && !t.comboKey,
+        );
       if (isFirstSpecial) return 250;
       return progress > 0 ? 50 + progress * 10 : 1;
     }
@@ -580,7 +681,11 @@ export class HeuristicAI extends BlueprintAI {
       let have = 0;
       for (const inp of needed) {
         const match = keptTowers.find(
-          (t) => !used.has(t.id) && t.gem === inp.gem && t.quality === inp.quality && !t.comboKey,
+          (t) =>
+            !used.has(t.id) &&
+            t.gem === inp.gem &&
+            t.quality === inp.quality &&
+            !t.comboKey,
         );
         if (match) {
           used.add(match.id);
@@ -595,7 +700,7 @@ export class HeuristicAI extends BlueprintAI {
         (t) => t.gem === gem && t.quality === 5 && !t.comboKey,
       ).length;
       if (sameQ5 >= 3) {
-        const stargem = COMBO_BY_NAME.get('stargem');
+        const stargem = COMBO_BY_NAME.get("stargem");
         if (stargem) results.push(stargem);
       }
     }
@@ -603,7 +708,11 @@ export class HeuristicAI extends BlueprintAI {
     return results;
   }
 
-  private comboProgressForDraw(gem: GemType, quality: Quality, keptTowers: TowerState[]): number {
+  private comboProgressForDraw(
+    gem: GemType,
+    quality: Quality,
+    keptTowers: TowerState[],
+  ): number {
     const combos = findAllCombosFor(gem, quality);
     let best = 0;
 
@@ -619,7 +728,11 @@ export class HeuristicAI extends BlueprintAI {
       let have = 0;
       for (const inp of needed) {
         const match = keptTowers.find(
-          (t) => !used.has(t.id) && t.gem === inp.gem && t.quality === inp.quality && !t.comboKey,
+          (t) =>
+            !used.has(t.id) &&
+            t.gem === inp.gem &&
+            t.quality === inp.quality &&
+            !t.comboKey,
         );
         if (match) {
           used.add(match.id);

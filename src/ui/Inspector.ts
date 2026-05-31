@@ -5,7 +5,12 @@
 
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
-import { htmlGem, htmlGemTier, htmlSpecial, htmlCreep } from "../render/htmlSprites";
+import {
+  htmlGem,
+  htmlGemTier,
+  htmlSpecial,
+  htmlCreep,
+} from "../render/htmlSprites";
 import { EffectKind, gemStats } from "../data/gems";
 import {
   COMBOS,
@@ -20,11 +25,14 @@ import { CREEP_ARCHETYPES } from "../data/creeps";
 import { towerLevel } from "../systems/Combat";
 import { SIM_HZ } from "../game/constants";
 
-type LbMode = 'total' | 'wave';
+type LbMode = "total" | "wave";
 
 let lbMode: LbMode = (() => {
-  try { return (localStorage.getItem('gemtd:lb-mode') as LbMode) || 'total'; }
-  catch { return 'total'; }
+  try {
+    return (localStorage.getItem("gemtd:lb-mode") as LbMode) || "total";
+  } catch {
+    return "total";
+  }
 })();
 
 export interface InspectorRefs {
@@ -112,7 +120,10 @@ function fingerprint(game: Game): string {
     id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) {
     const dmgFp = game.state.towers
-      .map((t) => `${t.id}:${Math.floor(t.totalDamage)}:${Math.floor(t.waveDamage)}`)
+      .map(
+        (t) =>
+          `${t.id}:${Math.floor(t.totalDamage)}:${Math.floor(t.waveDamage)}`,
+      )
       .join(",");
     return `lb|${lbMode}|${game.state.phase}|${dmgFp}`;
   }
@@ -500,23 +511,27 @@ function lbGemColors(gem: GemType): {
 
 function mountLbToggle(refs: InspectorRefs, game: Game): void {
   const head = refs.title.parentElement!;
-  const existing = head.querySelector('.lb-toggle');
+  const existing = head.querySelector(".lb-toggle");
   if (existing) {
-    const btns = existing.querySelectorAll('.lb-toggle-btn');
-    btns[0]?.classList.toggle('active', lbMode === 'total');
-    btns[1]?.classList.toggle('active', lbMode === 'wave');
+    const btns = existing.querySelectorAll(".lb-toggle-btn");
+    btns[0]?.classList.toggle("active", lbMode === "total");
+    btns[1]?.classList.toggle("active", lbMode === "wave");
     return;
   }
-  const toggle = document.createElement('div');
-  toggle.className = 'lb-toggle';
-  const btnTotal = document.createElement('button');
-  btnTotal.className = `lb-toggle-btn${lbMode === 'total' ? ' active' : ''}`;
-  btnTotal.textContent = 'TOTAL';
-  const btnWave = document.createElement('button');
-  btnWave.className = `lb-toggle-btn${lbMode === 'wave' ? ' active' : ''}`;
-  btnWave.textContent = 'WAVE';
-  btnTotal.addEventListener('click', () => { setLbMode('total', refs, game); });
-  btnWave.addEventListener('click', () => { setLbMode('wave', refs, game); });
+  const toggle = document.createElement("div");
+  toggle.className = "lb-toggle";
+  const btnTotal = document.createElement("button");
+  btnTotal.className = `lb-toggle-btn${lbMode === "total" ? " active" : ""}`;
+  btnTotal.textContent = "TOTAL";
+  const btnWave = document.createElement("button");
+  btnWave.className = `lb-toggle-btn${lbMode === "wave" ? " active" : ""}`;
+  btnWave.textContent = "WAVE";
+  btnTotal.addEventListener("click", () => {
+    setLbMode("total", refs, game);
+  });
+  btnWave.addEventListener("click", () => {
+    setLbMode("wave", refs, game);
+  });
   toggle.append(btnTotal, btnWave);
   head.appendChild(toggle);
 }
@@ -524,19 +539,21 @@ function mountLbToggle(refs: InspectorRefs, game: Game): void {
 function removeLbToggle(refs: InspectorRefs): void {
   const head = refs.title.parentElement;
   if (!head) return;
-  const toggle = head.querySelector('.lb-toggle');
+  const toggle = head.querySelector(".lb-toggle");
   if (toggle) toggle.remove();
 }
 
 function setLbMode(mode: LbMode, refs: InspectorRefs, game: Game): void {
   lbMode = mode;
-  try { localStorage.setItem('gemtd:lb-mode', mode); } catch {}
-  refs.lastFingerprint = '';
+  try {
+    localStorage.setItem("gemtd:lb-mode", mode);
+  } catch {}
+  refs.lastFingerprint = "";
   refs.refresh(game);
 }
 
 function getDmg(t: TowerState): number {
-  return lbMode === 'wave' ? t.waveDamage : t.totalDamage;
+  return lbMode === "wave" ? t.waveDamage : t.totalDamage;
 }
 
 function renderLeaderboard(body: HTMLDivElement, game: Game): void {
@@ -547,7 +564,8 @@ function renderLeaderboard(body: HTMLDivElement, game: Game): void {
   if (towers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "inspector-empty";
-    empty.textContent = lbMode === 'wave' ? "No damage this wave." : "No gem damage yet.";
+    empty.textContent =
+      lbMode === "wave" ? "No damage this wave." : "No gem damage yet.";
     body.appendChild(empty);
     return;
   }
@@ -919,7 +937,7 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
   const noteTxt = document.createElement("div");
   noteTxt.className = "inspector-effect-text";
   noteTxt.textContent = removable
-    ? "Frees the 2×2 footprint"
+    ? "Frees the 2x2 footprint"
     : "Available once this build phase ends";
   note.append(noteLbl, noteTxt);
   body.appendChild(note);
@@ -965,7 +983,9 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
   hero.className = "px-panel-inset inspector-hero";
   const frame = document.createElement("div");
   frame.className = "inspector-hero-frame inspector-hero-frame-creep";
-  frame.appendChild(htmlCreep(c.kind, c.color, 44, true, !!c.chrysalidAwakened));
+  frame.appendChild(
+    htmlCreep(c.kind, c.color, 44, true, !!c.chrysalidAwakened),
+  );
   const text = document.createElement("div");
   text.className = "inspector-hero-text";
   const name = document.createElement("div");
@@ -1250,7 +1270,11 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "multi_target":
       return { label: "MULTI", text: `${e.count} targets`, tone: "aoe" };
     case "periodic_nova":
-      return { label: "NOVA", text: `every ${e.everyN} hits, 50% dmg`, tone: "aoe" };
+      return {
+        label: "NOVA",
+        text: `every ${e.everyN} hits, 50% dmg`,
+        tone: "aoe",
+      };
     case "death_nova":
       return {
         label: "DEATH NOVA",
@@ -1278,7 +1302,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "slow":
       return {
         label: "SLOW",
-        text: `×${e.factor.toFixed(2)} ${e.duration}s`,
+        text: `x${e.factor.toFixed(2)} ${e.duration}s`,
         tone: "cc",
       };
     case "stun":
@@ -1310,7 +1334,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "trap_slow":
       return {
         label: "SLOW",
-        text: `×${e.factor.toFixed(2)} ${e.duration}s`,
+        text: `x${e.factor.toFixed(2)} ${e.duration}s`,
         tone: "cc",
       };
     case "trap_knockback":
@@ -1318,7 +1342,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "prox_slow":
       return {
         label: "SLOW FIELD",
-        text: `×${e.factor.toFixed(2)} r=${e.radius.toFixed(1)}`,
+        text: `x${e.factor.toFixed(2)} r=${e.radius.toFixed(1)}`,
         tone: "cc",
       };
     case "demote_air":
@@ -1326,7 +1350,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "crit":
       return {
         label: "CRIT",
-        text: `${Math.round(e.chance * 100)}% ×${e.multiplier}`,
+        text: `${Math.round(e.chance * 100)}% x${e.multiplier}`,
         tone: "buff",
       };
     case "aura_atkspeed":
@@ -1360,19 +1384,19 @@ function effectChiclet(e: EffectKind): ChicletData | null {
         tone: "buff",
       };
     case "stun_bonus_dmg":
-      return { label: "STUN DMG", text: `×${e.multiplier}`, tone: "buff" };
+      return { label: "STUN DMG", text: `x${e.multiplier}`, tone: "buff" };
     case "bonus_gold": {
       const pct = e.chance * 100;
       return {
         label: "GOLD",
-        text: `${pct % 1 ? pct.toFixed(1) : pct}% ×${e.multiplier} bounty (max 10)`,
+        text: `${pct % 1 ? pct.toFixed(1) : pct}% x${e.multiplier} bounty (max 10)`,
         tone: "buff",
       };
     }
     case "air_bonus":
       return {
         label: "AIR BONUS",
-        text: `×${e.multiplier.toFixed(1)}`,
+        text: `x${e.multiplier.toFixed(1)}`,
         tone: "buff",
       };
     case "true":
@@ -1450,13 +1474,13 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "charge_burst":
       return {
         label: "CHARGE",
-        text: `up to ×${e.maxMultiplier.toFixed(1)}`,
+        text: `up to x${e.maxMultiplier.toFixed(1)}`,
         tone: "buff",
       };
     case "momentum":
       return {
         label: "MOMENTUM",
-        text: `${e.rampSpeed.toFixed(0)}× speed`,
+        text: `${e.rampSpeed.toFixed(0)}x speed`,
         tone: "buff",
       };
     case "pierce":
@@ -1482,7 +1506,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "amplifying_chain":
       return {
         label: "AMP CHAIN",
-        text: `${e.bounces}× +${Math.round(e.ampPerBounce * 100)}%/jump`,
+        text: `${e.bounces}x +${Math.round(e.ampPerBounce * 100)}%/jump`,
         tone: "aoe",
       };
     case "adaptive_mode":

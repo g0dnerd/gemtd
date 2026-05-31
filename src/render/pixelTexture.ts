@@ -3,8 +3,16 @@
  * The output texture is `grid.width * pxScale` square, drawn as solid color rects.
  */
 
-import { Graphics, RenderTexture, Renderer, Texture, Sprite, Container, BlurFilter } from 'pixi.js';
-import { PixelGrid, OUTLINE_COLOR } from './sprites';
+import {
+  Graphics,
+  RenderTexture,
+  Renderer,
+  Texture,
+  Sprite,
+  Container,
+  BlurFilter,
+} from "pixi.js";
+import { PixelGrid, OUTLINE_COLOR } from "./sprites";
 
 export interface SpriteColors {
   /**
@@ -82,7 +90,10 @@ export function rasterizeToTexture(
   const h = grid.length * pxScale;
 
   const padding = withGlow > 0 ? Math.ceil(pxScale * 4) : 0;
-  const rt = RenderTexture.create({ width: w + padding * 2, height: h + padding * 2 });
+  const rt = RenderTexture.create({
+    width: w + padding * 2,
+    height: h + padding * 2,
+  });
 
   const container = new Container();
   if (withGlow > 0) {
@@ -115,7 +126,7 @@ export function spriteFromTexture(tex: Texture): Sprite {
  *
  * The global renderer runs `antialias: false` to keep pixel sprites crisp, which
  * leaves thin curved strokes (e.g. a charge ring) badly staircased. We dodge that
- * by supersampling: draw the ring `ss`× larger, then display the sprite at 1/ss —
+ * by supersampling: draw the ring `ss`x larger, then display the sprite at 1/ss —
  * the linear downscale on the texture's own sampler smooths the curve, independent
  * of MSAA support. Texture is white so callers can `sprite.tint` it any color.
  *
@@ -131,10 +142,18 @@ export function generateRingTexture(
   pad = 6,
 ): { tex: Texture; scale: number } {
   const dim = (radius + pad) * 2;
-  const rt = RenderTexture.create({ width: dim * ss, height: dim * ss, antialias: true });
+  const rt = RenderTexture.create({
+    width: dim * ss,
+    height: dim * ss,
+    antialias: true,
+  });
   const g = new Graphics();
   const c = (dim * ss) / 2;
-  g.circle(c, c, radius * ss).stroke({ width: strokeWidth * ss, color: 0xffffff, alpha: 1 });
+  g.circle(c, c, radius * ss).stroke({
+    width: strokeWidth * ss,
+    color: 0xffffff,
+    alpha: 1,
+  });
   renderer.render({ container: g, target: rt });
   g.destroy();
   return { tex: rt, scale: 1 / ss };
