@@ -98,6 +98,20 @@ def can_place_2x2(grid: np.ndarray, x: int, y: int) -> bool:
     return bool((grid[y:y + 2, x:x + 2] == Cell.Grass).all())
 
 
+def get_candidates(
+    grid: np.ndarray, adjacent_only: bool = True
+) -> list[tuple[int, int]]:
+    out: list[tuple[int, int]] = []
+    for y in range(PLACE_MIN, PLACE_MAX_Y + 1):
+        for x in range(PLACE_MIN, PLACE_MAX_X + 1):
+            if not can_place_2x2(grid, x, y):
+                continue
+            if adjacent_only and not is_adjacent_to_maze(grid, x, y):
+                continue
+            out.append((x, y))
+    return out
+
+
 def is_adjacent_to_maze(grid: np.ndarray, ax: int, ay: int) -> bool:
     for dx in range(-1, 3):
         for dy in range(-1, 3):

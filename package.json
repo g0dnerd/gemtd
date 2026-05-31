@@ -22,6 +22,7 @@
     "wave-difficulty:history": "npx tsx tools/wave-difficulty/cli.ts history",
     "wave-difficulty:sim": "npx tsx tools/wave-difficulty/cli.ts sim",
     "wave-difficulty:calibrate": "npx tsx tools/wave-difficulty/cli.ts calibrate",
+    "gem-benchmark": "npx tsx tools/gem-benchmark/run.ts",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.worker.json",
     "deploy": "npm run build && wrangler deploy"
   },

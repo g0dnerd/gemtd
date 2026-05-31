@@ -16,6 +16,7 @@ from grid import (
     build_base_layout,
     can_place_2x2,
     copy_grid,
+    get_candidates,
     is_adjacent_to_maze,
     place_tower,
 )
@@ -41,7 +42,6 @@ from fitness import (
     select_keeper,
     evaluate,
 )
-from genetic import get_candidates
 
 
 @dataclass

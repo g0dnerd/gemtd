@@ -3,7 +3,6 @@ import json
 import sys
 
 from grid import build_base_layout
-from genetic import run_ga
 from beam_search import run_beam_search
 
 
@@ -22,40 +21,21 @@ def _add_weight_args(parser: argparse.ArgumentParser) -> None:
 def search_main(args: argparse.Namespace) -> None:
     base_grid = build_base_layout()
 
-    if args.algorithm == "beam":
-        result = run_beam_search(
-            base_grid=base_grid,
-            beam_width=args.beam_width,
-            variants_per_state=args.variants,
-            keeper_choices=args.keeper_choices,
-            max_candidates=args.max_candidates,
-            seed=args.seed,
-            w_path=args.w_path,
-            w_coverage=args.w_coverage,
-            w_depth=args.w_depth,
-            w_air=args.w_air,
-            air_keeper_ratio=args.air_keeper_ratio,
-            cores=args.cores,
-            checkpoint_path=args.output,
-        )
-    else:
-        result = run_ga(
-            base_grid=base_grid,
-            population_size=args.population,
-            generations=args.generations,
-            tournament_size=args.tournament,
-            mutation_rate=args.mutation_rate,
-            crossover_rate=args.crossover_rate,
-            elite_pct=args.elite_pct,
-            cores=args.cores,
-            seed=args.seed,
-            w_path=args.w_path,
-            w_coverage=args.w_coverage,
-            w_depth=args.w_depth,
-            w_air=args.w_air,
-            air_keeper_ratio=args.air_keeper_ratio,
-            checkpoint_path=args.output,
-        )
+    result = run_beam_search(
+        base_grid=base_grid,
+        beam_width=args.beam_width,
+        variants_per_state=args.variants,
+        keeper_choices=args.keeper_choices,
+        max_candidates=args.max_candidates,
+        seed=args.seed,
+        w_path=args.w_path,
+        w_coverage=args.w_coverage,
+        w_depth=args.w_depth,
+        w_air=args.w_air,
+        air_keeper_ratio=args.air_keeper_ratio,
+        cores=args.cores,
+        checkpoint_path=args.output,
+    )
 
     output = {
         "fitness": result["fitness"],
@@ -130,13 +110,9 @@ def main() -> None:
     )
     subparsers = parser.add_subparsers(dest="command")
 
-    # --- search subcommand (GA / beam) ---
+    # --- search subcommand (beam search) ---
     search = subparsers.add_parser(
-        "search", help="Search for a new blueprint (GA or beam search)"
-    )
-    search.add_argument(
-        "--algorithm", choices=["ga", "beam"], default="ga",
-        help="Optimization algorithm (default: ga)",
+        "search", help="Search for a new blueprint (beam search)"
     )
     _add_weight_args(search)
     search.add_argument("--cores", type=int, default=None, help="CPU cores (default: all)")
@@ -145,14 +121,6 @@ def main() -> None:
         "--output", type=str, default="tools/maze_optimizer/blueprint.json",
         help="Output JSON path",
     )
-
-    ga = search.add_argument_group("Genetic algorithm")
-    ga.add_argument("--population", type=int, default=200, help="Population size")
-    ga.add_argument("--generations", type=int, default=500, help="Max generations")
-    ga.add_argument("--tournament", type=int, default=3, help="Tournament size")
-    ga.add_argument("--mutation-rate", type=float, default=0.3, help="Mutation probability")
-    ga.add_argument("--crossover-rate", type=float, default=0.7, help="Crossover probability")
-    ga.add_argument("--elite-pct", type=float, default=0.05, help="Elite percentage")
 
     beam = search.add_argument_group("Beam search")
     beam.add_argument("--beam-width", type=int, default=100, help="Beam width")

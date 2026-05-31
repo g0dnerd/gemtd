@@ -361,7 +361,7 @@ draw(0);
 
 
 if __name__ == "__main__":
-    path = sys.argv[1] if len(sys.argv) > 1 else "blueprint2.json"
+    path = sys.argv[1] if len(sys.argv) > 1 else "blueprint_reworked.json"
     out = sys.argv[2] if len(sys.argv) > 2 else "maze_viz.html"
 
     html = generate_html(path)

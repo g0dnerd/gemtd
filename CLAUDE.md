@@ -12,6 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run sim` — run the heavy headless-sim test (the one `npm test` skips)
 - `npm run sim:run|sim:compare|sim:history` — `tools/sim-compare/cli.ts` entry points (balance regression diffing)
 - `npm run wave-difficulty|wave-difficulty:compare|wave-difficulty:history` — wave difficulty analysis CLI
+- `npm run gem-benchmark` — headless per-gem damage benchmark (`tools/gem-benchmark/run.ts`; config is in-file, regenerates `report.html`)
 - `npm run telemetry:local` — local telemetry server for offline dev
 - `npm run blueprint:viz` — visualize maze blueprint (Python, uses `uv run`)
 - `npm run blueprint:export` — export blueprint JSON (Python, uses `uv run`)
@@ -102,7 +103,7 @@ CLI in `tools/sim-compare/cli.ts` runs a fleet of AI sims against a baseline sna
 
 ### `tools/maze_optimizer/` (Python)
 
-Offline genetic-algorithm tool that produces the blueprint JSON consumed by `BlueprintAI` and `src/data/maze-blueprint.ts`. Touch this **when adding new gem types** — the fitness function depends on the gem roster, so a fresh blueprint should be regenerated. Otherwise leave it alone.
+Offline beam-search tool that produces the blueprint JSON consumed by `BlueprintAI` and `src/data/maze-blueprint.ts`. Touch this **when adding new gem types** — the fitness function depends on the gem roster, so a fresh blueprint should be regenerated. Otherwise leave it alone.
 
 ### Telemetry + Cloudflare Worker (`src/worker/`, `src/telemetry/`, `migrations/`)
 
