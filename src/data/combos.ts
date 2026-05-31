@@ -200,7 +200,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     inputs: [
       { gem: "amethyst", quality: 5 },
       { gem: "spinel", quality: 4 },
-      { gem: "amethyst", quality: 3 },
+      { gem: "ruby", quality: 3 },
     ],
     stats: {
       dmgMin: 220,
@@ -394,7 +394,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     key: "thunderstone",
     name: "Thunderstone",
     inputs: [
-      { gem: "spinel", quality: 5 },
+      { gem: "garnet", quality: 5 },
       { gem: "emerald", quality: 4 },
       { gem: "topaz", quality: 2 },
     ],
@@ -424,7 +424,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "spinel",
+    visualGem: "garnet",
   },
   {
     key: "uranium",
@@ -519,7 +519,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     key: "tigers_eye",
     name: "Tiger's Eye",
     inputs: [
-      { gem: "garnet", quality: 5 },
+      { gem: "spinel", quality: 5 },
       { gem: "amethyst", quality: 2 },
       { gem: "diamond", quality: 2 },
     ],
@@ -550,7 +550,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "garnet",
+    visualGem: "spinel",
   },
 
   // ─── Q4 recipes ─────────────────────────────────────────────────────────
@@ -559,7 +559,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     name: "Red Crystal",
     inputs: [
       { gem: "sapphire", quality: 4 },
-      { gem: "ruby", quality: 3 },
+      { gem: "amethyst", quality: 3 },
       { gem: "spinel", quality: 2 },
     ],
     stats: {

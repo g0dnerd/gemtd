@@ -200,11 +200,11 @@ describe("combine: recipe path", () => {
     expect(h.game.state.towers[0].comboKey).toBe("bloodstone");
   });
 
-  it("matches Gold (Flawless Spinel + Normal Amethyst + Perfect Amethyst)", () => {
+  it("matches Gold (Flawless Spinel + Normal Ruby + Perfect Amethyst)", () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, "spinel", 4),
-      placeTower(h.game, 4, 6, "amethyst", 3),
+      placeTower(h.game, 4, 6, "ruby", 3),
       placeTower(h.game, 4, 8, "amethyst", 5),
     ];
     h.game.state.draws = asDraws(ts);
@@ -224,11 +224,11 @@ describe("combine: recipe path", () => {
     expect(h.game.state.towers[0].comboKey).toBe("golden_beryl");
   });
 
-  it("matches Tiger's Eye (Flawed Amethyst + Perfect Garnet + Flawed Diamond)", () => {
+  it("matches Tiger's Eye (Flawed Amethyst + Perfect Spinel + Flawed Diamond)", () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, "amethyst", 2),
-      placeTower(h.game, 4, 6, "garnet", 5),
+      placeTower(h.game, 4, 6, "spinel", 5),
       placeTower(h.game, 4, 8, "diamond", 2),
     ];
     h.game.state.draws = asDraws(ts);
@@ -236,10 +236,10 @@ describe("combine: recipe path", () => {
     expect(h.game.state.towers[0].comboKey).toBe("tigers_eye");
   });
 
-  it("matches Thunderstone (Perfect Spinel + Flawless Emerald + Flawed Topaz)", () => {
+  it("matches Thunderstone (Perfect Garnet + Flawless Emerald + Flawed Topaz)", () => {
     const h = setup();
     const ts = [
-      placeTower(h.game, 4, 4, "spinel", 5),
+      placeTower(h.game, 4, 4, "garnet", 5),
       placeTower(h.game, 4, 6, "emerald", 4),
       placeTower(h.game, 4, 8, "topaz", 2),
     ];
