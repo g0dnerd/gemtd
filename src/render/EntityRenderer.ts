@@ -100,9 +100,20 @@ interface ThunderstoneFx {
 }
 
 interface AmetrineFx {
-  wash?: Graphics;
-  motes: Graphics[];
+  /** Palette-swapped (purple→gold, sparkle→amethyst) version of the gem itself.
+   *  alpha = modePhase, so this fades in as the tower flips to scatter. */
+  goldOverlay: Sprite;
+  /** Lens rings around the gem: closed purple ring (focus) / gold arc segments
+   *  (scatter), plus T2 inner counter-ring and T3 orbiting pip ticks. Rebuilt
+   *  every frame; rings only — no fills over the gem. */
+  lens: Graphics;
+  /** A-side tier flourishes: T2 mode-fault line through the gem during scatter,
+   *  T3 crown ticks above the gem (color matched to current mode). */
+  flourish: Graphics;
   tier: number;
+  /** Cached sprite dimensions for radius math (TOWER_SCALE applied). */
+  spriteW: number;
+  spriteH: number;
 }
 
 interface TowerEntry {
@@ -514,7 +525,7 @@ export function renderTowers(
         } else if (t.comboKey === "ametrine") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
-          ametrineFx = makeAmetrineFx(wrap, tier);
+          ametrineFx = makeAmetrineFx(wrap, cache, tier);
           obj.addChild(wrap);
           ametrineBobWrap = wrap;
         } else {
@@ -1644,30 +1655,90 @@ function animateThunderstoneFx(entry: TowerEntry, now: number): void {
   }
 }
 
-// ===== Ametrine — Mode Phase =================================================
+// ===== Ametrine — Mode VFX (A+B: sprite swap + aperture lens) ================
+//
+// Visual contract for the two adaptive modes:
+//
+//   FOCUS  (Combat: t.ametrineMode === "focus")
+//     - Gem palette is the canonical purple ametrine (default sprite).
+//     - Lens is a single closed purple ring around the gem with four inward
+//       crosshair ticks at N/E/S/W. Reads "scoped".
+//
+//   SCATTER (Combat: t.ametrineMode === "scatter")
+//     - Gem palette flips: slots 1/2/3 become gold tones, sparkle (5) becomes
+//       amethyst. The base sprite stays underneath unchanged; a pre-rendered
+//       "gold" overlay sprite covers it (alpha = modePhase).
+//     - Lens becomes six rotating gold arc segments at a wider radius. Reads
+//       "fanning".
+//
+// Tier flourishes:
+//   T2 (Imperial)  — lens gains an inner ring (closed purple in focus, four
+//                    counter-rotating gold arcs in scatter); A-side mode-fault
+//                    line draws vertically through the gem during scatter.
+//   T3 (Sovereign) — eight orbiting outer pip ticks (color matches mode);
+//                    A-side crown ticks above the gem (color matches mode).
+//
+// On a flip the renderer stamps `ametrineFlashStart`; a brief expanding stroke-
+// only "pop" ring fires in the destination color (purple→focus, gold→scatter).
+//
+// The previous wash/motes/halo crossfade is removed. The halo crossfade in
+// particular is intentionally dropped — the gem-body swap + lens character
+// change already carry the mode signal redundantly, and a third color-modulated
+// layer was muddying it.
 
 const AMETRINE_PURPLE = 0x8848b0;
 const AMETRINE_GOLD = 0xf0c038;
+const AMETRINE_GOLD_HI = 0xffd870;
 
-function makeAmetrineFx(parent: Container, tier: number): AmetrineFx {
-  let wash: Graphics | undefined;
-  const motes: Graphics[] = [];
+/** Per-tier gold-palette (game tier index: 0 = Raw, 1 = Imperial, 2 = Sovereign).
+ *  Slots 1/2/3 carry gold tones; the sparkle slot (5) flips to amethyst, so the
+ *  inner "eye" of the gem reads as the inverse of its normal purple sparkle. */
+const AMETRINE_GOLD_PALETTES: Record<0 | 1 | 2, {
+  light: number;
+  mid: number;
+  dark: number;
+  sparkle: number;
+}> = {
+  0: { light: 0xffd870, mid: 0xf0a020, dark: 0x785010, sparkle: 0xa050e0 },
+  1: { light: 0xffe080, mid: 0xf8b030, dark: 0x7c5818, sparkle: 0xb878e0 },
+  2: { light: 0xffe890, mid: 0xffbc48, dark: 0x84601c, sparkle: 0xc890f0 },
+};
 
-  if (tier >= 1) {
-    wash = new Graphics();
-    parent.addChild(wash);
-  }
+function ametrineGridForTier(tier: number) {
+  const spec = SPECIAL_SPRITES["ametrine"];
+  const tierGrids = SPECIAL_TIER_GRIDS["ametrine"];
+  const effectiveTier = Math.min(tier + 1, 3) as 2 | 3;
+  return (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
+}
 
-  if (tier >= 2) {
-    // Pool of 4: a tight pair shows in focus, the rest fan in for scatter.
-    for (let i = 0; i < 4; i++) {
-      const mote = new Graphics();
-      parent.addChild(mote);
-      motes.push(mote);
-    }
-  }
+function makeAmetrineFx(
+  parent: Container,
+  cache: TowerSpriteCache,
+  tier: number,
+): AmetrineFx {
+  // A — palette-swapped gold sprite overlaying the gem. Same grid + same scale
+  // as the base sprite so the two register pixel-perfect; cross-faded by alpha.
+  const grid = ametrineGridForTier(tier);
+  const pal = AMETRINE_GOLD_PALETTES[Math.min(tier, 2) as 0 | 1 | 2];
+  const goldTex = rasterizeToTexture(cache.renderer, grid, pal, 3);
+  const goldOverlay = new Sprite(goldTex);
+  goldOverlay.anchor.set(0.5, 0.5);
+  goldOverlay.alpha = 0;
+  parent.addChild(goldOverlay);
 
-  return { wash, motes, tier };
+  // A — flourishes (T2 mode-fault line + T3 crown ticks). Sits above the gem
+  // so the fault line reads as cutting through the crystal.
+  const flourish = new Graphics();
+  parent.addChild(flourish);
+
+  // B — lens rings layer drawn last so it's never occluded by the gem swap.
+  const lens = new Graphics();
+  parent.addChild(lens);
+
+  const spriteW = grid[0].length * 3;
+  const spriteH = grid.length * 3;
+
+  return { goldOverlay, lens, flourish, tier, spriteW, spriteH };
 }
 
 function animateAmetrineFx(
@@ -1691,7 +1762,7 @@ function animateAmetrineFx(
   // Mode phase follows the REAL adaptive mode (Combat sets t.ametrineMode from
   // the in-range crowd), not a timer. 0 = focus (purple), 1 = scatter (gold).
   // Ease toward the target over ~220ms so a flip animates instead of snapping,
-  // and stamp the flip moment to fire a one-shot ring-pop.
+  // and stamp the flip moment to fire a one-shot pop ring.
   const target = t.ametrineMode === "scatter" ? 1 : 0;
   if (
     entry.ametrineModeTarget !== undefined &&
@@ -1710,81 +1781,141 @@ function animateAmetrineFx(
   else if (modePhase > target) modePhase = Math.max(target, modePhase - step);
   entry.ametrineModePhase = modePhase;
 
-  // Ring-pop envelope: a brief expanding pulse right after a flip.
   const pop = entry.ametrineFlashStart
     ? Math.max(0, 1 - (now - entry.ametrineFlashStart) / 360)
     : 0;
-  const popColor = target === 1 ? AMETRINE_GOLD : AMETRINE_PURPLE;
 
   const fx = entry.ametrineFx!;
 
-  // Ground wash: purple (focus) ↔ gold (scatter), crossfaded by the real mode.
-  if (fx.wash) {
-    fx.wash.clear();
-    const washR = TILE * 0.45 * (1 + 0.15 * modePhase); // blooms a touch in scatter
-    const tintStrength = 0.08 + tier * 0.04;
-    const purpleTint = (1 - modePhase) * tintStrength;
-    const goldTint = modePhase * tintStrength;
-    if (purpleTint > 0.01) {
-      fx.wash
-        .circle(0, 0, washR)
-        .fill({ color: AMETRINE_PURPLE, alpha: purpleTint });
-    }
-    if (goldTint > 0.01) {
-      fx.wash
-        .circle(0, 0, washR)
-        .fill({ color: AMETRINE_GOLD, alpha: goldTint });
-    }
-    if (pop > 0.01) {
-      const popR = washR * (1 + (1 - pop) * 0.8);
-      fx.wash
-        .circle(0, 0, popR)
-        .stroke({ width: 2, color: popColor, alpha: pop * 0.5 });
+  // ----- A: sprite swap -----------------------------------------------------
+  fx.goldOverlay.alpha = modePhase;
+
+  // ----- A: tier flourishes (mode-fault line + crown ticks) -----------------
+  const sw = fx.spriteW;
+  const sh = fx.spriteH;
+  fx.flourish.clear();
+
+  // T2 (Imperial)+: mode-fault — 2px purple bar through gem during scatter
+  if (tier >= 1 && modePhase > 0.5) {
+    const fadeIn = Math.min(1, (modePhase - 0.5) * 2);
+    fx.flourish
+      .rect(-1, -sh / 2 - 2, 2, sh + 4)
+      .fill({ color: AMETRINE_PURPLE, alpha: 0.5 * fadeIn });
+  }
+
+  // T3 (Sovereign): four crown ticks above the gem; color matches the active mode
+  if (tier >= 2) {
+    const tickCount = 4;
+    const tickR = sw * 0.65;
+    const baseAng = -Math.PI / 2;
+    const cyCrown = -sh * 0.32; // (oy + sh*0.18) with oy = -sh/2
+    const tickColor = modePhase < 0.5 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+    for (let i = 0; i < tickCount; i++) {
+      const a = baseAng + (i - (tickCount - 1) / 2) * 0.32;
+      const tx = Math.cos(a) * tickR;
+      const ty = cyCrown + Math.sin(a) * tickR;
+      fx.flourish
+        .rect(Math.round(tx) - 1, Math.round(ty) - 3, 2, 4)
+        .fill({ color: tickColor, alpha: 0.85 });
     }
   }
 
-  // Orbiting motes: a tight pair in focus, multiplying and fanning wider as the
-  // tower scatters — the extra motes fade in with modePhase to read "dispersing".
-  const orbitR = TILE * 0.75 * (1 + 0.3 * modePhase);
-  const orbitPeriod = 3.5;
-  const ang = (sec / orbitPeriod) * Math.PI * 2;
-  const n = fx.motes.length;
-  const activeMotes = Math.min(
-    n,
-    2 + Math.round(Math.max(0, n - 2) * modePhase),
-  );
-  for (let i = 0; i < n; i++) {
-    const mote = fx.motes[i];
-    mote.clear();
-    if (i >= activeMotes) continue;
-    const a = ang + (i / Math.max(1, activeMotes)) * Math.PI * 2;
-    const mx = Math.cos(a) * orbitR;
-    const my = Math.sin(a) * orbitR * 0.85;
-    // Core pair stays amethyst/citrine; the scatter extras are gold.
-    const color = i === 1 ? 0xd098e8 : AMETRINE_GOLD;
-    const fade = i < 2 ? 1 : modePhase;
-    mote.circle(mx, my, 2).fill({ color, alpha: 0.7 * fade });
-    mote.circle(mx, my, 1).fill({ color: 0xffffff, alpha: 0.5 * fade });
+  // ----- B: aperture lens (rings only — never fills inside the lens) -------
+  fx.lens.clear();
+  const lcx = 0;
+  const lcy = sh * 0.05;
+  const maxDim = Math.max(sw, sh);
+  const focusR = maxDim * 0.7;
+  const scatterR = maxDim * 0.92;
+  const focusA = 1 - modePhase;
+  const scatterA = modePhase;
+
+  // FOCUS: tight closed purple ring + four inward crosshair ticks at N/E/S/W
+  if (focusA > 0.02) {
+    fx.lens
+      .circle(lcx, lcy, focusR)
+      .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 * focusA });
+    const tickLen = 6;
+    const angs = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
+    for (const a of angs) {
+      const x1 = lcx + Math.cos(a) * (focusR + 2);
+      const y1 = lcy + Math.sin(a) * (focusR + 2);
+      const x2 = lcx + Math.cos(a) * (focusR + 2 + tickLen);
+      const y2 = lcy + Math.sin(a) * (focusR + 2 + tickLen);
+      fx.lens
+        .moveTo(x1, y1)
+        .lineTo(x2, y2)
+        .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 * focusA });
+    }
   }
 
-  // Halo: color crossfaded by mode, widening in scatter, with the flip pop layered on.
+  // SCATTER: six gold arc segments at a wider radius, rotating slowly
+  if (scatterA > 0.02) {
+    const arcs = 6;
+    const gap = 0.18;
+    const seg = (Math.PI * 2) / arcs - gap;
+    const rot = sec * 0.5;
+    for (let i = 0; i < arcs; i++) {
+      const a0 = rot + i * ((Math.PI * 2) / arcs);
+      fx.lens
+        .arc(lcx, lcy, scatterR, a0, a0 + seg)
+        .stroke({ width: 3, color: AMETRINE_GOLD, alpha: 0.9 * scatterA });
+    }
+  }
+
+  // T2: inner ring (closed purple in focus, four counter-rotating gold arcs in scatter)
+  if (tier >= 1) {
+    const innerR = maxDim * 0.55;
+    if (focusA > 0.02) {
+      fx.lens
+        .circle(lcx, lcy, innerR)
+        .stroke({ width: 1.5, color: AMETRINE_PURPLE, alpha: 0.45 * focusA });
+    }
+    if (scatterA > 0.02) {
+      const inArcs = 4;
+      const inGap = 0.22;
+      const inSeg = (Math.PI * 2) / inArcs - inGap;
+      const inRot = -sec * 0.7;
+      for (let i = 0; i < inArcs; i++) {
+        const a0 = inRot + i * ((Math.PI * 2) / inArcs);
+        fx.lens
+          .arc(lcx, lcy, innerR, a0, a0 + inSeg)
+          .stroke({ width: 1.5, color: AMETRINE_GOLD_HI, alpha: 0.65 * scatterA });
+      }
+    }
+  }
+
+  // T3: eight orbiting outer pip ticks; color matches the active mode
+  if (tier >= 2) {
+    const outR = maxDim * 1.05;
+    const n = 8;
+    const orbit = sec * 0.3;
+    const pipColor = modePhase < 0.5 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+    for (let i = 0; i < n; i++) {
+      const a = orbit + i * ((Math.PI * 2) / n);
+      const tx = lcx + Math.cos(a) * outR;
+      const ty = lcy + Math.sin(a) * outR;
+      fx.lens
+        .rect(Math.round(tx) - 1, Math.round(ty) - 1, 2, 2)
+        .fill({ color: pipColor, alpha: 0.75 });
+    }
+  }
+
+  // Flip pop: stroked expanding ring in the destination color, no fill
+  if (pop > 0.02) {
+    const baseR = modePhase < 0.5 ? focusR : scatterR;
+    const popR = baseR * (1 + (1 - pop) * 0.8);
+    const popColor = target === 1 ? AMETRINE_GOLD : AMETRINE_PURPLE;
+    fx.lens
+      .circle(lcx, lcy, popR)
+      .stroke({ width: 2, color: popColor, alpha: pop * 0.7 });
+  }
+
+  // Halo: simple ambient purple pulse — no mode lerp, no scatter widening.
+  // The two-layer sprite-swap + lens already carry mode redundantly; a third
+  // mode-modulated layer (the previous halo crossfade) was muddying the read.
   if (entry.fx) {
-    const haloColor = lerpColor(AMETRINE_PURPLE, AMETRINE_GOLD, modePhase);
     const haloPulse = (Math.sin((sec / 2.4) * Math.PI * 2) + 1) / 2;
-    entry.fx.halo.clear();
-    const r = TILE * 0.9 * (1 + 0.35 * modePhase); // halo widens in scatter
-    for (let i = 6; i > 0; i--) {
-      const tt = i / 6;
-      entry.fx.halo
-        .circle(0, 0, r * tt)
-        .fill({ color: haloColor, alpha: 0.12 });
-    }
-    if (pop > 0.01) {
-      const popR = r * (1 + (1 - pop) * 0.5);
-      entry.fx.halo
-        .circle(0, 0, popR)
-        .stroke({ width: 2, color: popColor, alpha: pop * 0.6 });
-    }
     entry.fx.halo.alpha = entry.fx.haloPeak * (0.4 + 0.6 * haloPulse);
   }
 }
