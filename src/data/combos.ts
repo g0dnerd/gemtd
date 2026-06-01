@@ -325,7 +325,7 @@ const ALL_COMBOS: ComboRecipe[] = [
       },
       {
         name: "Ametrine Sovereign",
-        cost: 280,
+        cost: 320,
         stats: {
           dmgMin: 275,
           dmgMax: 430,
@@ -338,7 +338,7 @@ const ALL_COMBOS: ComboRecipe[] = [
               scatterCount: 8,
               scatterDmgMult: 1.05,
             },
-            { kind: "execute", dmgBonus: 0.55, hpThreshold: 0.25 },
+            { kind: "execute", dmgBonus: 0.35, hpThreshold: 0.25 },
           ],
           blurb: "Adaptive master. Execute in focus mode.",
           targeting: "all",
@@ -524,8 +524,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "diamond", quality: 2 },
     ],
     stats: {
-      dmgMin: 120,
-      dmgMax: 220,
+      dmgMin: 160,
+      dmgMax: 280,
       range: 7.0,
       atkSpeed: 0.5,
       effects: [{ kind: "distance_scaling", minMult: 0.5, maxMult: 1.8 }],
