@@ -217,7 +217,7 @@ export class Game {
   }
 
   /** Kick off a new run from the title screen. */
-  newGame(startLives: number = START_LIVES, aiSpectator = false): void {
+  newGame(aiSpectator = false): void {
     this.aiSpectator = aiSpectator;
     this.aiDriver = aiSpectator ? new AISpectatorDriver() : null;
     this.state.towers = [];
@@ -240,8 +240,7 @@ export class Game {
     this.state.downgradeUsedThisRound = false;
     this.state.tick = 0;
     this.state.wave = 0;
-    this.state.lives = startLives;
-    this.state.hardcore = startLives === 1;
+    this.state.lives = START_LIVES;
     this.state.gold = START_GOLD;
     this.state.totalKills = 0;
     this.state.speed = this.loadStoredSpeed();
@@ -262,11 +261,11 @@ export class Game {
   }
 
   restartGame(): void {
-    this.newGame(this.state.hardcore ? 1 : START_LIVES);
+    this.newGame();
   }
 
   newEndlessGame(): void {
-    this.newGame(START_LIVES);
+    this.newGame();
     this.state.endless = true;
   }
 
@@ -300,7 +299,6 @@ export class Game {
     this.state.tick = 0;
     this.state.wave = 1;
     this.state.lives = START_LIVES;
-    this.state.hardcore = false;
     this.state.gold = 99999;
     this.state.totalKills = 0;
     this.state.speed = this.loadStoredSpeed();

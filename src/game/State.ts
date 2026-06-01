@@ -286,8 +286,6 @@ export interface State {
   selectedCreepId: number | null;
   /** Lifetime count of rocks the player has demolished. */
   rocksRemoved: number;
-  /** Started with 1 life. */
-  hardcore: boolean;
   /** Whether the one-per-round downgrade has been used this round. */
   downgradeUsedThisRound: boolean;
   /** Total simulation ticks since game start. */
@@ -360,7 +358,6 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     selectedRockId: null,
     selectedCreepId: null,
     rocksRemoved: 0,
-    hardcore: false,
     downgradeUsedThisRound: false,
     tick: 0,
     totalWaves,

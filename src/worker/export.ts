@@ -60,7 +60,7 @@ export async function handleExport(
 
   const mf = runset === "sim"
     ? "mode = 'sim' AND wave_reached > 1"
-    : "mode NOT IN ('debug', 'creative', 'sim') AND wave_reached > 1";
+    : "mode NOT IN ('debug', 'creative', 'sim', 'hardcore') AND wave_reached > 1";
 
   let sql: string;
   const binds: unknown[] = [];

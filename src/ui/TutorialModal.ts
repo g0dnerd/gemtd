@@ -205,7 +205,7 @@ function goalBody(): HTMLElement {
     stepList([
       {
         marker: htmlHeart(18),
-        html: `Each leak costs a <b>life</b>. You start with <b>50</b> (or <b>1</b> in Hardcore). Lose them all and the run ends.`,
+        html: `Each leak costs a <b>life</b>. You start with <b>50</b>. Lose them all and the run ends.`,
       },
       {
         marker: htmlCoin(18),

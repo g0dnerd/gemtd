@@ -1,7 +1,7 @@
 /**
  * query-telemetry.ts — balance-observations analysis engine.
  *
- * Reads the local sim telemetry DB (`.local/telemetry.db`, populated by
+ * Reads the local sim telemetry DB (`.local/telemetry.duckdb`, populated by
  * `npm run sim:run -- --telemetry` while `npm run telemetry:local` runs) and
  * prints ONE JSON blob with both the raw aggregates AND the derived metrics the
  * skill needs (damage/kill shares + ratios, combo build rates, within-archetype
@@ -19,7 +19,7 @@
  * Defaults: ai=HeuristicAI, version=<package.json version>, thin-sample cutoff=50.
  * Scope for every aggregation: mode='sim' AND wave_reached > 1 AND ai=? AND version=?.
  */
-import Database from "better-sqlite3";
+import { DuckDBInstance, type DuckDBValue } from "@duckdb/node-api";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -30,7 +30,7 @@ import { WAVES, type PayloadGroup, type WaveGroup } from "../../../../src/data/w
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "../../../.."); // <root>/.claude/skills/balance-observations/scripts
-const DB_PATH = join(ROOT, ".local", "telemetry.db");
+const DB_PATH = join(ROOT, ".local", "telemetry.duckdb");
 
 // Support items are derived from their effect kinds, not hardcoded — a gem/combo is
 // "support" when EVERY one of its effects only helps OTHER towers / the creep clock /
@@ -128,22 +128,57 @@ function creepGroup(kind: string): "air" | "boss" | "container" | "standard" {
 }
 const comboName = new Map(COMBOS.map((c) => [c.key, c.name]));
 
-const db = new Database(DB_PATH, { readonly: true, fileMustExist: true });
-db.pragma("query_only = ON");
+let instance: Awaited<ReturnType<typeof DuckDBInstance.create>>;
+try {
+  instance = await DuckDBInstance.create(DB_PATH, { access_mode: "READ_ONLY" });
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes("Conflicting lock")) {
+    console.log(JSON.stringify({
+      ok: false,
+      reason: "db-locked",
+      dbPath: DB_PATH,
+      message:
+        "DuckDB DB is held in read-write mode by another process (most likely " +
+        "`npm run telemetry:local`). DuckDB allows only one R/W process per file; " +
+        "stop the telemetry server before running this script.",
+    }));
+    process.exit(0);
+  }
+  throw err;
+}
+const db = await instance.connect();
 
-const inventory = db
-  .prepare(
-    `SELECT version, ai, count(*) AS runs FROM runs
-     WHERE mode='sim' AND wave_reached > 1
-     GROUP BY version, ai ORDER BY version DESC, runs DESC`,
-  )
-  .all();
+// Coerce bigints to plain numbers — DuckDB returns BIGINT for count/sum-of-INT;
+// the script's downstream math assumes Number. Counts here stay well within
+// MAX_SAFE_INTEGER so the lossy coercion is fine.
+function jsToNumbers<T>(rows: Record<string, unknown>[]): T[] {
+  for (const row of rows) {
+    for (const k in row) if (typeof row[k] === "bigint") row[k] = Number(row[k]);
+  }
+  return rows as unknown as T[];
+}
+async function all<T>(sql: string, params: DuckDBValue[] | Record<string, DuckDBValue> = []): Promise<T[]> {
+  const reader = await db.runAndReadAll(sql, params as DuckDBValue[]);
+  return jsToNumbers<T>(reader.getRowObjectsJS() as Record<string, unknown>[]);
+}
+async function one<T>(sql: string, params: DuckDBValue[] | Record<string, DuckDBValue> = []): Promise<T | undefined> {
+  const rows = await all<T>(sql, params);
+  return rows[0];
+}
 
-const targetRunCount = (
-  db
-    .prepare(`SELECT count(*) AS c FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=? AND version=?`)
-    .get(ai, version) as { c: number }
-).c;
+const inventory = await all(
+  `SELECT version, ai, count(*) AS runs FROM runs
+   WHERE mode='sim' AND wave_reached > 1
+   GROUP BY version, ai ORDER BY version DESC, runs DESC`,
+);
+
+const targetRunCount = Number((
+  await one(
+    `SELECT count(*) AS c FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
+    { ai, version },
+  ) as { c: number }
+).c);
 
 const meta = { ok: true as const, dbPath: DB_PATH, targetAi: ai, targetVersion: version, targetRunCount, inventory };
 
@@ -153,16 +188,16 @@ if (targetRunCount === 0) {
 }
 
 const scope = (col: string) =>
-  `${col} IN (SELECT run_id FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version)`;
+  `${col} IN (SELECT run_id FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version)`;
 const bind = { ai, version };
-const q = <T>(sql: string) => db.prepare(sql).all(bind) as T[];
+const q = <T>(sql: string) => all<T>(sql, bind);
 
 // ── Keeper events → keep-rate (A1) + presence reconstruction (A2) ──────────────
 // Exactly one tower is kept per wave; the keeper event records (gem, detail=combo_key,
 // wave, run). Raw-gem keeps carry detail=''; combo keeps carry the combo_key. We split
 // keep credit so raw-gem and combo shares are disjoint (a combo keeper counts for the
 // combo, not its base gem), so gem keep_share + combo keep_share ≈ 1 across kept items.
-const keeperRows = q<{ gem: string; combo_key: string; run_id: string; wave: number }>(
+const keeperRows = await q<{ gem: string; combo_key: string; run_id: string; wave: number }>(
   `SELECT gem, detail AS combo_key, run_id, wave FROM events
    WHERE event_type='keeper' AND ${scope("run_id")}`,
 );
@@ -198,11 +233,11 @@ const comboKeep = (key: string) => ({
 
 // Presence-conditioning data (support items only). CORRELATIONAL, not a counterfactual:
 // presence correlates with progression and stronger boards. The skill must caveat loudly.
-const runFull = q<{ run_id: string; wave_reached: number; total_leaks: number }>(
+const runFull = await q<{ run_id: string; wave_reached: number; total_leaks: number }>(
   `SELECT run_id, wave_reached, total_leaks FROM runs
-   WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
+   WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
 );
-const waveDetail = q<{ run_id: string; wave: number; leaks: number; total_damage: number; avg_ticks_to_kill: number; avg_path_progress: number }>(
+const waveDetail = await q<{ run_id: string; wave: number; leaks: number; total_damage: number; avg_ticks_to_kill: number; avg_path_progress: number }>(
   `SELECT run_id, wave, leaks, total_damage, avg_ticks_to_kill, avg_path_progress
    FROM waves WHERE ${scope("run_id")}`,
 );
@@ -252,16 +287,15 @@ const PRESENCE_CAVEAT =
   "progression and stronger boards, so 'present' cohorts look better partly because " +
   "better runs keep more towers. Only a leave-one-out sim measures marginal value.";
 
-const overview = db
-  .prepare(
-    `SELECT count(*) AS runs, avg(wave_reached) AS avg_wave, max(wave_reached) AS max_wave,
-            sum(CASE WHEN outcome='victory' THEN 1 ELSE 0 END) AS victories
-     FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
-  )
-  .get(bind);
+const overview = await one(
+  `SELECT count(*) AS runs, avg(wave_reached) AS avg_wave, max(wave_reached) AS max_wave,
+          sum(CASE WHEN outcome='victory' THEN 1 ELSE 0 END) AS victories
+   FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
+  bind,
+);
 
 // ── Gems: per-gem damage/kill share + ratio to the damage-dealer mean ──────────
-const gemRows = q<{ gem: string; total_damage: number; total_kills: number; runs: number }>(
+const gemRows = await q<{ gem: string; total_damage: number; total_kills: number; runs: number }>(
   `SELECT gem, sum(damage) AS total_damage, sum(kills) AS total_kills, count(DISTINCT run_id) AS runs
    FROM wave_gem_damage WHERE is_combo = 0 AND ${scope("run_id")}
    GROUP BY gem ORDER BY total_damage DESC`,
@@ -278,10 +312,10 @@ const dealerMean = dealerShares.length ? dealerShares.reduce((s, x) => s + x, 0)
 // it's the cleanest cross-gem / cross-special damage-output lens. avg_hp_pool mirrors the
 // dashboard's waveHpPool query exactly (sum(total_hp_spawned) ÷ distinct runs, per wave).
 const hpPoolByWave = new Map(
-  q<{ wave: number; avg_hp_pool: number }>(
+  (await q<{ wave: number; avg_hp_pool: number }>(
     `SELECT wave, sum(total_hp_spawned) * 1.0 / count(DISTINCT run_id) AS avg_hp_pool
      FROM wave_creep_stats WHERE ${scope("run_id")} GROUP BY wave`,
-  ).map((r) => [r.wave, r.avg_hp_pool] as const),
+  )).map((r) => [r.wave, r.avg_hp_pool] as const),
 );
 const dmgPerHpByKey = (rows: { key: string; wave: number; total_damage: number; runs: number }[]) => {
   const byKey = new Map<string, { wave: number; total_damage: number; runs: number }[]>();
@@ -301,13 +335,13 @@ const dmgPerHpByKey = (rows: { key: string; wave: number; total_damage: number; 
   return out;
 };
 const gemDmgPerHp = dmgPerHpByKey(
-  q<{ key: string; wave: number; total_damage: number; runs: number }>(
+  await q<{ key: string; wave: number; total_damage: number; runs: number }>(
     `SELECT gem AS key, wave, sum(damage) AS total_damage, count(DISTINCT run_id) AS runs
      FROM wave_gem_damage WHERE is_combo = 0 AND ${scope("run_id")} GROUP BY gem, wave`,
   ),
 );
 const comboDmgPerHp = dmgPerHpByKey(
-  q<{ key: string; wave: number; total_damage: number; runs: number }>(
+  await q<{ key: string; wave: number; total_damage: number; runs: number }>(
     `SELECT combo_key AS key, wave, sum(damage) AS total_damage, count(DISTINCT run_id) AS runs
      FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key, wave`,
   ),
@@ -324,15 +358,17 @@ const dealerMeanDmgPerHp = dealerDmgPerHps.length
 // ── Assist (A3): assisted damage credited to support sources, from wave_gem_assist ──
 // Pre-instrumentation runs (older versions) have no such table/rows; we omit the block
 // then (the script already version-filters, so it returns automatically once new runs land).
-const hasAssistTable = !!db
-  .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='wave_gem_assist'`)
-  .get();
+const assistTableRow = await one<{ n: number }>(
+  `SELECT count(*) AS n FROM information_schema.tables
+   WHERE table_schema='main' AND table_name='wave_gem_assist'`,
+);
+const hasAssistTable = (assistTableRow?.n ?? 0) > 0;
 type AssistAgg = { dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number };
 const zeroAssist = (): AssistAgg => ({ dmg_aura: 0, vuln: 0, armor_shred: 0, atkspeed: 0, bonus_gold: 0 });
 const assistByGem = new Map<string, AssistAgg>();
 const assistByCombo = new Map<string, AssistAgg>();
 if (hasAssistTable) {
-  const assistRows = q<{ gem: string; combo_key: string; dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number }>(
+  const assistRows = await q<{ gem: string; combo_key: string; dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number }>(
     `SELECT gem, combo_key,
             sum(dmg_aura_assist) AS dmg_aura, sum(vuln_assist) AS vuln,
             sum(armor_shred_assist) AS armor_shred, sum(atkspeed_assist) AS atkspeed,
@@ -424,11 +460,11 @@ const gems = {
 };
 
 // ── Combos: build rate + damage per build (two source tables differ by design) ──
-const comboDmg = q<{ combo_key: string; total_damage: number; total_kills: number; runs: number }>(
+const comboDmg = await q<{ combo_key: string; total_damage: number; total_kills: number; runs: number }>(
   `SELECT combo_key, sum(damage) AS total_damage, sum(kills) AS total_kills, count(DISTINCT run_id) AS runs
    FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key`,
 );
-const comboBuild = q<{ combo_key: string; built: number; runs: number }>(
+const comboBuild = await q<{ combo_key: string; built: number; runs: number }>(
   `SELECT combo_key, count(*) AS built, count(DISTINCT run_id) AS runs
    FROM towers WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key`,
 );
@@ -471,11 +507,11 @@ const combos = {
 // Outliers are read ACROSS combos WITHIN a tier bucket (gold scales differ by tier),
 // so each row carries the tier's median cum_dmg_per_gold and a ratio to it.
 const comboUpgradeCosts = new Map(COMBOS.map((c) => [c.key, c.upgrades.map((u) => u.cost)]));
-const tierDmgRows = q<{ combo_key: string; upgrade_tier: number; total_damage: number; total_kills: number; runs: number }>(
+const tierDmgRows = await q<{ combo_key: string; upgrade_tier: number; total_damage: number; total_kills: number; runs: number }>(
   `SELECT combo_key, upgrade_tier, sum(damage) AS total_damage, sum(kills) AS total_kills, count(DISTINCT run_id) AS runs
    FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key, upgrade_tier`,
 );
-const towerTierRows = q<{ combo_key: string; upgrade_tier: number; n: number }>(
+const towerTierRows = await q<{ combo_key: string; upgrade_tier: number; n: number }>(
   `SELECT combo_key, upgrade_tier, count(*) AS n FROM towers WHERE combo_key != '' AND ${scope("run_id")}
    GROUP BY combo_key, upgrade_tier`,
 );
@@ -567,7 +603,7 @@ const combos2 = {
 };
 
 // ── Creeps: within-archetype leak rates ────────────────────────────────────────
-const creepRows = q<{
+const creepRows = await q<{
   creep_kind: string;
   spawned: number;
   kills: number;
@@ -626,20 +662,20 @@ const creeps = {
 };
 
 // ── Waves: per-wave death/leak, guarded neighbor comparison, creep attribution ──
-const waveStatRows = q<{ wave: number; samples: number; avg_leaks: number; total_leaks: number; avg_damage: number; avg_path_progress: number }>(
+const waveStatRows = await q<{ wave: number; samples: number; avg_leaks: number; total_leaks: number; avg_damage: number; avg_path_progress: number }>(
   `SELECT wave, count(*) AS samples, avg(leaks) AS avg_leaks, sum(leaks) AS total_leaks,
           avg(total_damage) AS avg_damage, avg(avg_path_progress) AS avg_path_progress
    FROM waves WHERE ${scope("run_id")} GROUP BY wave ORDER BY wave`,
 );
-const reachRows = q<{ wave: number; reached: number }>(
+const reachRows = await q<{ wave: number; reached: number }>(
   `SELECT wave, count(DISTINCT run_id) AS reached FROM waves WHERE ${scope("run_id")} GROUP BY wave`,
 );
-const deathRows = q<{ wave: number; deaths: number }>(
+const deathRows = await q<{ wave: number; deaths: number }>(
   `SELECT wave_reached AS wave, count(*) AS deaths FROM runs
-   WHERE outcome='gameover' AND mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version
+   WHERE outcome='gameover' AND mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version
    GROUP BY wave_reached`,
 );
-const leakAttrRows = q<{ wave: number; creep_kind: string; spawned: number; leaks: number }>(
+const leakAttrRows = await q<{ wave: number; creep_kind: string; spawned: number; leaks: number }>(
   `SELECT wave, creep_kind, sum(spawned) AS spawned, sum(leaks) AS leaks
    FROM wave_creep_stats WHERE ${scope("run_id")} GROUP BY wave, creep_kind HAVING sum(leaks) > 0`,
 );
@@ -711,7 +747,7 @@ const STARTER_RECIPES: Record<string, Set<string>> = {
 };
 type Cohort = "malachite" | "silver" | "pyrite";
 const COHORT_KEYS = Object.keys(STARTER_RECIPES) as Cohort[];
-const w1Keepers = q<{ run_id: string; gem: string; combo_key: string }>(
+const w1Keepers = await q<{ run_id: string; gem: string; combo_key: string }>(
   `SELECT run_id, gem, detail AS combo_key FROM events
    WHERE event_type = 'keeper' AND wave = 1 AND ${scope("run_id")}`,
 );
@@ -725,8 +761,8 @@ for (const r of w1Keepers) {
   if (matched) cohortByRun.set(r.run_id, matched);
   else unassigned++;
 }
-const runMetaRows = q<{ run_id: string; wave_reached: number; outcome: string }>(
-  `SELECT run_id, wave_reached, outcome FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
+const runMetaRows = await q<{ run_id: string; wave_reached: number; outcome: string }>(
+  `SELECT run_id, wave_reached, outcome FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
 );
 const cohortWaves = Object.fromEntries(COHORT_KEYS.map((c) => [c, []])) as Record<Cohort, number[]>;
 const cohortVictories = Object.fromEntries(COHORT_KEYS.map((c) => [c, 0])) as Record<Cohort, number>;
@@ -750,7 +786,7 @@ const cohortSummary = (c: Cohort) => {
   };
 };
 // per-wave death & leak, split by cohort, so we can see WHERE each choice falls behind
-const waveLeakRows = q<{ run_id: string; wave: number; leaks: number }>(
+const waveLeakRows = await q<{ run_id: string; wave: number; leaks: number }>(
   `SELECT run_id, wave, leaks FROM waves WHERE ${scope("run_id")}`,
 );
 type WaveAgg = { reached: number; leakSum: number };
@@ -808,4 +844,4 @@ const waveOneChoice = {
 };
 
 console.log(JSON.stringify({ ...meta, overview, gems, combos: combos2, creeps, waves, waveOneChoice }, null, 2));
-db.close();
+db.disconnectSync();

@@ -9,7 +9,7 @@ description: >-
   WAVE-1 STARTER CHOICE (Malachite / Silver / Pyrite) and its impact on how far runs get.
   Also use for "look at the telemetry / sim data for balance," and whenever the user
   wants to be WALKED THROUGH the findings, decide what (if anything) to change, or
-  "help me decide what to tune." Reads `.local/telemetry.db` directly (HeuristicAI sim
+  "help me decide what to tune." Reads `.local/telemetry.duckdb` directly (HeuristicAI sim
   runs at the current game version). It explains every deduction in full, makes NO
   assumptions about a target/desirable balance state the user hasn't confirmed, then
   INTERVIEWS the user finding-by-finding (AskUserQuestion) — keep or change, and if

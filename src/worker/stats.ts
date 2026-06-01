@@ -11,7 +11,7 @@ export async function handleStats(
 
   const mf = runset === "sim"
     ? "AND mode = 'sim' AND wave_reached > 1"
-    : "AND mode NOT IN ('debug', 'creative', 'sim') AND wave_reached > 1";
+    : "AND mode NOT IN ('debug', 'creative', 'sim', 'hardcore') AND wave_reached > 1";
 
   let rv = mf;
   let rBind: string[] = [];

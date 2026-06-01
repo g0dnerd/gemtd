@@ -105,7 +105,7 @@ interface TelemetryEvent {
   value1: number;
 }
 
-export type TelemetryMode = "normal" | "hardcore" | "blueprint" | "sim";
+export type TelemetryMode = "normal" | "blueprint" | "sim";
 
 export interface TelemetryOptions {
   version?: string;
@@ -157,9 +157,7 @@ export class TelemetryCollector {
     // `??` short-circuits, so the bare `__GAME_VERSION__` (a Vite define that
     // is undefined under tsx) is never evaluated when a version is injected.
     this.version = opts?.version ?? __GAME_VERSION__;
-    this.mode =
-      opts?.mode ??
-      (game.state.hardcore ? "hardcore" : game.blueprintMode ? "blueprint" : "normal");
+    this.mode = opts?.mode ?? (game.blueprintMode ? "blueprint" : "normal");
     this.ai = opts?.ai;
     this.seed = opts?.seed;
     this.transport = opts?.transport;
