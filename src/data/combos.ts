@@ -528,7 +528,7 @@ const ALL_COMBOS: ComboRecipe[] = [
       dmgMax: 280,
       range: 7.0,
       atkSpeed: 0.5,
-      effects: [{ kind: "distance_scaling", minMult: 0.5, maxMult: 1.8 }],
+      effects: [{ kind: "distance_scaling", minMult: 0.5, maxMult: 2.2 }],
       blurb: "More damage the farther the target.",
       targeting: "all",
     },
@@ -542,7 +542,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 8.0,
           atkSpeed: 0.6,
           effects: [
-            { kind: "distance_scaling", minMult: 0.4, maxMult: 2.0 },
+            { kind: "distance_scaling", minMult: 0.4, maxMult: 2.5 },
             { kind: "pierce", count: 1 },
           ],
           blurb: "Devastating at range. Shots pierce.",
@@ -797,8 +797,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "topaz", quality: 1 },
     ],
     stats: {
-      dmgMin: 24,
-      dmgMax: 32,
+      dmgMin: 28,
+      dmgMax: 37,
       range: 3.5,
       atkSpeed: 1.4,
       effects: [{ kind: "multi_target", count: 3 }],
@@ -810,8 +810,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Vivid Malachite",
         cost: 75,
         stats: {
-          dmgMin: 80,
-          dmgMax: 120,
+          dmgMin: 93,
+          dmgMax: 140,
           range: 4.0,
           atkSpeed: 1.6,
           effects: [{ kind: "multi_target", count: 6 }],
@@ -899,8 +899,8 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "diamond", quality: 1 },
     ],
     stats: {
-      dmgMin: 36,
-      dmgMax: 38,
+      dmgMin: 42,
+      dmgMax: 45,
       range: 3.5,
       atkSpeed: 1.56,
       effects: [
@@ -915,8 +915,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Frosted Silver",
         cost: 110,
         stats: {
-          dmgMin: 155,
-          dmgMax: 210,
+          dmgMin: 185,
+          dmgMax: 245,
           range: 3.75,
           atkSpeed: 1.35,
           effects: [
