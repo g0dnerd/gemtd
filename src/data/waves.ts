@@ -132,7 +132,7 @@ export const WAVES: WaveDef[] = [
     13,
     0.75,
     12,
-    ["carapace", 9, 2250, 4],
+    ["carapace", 9, 2800, 4],
     ["skitter", 4, 2250, 4, 0, 2],
     ["mender", 2, 1500, 5],
   ),
@@ -143,7 +143,7 @@ export const WAVES: WaveDef[] = [
       {
         kind: "vessel" as CreepKind,
         count: 5,
-        hp: 5000,
+        hp: 6500,
         bounty: 4,
         slowResist: 0,
         payload: [
@@ -163,7 +163,7 @@ export const WAVES: WaveDef[] = [
     ["skitter", 6, 4980, 3, 0, 2],
     ["mender", 2, 3300, 5],
   ),
-  w(18, "carapace", 15, 3950, 5, 0.75, 17),
+  w(18, "carapace", 15, 4800, 5, 0.75, 17),
   wm(19, 0.55, 17, ["shrike", 10, 3150, 4], ["skitter", 6, 3525, 4, 0, 2]),
   wm(20, 1.2, 60, ["amalgam", 6, 13500, 12], ["mender", 2, 8000, 8]),
 
@@ -362,7 +362,7 @@ export const WAVES: WaveDef[] = [
     40,
     1.0,
     50,
-    ["amalgam", 9, 50000, 18, 0, 12],
+    ["amalgam", 9, 45000, 18, 0, 12],
     ["mender", 4, 24000, 13, 0, 11],
   ),
 
