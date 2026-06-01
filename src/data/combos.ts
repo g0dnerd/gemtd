@@ -412,8 +412,8 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Storm Crown",
         cost: 360,
         stats: {
-          dmgMin: 150,
-          dmgMax: 220,
+          dmgMin: 125,
+          dmgMax: 185,
           range: 4.5,
           atkSpeed: 0.9,
           effects: [
@@ -750,7 +750,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             {
               kind: "prox_burn_ramp",
-              dps: 155,
+              dps: 250,
               radius: 2.8,
               rampPct: 0.1,
               rampCap: 1.0,
