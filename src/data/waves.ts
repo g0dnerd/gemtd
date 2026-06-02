@@ -279,7 +279,7 @@ export const WAVES: WaveDef[] = [
     0.55,
     14,
     ["chrysalid", 17, 26000, 2, 0.28, 9],
-    ["mender", 2, 25000, 2, 0.28, 9],
+    ["mender", 2, 20000, 2, 0.28, 9],
   ),
   {
     number: 35,
