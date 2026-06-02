@@ -17,7 +17,7 @@ import {
   COMBO_BY_NAME,
   ComboRecipe,
   comboStatsAtTier,
-  findAllCombosFor,
+  findComboFor,
   nextUpgrade,
 } from "../data/combos";
 import { CreepState, TowerState } from "../game/State";
@@ -134,6 +134,9 @@ function fingerprint(game: Game): string {
   const specialCount = countSpecialRecipes(game, tower);
   const upgradeCost = getUpgradeCost(tower);
   const canAfford = upgradeCost !== null && game.state.gold >= upgradeCost;
+  const ingredientFp = tower.comboKey
+    ? ""
+    : ingredientFingerprint(game, tower);
   return [
     tower.id,
     tower.gem,
@@ -149,7 +152,15 @@ function fingerprint(game: Game): string {
     upgradeCost ?? "",
     canAfford ? 1 : 0,
     game.state.downgradeUsedThisRound ? 1 : 0,
+    ingredientFp,
   ].join("|");
+}
+
+function ingredientFingerprint(game: Game, tower: TowerState): string {
+  const recipe = findComboFor(tower.gem, tower.quality as Quality);
+  if (!recipe) return "";
+  const states = computeIngredientStates(recipe, tower, game.state.towers);
+  return states.join("");
 }
 
 function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
@@ -289,30 +300,9 @@ function render(refs: InspectorRefs, game: Game): void {
   }
 
   if (!tower.comboKey) {
-    const recipes = findAllCombosFor(tower.gem, tower.quality as Quality);
-    for (const recipe of recipes) {
-      const row = document.createElement("div");
-      row.className = "inspector-forge-row";
-      const head = document.createElement("div");
-      head.className = "inspector-forge-row-head";
-      head.textContent = "FORGES INTO";
-      const rowBody = document.createElement("div");
-      rowBody.className = "inspector-forge-row-body";
-      const icon = document.createElement("div");
-      icon.className = "forge-icon";
-      icon.appendChild(htmlSpecial(recipe.key, 22));
-      const fname = document.createElement("div");
-      fname.className = "forge-name";
-      fname.textContent = recipe.name.toUpperCase();
-      const arrow = document.createElement("div");
-      arrow.className = "forge-arrow";
-      arrow.textContent = "›";
-      rowBody.append(icon, fname, arrow);
-      row.append(head, rowBody);
-      row.addEventListener("click", () => {
-        game.bus.emit("focusRecipe", { key: recipe.key });
-      });
-      body.appendChild(row);
+    const recipe = findComboFor(tower.gem, tower.quality as Quality);
+    if (recipe) {
+      body.appendChild(renderForgeCard(game, tower, recipe));
     }
   }
 
@@ -395,6 +385,128 @@ function render(refs: InspectorRefs, game: Game): void {
   comboRow.append(combineBtn, specialBtn);
   actions.append(comboRow);
   body.appendChild(actions);
+}
+
+type IngredientState = "this" | "have" | "missing";
+
+function computeIngredientStates(
+  recipe: ComboRecipe,
+  selected: TowerState,
+  towers: readonly TowerState[],
+): IngredientState[] {
+  const available = towers
+    .filter((t) => !t.comboKey && t.id !== selected.id)
+    .map((t) => ({ gem: t.gem, quality: t.quality, used: false }));
+  const states: (IngredientState | null)[] = recipe.inputs.map(() => null);
+  let selfConsumed = false;
+  for (let i = 0; i < recipe.inputs.length; i++) {
+    const inp = recipe.inputs[i];
+    if (
+      !selfConsumed &&
+      inp.gem === selected.gem &&
+      inp.quality === selected.quality
+    ) {
+      states[i] = "this";
+      selfConsumed = true;
+    }
+  }
+  for (let i = 0; i < recipe.inputs.length; i++) {
+    if (states[i] !== null) continue;
+    const inp = recipe.inputs[i];
+    const match = available.find(
+      (a) => !a.used && a.gem === inp.gem && a.quality === inp.quality,
+    );
+    if (match) {
+      match.used = true;
+      states[i] = "have";
+    } else {
+      states[i] = "missing";
+    }
+  }
+  return states as IngredientState[];
+}
+
+function renderForgeCard(
+  game: Game,
+  tower: TowerState,
+  recipe: ComboRecipe,
+): HTMLDivElement {
+  const card = document.createElement("div");
+  card.className = "inspector-forge-card";
+
+  const head = document.createElement("div");
+  head.className = "forge-head";
+  head.textContent = "FORGES INTO";
+  card.appendChild(head);
+
+  const result = document.createElement("div");
+  result.className = "forge-result";
+  const resIcon = document.createElement("div");
+  resIcon.className = "res-icon";
+  resIcon.appendChild(htmlSpecial(recipe.key, 40));
+  const resName = document.createElement("div");
+  resName.className = "res-name";
+  resName.textContent = recipe.name.toUpperCase();
+  result.append(resIcon, resName);
+  card.appendChild(result);
+
+  const blurb = comboStatsAtTier(recipe, 0).blurb ?? recipe.stats.blurb;
+  if (blurb) {
+    const blurbEl = document.createElement("div");
+    blurbEl.className = "forge-blurb";
+    blurbEl.textContent = blurb;
+    card.appendChild(blurbEl);
+  }
+
+  const rule = document.createElement("div");
+  rule.className = "forge-rule";
+  card.appendChild(rule);
+
+  const states = computeIngredientStates(recipe, tower, game.state.towers);
+  const readyCount = states.filter((s) => s !== "missing").length;
+  const totalCount = states.length;
+
+  const fromLbl = document.createElement("div");
+  fromLbl.className = "forge-from-lbl";
+  const fromTag = document.createElement("span");
+  fromTag.textContent = "FROM";
+  const tally = document.createElement("span");
+  tally.className = "from-tally";
+  const tallyNum = document.createElement("b");
+  tallyNum.textContent = String(readyCount);
+  tally.append(tallyNum, ` / ${totalCount} ready`);
+  fromLbl.append(fromTag, tally);
+  card.appendChild(fromLbl);
+
+  const fromList = document.createElement("div");
+  fromList.className = "forge-from";
+  for (let i = 0; i < recipe.inputs.length; i++) {
+    const inp = recipe.inputs[i];
+    const state = states[i];
+    const row = document.createElement("div");
+    row.className = `forge-ingredient state-${state}`;
+    const slot = document.createElement("span");
+    slot.className = "ing-slot";
+    slot.appendChild(htmlGemTier(inp.gem, inp.quality, 24));
+    const name = document.createElement("span");
+    name.className = "ing-name";
+    name.textContent = GEM_PALETTE[inp.gem].name.toUpperCase();
+    if (state !== "missing" && state !== "this") {
+      name.style.color = GEM_PALETTE[inp.gem].css.light;
+    }
+    const q = document.createElement("span");
+    q.className = "ing-q";
+    q.textContent = `L${inp.quality}`;
+    row.append(slot, name, q);
+    fromList.appendChild(row);
+  }
+  card.appendChild(fromList);
+
+  card.addEventListener("click", () => {
+    game.bus.emit("focusRecipe", { key: recipe.key });
+  });
+
+  return card;
 }
 
 function towerDisplayName(t: TowerState): string {

@@ -928,60 +928,180 @@
   color: var(--px-accent-hi);
 }
 
-/* Forge-into row — compact chip */
-.inspector-forge-row {
+/* FORGES INTO — recipe card with per-ingredient state (this / have / missing) */
+.inspector-forge-card {
   margin-bottom: 8px;
   background: var(--px-bg);
   box-shadow:
     inset 1px 1px 0 0 var(--px-border-dark),
     0 0 0 2px var(--px-border-dark);
   border-left: 3px solid var(--px-accent);
-  padding: 6px 8px 6px 9px;
+  padding: 12px 14px 13px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 11px;
   cursor: pointer;
   transition:
     border-left-color 120ms ease,
     transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (hover: hover) and (pointer: fine) {
-  .inspector-forge-row:hover {
+  .inspector-forge-card:hover {
     border-left-color: var(--px-accent-hi);
   }
 }
-.inspector-forge-row:active {
-  transform: scale(0.98);
+.inspector-forge-card:active {
+  transform: scale(0.99);
 }
-.inspector-forge-row-head {
+.inspector-forge-card .forge-head {
   font-family: "Press Start 2P", monospace;
-  font-size: 7px;
+  font-size: 8px;
   color: var(--px-ink-dimmer);
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
+  line-height: 1;
 }
-.inspector-forge-row-body {
+.inspector-forge-card .forge-result {
   display: grid;
-  grid-template-columns: 22px 1fr auto;
-  gap: 8px;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
   align-items: center;
 }
-.inspector-forge-row-body .forge-icon {
+.inspector-forge-card .res-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
 }
-.inspector-forge-row-body .forge-name {
+.inspector-forge-card .res-name {
   font-family: "VT323", monospace;
-  font-size: 17px;
+  font-size: 24px;
   color: var(--px-accent);
   line-height: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
-.inspector-forge-row-body .forge-arrow {
+.inspector-forge-card .forge-blurb {
+  font-family: "VT323", monospace;
+  font-size: 16px;
+  color: var(--px-ink-dim);
+  line-height: 1.35;
+  padding-left: 52px;
+}
+.inspector-forge-card .forge-rule {
+  height: 0;
+  margin: 2px 0 0;
+  border-top: 1px solid var(--px-border-dark);
+}
+.inspector-forge-card .forge-from-lbl {
   font-family: "Press Start 2P", monospace;
-  font-size: 10px;
+  font-size: 8px;
+  color: var(--px-ink-dimmer);
+  letter-spacing: 1.5px;
+  line-height: 1;
+  margin-top: 1px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.inspector-forge-card .forge-from-lbl .from-tally {
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  letter-spacing: 0;
+  color: var(--px-ink-dim);
+}
+.inspector-forge-card .forge-from-lbl .from-tally b {
+  color: var(--px-good);
+  font-weight: normal;
+}
+.inspector-forge-card .forge-from {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.forge-ingredient {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 8px 5px 6px;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark);
+}
+.forge-ingredient .ing-slot {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-panel-2);
+}
+.forge-ingredient .ing-name {
+  font-family: "VT323", monospace;
+  font-size: 17px;
+  line-height: 1;
+  color: var(--px-ink);
+}
+.forge-ingredient .ing-q {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-ink-dim);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+/* SELECTED — amber slot, accent row tint */
+.forge-ingredient.state-this {
+  background: rgba(240, 160, 64, 0.1);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-accent);
+}
+.forge-ingredient.state-this .ing-slot {
+  background: rgba(240, 160, 64, 0.1);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-accent);
+}
+.forge-ingredient.state-this .ing-name {
+  color: var(--px-accent-hi);
+}
+.forge-ingredient.state-this .ing-q {
+  color: var(--px-accent);
+}
+
+/* HAVE — filled slot */
+.forge-ingredient.state-have .ing-slot {
+  background: var(--px-panel-2);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-good-d);
+}
+.forge-ingredient.state-have .ing-q {
+  color: var(--px-good);
+}
+
+/* MISSING — hollow slot, faded sprite, dim row */
+.forge-ingredient.state-missing {
+  background: rgba(0, 0, 0, 0.42);
+}
+.forge-ingredient.state-missing .ing-slot {
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-ink-dimmer);
+}
+.forge-ingredient.state-missing .ing-slot .px-sprite {
+  filter: opacity(0.32) saturate(0.4);
+}
+.forge-ingredient.state-missing .ing-name {
+  color: var(--px-ink-dimmer);
+}
+.forge-ingredient.state-missing .ing-q {
   color: var(--px-ink-dimmer);
 }
 
