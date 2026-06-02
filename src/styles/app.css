@@ -799,10 +799,7 @@
 .inspector-tower-hero-meta .hm-sep { color: var(--px-ink-dimmer); margin: 0 4px; }
 .inspector-tower-hero-meta .hm-kills { color: var(--px-ink-dim); }
 .inspector-tower-hero-meta .hm-lbl {
-  font-family: "Press Start 2P", monospace;
-  font-size: 7px;
   color: var(--px-ink-dimmer);
-  letter-spacing: 1px;
   margin-left: 4px;
 }
 .inspector-tower-hero-meta.is-lvl .hm-lvl { color: var(--px-accent); }
@@ -1288,15 +1285,6 @@
   font-size: 7px;
   color: var(--px-ink);
   letter-spacing: 1px;
-}
-.inspector-creep-blurb {
-  font-family: "VT323", monospace;
-  font-size: 15px;
-  color: var(--px-ink-dim);
-  line-height: 1.2;
-  padding: 0 4px;
-  margin-bottom: 8px;
-  font-style: italic;
 }
 .inspector-creep-hp {
   padding: 8px 10px;

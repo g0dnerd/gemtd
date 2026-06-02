@@ -21,7 +21,6 @@ import {
   nextUpgrade,
 } from "../data/combos";
 import { CreepState, TowerState } from "../game/State";
-import { CREEP_ARCHETYPES } from "../data/creeps";
 import { towerLevel } from "../systems/Combat";
 import { SIM_HZ } from "../game/constants";
 
@@ -164,7 +163,6 @@ function ingredientFingerprint(game: Game, tower: TowerState): string {
 function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
   const lvl = towerLevel(tower);
   const kills = tower.kills;
-  const next = (lvl + 1) * 10;
   const bonus =
     lvl > 0
       ? ` <span class="hm-bonus"> (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)</span>`
@@ -172,7 +170,7 @@ function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
   el.innerHTML =
     `<span class="hm-lvl">LV ${lvl}${bonus}</span>` +
     `<span class="hm-sep">·</span>` +
-    `<span class="hm-kills">${kills}/${next}</span>` +
+    `<span class="hm-kills">${kills}</span>` +
     `<span class="hm-lbl">KILLS</span>`;
   el.classList.toggle("is-lvl", lvl > 0);
 }
@@ -1118,18 +1116,6 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
     if (c.flags.armored) flagRow.appendChild(flagChip("ARMORED", "muted"));
     if (c.flags.air) flagRow.appendChild(flagChip("AIR", "accent"));
     body.appendChild(flagRow);
-  }
-
-  // Blurb (archetype description)
-  const archetype = CREEP_ARCHETYPES[c.kind as keyof typeof CREEP_ARCHETYPES];
-  if (archetype?.blurb) {
-    const blurb = document.createElement("div");
-    blurb.className = "inspector-creep-blurb";
-    blurb.textContent =
-      c.kind === "chrysalid" && c.chrysalidAwakened
-        ? "Awakened: 70% resistant to slow, stun and poison. +60% movement speed, +10 armor, dodges every 10th hit."
-        : archetype.blurb;
-    body.appendChild(blurb);
   }
 
   // HP bar (inset card)
