@@ -543,7 +543,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: scroll;
+  overflow: hidden;
 }
 .inspector-body {
   display: flex;
@@ -2331,7 +2331,7 @@
 }
 .mobile-tab-content .inspector {
   flex: none;
-  overflow-y: auto;
+  overflow-y: hidden;
 }
 .mobile-tab-content .recipes-panel {
   flex: none;
@@ -2344,4 +2344,34 @@
 }
 .mobile-tab-content .threat-list {
   gap: 4px;
+}
+
+/* Pixel-art scrollbars for the two containers that actually scroll.
+   Firefox uses scrollbar-width/color; Chromium/Safari use the webkit pseudo-elements. */
+.recipes-list,
+.tutorial-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--px-accent) var(--px-border-dark);
+}
+.recipes-list::-webkit-scrollbar,
+.tutorial-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.recipes-list::-webkit-scrollbar-track,
+.tutorial-body::-webkit-scrollbar-track {
+  background: var(--px-border-dark);
+}
+.recipes-list::-webkit-scrollbar-thumb,
+.tutorial-body::-webkit-scrollbar-thumb {
+  background: var(--px-accent);
+  border: 1px solid var(--px-border-dark);
+}
+.recipes-list::-webkit-scrollbar-thumb:hover,
+.tutorial-body::-webkit-scrollbar-thumb:hover {
+  background: var(--px-accent-hi);
+}
+.recipes-list::-webkit-scrollbar-corner,
+.tutorial-body::-webkit-scrollbar-corner {
+  background: var(--px-border-dark);
 }
