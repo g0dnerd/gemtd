@@ -134,9 +134,7 @@ function fingerprint(game: Game): string {
   const specialCount = countSpecialRecipes(game, tower);
   const upgradeCost = getUpgradeCost(tower);
   const canAfford = upgradeCost !== null && game.state.gold >= upgradeCost;
-  const ingredientFp = tower.comboKey
-    ? ""
-    : ingredientFingerprint(game, tower);
+  const ingredientFp = tower.comboKey ? "" : ingredientFingerprint(game, tower);
   return [
     tower.id,
     tower.gem,
@@ -167,9 +165,10 @@ function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
   const lvl = towerLevel(tower);
   const kills = tower.kills;
   const next = (lvl + 1) * 10;
-  const bonus = lvl > 0
-    ? ` <span class="hm-bonus"> (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)</span>`
-    : "";
+  const bonus =
+    lvl > 0
+      ? ` <span class="hm-bonus"> (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)</span>`
+      : "";
   el.innerHTML =
     `<span class="hm-lvl">LV ${lvl}${bonus}</span>` +
     `<span class="hm-sep">·</span>` +
@@ -441,9 +440,6 @@ function renderForgeCard(
 
   const stripHead = document.createElement("div");
   stripHead.className = "forge-strip-head";
-  const eye = document.createElement("span");
-  eye.className = "strip-eye";
-  eye.textContent = "FORGES";
   const stripIcon = document.createElement("span");
   stripIcon.className = "strip-icon";
   stripIcon.appendChild(htmlSpecial(recipe.key, 22));
@@ -455,7 +451,7 @@ function renderForgeCard(
   const tallyNum = document.createElement("b");
   tallyNum.textContent = String(readyCount);
   stripTally.append(tallyNum, `/${totalCount}`);
-  stripHead.append(eye, stripIcon, stripName, stripTally);
+  stripHead.append(stripIcon, stripName, stripTally);
   card.appendChild(stripHead);
 
   const blurb = comboStatsAtTier(recipe, 0).blurb ?? recipe.stats.blurb;
