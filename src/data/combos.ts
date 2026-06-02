@@ -867,9 +867,9 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 5.5,
           atkSpeed: 0.5,
           effects: [
-            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.65 },
+            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.55 },
           ],
-          blurb: "Momentum ramps speed and damage (+65% at max).",
+          blurb: "Momentum ramps speed and damage (+55% at max).",
           targeting: "all",
         },
       },
@@ -882,7 +882,7 @@ const ALL_COMBOS: ComboRecipe[] = [
           range: 5.5,
           atkSpeed: 0.55,
           effects: [
-            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.85 },
+            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.75 },
             { kind: "pierce", count: 1 },
             { kind: "kill_explode", radius: 1.0, falloff: 0.4 },
           ],
