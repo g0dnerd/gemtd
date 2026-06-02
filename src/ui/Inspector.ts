@@ -165,10 +165,17 @@ function ingredientFingerprint(game: Game, tower: TowerState): string {
 
 function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
   const lvl = towerLevel(tower);
-  el.textContent =
-    lvl > 0
-      ? `${tower.kills} kills · LV ${lvl} (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)`
-      : `${tower.kills} / 10 kills to next level`;
+  const kills = tower.kills;
+  const next = (lvl + 1) * 10;
+  const bonus = lvl > 0
+    ? ` <span class="hm-bonus"> (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)</span>`
+    : "";
+  el.innerHTML =
+    `<span class="hm-lvl">LV ${lvl}${bonus}</span>` +
+    `<span class="hm-sep">·</span>` +
+    `<span class="hm-kills">${kills}/${next}</span>` +
+    `<span class="hm-lbl">KILLS</span>`;
+  el.classList.toggle("is-lvl", lvl > 0);
 }
 
 function render(refs: InspectorRefs, game: Game): void {
@@ -230,15 +237,13 @@ function render(refs: InspectorRefs, game: Game): void {
   frame.className = "inspector-hero-frame";
   frame.appendChild(
     tower.comboKey
-      ? htmlSpecial(tower.comboKey, 40, true, tower.upgradeTier ?? 0)
-      : htmlGemTier(tower.gem, tower.quality as Quality, 36, true),
+      ? htmlSpecial(tower.comboKey, 24, true, tower.upgradeTier ?? 0)
+      : htmlGemTier(tower.gem, tower.quality as Quality, 24, true),
   );
   const mid = document.createElement("div");
   mid.className = "inspector-tower-hero-mid";
   const heroName = document.createElement("div");
   heroName.className = "inspector-tower-hero-name";
-  const heroSub = document.createElement("div");
-  heroSub.className = "inspector-tower-hero-sub";
   if (tower.comboKey) {
     const combo = COMBO_BY_NAME.get(tower.comboKey!);
     const tier = tower.upgradeTier ?? 0;
@@ -247,20 +252,16 @@ function render(refs: InspectorRefs, game: Game): void {
         ? combo.upgrades[tier - 1].name
         : combo?.name;
     heroName.textContent = (tierName ?? "COMBO").toUpperCase();
-    heroSub.textContent =
-      (combo ? comboStatsAtTier(combo, tier) : null)?.blurb ??
-      combo?.stats.blurb ??
-      "COMBO";
   } else {
-    heroName.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
-    heroSub.textContent = QUALITY_NAMES[tower.quality].toUpperCase();
+    heroName.textContent =
+      `${QUALITY_NAMES[tower.quality as Quality]} ${GEM_PALETTE[tower.gem].name}`.toUpperCase();
   }
   const heroMeta = document.createElement("div");
   heroMeta.className = "inspector-tower-hero-meta";
   updateHeroMeta(heroMeta, tower);
   refs.heroMeta = heroMeta;
   refs.lastKills = tower.kills;
-  mid.append(heroName, heroSub, heroMeta);
+  mid.append(heroName, heroMeta);
   hero.append(frame, mid);
   body.appendChild(hero);
 
@@ -434,21 +435,28 @@ function renderForgeCard(
   const card = document.createElement("div");
   card.className = "inspector-forge-card";
 
-  const head = document.createElement("div");
-  head.className = "forge-head";
-  head.textContent = "FORGES INTO";
-  card.appendChild(head);
+  const states = computeIngredientStates(recipe, tower, game.state.towers);
+  const readyCount = states.filter((s) => s !== "missing").length;
+  const totalCount = states.length;
 
-  const result = document.createElement("div");
-  result.className = "forge-result";
-  const resIcon = document.createElement("div");
-  resIcon.className = "res-icon";
-  resIcon.appendChild(htmlSpecial(recipe.key, 40));
-  const resName = document.createElement("div");
-  resName.className = "res-name";
-  resName.textContent = recipe.name.toUpperCase();
-  result.append(resIcon, resName);
-  card.appendChild(result);
+  const stripHead = document.createElement("div");
+  stripHead.className = "forge-strip-head";
+  const eye = document.createElement("span");
+  eye.className = "strip-eye";
+  eye.textContent = "FORGES";
+  const stripIcon = document.createElement("span");
+  stripIcon.className = "strip-icon";
+  stripIcon.appendChild(htmlSpecial(recipe.key, 22));
+  const stripName = document.createElement("span");
+  stripName.className = "strip-name";
+  stripName.textContent = recipe.name.toUpperCase();
+  const stripTally = document.createElement("span");
+  stripTally.className = "strip-tally";
+  const tallyNum = document.createElement("b");
+  tallyNum.textContent = String(readyCount);
+  stripTally.append(tallyNum, `/${totalCount}`);
+  stripHead.append(eye, stripIcon, stripName, stripTally);
+  card.appendChild(stripHead);
 
   const blurb = comboStatsAtTier(recipe, 0).blurb ?? recipe.stats.blurb;
   if (blurb) {
@@ -457,26 +465,6 @@ function renderForgeCard(
     blurbEl.textContent = blurb;
     card.appendChild(blurbEl);
   }
-
-  const rule = document.createElement("div");
-  rule.className = "forge-rule";
-  card.appendChild(rule);
-
-  const states = computeIngredientStates(recipe, tower, game.state.towers);
-  const readyCount = states.filter((s) => s !== "missing").length;
-  const totalCount = states.length;
-
-  const fromLbl = document.createElement("div");
-  fromLbl.className = "forge-from-lbl";
-  const fromTag = document.createElement("span");
-  fromTag.textContent = "FROM";
-  const tally = document.createElement("span");
-  tally.className = "from-tally";
-  const tallyNum = document.createElement("b");
-  tallyNum.textContent = String(readyCount);
-  tally.append(tallyNum, ` / ${totalCount} ready`);
-  fromLbl.append(fromTag, tally);
-  card.appendChild(fromLbl);
 
   const fromList = document.createElement("div");
   fromList.className = "forge-from";
@@ -487,7 +475,7 @@ function renderForgeCard(
     row.className = `forge-ingredient state-${state}`;
     const slot = document.createElement("span");
     slot.className = "ing-slot";
-    slot.appendChild(htmlGemTier(inp.gem, inp.quality, 24));
+    slot.appendChild(htmlGemTier(inp.gem, inp.quality, 18));
     const name = document.createElement("span");
     name.className = "ing-name";
     name.textContent = GEM_PALETTE[inp.gem].name.toUpperCase();

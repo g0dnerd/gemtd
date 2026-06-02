@@ -756,48 +756,57 @@
 
 /* ===== Inspector — Option A (tower-specific redesign) ===== */
 
-/* Hero: grid layout with larger sprite + stacked name/blurb/meta */
+/* Hero: compact 2-line — sprite | name + (LV n · k/10 KILLS) */
 .inspector-tower-hero {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
 }
 .inspector-tower-hero .inspector-hero-frame {
-  width: 52px;
-  height: 52px;
+  width: 28px;
+  height: 28px;
 }
 .inspector-tower-hero-mid {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 .inspector-tower-hero-name {
   font-family: "Press Start 2P", monospace;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--px-ink);
   letter-spacing: 1px;
-  line-height: 1.2;
-}
-.inspector-tower-hero-sub {
-  font-family: "VT323", monospace;
-  font-size: 15px;
-  color: var(--px-ink-dim);
-  line-height: 1.2;
-}
-.inspector-tower-hero-meta {
-  font-family: "VT323", monospace;
-  font-size: 14px;
-  color: var(--px-ink-dimmer);
-  line-height: 1;
-  margin-top: 2px;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.inspector-tower-hero-meta {
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  color: var(--px-ink-dim);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.inspector-tower-hero-meta .hm-lvl { color: var(--px-ink-dim); }
+.inspector-tower-hero-meta .hm-bonus { color: var(--px-ink-dimmer); }
+.inspector-tower-hero-meta .hm-sep { color: var(--px-ink-dimmer); margin: 0 4px; }
+.inspector-tower-hero-meta .hm-kills { color: var(--px-ink-dim); }
+.inspector-tower-hero-meta .hm-lbl {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-ink-dimmer);
+  letter-spacing: 1px;
+  margin-left: 4px;
+}
+.inspector-tower-hero-meta.is-lvl .hm-lvl { color: var(--px-accent); }
+.inspector-tower-hero-meta.is-lvl .hm-bonus { color: var(--px-accent-hi); }
 
 /* 3-up stat row */
 .inspector-stats-row {
@@ -807,28 +816,28 @@
   margin-bottom: 10px;
 }
 .inspector-stat-cell {
-  padding: 12px 10px;
+  padding: 6px 8px 7px;
 }
 .inspector-stat-cell .stat-lbl {
   font-family: "Press Start 2P", monospace;
-  font-size: 8px;
+  font-size: 7px;
   color: var(--px-ink-dim);
   letter-spacing: 1px;
 }
 .inspector-stat-cell .stat-val {
   font-family: "VT323", monospace;
   line-height: 1;
-  margin-top: 6px;
-  font-size: 22px;
+  margin-top: 3px;
+  font-size: 18px;
   color: var(--px-ink);
 }
 .inspector-stat-cell .stat-val small {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--px-ink-dim);
 }
 .inspector-stat-cell.is-dmg .stat-val {
   color: var(--px-accent);
-  font-size: 24px;
+  font-size: 20px;
 }
 
 /* Chiclet ability grid */
@@ -930,16 +939,16 @@
 
 /* FORGES INTO — recipe card with per-ingredient state (this / have / missing) */
 .inspector-forge-card {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   background: var(--px-bg);
   box-shadow:
     inset 1px 1px 0 0 var(--px-border-dark),
     0 0 0 2px var(--px-border-dark);
   border-left: 3px solid var(--px-accent);
-  padding: 12px 14px 13px;
+  padding: 7px 10px 9px;
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 6px;
   cursor: pointer;
   transition:
     border-left-color 120ms ease,
@@ -953,77 +962,71 @@
 .inspector-forge-card:active {
   transform: scale(0.99);
 }
-.inspector-forge-card .forge-head {
+.inspector-forge-card .forge-strip-head {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.inspector-forge-card .strip-eye {
   font-family: "Press Start 2P", monospace;
-  font-size: 8px;
+  font-size: 7px;
   color: var(--px-ink-dimmer);
-  letter-spacing: 1.5px;
+  letter-spacing: 1.3px;
   line-height: 1;
 }
-.inspector-forge-card .forge-result {
-  display: grid;
-  grid-template-columns: 40px 1fr;
-  gap: 12px;
-  align-items: center;
-}
-.inspector-forge-card .res-icon {
+.inspector-forge-card .strip-icon {
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
 }
-.inspector-forge-card .res-name {
+.inspector-forge-card .strip-name {
   font-family: "VT323", monospace;
-  font-size: 24px;
+  font-size: 18px;
   color: var(--px-accent);
   line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.inspector-forge-card .forge-blurb {
+.inspector-forge-card .strip-tally {
   font-family: "VT323", monospace;
-  font-size: 16px;
+  font-size: 13px;
   color: var(--px-ink-dim);
-  line-height: 1.35;
-  padding-left: 52px;
-}
-.inspector-forge-card .forge-rule {
-  height: 0;
-  margin: 2px 0 0;
-  border-top: 1px solid var(--px-border-dark);
-}
-.inspector-forge-card .forge-from-lbl {
-  font-family: "Press Start 2P", monospace;
-  font-size: 8px;
-  color: var(--px-ink-dimmer);
-  letter-spacing: 1.5px;
   line-height: 1;
-  margin-top: 1px;
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+  white-space: nowrap;
 }
-.inspector-forge-card .forge-from-lbl .from-tally {
-  font-family: "VT323", monospace;
-  font-size: 14px;
-  letter-spacing: 0;
-  color: var(--px-ink-dim);
-}
-.inspector-forge-card .forge-from-lbl .from-tally b {
+.inspector-forge-card .strip-tally b {
   color: var(--px-good);
   font-weight: normal;
+}
+.inspector-forge-card .forge-blurb {
+  display: none;
+  font-family: "VT323", monospace;
+  font-size: 13px;
+  color: var(--px-ink-dim);
+  line-height: 1.25;
+  margin-bottom: 1px;
+}
+@media (min-height: 1201px) {
+  .inspector-forge-card .forge-blurb {
+    display: block;
+  }
 }
 .inspector-forge-card .forge-from {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .forge-ingredient {
   display: grid;
-  grid-template-columns: 28px 1fr auto;
+  grid-template-columns: 22px 1fr auto;
   align-items: center;
-  gap: 10px;
-  padding: 5px 8px 5px 6px;
+  gap: 8px;
+  padding: 3px 6px 3px 4px;
   background: rgba(0, 0, 0, 0.2);
   box-shadow:
     inset 1px 1px 0 0 var(--px-border-dark),
@@ -1031,8 +1034,8 @@
 }
 .forge-ingredient .ing-slot {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1042,13 +1045,13 @@
 }
 .forge-ingredient .ing-name {
   font-family: "VT323", monospace;
-  font-size: 17px;
+  font-size: 15px;
   line-height: 1;
   color: var(--px-ink);
 }
 .forge-ingredient .ing-q {
   font-family: "Press Start 2P", monospace;
-  font-size: 8px;
+  font-size: 7px;
   color: var(--px-ink-dim);
   letter-spacing: 0.5px;
   line-height: 1;
@@ -1096,7 +1099,7 @@
     0 0 0 1px var(--px-ink-dimmer);
 }
 .forge-ingredient.state-missing .ing-slot .px-sprite {
-  filter: opacity(0.32) saturate(0.4);
+  filter: opacity(0.55) saturate(0.45) brightness(0.85);
 }
 .forge-ingredient.state-missing .ing-name {
   color: var(--px-ink-dimmer);
@@ -1686,6 +1689,11 @@
 }
 .draw-combo-banner .combo-name {
   color: #e8c8f8;
+}
+@media (max-height: 1200px) {
+  .draw-combo-banner.is-shown {
+    display: none;
+  }
 }
 
 /* Cells whose gem feeds a craftable special: a purple ring (layered over the
