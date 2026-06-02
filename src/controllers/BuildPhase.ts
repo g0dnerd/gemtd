@@ -464,7 +464,7 @@ export class BuildPhase {
       quality: outQuality,
       comboKey,
       lastFireTick: 0,
-      kills: 0,
+      kills: Math.max(...inputs.map((t) => t.kills)),
       totalDamage: 0,
       waveDamage: 0,
       placedWave: state.wave,
