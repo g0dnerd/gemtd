@@ -173,13 +173,12 @@ interface TowerEntry {
   thunderstoneFx?: ThunderstoneFx;
   ametrineBobWrap?: Container;
   ametrineFx?: AmetrineFx;
-  /** Smoothed adaptive-mode phase (0 = focus/purple, 1 = scatter/gold). */
+  /** Currently-displayed adaptive mode (0 = focus/purple, 1 = scatter/gold).
+   *  Snaps discretely at the midpoint of the iris-shutter transition; no easing. */
   ametrineModePhase?: number;
-  /** Last target mode (0/1) — detects a flip to trigger the ring-pop. */
+  /** Last target mode (0/1) — detects a flip to trigger the iris transition. */
   ametrineModeTarget?: number;
-  /** Wall-clock ms of the previous frame, for framerate-independent easing. */
-  ametrineLastNow?: number;
-  /** Wall-clock ms of the most recent mode flip, for the ring-pop envelope. */
+  /** Wall-clock ms of the most recent mode flip; drives the iris-shutter envelope. */
   ametrineFlashStart?: number;
   /** Carnelian charge ring — antialiased track + clockwise fill arc reading the idle wind-up. */
   carnelianChargeFx?: CarnelianChargeFx;
@@ -1704,6 +1703,11 @@ const AMETRINE_GOLD_PALETTES: Record<0 | 1 | 2, {
   2: { light: 0xffe890, mid: 0xffbc48, dark: 0x84601c, sparkle: 0xc890f0 },
 };
 
+function easeSmoothstep(p: number): number {
+  const x = Math.min(1, Math.max(0, p));
+  return x * x * (3 - 2 * x);
+}
+
 function ametrineGridForTier(tier: number) {
   const spec = SPECIAL_SPRITES["ametrine"];
   const tierGrids = SPECIAL_TIER_GRIDS["ametrine"];
@@ -1759,10 +1763,12 @@ function animateAmetrineFx(
     entry.ametrineBobWrap!.y = -1.5 * Math.sin((2 * Math.PI * sec) / bobPeriod);
   }
 
-  // Mode phase follows the REAL adaptive mode (Combat sets t.ametrineMode from
-  // the in-range crowd), not a timer. 0 = focus (purple), 1 = scatter (gold).
-  // Ease toward the target over ~220ms so a flip animates instead of snapping,
-  // and stamp the flip moment to fire a one-shot pop ring.
+  // Mode follows the REAL adaptive mode (Combat sets t.ametrineMode from the
+  // in-range crowd), not a timer. 0 = focus (purple), 1 = scatter (gold).
+  // The transition is an IRIS SHUTTER, not a cross-fade: when target flips, the
+  // lens ring contracts to a tight pinpoint, the sprite snap-swaps in one frame
+  // at the midpoint, then the ring expands back out in the destination color.
+  // Discrete by design — readable at 1× and at 8×.
   const target = t.ametrineMode === "scatter" ? 1 : 0;
   if (
     entry.ametrineModeTarget !== undefined &&
@@ -1772,44 +1778,48 @@ function animateAmetrineFx(
   }
   entry.ametrineModeTarget = target;
 
-  const last = entry.ametrineLastNow ?? now;
-  const dt = Math.min(100, Math.max(0, now - last)); // clamp tab-refocus jumps
-  entry.ametrineLastNow = now;
-  let modePhase = entry.ametrineModePhase ?? target;
-  const step = dt / 220;
-  if (modePhase < target) modePhase = Math.min(target, modePhase + step);
-  else if (modePhase > target) modePhase = Math.max(target, modePhase - step);
-  entry.ametrineModePhase = modePhase;
+  const TRANSITION_MS = 220;
+  const SWAP_POINT = 0.5;
+  const flipStart = entry.ametrineFlashStart;
+  const sinceFlip = flipStart !== undefined ? now - flipStart : Infinity;
+  const progress = Math.min(1, Math.max(0, sinceFlip / TRANSITION_MS));
+  const inTransition = progress < 1;
 
-  const pop = entry.ametrineFlashStart
-    ? Math.max(0, 1 - (now - entry.ametrineFlashStart) / 360)
-    : 0;
+  // Default the persistent displayed mode to target on first frame.
+  if (entry.ametrineModePhase === undefined) entry.ametrineModePhase = target;
+  // flipFrom = whatever we were displaying when this transition began. After
+  // the swap point we lock the persistent mode to target so a subsequent flip
+  // picks up the correct flipFrom automatically (= the new "currently shown").
+  const displayedMode: 0 | 1 = progress < SWAP_POINT
+    ? (entry.ametrineModePhase as 0 | 1)
+    : (target as 0 | 1);
+  const flipFrom: 0 | 1 = entry.ametrineModePhase as 0 | 1;
+  if (progress >= SWAP_POINT) entry.ametrineModePhase = target;
 
   const fx = entry.ametrineFx!;
 
-  // ----- A: sprite swap -----------------------------------------------------
-  fx.goldOverlay.alpha = modePhase;
+  // ----- A: sprite swap (discrete — no alpha lerp) -------------------------
+  fx.goldOverlay.alpha = displayedMode === 1 ? 1 : 0;
 
-  // ----- A: tier flourishes (mode-fault line + crown ticks) -----------------
+  // ----- A: tier flourishes (snap with the sprite — binary visibility) -----
   const sw = fx.spriteW;
   const sh = fx.spriteH;
   fx.flourish.clear();
 
-  // T2 (Imperial)+: mode-fault — 2px purple bar through gem during scatter
-  if (tier >= 1 && modePhase > 0.5) {
-    const fadeIn = Math.min(1, (modePhase - 0.5) * 2);
+  // T2 (Imperial)+: mode-fault — 2px purple bar through the gem during scatter
+  if (tier >= 1 && displayedMode === 1) {
     fx.flourish
       .rect(-1, -sh / 2 - 2, 2, sh + 4)
-      .fill({ color: AMETRINE_PURPLE, alpha: 0.5 * fadeIn });
+      .fill({ color: AMETRINE_PURPLE, alpha: 0.5 });
   }
 
-  // T3 (Sovereign): four crown ticks above the gem; color matches the active mode
+  // T3 (Sovereign): four crown ticks above the gem; color matches displayed mode
   if (tier >= 2) {
     const tickCount = 4;
     const tickR = sw * 0.65;
     const baseAng = -Math.PI / 2;
-    const cyCrown = -sh * 0.32; // (oy + sh*0.18) with oy = -sh/2
-    const tickColor = modePhase < 0.5 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+    const cyCrown = -sh * 0.32;
+    const tickColor = displayedMode === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
     for (let i = 0; i < tickCount; i++) {
       const a = baseAng + (i - (tickCount - 1) / 2) * 0.32;
       const tx = Math.cos(a) * tickR;
@@ -1820,95 +1830,124 @@ function animateAmetrineFx(
     }
   }
 
-  // ----- B: aperture lens (rings only — never fills inside the lens) -------
+  // ----- B: aperture lens --------------------------------------------------
   fx.lens.clear();
   const lcx = 0;
   const lcy = sh * 0.05;
   const maxDim = Math.max(sw, sh);
   const focusR = maxDim * 0.7;
   const scatterR = maxDim * 0.92;
-  const focusA = 1 - modePhase;
-  const scatterA = modePhase;
 
-  // FOCUS: tight closed purple ring + four inward crosshair ticks at N/E/S/W
-  if (focusA > 0.02) {
-    fx.lens
-      .circle(lcx, lcy, focusR)
-      .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 * focusA });
-    const tickLen = 6;
-    const angs = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
-    for (const a of angs) {
-      const x1 = lcx + Math.cos(a) * (focusR + 2);
-      const y1 = lcy + Math.sin(a) * (focusR + 2);
-      const x2 = lcx + Math.cos(a) * (focusR + 2 + tickLen);
-      const y2 = lcy + Math.sin(a) * (focusR + 2 + tickLen);
+  if (!inTransition) {
+    // Settled steady state — render full lens for the displayed mode.
+    if (displayedMode === 0) {
+      // FOCUS: closed purple ring + four crosshair ticks
       fx.lens
-        .moveTo(x1, y1)
-        .lineTo(x2, y2)
-        .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 * focusA });
-    }
-  }
-
-  // SCATTER: six gold arc segments at a wider radius, rotating slowly
-  if (scatterA > 0.02) {
-    const arcs = 6;
-    const gap = 0.18;
-    const seg = (Math.PI * 2) / arcs - gap;
-    const rot = sec * 0.5;
-    for (let i = 0; i < arcs; i++) {
-      const a0 = rot + i * ((Math.PI * 2) / arcs);
-      fx.lens
-        .arc(lcx, lcy, scatterR, a0, a0 + seg)
-        .stroke({ width: 3, color: AMETRINE_GOLD, alpha: 0.9 * scatterA });
-    }
-  }
-
-  // T2: inner ring (closed purple in focus, four counter-rotating gold arcs in scatter)
-  if (tier >= 1) {
-    const innerR = maxDim * 0.55;
-    if (focusA > 0.02) {
-      fx.lens
-        .circle(lcx, lcy, innerR)
-        .stroke({ width: 1.5, color: AMETRINE_PURPLE, alpha: 0.45 * focusA });
-    }
-    if (scatterA > 0.02) {
-      const inArcs = 4;
-      const inGap = 0.22;
-      const inSeg = (Math.PI * 2) / inArcs - inGap;
-      const inRot = -sec * 0.7;
-      for (let i = 0; i < inArcs; i++) {
-        const a0 = inRot + i * ((Math.PI * 2) / inArcs);
+        .circle(lcx, lcy, focusR)
+        .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 });
+      const tickLen = 6;
+      const angs = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
+      for (const a of angs) {
+        const x1 = lcx + Math.cos(a) * (focusR + 2);
+        const y1 = lcy + Math.sin(a) * (focusR + 2);
+        const x2 = lcx + Math.cos(a) * (focusR + 2 + tickLen);
+        const y2 = lcy + Math.sin(a) * (focusR + 2 + tickLen);
         fx.lens
-          .arc(lcx, lcy, innerR, a0, a0 + inSeg)
-          .stroke({ width: 1.5, color: AMETRINE_GOLD_HI, alpha: 0.65 * scatterA });
+          .moveTo(x1, y1)
+          .lineTo(x2, y2)
+          .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 });
+      }
+    } else {
+      // SCATTER: six gold arc segments at the wider radius, rotating slowly
+      const arcs = 6;
+      const gap = 0.18;
+      const seg = (Math.PI * 2) / arcs - gap;
+      const rot = sec * 0.5;
+      for (let i = 0; i < arcs; i++) {
+        const a0 = rot + i * ((Math.PI * 2) / arcs);
+        fx.lens
+          .arc(lcx, lcy, scatterR, a0, a0 + seg)
+          .stroke({ width: 3, color: AMETRINE_GOLD, alpha: 0.9 });
       }
     }
-  }
 
-  // T3: eight orbiting outer pip ticks; color matches the active mode
-  if (tier >= 2) {
-    const outR = maxDim * 1.05;
-    const n = 8;
-    const orbit = sec * 0.3;
-    const pipColor = modePhase < 0.5 ? AMETRINE_PURPLE : AMETRINE_GOLD;
-    for (let i = 0; i < n; i++) {
-      const a = orbit + i * ((Math.PI * 2) / n);
-      const tx = lcx + Math.cos(a) * outR;
-      const ty = lcy + Math.sin(a) * outR;
-      fx.lens
-        .rect(Math.round(tx) - 1, Math.round(ty) - 1, 2, 2)
-        .fill({ color: pipColor, alpha: 0.75 });
+    // T2 inner ring (closed purple in focus, four counter-rotating gold arcs in scatter)
+    if (tier >= 1) {
+      const innerR = maxDim * 0.55;
+      if (displayedMode === 0) {
+        fx.lens
+          .circle(lcx, lcy, innerR)
+          .stroke({ width: 1.5, color: AMETRINE_PURPLE, alpha: 0.45 });
+      } else {
+        const inArcs = 4;
+        const inGap = 0.22;
+        const inSeg = (Math.PI * 2) / inArcs - inGap;
+        const inRot = -sec * 0.7;
+        for (let i = 0; i < inArcs; i++) {
+          const a0 = inRot + i * ((Math.PI * 2) / inArcs);
+          fx.lens
+            .arc(lcx, lcy, innerR, a0, a0 + inSeg)
+            .stroke({ width: 1.5, color: AMETRINE_GOLD_HI, alpha: 0.65 });
+        }
+      }
     }
-  }
 
-  // Flip pop: stroked expanding ring in the destination color, no fill
-  if (pop > 0.02) {
-    const baseR = modePhase < 0.5 ? focusR : scatterR;
-    const popR = baseR * (1 + (1 - pop) * 0.8);
-    const popColor = target === 1 ? AMETRINE_GOLD : AMETRINE_PURPLE;
+    // T3 orbiting pips — color matches the displayed mode
+    if (tier >= 2) {
+      const outR = maxDim * 1.05;
+      const n = 8;
+      const orbit = sec * 0.3;
+      const pipColor = displayedMode === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      for (let i = 0; i < n; i++) {
+        const a = orbit + i * ((Math.PI * 2) / n);
+        const tx = lcx + Math.cos(a) * outR;
+        const ty = lcy + Math.sin(a) * outR;
+        fx.lens
+          .rect(Math.round(tx) - 1, Math.round(ty) - 1, 2, 2)
+          .fill({ color: pipColor, alpha: 0.75 });
+      }
+    }
+  } else {
+    // ----- IRIS SHUTTER --------------------------------------------------
+    // 0.00..0.45  contract from idle radius toward a tight pinpoint
+    // 0.45..0.55  HOLD at min radius; sprite has just snap-swapped
+    // 0.55..1.00  expand from pinpoint out to settled radius in dest color
+    // A bright pinpoint flash punctuates the swap.
+    const idleR = flipFrom === 0 ? focusR : scatterR;
+    const settleR = target === 0 ? focusR : scatterR;
+    const minR = Math.max(6, maxDim * 0.18);
+
+    let ringR: number;
+    let ringColor: number;
+    let ringAlpha: number;
+    if (progress < 0.45) {
+      const p = easeSmoothstep(progress / 0.45);
+      ringR = idleR + (minR - idleR) * p;
+      ringColor = flipFrom === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      ringAlpha = 0.6 + 0.4 * p;
+    } else if (progress < 0.55) {
+      ringR = minR;
+      ringColor = target === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      ringAlpha = 1.0;
+    } else {
+      const p = easeSmoothstep((progress - 0.55) / 0.45);
+      ringR = minR + (settleR - minR) * p;
+      ringColor = target === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      ringAlpha = 1.0 - 0.15 * p;
+    }
     fx.lens
-      .circle(lcx, lcy, popR)
-      .stroke({ width: 2, color: popColor, alpha: pop * 0.7 });
+      .circle(lcx, lcy, ringR)
+      .stroke({ width: 2.5, color: ringColor, alpha: ringAlpha });
+
+    // Pinpoint flash centered on the swap moment (additive bright disc).
+    if (progress >= 0.4 && progress <= 0.65) {
+      const flash = 1 - Math.abs((progress - 0.5) / 0.15);
+      if (flash > 0) {
+        fx.lens
+          .circle(lcx, lcy, minR * 0.55 * (0.8 + 0.4 * flash))
+          .fill({ color: AMETRINE_GOLD_HI, alpha: flash * 0.9 });
+      }
+    }
   }
 
   // Halo: simple ambient purple pulse — no mode lerp, no scatter widening.
