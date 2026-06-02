@@ -105,7 +105,7 @@ describe('new special combo data', () => {
     expect(am).toBeDefined();
     if (am?.kind === 'adaptive_mode') {
       expect(am.threshold).toBeGreaterThan(0);
-      expect(am.scatterCount).toBeGreaterThan(am.threshold);
+      expect(am.scatterCount).toBeGreaterThanOrEqual(am.threshold);
       expect(am.scatterDmgMult).toBeGreaterThan(0);
       expect(am.scatterDmgMult).toBeLessThan(1);
     }

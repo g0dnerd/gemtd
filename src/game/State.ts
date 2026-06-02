@@ -73,6 +73,8 @@ export interface TowerState {
   momentumStacks?: number;
   /** Ametrine adaptive tower: current firing mode. */
   ametrineMode?: "focus" | "scatter";
+  /** Tick when ametrineMode last flipped — gates mode-switch cooldown. */
+  lastModeSwitchTick?: number;
   /**
    * Support-assist accumulators (telemetry-only; never affect damage dealt).
    * Cumulative over the run; the collector snapshots per-wave deltas.

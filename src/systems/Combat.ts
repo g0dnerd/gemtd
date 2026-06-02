@@ -199,8 +199,24 @@ export class Combat {
           const prevFireTickA = t.lastFireTick;
           t.lastFireTick = tick;
           const dmgMult = auras.dmg.get(t.id) ?? 0;
-          if (inRange.length >= adaptiveEffect.threshold) {
-            t.ametrineMode = "scatter";
+          const desiredMode: "focus" | "scatter" =
+            inRange.length >= adaptiveEffect.threshold ? "scatter" : "focus";
+          const cooldownTicks = adaptiveEffect.modeCooldown
+            ? Math.round(SIM_HZ * adaptiveEffect.modeCooldown)
+            : 0;
+          const canSwitch =
+            !t.ametrineMode ||
+            cooldownTicks <= 0 ||
+            tick - (t.lastModeSwitchTick ?? -cooldownTicks) >= cooldownTicks;
+          const mode =
+            desiredMode !== t.ametrineMode && !canSwitch
+              ? t.ametrineMode!
+              : desiredMode;
+          if (mode !== t.ametrineMode) {
+            t.ametrineMode = mode;
+            t.lastModeSwitchTick = tick;
+          }
+          if (mode === "scatter") {
             const targets = inRange.slice(0, adaptiveEffect.scatterCount);
             for (const tgt of targets)
               this.fire(
@@ -213,7 +229,6 @@ export class Combat {
                 prevFireTickA,
               );
           } else {
-            t.ametrineMode = "focus";
             this.fire(t, inRange[0], stats, dmgMult, false, 1, prevFireTickA);
           }
         } else if (multiEffect) {

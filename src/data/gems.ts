@@ -94,6 +94,8 @@ export type EffectKind =
       threshold: number;
       scatterCount: number;
       scatterDmgMult: number;
+      /** Seconds between mode flips. Prevents rapid toggling when creep count straddles the threshold. */
+      modeCooldown?: number;
     }
   | { kind: "true_vs_air" };
 
@@ -506,8 +508,10 @@ export function effectSummary(e: EffectKind): string {
       return `Range dmg ${Math.round(e.minMult * 100)}–${Math.round(e.maxMult * 100)}%`;
     case "amplifying_chain":
       return `Amp chain ${e.bounces}x +${Math.round(e.ampPerBounce * 100)}%/jump`;
-    case "adaptive_mode":
-      return `Adaptive: focus <${e.threshold}, scatter x${e.scatterCount}`;
+    case "adaptive_mode": {
+      const cd = e.modeCooldown ? `, ${e.modeCooldown}s switch CD` : "";
+      return `Adaptive: focus <${e.threshold}, scatter x${e.scatterCount}${cd}`;
+    }
     case "true_vs_air":
       return "True damage vs air";
     case "none":

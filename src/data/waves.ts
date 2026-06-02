@@ -263,18 +263,24 @@ export const WAVES: WaveDef[] = [
     31,
     0.5,
     13,
-    ["chrysalid", 20, 14000, 2, 0.22, 6],
+    ["chrysalid", 20, 16800, 2, 0.22, 6],
     ["mender", 2, 12400, 2, 0.22, 6],
   ),
   wm(
     32,
     0.35,
     13,
-    ["skitter", 15, 27000, 2, 0.34, 8],
-    ["chrysalid", 12, 27800, 2, 0.34, 8],
+    ["skitter", 15, 32400, 2, 0.34, 8],
+    ["chrysalid", 12, 33400, 2, 0.34, 8],
   ),
   w(33, "carapace", 18, 30000, 2, 0.75, 14, 0.06, 35),
-  wm(34, 0.55, 14, ["chrysalid", 17, 33100, 2, 0.28, 9]),
+  wm(
+    34,
+    0.55,
+    14,
+    ["chrysalid", 17, 33100, 2, 0.28, 9],
+    ["mender", 2, 32000, 2, 0.28, 9],
+  ),
   {
     number: 35,
     groups: [
@@ -356,14 +362,14 @@ export const WAVES: WaveDef[] = [
     15,
     ["skitter", 12, 54000, 2, 0.38, 12],
     ["chrysalid", 8, 37800, 2, 0.38, 12],
-    ["burrower", 4, 37800, 2, 0.38, 12],
+    ["burrower", 6, 37800, 2, 0.38, 12],
   ),
   wm(
     40,
     1.0,
     50,
     ["amalgam", 9, 45000, 18, 0, 12],
-    ["mender", 4, 24000, 13, 0, 11],
+    ["mender", 3, 26400, 13, 0, 11],
   ),
 
   // --- Waves 41-49: specials prominent, armor high, bounties taper ---
@@ -381,7 +387,13 @@ export const WAVES: WaveDef[] = [
     ["skitter", 24, 57000, 2, 0.54, 15],
     ["chrysalid", 7, 39000, 2, 0.54, 15],
   ),
-  w(43, "carapace", 20, 49000, 2, 0.75, 18, 0.36, 45),
+  wm(
+    43,
+    0.75,
+    18,
+    ["carapace", 20, 49000, 2, 0.36, 45],
+    ["mender", 3, 49000, 2, 0.36, 17],
+  ),
   wm(
     44,
     0.5,
@@ -473,7 +485,7 @@ export const WAVES: WaveDef[] = [
       {
         kind: "gestation" as CreepKind,
         count: 1,
-        hp: 240300,
+        hp: 204300,
         bounty: 28,
         slowResist: 0.7,
         stunResist: 0.7,

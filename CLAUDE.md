@@ -125,6 +125,10 @@ Offline genetic-algorithm tool that produces the blueprint JSON consumed by `Blu
 
 ## Working on this codebase
 
+### Vocabulary
+
+A gem or combo's `dmgMin` / `dmgMax` is the **damage range** (or just "damage"). Do **NOT** call it "weapon damage" — that term doesn't exist in this codebase or in the game's mental model, and the user has flagged it repeatedly. Applies everywhere: balance reports, code comments, PR descriptions, commit messages, and questions you ask the user. If you catch yourself about to type "weapon" near a damage number, replace with "damage range" or just drop the noun.
+
 ### Balance-affecting changes
 
 A change is balance-affecting if it touches `src/data/{gems,combos,creeps,waves}.ts`, `src/systems/Combat.ts`, or tuning constants in `src/game/`. For these:

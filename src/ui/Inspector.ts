@@ -1512,7 +1512,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "adaptive_mode":
       return {
         label: "ADAPTIVE",
-        text: `focus/<${e.threshold} scatter/${e.scatterCount}`,
+        text: `focus/<${e.threshold} scatter/${e.scatterCount}${e.modeCooldown ? ` cd/${e.modeCooldown}s` : ""}`,
         tone: "buff",
       };
     case "true_vs_air":
