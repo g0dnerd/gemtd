@@ -315,35 +315,35 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "new",
-          text: "Garnet — mortar. Arcing artillery shell splashes at ground position; very long range.",
+          text: "Garnet - mortar. Arcing artillery shell splashes at ground position; very long range.",
         },
         {
           tag: "new",
-          text: "Spinel — sniper. Targets the highest-HP creep at long range, no on-hit effects.",
+          text: "Spinel - sniper. Targets the highest-HP creep at long range, no on-hit effects.",
         },
         {
           tag: "new",
-          text: "Peridot — charged burst. First shot after idle hits up to x4 harder.",
+          text: "Peridot - charged burst. First shot after idle hits up to x4 harder.",
         },
         {
           tag: "new",
-          text: "Pyrite / Molten Pyrite / Pyroclast — momentum special. Builds ramp speed and damage; gains pierce and kill explosions at max stacks.",
+          text: "Pyrite / Molten Pyrite / Pyroclast - momentum special. Builds ramp speed and damage; gains pierce and kill explosions at max stacks.",
         },
         {
           tag: "new",
-          text: "Tiger's Eye / Dragon's Eye — long-range special whose damage scales with target distance. Shots pierce at T2.",
+          text: "Tiger's Eye / Dragon's Eye - long-range special whose damage scales with target distance. Shots pierce at T2.",
         },
         {
           tag: "new",
-          text: "Raw Ametrine / Imperial Ametrine / Ametrine Sovereign — adaptive special. Switches between focus and scatter modes based on creep count.",
+          text: "Raw Ametrine / Imperial Ametrine / Ametrine Sovereign - adaptive special. Switches between focus and scatter modes based on creep count.",
         },
         {
           tag: "new",
-          text: "Thunderstone / Storm Crown — amplifying chain. Each bounce hits harder than the last.",
+          text: "Thunderstone / Storm Crown - amplifying chain. Each bounce hits harder than the last.",
         },
         {
           tag: "new",
-          text: "Golden Beryl / Radiant Beryl / Prismatic Beryl — speed-damage aura. Burn DPS scales with each creep's current speed.",
+          text: "Golden Beryl / Radiant Beryl / Prismatic Beryl - speed-damage aura. Burn DPS scales with each creep's current speed.",
         },
         {
           tag: "new",
@@ -355,7 +355,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Recipe reshuffle: all 18 special recipes rebuilt around the new gem roster — inputs changed for nearly every existing special.",
+          text: "Recipe reshuffle: all 18 special recipes rebuilt around the new gem roster - inputs changed for nearly every existing special.",
         },
         {
           tag: "bal",
@@ -363,7 +363,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Combine and level-up inherit the highest kill count from inputs — tower level carries over instead of resetting.",
+          text: "Combine and level-up inherit the highest kill count from inputs - tower level carries over instead of resetting.",
         },
         {
           tag: "bal",
@@ -449,14 +449,15 @@ function changesBody(): HTMLElement {
     {
       ver: "1.5.21",
       notes: [
-        { tag: "nerf", text: "Wave 50 inner payload menders per coral 2 -> 1." },
+        {
+          tag: "nerf",
+          text: "Wave 50 inner payload menders per coral 2 -> 1.",
+        },
       ],
     },
     {
       ver: "1.5.20",
-      notes: [
-        { tag: "nerf", text: "Wave 30 amalgam count 8 -> 7." },
-      ],
+      notes: [{ tag: "nerf", text: "Wave 30 amalgam count 8 -> 7." }],
     },
     {
       ver: "1.5.19",
@@ -501,7 +502,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "buff",
-          text: "Star Ruby burn dps — Plasma Star 36 -> 50, Solar Core 105 -> 150.",
+          text: "Star Ruby burn dps - Plasma Star 36 -> 50, Solar Core 105 -> 150.",
         },
         {
           tag: "nerf",
@@ -661,7 +662,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "new",
-          text: "Redesigned start/end markers — dark portal & victory beacon.",
+          text: "Redesigned start/end markers - dark portal & victory beacon.",
         },
         {
           tag: "fix",
