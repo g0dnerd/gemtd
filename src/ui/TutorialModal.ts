@@ -319,7 +319,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "new",
-          text: "Spinel - sniper. Targets the highest-HP creep at long range, no on-hit effects.",
+          text: "Spinel - sniper. Targets the highest-HP creep at long range.",
         },
         {
           tag: "new",
@@ -371,11 +371,11 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Waves 25–50 retuned for the new gem roster; waves 34 and 43 reworked into two-group encounters with menders.",
+          text: "Waves 25-50 retuned for the new gem roster; waves 34 and 43 reworked into two-group encounters with menders.",
         },
         {
           tag: "buff",
-          text: "End-of-wave gold bonus +32% on waves 30–50.",
+          text: "End-of-wave gold bonus +32% on waves 30-50.",
         },
         {
           tag: "buff",
@@ -387,15 +387,15 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "buff",
-          text: "Malachite (T1) damage 19–26 -> 28–37.",
+          text: "Malachite (T1) damage 19-26 -> 28-37.",
         },
         {
           tag: "buff",
-          text: "Vivid Malachite damage 60–86 -> 93–140, attacks 5 -> 6 targets, range 3.75 -> 4.0.",
+          text: "Vivid Malachite damage 60-86 -> 93-140, attacks 5 -> 6 targets, range 3.75 -> 4.0.",
         },
         {
           tag: "buff",
-          text: "Frosted Silver damage 130–170 -> 185–245.",
+          text: "Frosted Silver damage 130-170 -> 185-245.",
         },
         {
           tag: "buff",
@@ -407,7 +407,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "buff",
-          text: "Asian Jade damage 80–120 -> 110–160, poison 35 -> 50 dps.",
+          text: "Asian Jade damage 80-120 -> 110-160, poison 35 -> 50 dps.",
         },
         {
           tag: "buff",
@@ -863,11 +863,11 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Waves 31–49 reworked: clearer per-wave identity with 2–3 creep groups max. Chrysalids are a central late-game threat.",
+          text: "Waves 31-49 reworked: clearer per-wave identity with 2-3 creep groups max. Chrysalids are a central late-game threat.",
         },
         {
           tag: "bal",
-          text: "Late-game bounties sharply reduced across waves 26–50 to curb gold surplus.",
+          text: "Late-game bounties sharply reduced across waves 26-50 to curb gold surplus.",
         },
         {
           tag: "bal",
@@ -887,7 +887,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "nerf",
-          text: "Silver Knight: freeze removed, nova every 7th -> 9th attack, damage 320–360 -> 250–290.",
+          text: "Silver Knight: freeze removed, nova every 7th -> 9th attack, damage 320-360 -> 250-290.",
         },
         {
           tag: "nerf",
@@ -901,12 +901,12 @@ function changesBody(): HTMLElement {
         { tag: "nerf", text: "Wave 49: all creep HP reduced by 20%." },
         {
           tag: "buff",
-          text: "Stargem reworked: +splash, +15% crit x3, poison 400 -> 500/s, slow 40% -> 45%, stun 12% -> 15%, damage 550–750 -> 600–800.",
+          text: "Stargem reworked: +splash, +15% crit x3, poison 400 -> 500/s, slow 40% -> 45%, stun 12% -> 15%, damage 550-750 -> 600-800.",
         },
         { tag: "buff", text: "Aquamarine base damage 2 -> 3." },
         {
           tag: "buff",
-          text: "Silver base: damage 24–31 -> 34–37, atk speed 1.25 -> 1.5. Splash slow 20% -> 25%.",
+          text: "Silver base: damage 24-31 -> 34-37, atk speed 1.25 -> 1.5. Splash slow 20% -> 25%.",
         },
         {
           tag: "buff",
@@ -972,7 +972,7 @@ function changesBody(): HTMLElement {
           tag: "new",
           text: "Container creeps: 4 new types (Vessel, Gazer, Coral, Anemone) that split into smaller creeps on death.",
         },
-        "Container waves at 15, 25, 35, 45 with 1–4 nesting layers.",
+        "Container waves at 15, 25, 35, 45 with 1-4 nesting layers.",
       ],
     },
     {
@@ -986,7 +986,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "nerf",
-          text: "Ruby damage −15–40% (Flawless/Perfect hit hardest).",
+          text: "Ruby damage −15-40% (Flawless/Perfect hit hardest).",
         },
         { tag: "bal", text: "Wave 40 boss + healer HP −20%." },
       ],
@@ -1020,7 +1020,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "buff",
-          text: "Lucky Asian Jade damage range +50% (200–300 -> 300–450).",
+          text: "Lucky Asian Jade damage range +50% (200-300 -> 300-450).",
         },
       ],
     },
@@ -1030,7 +1030,7 @@ function changesBody(): HTMLElement {
         { tag: "nerf", text: "Wave 34 air creep HP reduced by 20%." },
         {
           tag: "nerf",
-          text: "Pink Diamond base damage reduced (350–450 -> 250–350).",
+          text: "Pink Diamond base damage reduced (350-450 -> 250-350).",
         },
         {
           tag: "nerf",
@@ -1038,7 +1038,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "buff",
-          text: "Silver Knight damage increased (120–160 -> 320–360).",
+          text: "Silver Knight damage increased (120-160 -> 320-360).",
         },
         {
           tag: "nerf",
@@ -1046,11 +1046,11 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "buff",
-          text: "Red Crystal Facet damage increased (120–200 -> 160–250).",
+          text: "Red Crystal Facet damage increased (120-200 -> 160-250).",
         },
         {
           tag: "buff",
-          text: "Rose Quartz Crystal damage increased (160–250 -> 240–300).",
+          text: "Rose Quartz Crystal damage increased (160-250 -> 240-300).",
         },
       ],
     },
@@ -1059,7 +1059,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "nerf",
-          text: "Ancient Bloodstone damage (400–620 -> 320–540).",
+          text: "Ancient Bloodstone damage (400-620 -> 320-540).",
         },
         { tag: "nerf", text: "Solar Core death nova (15% -> 10% max HP)." },
       ],
@@ -1150,7 +1150,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Silver T1 buffed: damage 20–26 -> 24–31, atk speed 1.1 -> 1.25.",
+          text: "Silver T1 buffed: damage 20-26 -> 24-31, atk speed 1.1 -> 1.25.",
         },
         {
           tag: "bal",
@@ -1158,7 +1158,7 @@ function changesBody(): HTMLElement {
         },
         {
           tag: "bal",
-          text: "Yellow Sapphire base damage 80–120 -> 120–180, slow 25% for 2.5s.",
+          text: "Yellow Sapphire base damage 80-120 -> 120-180, slow 25% for 2.5s.",
         },
         {
           tag: "bal",
@@ -1266,7 +1266,7 @@ function changesBody(): HTMLElement {
       notes: [
         {
           tag: "nerf",
-          text: "Mighty Malachite: damage 100–150 -> 70–100, chain falloff 1.0 -> 0.85.",
+          text: "Mighty Malachite: damage 100-150 -> 70-100, chain falloff 1.0 -> 0.85.",
         },
         {
           tag: "buff",
