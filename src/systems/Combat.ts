@@ -1072,24 +1072,41 @@ export class Combat {
   }
 
   /**
-   * Credit dmg-aura sources for the share of a burn tick they enabled. Passive
-   * burn towers (prox_burn, prox_burn_ramp, speed_damage_aura) don't fire, so
-   * `creditFireAssist`'s atk-speed half doesn't apply — only the dmg-aura
-   * share. Same proportional-of-realized-damage formula as the fire path.
+   * Credit dmg-aura and atk-speed-aura sources for the share of a burn tick
+   * they enabled. Mirrors `creditFireAssist`'s proportional-of-realized-damage
+   * formula. atk-speed aura applies to burns because burn ticks at fixed 60Hz
+   * scale dps with `(1 + atkSpeedAuraMult)`.
    */
   private creditBurnAssist(
     tower: TowerState,
     dmg: number,
     dmgAuraMult: number,
+    atkAuraMult: number,
   ): void {
-    if (!this.auras || dmg <= 0 || dmgAuraMult <= 0) return;
-    const sources = this.auras.dmgSources.get(tower.id);
-    if (!sources || !sources.length) return;
-    const total = dmg * (dmgAuraMult / (1 + dmgAuraMult));
-    const sumPct = sources.reduce((s, x) => s + x.pct, 0) || 1;
-    for (const { src, pct } of sources) {
-      const t = this.towerById(src);
-      if (t) t.dmgAuraAssist = (t.dmgAuraAssist ?? 0) + total * (pct / sumPct);
+    if (!this.auras || dmg <= 0) return;
+    if (dmgAuraMult > 0) {
+      const sources = this.auras.dmgSources.get(tower.id);
+      if (sources && sources.length) {
+        const total = dmg * (dmgAuraMult / (1 + dmgAuraMult));
+        const sumPct = sources.reduce((s, x) => s + x.pct, 0) || 1;
+        for (const { src, pct } of sources) {
+          const t = this.towerById(src);
+          if (t)
+            t.dmgAuraAssist = (t.dmgAuraAssist ?? 0) + total * (pct / sumPct);
+        }
+      }
+    }
+    if (atkAuraMult > 0) {
+      const sources = this.auras.atkSpeedSources.get(tower.id);
+      if (sources && sources.length) {
+        const total = dmg * (atkAuraMult / (1 + atkAuraMult));
+        const sumPct = sources.reduce((s, x) => s + x.pct, 0) || 1;
+        for (const { src, pct } of sources) {
+          const t = this.towerById(src);
+          if (t)
+            t.atkSpeedAssist = (t.atkSpeedAssist ?? 0) + total * (pct / sumPct);
+        }
+      }
     }
   }
 
@@ -1333,7 +1350,11 @@ export class Combat {
       }
 
       const dmgAuraMult = auras.dmg.get(src.id) ?? 0;
-      const auraScale = 1 + dmgAuraMult;
+      const atkAuraMult = auras.atkSpeed.get(src.id) ?? 0;
+      // Burn ticks at fixed 60Hz, so atk-speed aura scales dps the same way
+      // dmg-aura does — "faster attacks" reads as "more damage per tick" for
+      // continuous-DoT sources.
+      const auraScale = (1 + dmgAuraMult) * (1 + atkAuraMult);
 
       for (const e of stats.effects) {
         if (e.kind === "prox_burn") {
@@ -1346,7 +1367,7 @@ export class Combat {
             if (dx * dx + dy * dy > r2) continue;
             const dmg = Math.max(1, Math.round(dmgPerTick));
             this.applyDamage(c, dmg, src);
-            this.creditBurnAssist(src, dmg, dmgAuraMult);
+            this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
             inBurnAura.add(c.id);
             if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
           }
@@ -1372,7 +1393,7 @@ export class Combat {
               Math.round((e.dps * rampMult * auraScale) / SIM_HZ),
             );
             this.applyDamage(c, dmg, src, hasArmorPierce);
-            this.creditBurnAssist(src, dmg, dmgAuraMult);
+            this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
             inBurnAura.add(c.id);
             if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
           }
@@ -1393,7 +1414,7 @@ export class Combat {
               ),
             );
             this.applyDamage(c, dmg, src);
-            this.creditBurnAssist(src, dmg, dmgAuraMult);
+            this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
           }
         }
       }
