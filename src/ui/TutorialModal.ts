@@ -311,6 +311,119 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "2.0.0",
+      notes: [
+        {
+          tag: "new",
+          text: "Garnet — mortar. Arcing artillery shell splashes at ground position; very long range.",
+        },
+        {
+          tag: "new",
+          text: "Spinel — sniper. Targets the highest-HP creep at long range, no on-hit effects.",
+        },
+        {
+          tag: "new",
+          text: "Peridot — charged burst. First shot after idle hits up to x4 harder.",
+        },
+        {
+          tag: "new",
+          text: "Pyrite / Molten Pyrite / Pyroclast — momentum special. Builds ramp speed and damage; gains pierce and kill explosions at max stacks.",
+        },
+        {
+          tag: "new",
+          text: "Tiger's Eye / Dragon's Eye — long-range special whose damage scales with target distance. Shots pierce at T2.",
+        },
+        {
+          tag: "new",
+          text: "Raw Ametrine / Imperial Ametrine / Ametrine Sovereign — adaptive special. Switches between focus and scatter modes based on creep count.",
+        },
+        {
+          tag: "new",
+          text: "Thunderstone / Storm Crown — amplifying chain. Each bounce hits harder than the last.",
+        },
+        {
+          tag: "new",
+          text: "Golden Beryl / Radiant Beryl / Prismatic Beryl — speed-damage aura. Burn DPS scales with each creep's current speed.",
+        },
+        {
+          tag: "new",
+          text: "Red Crystal line now deals true damage vs air at all tiers (bypasses armor).",
+        },
+        {
+          tag: "new",
+          text: "Draw panel highlights craftable specials; clicking a placed gem pulses other placed gems that could combine with it into a special.",
+        },
+        {
+          tag: "bal",
+          text: "Recipe reshuffle: all 18 special recipes rebuilt around the new gem roster — inputs changed for nearly every existing special.",
+        },
+        {
+          tag: "bal",
+          text: "Damage and attack-speed auras (Void Opal, Opal line) now amplify burn and proximity-burn DPS, not just projectile damage.",
+        },
+        {
+          tag: "bal",
+          text: "Combine and level-up inherit the highest kill count from inputs — tower level carries over instead of resetting.",
+        },
+        {
+          tag: "bal",
+          text: "Hardcore mode removed.",
+        },
+        {
+          tag: "bal",
+          text: "Waves 25–50 retuned for the new gem roster; waves 34 and 43 reworked into two-group encounters with menders.",
+        },
+        {
+          tag: "buff",
+          text: "End-of-wave gold bonus +32% on waves 30–50.",
+        },
+        {
+          tag: "buff",
+          text: "Sapphire base damage 15 -> 17.",
+        },
+        {
+          tag: "buff",
+          text: "Aquamarine beam ramp +21% -> +27% per hit (max stack ~7.3x -> ~9.1x).",
+        },
+        {
+          tag: "buff",
+          text: "Malachite (T1) damage 19–26 -> 28–37.",
+        },
+        {
+          tag: "buff",
+          text: "Vivid Malachite damage 60–86 -> 93–140, attacks 5 -> 6 targets, range 3.75 -> 4.0.",
+        },
+        {
+          tag: "buff",
+          text: "Frosted Silver damage 130–170 -> 185–245.",
+        },
+        {
+          tag: "buff",
+          text: "Silver Knight splash slow 45% -> 55%.",
+        },
+        {
+          tag: "buff",
+          text: "Plasma Star burn ramp cap +100% -> +120%, radius 2.6 -> 2.8.",
+        },
+        {
+          tag: "buff",
+          text: "Asian Jade damage 80–120 -> 110–160, poison 35 -> 50 dps.",
+        },
+        {
+          tag: "buff",
+          text: "Skitter HP multiplier 1.16 -> 1.30.",
+        },
+        {
+          tag: "nerf",
+          text: "Ancient Paraiba upgrade cost 350 -> 400.",
+        },
+        {
+          tag: "nerf",
+          text: "Uranium 235 upgrade cost 285 -> 340.",
+        },
+      ],
+    },
+    {
       ver: "1.5.22",
       notes: [
         { tag: "nerf", text: "Uranium base burn 95 -> 80 dps." },
