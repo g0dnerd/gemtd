@@ -19,7 +19,7 @@ describe('gem targeting', () => {
   });
 
   it('all other base gems target all', () => {
-    const restricted = new Set(['diamond']);
+    const restricted = new Set(['diamond', 'garnet']);
     for (const g of GEM_TYPES) {
       if (restricted.has(g)) continue;
       expect(GEM_BASE[g].targeting).toBe('all');

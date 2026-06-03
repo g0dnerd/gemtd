@@ -91,9 +91,15 @@
   transform: translateY(6px);
   animation: titleFadeIn 250ms cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
-.title-menu .px-btn:nth-child(1) { animation-delay: 0.25s; }
-.title-menu .px-btn:nth-child(2) { animation-delay: 0.30s; }
-.title-menu .px-btn:nth-child(3) { animation-delay: 0.35s; }
+.title-menu .px-btn:nth-child(1) {
+  animation-delay: 0.25s;
+}
+.title-menu .px-btn:nth-child(2) {
+  animation-delay: 0.3s;
+}
+.title-menu .px-btn:nth-child(3) {
+  animation-delay: 0.35s;
+}
 .title-menu .px-btn {
   padding: 14px 16px;
   font-size: 12px;
@@ -137,7 +143,7 @@
   justify-self: start;
 }
 .title-mute-btn {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 8px;
   background: none;
   border: 1px solid var(--px-ink-dimmer);
@@ -146,7 +152,9 @@
   cursor: pointer;
   letter-spacing: 1px;
   padding: 3px 8px;
-  transition: color 120ms ease, border-color 120ms ease;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
 }
 @media (hover: hover) and (pointer: fine) {
   .title-mute-btn:hover {
@@ -191,7 +199,7 @@
   color: var(--px-good);
 }
 .title-update-dismiss {
-  font-family: 'Press Start 2P', monospace;
+  font-family: "Press Start 2P", monospace;
   font-size: 8px;
   background: none;
   border: none;
@@ -535,7 +543,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: scroll;
+  overflow: hidden;
 }
 .inspector-body {
   display: flex;
@@ -660,7 +668,9 @@
     0 0 0 2px var(--px-border-dark);
   border-left: 2px solid var(--px-accent);
   cursor: pointer;
-  transition: border-left-color 120ms ease, transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition:
+    border-left-color 120ms ease,
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (hover: hover) and (pointer: fine) {
   .inspector-combo:hover {
@@ -746,47 +756,66 @@
 
 /* ===== Inspector — Option A (tower-specific redesign) ===== */
 
-/* Hero: grid layout with larger sprite + stacked name/blurb/meta */
+/* Hero: compact 2-line — sprite | name + (LV n · k/10 KILLS) */
 .inspector-tower-hero {
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
-  padding: 10px 12px;
-  margin-bottom: 10px;
+  padding: 6px 8px;
+  margin-bottom: 8px;
 }
 .inspector-tower-hero .inspector-hero-frame {
-  width: 52px;
-  height: 52px;
+  width: 28px;
+  height: 28px;
 }
 .inspector-tower-hero-mid {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 3px;
 }
 .inspector-tower-hero-name {
   font-family: "Press Start 2P", monospace;
-  font-size: 12px;
+  font-size: 10px;
   color: var(--px-ink);
   letter-spacing: 1px;
-  line-height: 1.2;
-}
-.inspector-tower-hero-sub {
-  font-family: "VT323", monospace;
-  font-size: 15px;
-  color: var(--px-ink-dim);
-  line-height: 1.2;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .inspector-tower-hero-meta {
   font-family: "VT323", monospace;
   font-size: 14px;
-  color: var(--px-ink-dimmer);
+  color: var(--px-ink-dim);
   line-height: 1;
-  margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.inspector-tower-hero-meta .hm-lvl {
+  color: var(--px-ink-dim);
+}
+.inspector-tower-hero-meta .hm-bonus {
+  color: var(--px-ink-dimmer);
+}
+.inspector-tower-hero-meta .hm-sep {
+  color: var(--px-ink-dimmer);
+  margin: 0 4px;
+}
+.inspector-tower-hero-meta .hm-kills {
+  color: var(--px-ink-dim);
+}
+.inspector-tower-hero-meta .hm-lbl {
+  color: var(--px-ink-dimmer);
+  margin-left: 4px;
+}
+.inspector-tower-hero-meta.is-lvl .hm-lvl {
+  color: var(--px-accent);
+}
+.inspector-tower-hero-meta.is-lvl .hm-bonus {
+  color: var(--px-accent-hi);
 }
 
 /* 3-up stat row */
@@ -797,28 +826,28 @@
   margin-bottom: 10px;
 }
 .inspector-stat-cell {
-  padding: 12px 10px;
+  padding: 6px 8px 7px;
 }
 .inspector-stat-cell .stat-lbl {
   font-family: "Press Start 2P", monospace;
-  font-size: 8px;
+  font-size: 7px;
   color: var(--px-ink-dim);
   letter-spacing: 1px;
 }
 .inspector-stat-cell .stat-val {
   font-family: "VT323", monospace;
   line-height: 1;
-  margin-top: 6px;
-  font-size: 22px;
+  margin-top: 3px;
+  font-size: 18px;
   color: var(--px-ink);
 }
 .inspector-stat-cell .stat-val small {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--px-ink-dim);
 }
 .inspector-stat-cell.is-dmg .stat-val {
   color: var(--px-accent);
-  font-size: 24px;
+  font-size: 20px;
 }
 
 /* Chiclet ability grid */
@@ -842,15 +871,33 @@
   line-height: 1;
   animation: chicletIn 200ms cubic-bezier(0.23, 1, 0.32, 1) backwards;
 }
-.inspector-chiclet:nth-child(1) { animation-delay: 0ms; }
-.inspector-chiclet:nth-child(2) { animation-delay: 40ms; }
-.inspector-chiclet:nth-child(3) { animation-delay: 80ms; }
-.inspector-chiclet:nth-child(4) { animation-delay: 120ms; }
-.inspector-chiclet:nth-child(5) { animation-delay: 160ms; }
-.inspector-chiclet:nth-child(6) { animation-delay: 200ms; }
+.inspector-chiclet:nth-child(1) {
+  animation-delay: 0ms;
+}
+.inspector-chiclet:nth-child(2) {
+  animation-delay: 40ms;
+}
+.inspector-chiclet:nth-child(3) {
+  animation-delay: 80ms;
+}
+.inspector-chiclet:nth-child(4) {
+  animation-delay: 120ms;
+}
+.inspector-chiclet:nth-child(5) {
+  animation-delay: 160ms;
+}
+.inspector-chiclet:nth-child(6) {
+  animation-delay: 200ms;
+}
 @keyframes chicletIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .inspector-chiclet .chiclet-lbl {
   font-family: "Press Start 2P", monospace;
@@ -869,73 +916,209 @@
   text-overflow: ellipsis;
   min-width: 0;
 }
-.inspector-chiclet.tone-aoe { border-left-color: var(--px-accent); }
-.inspector-chiclet.tone-aoe .chiclet-lbl { color: var(--px-accent); }
-.inspector-chiclet.tone-cc { border-left-color: #8cb8ff; }
-.inspector-chiclet.tone-cc .chiclet-lbl { color: #8cb8ff; }
-.inspector-chiclet.tone-buff { border-left-color: var(--px-good); }
-.inspector-chiclet.tone-buff .chiclet-lbl { color: var(--px-good); }
-.inspector-chiclet.tone-debuff { border-left-color: var(--px-bad); }
-.inspector-chiclet.tone-debuff .chiclet-lbl { color: var(--px-bad); }
-.inspector-chiclet.tone-tgt { border-left-color: var(--px-accent-hi); }
-.inspector-chiclet.tone-tgt .chiclet-lbl { color: var(--px-accent-hi); }
+.inspector-chiclet.tone-aoe {
+  border-left-color: var(--px-accent);
+}
+.inspector-chiclet.tone-aoe .chiclet-lbl {
+  color: var(--px-accent);
+}
+.inspector-chiclet.tone-cc {
+  border-left-color: #8cb8ff;
+}
+.inspector-chiclet.tone-cc .chiclet-lbl {
+  color: #8cb8ff;
+}
+.inspector-chiclet.tone-buff {
+  border-left-color: var(--px-good);
+}
+.inspector-chiclet.tone-buff .chiclet-lbl {
+  color: var(--px-good);
+}
+.inspector-chiclet.tone-debuff {
+  border-left-color: var(--px-bad);
+}
+.inspector-chiclet.tone-debuff .chiclet-lbl {
+  color: var(--px-bad);
+}
+.inspector-chiclet.tone-tgt {
+  border-left-color: var(--px-accent-hi);
+}
+.inspector-chiclet.tone-tgt .chiclet-lbl {
+  color: var(--px-accent-hi);
+}
 
-/* Forge-into row — compact chip */
-.inspector-forge-row {
-  margin-bottom: 8px;
+/* FORGES INTO — recipe card with per-ingredient state (this / have / missing) */
+.inspector-forge-card {
+  margin-bottom: 6px;
   background: var(--px-bg);
   box-shadow:
     inset 1px 1px 0 0 var(--px-border-dark),
     0 0 0 2px var(--px-border-dark);
   border-left: 3px solid var(--px-accent);
-  padding: 6px 8px 6px 9px;
+  padding: 7px 10px 9px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
   cursor: pointer;
-  transition: border-left-color 120ms ease, transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition:
+    border-left-color 120ms ease,
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 @media (hover: hover) and (pointer: fine) {
-  .inspector-forge-row:hover {
+  .inspector-forge-card:hover {
     border-left-color: var(--px-accent-hi);
   }
 }
-.inspector-forge-row:active {
-  transform: scale(0.98);
+.inspector-forge-card:active {
+  transform: scale(0.99);
 }
-.inspector-forge-row-head {
+.inspector-forge-card .forge-strip-head {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: center;
+  gap: 8px;
+}
+.inspector-forge-card .strip-eye {
   font-family: "Press Start 2P", monospace;
   font-size: 7px;
   color: var(--px-ink-dimmer);
-  letter-spacing: 1px;
+  letter-spacing: 1.3px;
+  line-height: 1;
 }
-.inspector-forge-row-body {
-  display: grid;
-  grid-template-columns: 22px 1fr auto;
-  gap: 8px;
-  align-items: center;
-}
-.inspector-forge-row-body .forge-icon {
+.inspector-forge-card .strip-icon {
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.inspector-forge-row-body .forge-name {
+.inspector-forge-card .strip-name {
   font-family: "VT323", monospace;
-  font-size: 17px;
+  font-size: 18px;
   color: var(--px-accent);
   line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.inspector-forge-row-body .forge-arrow {
+.inspector-forge-card .strip-tally {
+  font-family: "VT323", monospace;
+  font-size: 13px;
+  color: var(--px-ink-dim);
+  line-height: 1;
+  white-space: nowrap;
+}
+.inspector-forge-card .strip-tally b {
+  color: var(--px-good);
+  font-weight: normal;
+}
+.inspector-forge-card .forge-blurb {
+  display: none;
+  font-family: "VT323", monospace;
+  font-size: 13px;
+  color: var(--px-ink-dim);
+  line-height: 1.25;
+  margin-bottom: 1px;
+}
+@media (min-height: 1200px) {
+  .inspector-forge-card .forge-blurb {
+    display: block;
+  }
+}
+.inspector-forge-card .forge-from {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.forge-ingredient {
+  display: grid;
+  grid-template-columns: 22px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 6px 3px 4px;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark);
+}
+.forge-ingredient .ing-slot {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-panel-2);
+}
+.forge-ingredient .ing-name {
+  font-family: "VT323", monospace;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--px-ink);
+}
+.forge-ingredient .ing-q {
   font-family: "Press Start 2P", monospace;
-  font-size: 10px;
+  font-size: 7px;
+  color: var(--px-ink-dim);
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+/* SELECTED — amber slot, accent row tint */
+.forge-ingredient.state-this {
+  background: rgba(240, 160, 64, 0.1);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-accent);
+}
+.forge-ingredient.state-this .ing-slot {
+  background: rgba(240, 160, 64, 0.1);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-accent);
+}
+.forge-ingredient.state-this .ing-name {
+  color: var(--px-accent-hi);
+}
+.forge-ingredient.state-this .ing-q {
+  color: var(--px-accent);
+}
+
+/* HAVE — filled slot */
+.forge-ingredient.state-have .ing-slot {
+  background: var(--px-panel-2);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-good-d);
+}
+.forge-ingredient.state-have .ing-q {
+  color: var(--px-good);
+}
+
+/* MISSING — hollow slot, faded sprite, dim row */
+.forge-ingredient.state-missing {
+  background: rgba(0, 0, 0, 0.42);
+}
+.forge-ingredient.state-missing .ing-slot {
+  background: rgba(0, 0, 0, 0.55);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-ink-dimmer);
+}
+.forge-ingredient.state-missing .ing-slot .px-sprite {
+  filter: opacity(0.55) saturate(0.45) brightness(0.85);
+}
+.forge-ingredient.state-missing .ing-name {
+  color: var(--px-ink-dimmer);
+}
+.forge-ingredient.state-missing .ing-q {
   color: var(--px-ink-dimmer);
 }
 
-/* 2×2 action grid row */
+/* 2x2 action grid row */
 .inspector-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -961,7 +1144,11 @@
   cursor: pointer;
   border-radius: 3px;
   border: 1px solid transparent;
-  transition: background-color 100ms ease-out, border-color 100ms ease-out, filter 100ms ease-out, transform 100ms ease-out;
+  transition:
+    background-color 100ms ease-out,
+    border-color 100ms ease-out,
+    filter 100ms ease-out,
+    transform 100ms ease-out;
 }
 .lb-row:active {
   filter: brightness(1.15);
@@ -1038,7 +1225,10 @@
   color: var(--px-ink-dim);
   border: none;
   cursor: pointer;
-  transition: background-color 80ms ease-out, color 80ms ease-out, transform 80ms ease-out;
+  transition:
+    background-color 80ms ease-out,
+    color 80ms ease-out,
+    transform 80ms ease-out;
 }
 .lb-toggle-btn:active {
   transform: scale(0.95);
@@ -1109,15 +1299,6 @@
   color: var(--px-ink);
   letter-spacing: 1px;
 }
-.inspector-creep-blurb {
-  font-family: "VT323", monospace;
-  font-size: 15px;
-  color: var(--px-ink-dim);
-  line-height: 1.2;
-  padding: 0 4px;
-  margin-bottom: 8px;
-  font-style: italic;
-}
 .inspector-creep-hp {
   padding: 8px 10px;
   margin-bottom: 8px;
@@ -1141,7 +1322,9 @@
 .inspector-creep-hp-fill {
   height: 100%;
   background: var(--px-good);
-  transition: width 160ms ease-out, background-color 300ms ease;
+  transition:
+    width 160ms ease-out,
+    background-color 300ms ease;
 }
 .inspector-creep-hp-fill.hp-warn {
   background: var(--px-accent);
@@ -1293,7 +1476,12 @@
   gap: 6px;
   padding: 9px 8px;
   font-size: 10px;
-  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease, transform 100ms cubic-bezier(0.23, 1, 0.32, 1), filter 100ms ease;
+  transition:
+    background 120ms ease,
+    color 120ms ease,
+    box-shadow 120ms ease,
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1),
+    filter 100ms ease;
 }
 .btn-path-viz svg {
   width: 12px;
@@ -1346,7 +1534,9 @@
   padding: 0;
   cursor: pointer;
   background: var(--px-bg);
-  transition: transform 100ms cubic-bezier(0.23, 1, 0.32, 1), opacity 100ms ease;
+  transition:
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 100ms ease;
 }
 .draw-cell:active {
   transform: scale(0.95);
@@ -1420,6 +1610,116 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 0 0 2px var(--px-border-dark);
+}
+
+/* Recipe line — names the special recipe(s) the selected draw can form,
+   rendered directly under the gem tag in the same VT323 type style. */
+.draw-tag-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+/* Inherits VT323 + size from .draw-keeper-tag so it tracks the gem name across
+   breakpoints; hierarchy is carried by colour, not size — see below. */
+.draw-recipe-line {
+  display: none;
+  text-align: right;
+  line-height: 1.1;
+  color: var(--px-ink);
+}
+.draw-recipe-line.is-shown {
+  display: block;
+}
+/* The name span also carries the global .recipe-name class (recipes panel),
+   which forces Press Start 2P at 12px + its own colour/letter-spacing. Reset
+   the font on every child so the line tracks the gem tag's VT323 + size, then
+   carry hierarchy by colour in three tiers (eyebrow dim, separator dimmest,
+   name bright ink) — the scheme from the styling preview. */
+.draw-recipe-line .recipe-lead,
+.draw-recipe-line .recipe-sep,
+.draw-recipe-line .recipe-name {
+  font-family: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
+}
+.draw-recipe-line .recipe-lead {
+  color: var(--px-ink-dim);
+}
+.draw-recipe-line .recipe-sep {
+  color: var(--px-ink-dimmer);
+}
+.draw-recipe-line .recipe-name {
+  color: var(--px-ink);
+}
+/* Recipes whose partner gem is already on the board glow in the gem's colour,
+   tying this line to the board "resonance" highlight. */
+.draw-recipe-line .recipe-name.has-partner {
+  color: color-mix(in oklab, var(--gem-glow) 62%, white);
+  text-shadow: 0 0 6px color-mix(in oklab, var(--gem-glow) 45%, transparent);
+}
+.draw-recipe-line.is-empty {
+  opacity: 0.7;
+}
+
+/* Combo banner — names every special recipe the current hand can craft in full
+   from its own gems, and is paired with the purple ring on contributing cells.
+   Special gems read purple/gold across the game (see special-gem sprite slots),
+   so the cue uses that palette rather than a gem-specific colour. */
+.draw-combo-banner {
+  display: none;
+}
+.draw-combo-banner.is-shown {
+  display: block;
+  font-family: "VT323", monospace;
+  font-size: 15px;
+  line-height: 1.1;
+  margin: 3px 0 6px;
+  color: #e8c8f8;
+  text-shadow: 0 0 6px rgba(136, 72, 176, 0.45);
+}
+.draw-combo-banner .combo-mark {
+  color: #f0c038;
+}
+.draw-combo-banner .combo-lead {
+  color: #b890d0;
+}
+.draw-combo-banner .combo-sep {
+  color: #8848b0;
+}
+.draw-combo-banner .combo-name {
+  color: #e8c8f8;
+}
+@media (max-height: 1200px) {
+  .draw-combo-banner.is-shown {
+    display: none;
+  }
+}
+
+/* Cells whose gem feeds a craftable special: a purple ring (layered over the
+   gem gradient via ::after, so it composes with the orange selection / green
+   keep rings) with a gentle, localized pulse — no flash or shake. */
+.draw-cell.is-combo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  box-shadow:
+    inset 0 0 0 2px #f0c038,
+    inset 0 0 0 3px rgba(136, 72, 176, 0.9),
+    0 0 9px 2px rgba(240, 192, 56, 0.6);
+  animation: drawComboPulse 1.5s ease-in-out infinite;
+}
+@keyframes drawComboPulse {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 /* Modal overlay */
@@ -1527,7 +1827,9 @@
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
-  transition: opacity 120ms ease, transform 120ms ease;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease;
 }
 .tutorial-body b {
   color: var(--px-accent);
@@ -1688,11 +1990,26 @@
   vertical-align: middle;
   letter-spacing: 0.3px;
 }
-.changelog-tag-new { background: var(--px-good); color: var(--px-border-dark); }
-.changelog-tag-buff { background: var(--px-info); color: var(--px-border-dark); }
-.changelog-tag-nerf { background: var(--px-bad); color: var(--px-ink); }
-.changelog-tag-fix { background: var(--px-ink-dim); color: var(--px-border-dark); }
-.changelog-tag-bal { background: var(--px-accent); color: var(--px-border-dark); }
+.changelog-tag-new {
+  background: var(--px-good);
+  color: var(--px-border-dark);
+}
+.changelog-tag-buff {
+  background: var(--px-info);
+  color: var(--px-border-dark);
+}
+.changelog-tag-nerf {
+  background: var(--px-bad);
+  color: var(--px-ink);
+}
+.changelog-tag-fix {
+  background: var(--px-ink-dim);
+  color: var(--px-border-dark);
+}
+.changelog-tag-bal {
+  background: var(--px-accent);
+  color: var(--px-border-dark);
+}
 .changelog-show-older {
   font-size: 7px;
   padding: 6px 12px;
@@ -1944,7 +2261,9 @@
   z-index: 5;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 100ms cubic-bezier(0.23, 1, 0.32, 1), transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+  transition:
+    opacity 100ms cubic-bezier(0.23, 1, 0.32, 1),
+    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
 /* ===== Pattern #5: Shift+click place-and-keep ===== */
@@ -1970,111 +2289,6 @@
 .shift-keep-hint .keepline {
   color: var(--px-good);
   margin-top: 2px;
-}
-
-/* ===== Hardcore: Skull & Bone theme ===== */
-.hud.hardcore {
-  --px-panel: #2e2840;
-  --px-panel-2: #443858;
-  --px-accent: #d8c8a0;
-  --px-accent-hi: #e8dcc0;
-  --px-accent-lo: #8a7a58;
-}
-.hud.hardcore .hud-col-left,
-.hud.hardcore .hud-col-right {
-  position: relative;
-}
-/* .hud.hardcore .hud-col-left::before, */
-/* .hud.hardcore .hud-col-right::before { */
-/*   content: ""; */
-/*   position: absolute; */
-/*   inset: 0; */
-/*   pointer-events: none; */
-/*   z-index: 0; */
-/*   border-top: 3px dotted #8a7a58; */
-/* } */
-.hud.hardcore .hud-col-left > *,
-.hud.hardcore .hud-col-right > * {
-  position: relative;
-  z-index: 1;
-}
-
-/* Skull & crossbones decorations */
-.hardcore-sigil {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  padding: 2px 0;
-  opacity: 0.35;
-  pointer-events: none;
-}
-.hardcore-sigil svg {
-  flex-shrink: 0;
-}
-.hardcore-sigil-row {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 1px 0;
-  opacity: 0.25;
-  pointer-events: none;
-}
-
-/* Skull & bone panel divider between sections */
-.hardcore-divider {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 2px 0;
-  opacity: 0.3;
-  pointer-events: none;
-}
-.hardcore-divider::before,
-.hardcore-divider::after {
-  content: "";
-  flex: 1;
-  height: 1px;
-  background: repeating-linear-gradient(
-    90deg,
-    #8a7a58 0px,
-    #8a7a58 4px,
-    transparent 4px,
-    transparent 8px
-  );
-}
-
-/* Hardcore header bar: bone white wordmark */
-.hud.hardcore .wm-name {
-  color: #d8c8a0;
-  text-shadow: 2px 2px 0 #0a0510;
-}
-
-/* Lives counter pulse when at 1hp */
-.hud.hardcore .stat-mini .val[style*="#ff8898"] {
-  animation: hardcorePulse 2s ease-in-out infinite;
-}
-@keyframes hardcorePulse {
-  0%,
-  100% {
-    text-shadow: 0 0 0 transparent;
-  }
-  50% {
-    text-shadow: 0 0 8px rgba(208, 72, 72, 0.6);
-  }
-}
-.wm-hardcore-badge {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-family: "Press Start 2P", monospace;
-  font-size: 8px;
-  color: #d8c8a0;
-  margin-top: 2px;
-  letter-spacing: 0.5px;
-  opacity: 0.7;
 }
 
 /* ===== Mobile responsive layout ===== */
@@ -2130,8 +2344,7 @@
 .mobile-status .wm-name {
   font-size: 9px;
 }
-.mobile-status .wm-ver,
-.mobile-status .wm-hardcore-badge {
+.mobile-status .wm-ver {
   display: none;
 }
 .mobile-status .stat-mini {
@@ -2191,6 +2404,9 @@
 .mobile-tray .draw-keeper-tag {
   font-size: 13px;
 }
+.mobile-tray .draw-combo-banner.is-shown {
+  font-size: 13px;
+}
 
 /* Action row: primary button + utils */
 .mobile-tray-actions {
@@ -2244,7 +2460,7 @@
 }
 .mobile-tab-content .inspector {
   flex: none;
-  overflow-y: auto;
+  overflow-y: hidden;
 }
 .mobile-tab-content .recipes-panel {
   flex: none;
@@ -2257,4 +2473,34 @@
 }
 .mobile-tab-content .threat-list {
   gap: 4px;
+}
+
+/* Pixel-art scrollbars for the two containers that actually scroll.
+   Firefox uses scrollbar-width/color; Chromium/Safari use the webkit pseudo-elements. */
+.recipes-list,
+.tutorial-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--px-accent) var(--px-border-dark);
+}
+.recipes-list::-webkit-scrollbar,
+.tutorial-body::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.recipes-list::-webkit-scrollbar-track,
+.tutorial-body::-webkit-scrollbar-track {
+  background: var(--px-border-dark);
+}
+.recipes-list::-webkit-scrollbar-thumb,
+.tutorial-body::-webkit-scrollbar-thumb {
+  background: var(--px-accent);
+  border: 1px solid var(--px-border-dark);
+}
+.recipes-list::-webkit-scrollbar-thumb:hover,
+.tutorial-body::-webkit-scrollbar-thumb:hover {
+  background: var(--px-accent-hi);
+}
+.recipes-list::-webkit-scrollbar-corner,
+.tutorial-body::-webkit-scrollbar-corner {
+  background: var(--px-border-dark);
 }

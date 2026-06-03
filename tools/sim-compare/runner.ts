@@ -1,22 +1,35 @@
-import { Worker } from 'node:worker_threads';
-import { fileURLToPath } from 'node:url';
-import { cpus } from 'node:os';
-import { HeadlessGame } from '../../src/sim/HeadlessGame';
-import { GreedyAI } from '../../src/sim/ai/GreedyAI';
-import { BlueprintAI } from '../../src/sim/ai/BlueprintAI';
-import { StrategistAI } from '../../src/sim/ai/StrategistAI';
-import { HeuristicAI } from '../../src/sim/ai/HeuristicAI';
-import type { SimAI, GameResult, WaveSummary } from '../../src/sim/types';
-import type { AISnapshot, AggregateStats, PerSeedResult, DpsHpEntry, WavePerformance } from './types';
-import { makeTransport, type TelemetryConfig } from './telemetry';
+import { Worker } from "node:worker_threads";
+import { fileURLToPath } from "node:url";
+import { cpus } from "node:os";
+import { HeadlessGame } from "../../src/sim/HeadlessGame";
+import { GreedyAI } from "../../src/sim/ai/GreedyAI";
+import { BlueprintAI } from "../../src/sim/ai/BlueprintAI";
+import { StrategistAI } from "../../src/sim/ai/StrategistAI";
+import { HeuristicAI } from "../../src/sim/ai/HeuristicAI";
+import type { SimAI, GameResult, WaveSummary } from "../../src/sim/types";
+import type {
+  AISnapshot,
+  AggregateStats,
+  PerSeedResult,
+  DpsHpEntry,
+  WavePerformance,
+} from "./types";
+import { makeTransport, type TelemetryConfig } from "./telemetry";
 
-const WORKER_PATH = fileURLToPath(new URL('./worker-entry.mjs', import.meta.url));
+const WORKER_PATH = fileURLToPath(
+  new URL("./worker-entry.mjs", import.meta.url),
+);
 
 interface RunData {
   result: GameResult;
   gemDamageShare: Record<string, number>;
   gemKillShare: Record<string, number>;
-  dpsVsHp: Array<{ wave: number; totalDamage: number; totalHp: number; ratio: number }>;
+  dpsVsHp: Array<{
+    wave: number;
+    totalDamage: number;
+    totalHp: number;
+    ratio: number;
+  }>;
   waveSummaries: WaveSummary[];
 }
 
@@ -36,14 +49,26 @@ function mean(arr: number[]): number {
   return arr.length === 0 ? 0 : arr.reduce((s, v) => s + v, 0) / arr.length;
 }
 
-async function runBatch(seedCount: number, ai: SimAI, aiName: string, telemetry?: TelemetryConfig): Promise<RunData[]> {
+async function runBatch(
+  seedCount: number,
+  ai: SimAI,
+  aiName: string,
+  telemetry?: TelemetryConfig,
+): Promise<RunData[]> {
   const runs: RunData[] = [];
   const transport = telemetry ? makeTransport(telemetry.url) : undefined;
   for (let seed = 1; seed <= seedCount; seed++) {
     const game = new HeadlessGame(seed);
-    const collector = telemetry && transport
-      ? game.attachTelemetry({ version: telemetry.version, mode: 'sim', ai: aiName, seed, transport })
-      : undefined;
+    const collector =
+      telemetry && transport
+        ? game.attachTelemetry({
+            version: telemetry.version,
+            mode: "sim",
+            ai: aiName,
+            seed,
+            transport,
+          })
+        : undefined;
     const result = game.runGame(ai);
     if (collector) {
       collector.finalize(result.outcome);
@@ -84,7 +109,12 @@ function collectAISnapshot(runs: RunData[]): AISnapshot {
     maxWave: Math.max(...waves),
     meanGold: Math.round(mean(golds)),
     meanLives: Math.round(mean(livesArr) * 10) / 10,
-    victoryRate: Math.round((runs.filter((r) => r.result.outcome === 'victory').length / runs.length) * 1000) / 1000,
+    victoryRate:
+      Math.round(
+        (runs.filter((r) => r.result.outcome === "victory").length /
+          runs.length) *
+          1000,
+      ) / 1000,
   };
 
   const gemDmgTotals: Record<string, number> = {};
@@ -98,10 +128,17 @@ function collectAISnapshot(runs: RunData[]): AISnapshot {
     }
   }
 
-  const waveAgg = new Map<number, { totalDamage: number; totalHp: number; count: number }>();
+  const waveAgg = new Map<
+    number,
+    { totalDamage: number; totalHp: number; count: number }
+  >();
   for (const run of runs) {
     for (const entry of run.dpsVsHp) {
-      const agg = waveAgg.get(entry.wave) ?? { totalDamage: 0, totalHp: 0, count: 0 };
+      const agg = waveAgg.get(entry.wave) ?? {
+        totalDamage: 0,
+        totalHp: 0,
+        count: 0,
+      };
       agg.totalDamage += entry.totalDamage;
       agg.totalHp += entry.totalHp;
       agg.count += 1;
@@ -114,7 +151,12 @@ function collectAISnapshot(runs: RunData[]): AISnapshot {
       wave,
       avgDps: Math.round(agg.totalDamage / agg.count),
       avgHp: Math.round(agg.totalHp / agg.count),
-      ratio: agg.totalHp > 0 ? Math.round((agg.totalDamage / agg.count / (agg.totalHp / agg.count)) * 100) / 100 : 0,
+      ratio:
+        agg.totalHp > 0
+          ? Math.round(
+              (agg.totalDamage / agg.count / (agg.totalHp / agg.count)) * 100,
+            ) / 100
+          : 0,
     }));
 
   const perSeed: PerSeedResult[] = runs.map((r) => ({
@@ -128,18 +170,35 @@ function collectAISnapshot(runs: RunData[]): AISnapshot {
 
   const gameOverWaves = new Map<number, number>();
   for (const r of runs) {
-    if (r.result.outcome === 'gameover') {
+    if (r.result.outcome === "gameover") {
       const w = r.result.waveReached;
       gameOverWaves.set(w, (gameOverWaves.get(w) ?? 0) + 1);
     }
   }
 
-  const waveAggPerf = new Map<number, { leaks: number[]; kills: number[]; lives: number[]; gold: number[]; towers: number[]; dpsRatio: number[] }>();
+  const waveAggPerf = new Map<
+    number,
+    {
+      leaks: number[];
+      kills: number[];
+      lives: number[];
+      gold: number[];
+      towers: number[];
+      dpsRatio: number[];
+    }
+  >();
   for (const run of runs) {
     for (const ws of run.waveSummaries) {
       let agg = waveAggPerf.get(ws.wave);
       if (!agg) {
-        agg = { leaks: [], kills: [], lives: [], gold: [], towers: [], dpsRatio: [] };
+        agg = {
+          leaks: [],
+          kills: [],
+          lives: [],
+          gold: [],
+          towers: [],
+          dpsRatio: [],
+        };
         waveAggPerf.set(ws.wave, agg);
       }
       agg.leaks.push(ws.leaked);
@@ -147,7 +206,9 @@ function collectAISnapshot(runs: RunData[]): AISnapshot {
       agg.lives.push(ws.livesRemaining);
       agg.gold.push(ws.goldAtEnd);
       agg.towers.push(ws.towersCount);
-      agg.dpsRatio.push(ws.totalHpSpawned > 0 ? ws.totalDamageDealt / ws.totalHpSpawned : 0);
+      agg.dpsRatio.push(
+        ws.totalHpSpawned > 0 ? ws.totalDamageDealt / ws.totalHpSpawned : 0,
+      );
     }
   }
 
@@ -181,13 +242,17 @@ export interface AIEntry {
 }
 
 export const ALL_AIS: AIEntry[] = [
-  { name: 'GreedyAI', ai: new GreedyAI() },
-  { name: 'BlueprintAI', ai: new BlueprintAI() },
-  { name: 'StrategistAI', ai: new StrategistAI() },
-  { name: 'HeuristicAI', ai: new HeuristicAI() },
+  { name: "GreedyAI", ai: new GreedyAI() },
+  { name: "BlueprintAI", ai: new BlueprintAI() },
+  { name: "StrategistAI", ai: new StrategistAI() },
+  { name: "HeuristicAI", ai: new HeuristicAI() },
 ];
 
-export async function runAllAIsSequential(seedCount: number, ais: AIEntry[], telemetry?: TelemetryConfig): Promise<Record<string, AISnapshot>> {
+export async function runAllAIsSequential(
+  seedCount: number,
+  ais: AIEntry[],
+  telemetry?: TelemetryConfig,
+): Promise<Record<string, AISnapshot>> {
   const result: Record<string, AISnapshot> = {};
   for (const { name, ai } of ais) {
     const t0 = Date.now();
@@ -219,7 +284,9 @@ export function runAllAIs(
   }
 
   const total = workQueue.length;
-  console.log(`  Running ${ais.length} AI${ais.length > 1 ? 's' : ''} × ${seedCount} seeds across ${numWorkers} workers...`);
+  console.log(
+    `  Running ${ais.length} AI${ais.length > 1 ? "s" : ""} x ${seedCount} seeds across ${numWorkers} workers...`,
+  );
 
   return new Promise((resolve, reject) => {
     const runsByAI = new Map<string, RunData[]>();
@@ -238,7 +305,9 @@ export function runAllAIs(
         reject(err);
         return;
       }
-      process.stdout.write(`\r\x1b[2K  Progress: ${total}/${total} games — done\n`);
+      process.stdout.write(
+        `\r\x1b[2K  Progress: ${total}/${total} games — done\n`,
+      );
       const result: Record<string, AISnapshot> = {};
       for (const { name } of ais) {
         result[name] = collectAISnapshot(runsByAI.get(name)!);
@@ -249,7 +318,7 @@ export function runAllAIs(
     function dispatchNext(w: Worker): void {
       if (queueIdx < workQueue.length) {
         const item = workQueue[queueIdx++];
-        w.postMessage({ type: 'run', aiName: item.aiName, seed: item.seed });
+        w.postMessage({ type: "run", aiName: item.aiName, seed: item.seed });
       }
     }
 
@@ -257,29 +326,43 @@ export function runAllAIs(
       const w = new Worker(WORKER_PATH, { workerData: { telemetry } });
       workers.push(w);
 
-      w.on('message', (msg: { type: string; aiName: string; seed: number; result: GameResult; gemDamageShare: Record<string, number>; gemKillShare: Record<string, number>; dpsVsHp: RunData['dpsVsHp']; waveSummaries: WaveSummary[] }) => {
-        if (msg.type === 'ready') {
-          dispatchNext(w);
-          return;
-        }
-        if (msg.type !== 'result') return;
-        runsByAI.get(msg.aiName)!.push({
-          result: msg.result,
-          gemDamageShare: msg.gemDamageShare,
-          gemKillShare: msg.gemKillShare,
-          dpsVsHp: msg.dpsVsHp,
-          waveSummaries: msg.waveSummaries,
-        });
-        completed++;
-        process.stdout.write(`\r\x1b[2K  Progress: ${completed}/${total} games`);
-        if (completed === total) {
-          finish();
-        } else {
-          dispatchNext(w);
-        }
-      });
+      w.on(
+        "message",
+        (msg: {
+          type: string;
+          aiName: string;
+          seed: number;
+          result: GameResult;
+          gemDamageShare: Record<string, number>;
+          gemKillShare: Record<string, number>;
+          dpsVsHp: RunData["dpsVsHp"];
+          waveSummaries: WaveSummary[];
+        }) => {
+          if (msg.type === "ready") {
+            dispatchNext(w);
+            return;
+          }
+          if (msg.type !== "result") return;
+          runsByAI.get(msg.aiName)!.push({
+            result: msg.result,
+            gemDamageShare: msg.gemDamageShare,
+            gemKillShare: msg.gemKillShare,
+            dpsVsHp: msg.dpsVsHp,
+            waveSummaries: msg.waveSummaries,
+          });
+          completed++;
+          process.stdout.write(
+            `\r\x1b[2K  Progress: ${completed}/${total} games`,
+          );
+          if (completed === total) {
+            finish();
+          } else {
+            dispatchNext(w);
+          }
+        },
+      );
 
-      w.on('error', (err) => finish(err));
+      w.on("error", (err) => finish(err));
     }
   });
 }

@@ -30,6 +30,10 @@ const TABLES: Record<string, string[]> = {
   wave_gem_damage: [
     "run_id", "wave", "gem", "is_combo", "combo_key", "upgrade_tier", "damage", "kills",
   ],
+  wave_gem_assist: [
+    "run_id", "wave", "gem", "combo_key", "upgrade_tier",
+    "dmg_aura_assist", "vuln_assist", "armor_shred_assist", "atkspeed_assist", "bonus_gold",
+  ],
 };
 
 export async function handleExport(
@@ -56,7 +60,7 @@ export async function handleExport(
 
   const mf = runset === "sim"
     ? "mode = 'sim' AND wave_reached > 1"
-    : "mode NOT IN ('debug', 'creative', 'sim') AND wave_reached > 1";
+    : "mode NOT IN ('debug', 'creative', 'sim', 'hardcore') AND wave_reached > 1";
 
   let sql: string;
   const binds: unknown[] = [];

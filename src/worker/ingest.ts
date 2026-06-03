@@ -31,6 +31,7 @@ interface Payload {
   events: Array<Record<string, unknown>>;
   waveCreepStats?: Array<Record<string, unknown>>;
   waveGemDamage?: Array<Record<string, unknown>>;
+  waveGemAssign?: Array<Record<string, unknown>>;
 }
 
 export async function handleIngest(
@@ -150,6 +151,21 @@ export async function handleIngest(
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         runId, wgd.wave, wgd.gem, wgd.isCombo ? 1 : 0, wgd.comboKey ?? "", wgd.upgradeTier ?? 0, wgd.damage, wgd.kills,
+      ),
+    );
+  }
+
+  const waveGemAssign = body.waveGemAssign ?? [];
+  for (const wga of waveGemAssign) {
+    stmts.push(
+      db.prepare(
+        `INSERT INTO wave_gem_assist (run_id, wave, gem, combo_key, upgrade_tier,
+           dmg_aura_assist, vuln_assist, armor_shred_assist, atkspeed_assist, bonus_gold)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(
+        runId, wga.wave, wga.gem, wga.comboKey ?? "", wga.upgradeTier ?? 0,
+        wga.dmgAuraAssist ?? 0, wga.vulnAssist ?? 0, wga.armorShredAssist ?? 0,
+        wga.atkspeedAssist ?? 0, wga.bonusGold ?? 0,
       ),
     );
   }

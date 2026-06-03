@@ -1,26 +1,30 @@
-import { writeFileSync, readFileSync } from 'fs';
-import { resolve, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { writeFileSync, readFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
 
-import { State, emptyState, TowerState } from '../../src/game/State';
-import { EventBus } from '../../src/events/EventBus';
-import { RNG } from '../../src/game/rng';
-import { BASE, Cell } from '../../src/data/map';
-import { findRoute, flattenRoute, buildAirRoute } from '../../src/systems/Pathfinding';
-import { SIM_HZ } from '../../src/game/constants';
-import { WavePhase } from '../../src/controllers/WavePhase';
-import { WAVES, type WaveDef } from '../../src/data/waves';
-import { COMBOS, comboStatsAtTier } from '../../src/data/combos';
-import type { ComboRecipe } from '../../src/data/combos';
-import { gemStats, effectSummary, GEM_BASE } from '../../src/data/gems';
-import type { GemType, Quality } from '../../src/render/theme';
-import { QUALITY_NAMES } from '../../src/render/theme';
-import { QUALITY_BASE_COST } from '../../src/game/constants';
-import { Combat } from '../../src/systems/Combat';
-import { Traps } from '../../src/systems/Traps';
-import { Metrics } from '../../src/sim/Metrics';
-import { exposureAt } from '../../src/sim/blueprintKeeper';
-import type { Game } from '../../src/game/Game';
+import { State, emptyState, TowerState } from "../../src/game/State";
+import { EventBus } from "../../src/events/EventBus";
+import { RNG } from "../../src/game/rng";
+import { BASE, Cell } from "../../src/data/map";
+import {
+  findRoute,
+  flattenRoute,
+  buildAirRoute,
+} from "../../src/systems/Pathfinding";
+import { SIM_HZ } from "../../src/game/constants";
+import { WavePhase } from "../../src/controllers/WavePhase";
+import { WAVES, type WaveDef } from "../../src/data/waves";
+import { COMBOS, comboStatsAtTier } from "../../src/data/combos";
+import type { ComboRecipe } from "../../src/data/combos";
+import { gemStats, effectSummary, GEM_BASE } from "../../src/data/gems";
+import type { GemType, Quality } from "../../src/render/theme";
+import { QUALITY_NAMES } from "../../src/render/theme";
+import { QUALITY_BASE_COST } from "../../src/game/constants";
+import { Combat } from "../../src/systems/Combat";
+import { Traps } from "../../src/systems/Traps";
+import { Metrics } from "../../src/sim/Metrics";
+import { exposureAt } from "../../src/sim/blueprintKeeper";
+import type { Game } from "../../src/game/Game";
 
 // ── Config ────────────────────────────────────────────────────────────────
 
@@ -32,14 +36,16 @@ const MAX_TICKS = 60 * 60 * 20; // 20-minute safety cap (bosses are slow)
 function makeDpsWaveDef(): WaveDef {
   return {
     number: 0,
-    groups: [{
-      kind: 'shambler',
-      count: 50,
-      hp: 1e12,
-      bounty: 0,
-      slowResist: 0,
-      armor: 10,
-    }],
+    groups: [
+      {
+        kind: "shambler",
+        count: 50,
+        hp: 1e12,
+        bounty: 0,
+        slowResist: 0,
+        armor: 10,
+      },
+    ],
     interval: 0.3,
     bonus: 0,
   };
@@ -48,7 +54,7 @@ function makeDpsWaveDef(): WaveDef {
 // ── Types ─────────────────────────────────────────────────────────────────
 
 interface BenchmarkResult {
-  category: 'normal' | 'combo';
+  category: "normal" | "combo";
   comboKey: string;
   comboName: string;
   tier: number;
@@ -78,8 +84,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function loadBlueprint(): { rounds: [number, number][][] } {
   const raw = readFileSync(
-    resolve(__dirname, '../maze_optimizer/blueprint_v5.json'),
-    'utf-8',
+    resolve(__dirname, "../maze_optimizer/blueprint_v5.json"),
+    "utf-8",
   );
   return JSON.parse(raw);
 }
@@ -160,35 +166,37 @@ function summarizeEffects(combo: ComboRecipe, tier: number): string[] {
   const out: string[] = [];
   for (const e of stats.effects) {
     switch (e.kind) {
-      case 'splash':
-        out.push(`Splash r${e.radius}${e.chance != null ? ` ${Math.round(e.chance * 100)}%` : ''}`);
+      case "splash":
+        out.push(
+          `Splash r${e.radius}${e.chance != null ? ` ${Math.round(e.chance * 100)}%` : ""}`,
+        );
         break;
-      case 'chain':
+      case "chain":
         out.push(`Chain ${e.bounces}`);
         break;
-      case 'slow':
+      case "slow":
         out.push(`Slow ${Math.round((1 - e.factor) * 100)}% ${e.duration}s`);
         break;
-      case 'poison':
+      case "poison":
         out.push(`Poison ${e.dps}dps ${e.duration}s`);
         break;
-      case 'stun':
+      case "stun":
         out.push(`Stun ${Math.round(e.chance * 100)}% ${e.duration}s`);
         break;
-      case 'crit':
-        out.push(`Crit ${Math.round(e.chance * 100)}% ×${e.multiplier}`);
+      case "crit":
+        out.push(`Crit ${Math.round(e.chance * 100)}% x${e.multiplier}`);
         break;
-      case 'aura_atkspeed':
+      case "aura_atkspeed":
         out.push(`Aura +${Math.round(e.pct * 100)}% AS`);
         break;
-      case 'aura_dmg':
+      case "aura_dmg":
         out.push(`Aura +${Math.round(e.pct * 100)}% Dmg`);
         break;
-      case 'prox_armor_reduce':
+      case "prox_armor_reduce":
         out.push(`Armor -${e.value} (${e.targets})`);
         break;
-      case 'air_bonus':
-        out.push(`Air ×${e.multiplier}`);
+      case "air_bonus":
+        out.push(`Air x${e.multiplier}`);
         break;
       default:
         out.push(e.kind);
@@ -200,7 +208,7 @@ function summarizeEffects(combo: ComboRecipe, tier: number): string[] {
 function isAuraGem(combo: ComboRecipe, tier: number): boolean {
   const stats = comboStatsAtTier(combo, tier);
   return stats.effects.some(
-    (e) => e.kind === 'aura_atkspeed' || e.kind === 'aura_dmg',
+    (e) => e.kind === "aura_atkspeed" || e.kind === "aura_dmg",
   );
 }
 
@@ -242,15 +250,15 @@ class BenchmarkScenario {
   }
 
   endWave(lifeLost: number, goldEarned: number): void {
-    this.bus.emit('wave:end', {
+    this.bus.emit("wave:end", {
       wave: this.state.wave,
       lifeLost,
       goldEarned,
     });
-    this.state.phase = 'build';
+    this.state.phase = "build";
   }
 
-  handleCreepDeath(c: import('../../src/game/State').CreepState): void {
+  handleCreepDeath(c: import("../../src/game/State").CreepState): void {
     this.combat.handleDeathEffects(c);
     if (c.payload) {
       const state = this.state;
@@ -261,15 +269,27 @@ class BenchmarkScenario {
         for (let i = 0; i < p.count; i++) {
           const id = this.nextId();
           state.creeps.push({
-            id, kind: p.kind, pathPos, px: c.px, py: c.py,
-            hp: p.hp, maxHp: p.hp, speed: p.speed, bounty: p.bounty,
-            color: p.color, armor: p.armor, slowResist: p.slowResist,
-            flags: p.flags, alive: true, armorReduction: 0,
-            vulnerability: 0, payload: p.payload,
+            id,
+            kind: p.kind,
+            pathPos,
+            px: c.px,
+            py: c.py,
+            hp: p.hp,
+            maxHp: p.hp,
+            speed: p.speed,
+            bounty: p.bounty,
+            color: p.color,
+            armor: p.armor,
+            slowResist: p.slowResist,
+            flags: p.flags,
+            alive: true,
+            armorReduction: 0,
+            vulnerability: 0,
+            payload: p.payload,
           });
           state.waveStats.spawnedThisWave++;
           state.waveStats.totalToSpawn++;
-          this.bus.emit('creep:spawn', { id });
+          this.bus.emit("creep:spawn", { id });
         }
       }
     }
@@ -293,9 +313,7 @@ class BenchmarkScenario {
     this.refreshRoute();
 
     // Find highest-exposure keeper position
-    const routeSet = new Set(
-      this.state.flatRoute.map((p) => `${p.x},${p.y}`),
-    );
+    const routeSet = new Set(this.state.flatRoute.map((p) => `${p.x},${p.y}`));
     let bestPos = mazeState.keeperPositions[0];
     let bestExp = -1;
     for (const pos of mazeState.keeperPositions) {
@@ -330,7 +348,7 @@ class BenchmarkScenario {
     this.state.gold = 0;
     this.state.tick = 0;
     this.state.totalKills = 0;
-    this.state.phase = 'wave';
+    this.state.phase = "wave";
     this.state.waveStats = {
       spawnedThisWave: 0,
       killedThisWave: 0,
@@ -339,12 +357,12 @@ class BenchmarkScenario {
     };
 
     this.wavePhase.onEnter(waveNumber);
-    this.bus.emit('wave:start', { wave: waveNumber });
+    this.bus.emit("wave:start", { wave: waveNumber });
 
     // Run simulation
     const startTick = this.state.tick;
     for (let i = 0; i < MAX_TICKS; i++) {
-      if (this.state.phase !== 'wave') break;
+      if (this.state.phase !== "wave") break;
       this.state.tick += 1;
       this.wavePhase.step();
       this.combat.step();
@@ -353,9 +371,13 @@ class BenchmarkScenario {
     const endTick = this.state.tick;
 
     // Force wave:end if wave didn't complete (for metrics collection)
-    if (this.state.phase === 'wave') {
-      this.bus.emit('wave:end', { wave: waveNumber, lifeLost: 0, goldEarned: 0 });
-      this.state.phase = 'build';
+    if (this.state.phase === "wave") {
+      this.bus.emit("wave:end", {
+        wave: waveNumber,
+        lifeLost: 0,
+        goldEarned: 0,
+      });
+      this.state.phase = "build";
     }
 
     // Collect results
@@ -374,7 +396,7 @@ class BenchmarkScenario {
     }
 
     return {
-      category: 'combo' as const,
+      category: "combo" as const,
       comboKey: combo.key,
       comboName: combo.name,
       tier,
@@ -387,7 +409,8 @@ class BenchmarkScenario {
       leaked: waveStats.leakedThisWave,
       creepsSpawned: waveStats.spawnedThisWave,
       goldCost,
-      damagePerGold: goldCost > 0 ? Math.round((totalDamage / goldCost) * 100) / 100 : 0,
+      damagePerGold:
+        goldCost > 0 ? Math.round((totalDamage / goldCost) * 100) / 100 : 0,
       targeting: stats.targeting,
       isAura: isAuraGem(combo, tier),
       effects: summarizeEffects(combo, tier),
@@ -407,9 +430,7 @@ class BenchmarkScenario {
     }
     this.refreshRoute();
 
-    const routeSet = new Set(
-      this.state.flatRoute.map((p) => `${p.x},${p.y}`),
-    );
+    const routeSet = new Set(this.state.flatRoute.map((p) => `${p.x},${p.y}`));
     let bestPos = mazeState.keeperPositions[0];
     let bestExp = -1;
     for (const pos of mazeState.keeperPositions) {
@@ -440,7 +461,7 @@ class BenchmarkScenario {
     this.state.gold = 0;
     this.state.tick = 0;
     this.state.totalKills = 0;
-    this.state.phase = 'wave';
+    this.state.phase = "wave";
     this.state.waveStats = {
       spawnedThisWave: 0,
       killedThisWave: 0,
@@ -449,11 +470,11 @@ class BenchmarkScenario {
     };
 
     this.wavePhase.onEnter(waveNumber);
-    this.bus.emit('wave:start', { wave: waveNumber });
+    this.bus.emit("wave:start", { wave: waveNumber });
 
     const startTick = this.state.tick;
     for (let i = 0; i < MAX_TICKS; i++) {
-      if (this.state.phase !== 'wave') break;
+      if (this.state.phase !== "wave") break;
       this.state.tick += 1;
       this.wavePhase.step();
       this.combat.step();
@@ -461,9 +482,13 @@ class BenchmarkScenario {
     }
     const endTick = this.state.tick;
 
-    if (this.state.phase === 'wave') {
-      this.bus.emit('wave:end', { wave: waveNumber, lifeLost: 0, goldEarned: 0 });
-      this.state.phase = 'build';
+    if (this.state.phase === "wave") {
+      this.bus.emit("wave:end", {
+        wave: waveNumber,
+        lifeLost: 0,
+        goldEarned: 0,
+      });
+      this.state.phase = "build";
     }
 
     const towerSummaries = this.metrics.towerSummaries();
@@ -477,11 +502,11 @@ class BenchmarkScenario {
     const qualityName = QUALITY_NAMES[quality];
     const tierName = `${qualityName} ${stats.name}`;
     const hasAura = stats.effects.some(
-      (e) => e.kind === 'aura_atkspeed' || e.kind === 'aura_dmg',
+      (e) => e.kind === "aura_atkspeed" || e.kind === "aura_dmg",
     );
 
     return {
-      category: 'normal' as const,
+      category: "normal" as const,
       comboKey: gem,
       comboName: stats.name,
       tier: quality,
@@ -494,7 +519,8 @@ class BenchmarkScenario {
       leaked: waveStats.leakedThisWave,
       creepsSpawned: waveStats.spawnedThisWave,
       goldCost,
-      damagePerGold: goldCost > 0 ? Math.round((totalDamage / goldCost) * 100) / 100 : 0,
+      damagePerGold:
+        goldCost > 0 ? Math.round((totalDamage / goldCost) * 100) / 100 : 0,
       targeting: stats.targeting,
       isAura: hasAura,
       effects: stats.effects.map(effectSummary).filter(Boolean),
@@ -504,13 +530,17 @@ class BenchmarkScenario {
 
 // ── Main ──────────────────────────────────────────────────────────────────
 
-const NON_RUNE_COMBOS = COMBOS.filter((c) => c.type !== 'trap');
-const NORMAL_GEMS: GemType[] = (Object.keys(GEM_BASE) as GemType[]).filter((g) => g !== 'opal');
+const NON_RUNE_COMBOS = COMBOS.filter((c) => c.type !== "trap");
+const NORMAL_GEMS: GemType[] = (Object.keys(GEM_BASE) as GemType[]).filter(
+  (g) => g !== "opal",
+);
 const QUALITIES: Quality[] = [1, 2, 3, 4, 5];
 const blueprint = loadBlueprint();
 const results: BenchmarkResult[] = [];
 
-console.log(`Benchmarking ${NORMAL_GEMS.length} normal gems × ${QUALITIES.length} qualities × ${BENCHMARK_WAVES.length} waves...`);
+console.log(
+  `Benchmarking ${NORMAL_GEMS.length} normal gems x ${QUALITIES.length} qualities x ${BENCHMARK_WAVES.length} waves...`,
+);
 
 for (const gem of NORMAL_GEMS) {
   for (const quality of QUALITIES) {
@@ -525,7 +555,7 @@ for (const gem of NORMAL_GEMS) {
       results.push(result);
 
       const qLabel = QUALITY_NAMES[quality];
-      const waveStr = wave === DPS_WAVE ? 'DPS' : `wave ${wave}`;
+      const waveStr = wave === DPS_WAVE ? "DPS" : `wave ${wave}`;
       console.log(
         `  ${qLabel} ${GEM_BASE[gem].name} ${waveStr}: ${result.totalDamage} dmg, ${result.dps} dps, ${result.kills}/${result.creepsSpawned} kills`,
       );
@@ -533,7 +563,9 @@ for (const gem of NORMAL_GEMS) {
   }
 }
 
-console.log(`\nBenchmarking ${NON_RUNE_COMBOS.length} combos × ${BENCHMARK_WAVES.length} waves...`);
+console.log(
+  `\nBenchmarking ${NON_RUNE_COMBOS.length} combos x ${BENCHMARK_WAVES.length} waves...`,
+);
 
 for (const combo of NON_RUNE_COMBOS) {
   const tiers = [0, ...combo.upgrades.map((_, i) => i + 1)];
@@ -548,8 +580,8 @@ for (const combo of NON_RUNE_COMBOS) {
       const result = scenario.run(maze, combo, tier, wave);
       results.push(result);
 
-      const tierLabel = tier === 0 ? 'base' : `T${tier}`;
-      const waveStr = wave === DPS_WAVE ? 'DPS' : `wave ${wave}`;
+      const tierLabel = tier === 0 ? "base" : `T${tier}`;
+      const waveStr = wave === DPS_WAVE ? "DPS" : `wave ${wave}`;
       console.log(
         `  ${combo.name} [${tierLabel}] ${waveStr}: ${result.totalDamage} dmg, ${result.dps} dps, ${result.kills}/${result.creepsSpawned} kills`,
       );
@@ -560,55 +592,52 @@ for (const combo of NON_RUNE_COMBOS) {
 // ── HTML report generation ────────────────────────────────────────────────
 
 function waveLabel(w: number): string {
-  if (w === DPS_WAVE) return 'DPS Test (∞ HP, 10 Armor)';
+  if (w === DPS_WAVE) return "DPS Test (∞ HP, 10 Armor)";
   const def = WAVES[w - 1];
   if (!def) return `Wave ${w}`;
   const kinds = [...new Set(def.groups.map((g) => g.kind))];
-  return `Wave ${w} (${kinds.join('+')})`;
+  return `Wave ${w} (${kinds.join("+")})`;
 }
 
 function fmt(n: number): string {
-  return n.toLocaleString('en-US');
+  return n.toLocaleString("en-US");
 }
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function tierLabel(r: BenchmarkResult): string {
-  if (r.category === 'normal') return `Q${r.tier}`;
-  return r.tier === 0 ? 'Base' : `T${r.tier}`;
+  if (r.category === "normal") return `Q${r.tier}`;
+  return r.tier === 0 ? "Base" : `T${r.tier}`;
 }
 
-function costColumnHeader(category: 'normal' | 'combo'): string {
-  return category === 'normal' ? 'Gem Cost' : 'Upgrade Cost';
+function costColumnHeader(category: "normal" | "combo"): string {
+  return category === "normal" ? "Gem Cost" : "Upgrade Cost";
 }
 
-function buildTableHtml(
-  waveResults: BenchmarkResult[],
-  title: string,
-): string {
+function buildTableHtml(waveResults: BenchmarkResult[], title: string): string {
   const sorted = [...waveResults].sort((a, b) => b.dps - a.dps);
   const maxDmg = Math.max(...sorted.map((r) => r.totalDamage), 1);
   const maxDps = Math.max(...sorted.map((r) => r.dps), 1);
-  const category = sorted[0]?.category ?? 'combo';
+  const category = sorted[0]?.category ?? "combo";
 
   const rows = sorted
     .map((r, i) => {
       const dmgBar = Math.round((r.totalDamage / maxDmg) * 100);
       const dpsBar = Math.round((r.dps / maxDps) * 100);
-      const dpgStr = r.goldCost > 0 ? r.damagePerGold.toFixed(2) : '—';
+      const dpgStr = r.goldCost > 0 ? r.damagePerGold.toFixed(2) : "—";
       const notes: string[] = [];
-      if (r.isAura) notes.push('aura (solo — buff not active)');
-      if (r.targeting !== 'all') notes.push(`${r.targeting} only`);
+      if (r.isAura) notes.push("aura (solo — buff not active)");
+      if (r.targeting !== "all") notes.push(`${r.targeting} only`);
 
       return `<tr>
         <td>${i + 1}</td>
         <td class="gem-name">${escapeHtml(r.tierName)}</td>
         <td>${tierLabel(r)}</td>
         <td>${r.targeting}</td>
-        <td>${escapeHtml(r.effects.join(', '))}</td>
-        <td class="num" data-sort="${r.goldCost}">${r.goldCost > 0 ? fmt(r.goldCost) : '—'}</td>
+        <td>${escapeHtml(r.effects.join(", "))}</td>
+        <td class="num" data-sort="${r.goldCost}">${r.goldCost > 0 ? fmt(r.goldCost) : "—"}</td>
         <td class="num bar-cell" data-sort="${r.totalDamage}">
           <div class="bar" style="width:${dmgBar}%"></div>
           <span>${fmt(r.totalDamage)}</span>
@@ -620,10 +649,10 @@ function buildTableHtml(
         <td class="num" data-sort="${r.goldCost > 0 ? r.damagePerGold : -1}">${dpgStr}</td>
         <td class="num" data-sort="${r.kills}">${r.kills}/${r.creepsSpawned}</td>
         <td class="num" data-sort="${r.leaked}">${r.leaked}</td>
-        <td class="note">${escapeHtml(notes.join('; '))}</td>
+        <td class="note">${escapeHtml(notes.join("; "))}</td>
       </tr>`;
     })
-    .join('\n');
+    .join("\n");
 
   return `
     <h2>${escapeHtml(title)}</h2>
@@ -648,7 +677,11 @@ function buildTableHtml(
     </table>`;
 }
 
-function buildSummaryTable(allResults: BenchmarkResult[], title: string, category: 'normal' | 'combo'): string {
+function buildSummaryTable(
+  allResults: BenchmarkResult[],
+  title: string,
+  category: "normal" | "combo",
+): string {
   const filtered = allResults.filter((r) => r.category === category);
   const grouped = new Map<string, BenchmarkResult>();
   for (const r of filtered) {
@@ -663,25 +696,25 @@ function buildSummaryTable(allResults: BenchmarkResult[], title: string, categor
   const rows = entries
     .map((r, i) => {
       const dpsBar = Math.round((r.dps / maxDps) * 100);
-      const dpgStr = r.goldCost > 0 ? r.damagePerGold.toFixed(2) : '—';
+      const dpgStr = r.goldCost > 0 ? r.damagePerGold.toFixed(2) : "—";
       const notes: string[] = [];
-      if (r.isAura) notes.push('aura');
-      if (r.targeting !== 'all') notes.push(r.targeting);
+      if (r.isAura) notes.push("aura");
+      if (r.targeting !== "all") notes.push(r.targeting);
 
       return `<tr>
         <td>${i + 1}</td>
         <td class="gem-name">${escapeHtml(r.tierName)}</td>
         <td>${tierLabel(r)}</td>
-        <td>${r.goldCost > 0 ? fmt(r.goldCost) : '—'}</td>
+        <td>${r.goldCost > 0 ? fmt(r.goldCost) : "—"}</td>
         <td class="num bar-cell" data-sort="${r.dps}">
           <div class="bar dpg" style="width:${dpsBar}%"></div>
           <span>${fmt(r.dps)}</span>
         </td>
         <td class="num" data-sort="${r.goldCost > 0 ? r.damagePerGold : -1}">${dpgStr}</td>
-        <td class="note">${escapeHtml(notes.join(', '))}</td>
+        <td class="note">${escapeHtml(notes.join(", "))}</td>
       </tr>`;
     })
-    .join('\n');
+    .join("\n");
 
   return `
     <h2>${escapeHtml(title)}</h2>
@@ -773,19 +806,25 @@ const html = `<!DOCTYPE html>
 <h1>GemTD Gem Benchmark</h1>
 <div class="meta">
   Generated: ${new Date().toISOString()} | Seed: ${SEED} |
-  Waves: ${BENCHMARK_WAVES.join(', ')} |
+  Waves: ${BENCHMARK_WAVES.join(", ")} |
   Blueprint: blueprint_v5.json | Mode: Solo (no support towers)
 </div>
 
-${buildSummaryTable(results, 'Normal Gems — Ranked by DPS at Wave 20', 'normal')}
-${buildSummaryTable(results, 'Special Gems — Ranked by DPS at Wave 20', 'combo')}
+${buildSummaryTable(results, "Normal Gems — Ranked by DPS at Wave 20", "normal")}
+${buildSummaryTable(results, "Special Gems — Ranked by DPS at Wave 20", "combo")}
 
 ${BENCHMARK_WAVES.map((w) => {
-  const normalWave = results.filter((r) => r.waveNumber === w && r.category === 'normal');
-  const comboWave = results.filter((r) => r.waveNumber === w && r.category === 'combo');
-  return buildTableHtml(normalWave, `${waveLabel(w)} — Normal Gems`)
-    + buildTableHtml(comboWave, `${waveLabel(w)} — Special Gems`);
-}).join('\n')}
+  const normalWave = results.filter(
+    (r) => r.waveNumber === w && r.category === "normal",
+  );
+  const comboWave = results.filter(
+    (r) => r.waveNumber === w && r.category === "combo",
+  );
+  return (
+    buildTableHtml(normalWave, `${waveLabel(w)} — Normal Gems`) +
+    buildTableHtml(comboWave, `${waveLabel(w)} — Special Gems`)
+  );
+}).join("\n")}
 
 <script>
 document.querySelectorAll('th.sortable').forEach(th => {
@@ -818,6 +857,6 @@ document.querySelectorAll('th.sortable').forEach(th => {
 </body>
 </html>`;
 
-const outPath = resolve(__dirname, 'report.html');
+const outPath = resolve(__dirname, "report.html");
 writeFileSync(outPath, html);
 console.log(`\nReport written to ${outPath}`);

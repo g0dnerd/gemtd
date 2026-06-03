@@ -374,6 +374,7 @@ const GEM_COLORS = {
   ruby: '#f87171', sapphire: '#60a5fa', emerald: '#4ade80',
   topaz: '#fbbf24', amethyst: '#c084fc', opal: '#e2e8f0',
   diamond: '#f0f9ff', aquamarine: '#5eead4',
+  garnet: '#d06848', spinel: '#f080c0', peridot: '#d8f060',
 };
 
 const COMBO_TIER_NAMES = {
@@ -391,6 +392,11 @@ const COMBO_TIER_NAMES = {
   paraiba_tourmaline: ['Paraiba Tourmaline', 'Ancient Paraiba'],
   uranium: ['Uranium', 'Uranium 235'],
   stargem: ['Stargem'],
+  pyrite: ['Pyrite', 'Molten Pyrite', 'Pyroclast'],
+  golden_beryl: ['Golden Beryl', 'Radiant Beryl', 'Prismatic Beryl'],
+  tigers_eye: ["Tiger's Eye", "Dragon's Eye"],
+  thunderstone: ['Thunderstone', 'Storm Crown'],
+  ametrine: ['Raw Ametrine', 'Imperial Ametrine', 'Ametrine Sovereign'],
 };
 
 const AXIS_OPTS = {

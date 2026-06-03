@@ -29,10 +29,6 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
       showHud();
       if (version.isNewPlayer) mountTutorialModal(container, undefined, game.seed);
     }, () => {
-      game.newGame(1);
-      showHud();
-      if (version.isNewPlayer) mountTutorialModal(container, undefined, game.seed);
-    }, () => {
       game.newEndlessGame();
       showHud();
       if (version.isNewPlayer) mountTutorialModal(container, undefined, game.seed);
@@ -54,7 +50,7 @@ export function mountUI(root: HTMLElement, app: Application, game: Game): void {
       showHud();
     } else if (ev.ctrlKey && ev.key === 'a') {
       ev.preventDefault();
-      game.newGame(undefined, true);
+      game.newGame(true);
       showHud();
     }
   });

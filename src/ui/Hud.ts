@@ -15,7 +15,14 @@ import {
   htmlHeart,
   htmlSpecial,
 } from "../render/htmlSprites";
-import { COMBOS, ComboRecipe } from "../data/combos";
+import {
+  COMBOS,
+  ComboRecipe,
+  findAllCombosFor,
+  findDrawPartners,
+  findCompletableDrawRecipes,
+  completableDrawSlotSet,
+} from "../data/combos";
 import { mountInspector, refreshInspector } from "./Inspector";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
@@ -74,7 +81,7 @@ export function mountHud(
   onExit: () => void,
 ): () => void {
   const hud = document.createElement("div");
-  hud.className = "hud" + (game.state.hardcore ? " hardcore" : "");
+  hud.className = "hud";
 
   const left = document.createElement("div");
   left.className = "hud-col hud-col-left";
@@ -100,22 +107,6 @@ export function mountHud(
   wmVer.className = "wm-ver";
   wmVer.textContent = `v${__GAME_VERSION__}`;
   wm.append(wmName, wmVer);
-  if (game.state.hardcore) {
-    const skull = document.createElement("div");
-    skull.className = "wm-hardcore-badge";
-    skull.innerHTML =
-      '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-      '<rect x="4" y="1" width="6" height="6" rx="1" fill="#d8c8a0"/>' +
-      '<rect x="5" y="2" width="1" height="1" fill="#2e2840"/>' +
-      '<rect x="8" y="2" width="1" height="1" fill="#2e2840"/>' +
-      '<rect x="6" y="4" width="2" height="1" fill="#2e2840"/>' +
-      '<rect x="1" y="8" width="12" height="2" rx="1" fill="#d8c8a0"/>' +
-      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#d8c8a0" transform="rotate(-20 7 11)"/>' +
-      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#d8c8a0" transform="rotate(20 7 11)"/>' +
-      "</svg>" +
-      " ☠";
-    wm.appendChild(skull);
-  }
   headerBar.appendChild(wm);
 
   const livesMini = makeStatMini(htmlHeart(16), "LIVES", "50", "#ff8898");
@@ -126,12 +117,8 @@ export function mountHud(
   const chance = makeChancePanel(game);
   left.appendChild(chance.root);
 
-  if (game.state.hardcore) left.appendChild(makeHardcoreDivider());
-
   const draw = makeDrawPanel(game);
   left.appendChild(draw.root);
-
-  if (game.state.hardcore) left.appendChild(makeHardcoreDivider());
 
   const inspector = mountInspector(game);
   left.appendChild(inspector.root);
@@ -787,8 +774,6 @@ export function mountHud(
   threats.append(threatsHead, threatsList);
   right.appendChild(threats);
 
-  if (game.state.hardcore) right.appendChild(makeHardcoreDivider());
-
   const recipes = document.createElement("div");
   recipes.className = "px-panel recipes-panel";
   const recipesHead = document.createElement("div");
@@ -804,7 +789,14 @@ export function mountHud(
 
   function rebuildRecipes(): void {
     recipesList.innerHTML = "";
-    for (const c of COMBOS) {
+    const tierCost = (c: ComboRecipe): number =>
+      c.inputs.reduce((sum, i) => sum + i.quality, 0);
+    const sortRank = (c: ComboRecipe): number =>
+      c.key === "stargem" ? Infinity : tierCost(c);
+    const ordered = [...COMBOS].sort(
+      (a, b) => sortRank(a) - sortRank(b) || a.name.localeCompare(b.name),
+    );
+    for (const c of ordered) {
       const card = document.createElement("div");
       card.className = "px-panel-inset recipe-card v2c";
       card.dataset.recipeKey = c.key;
@@ -887,11 +879,11 @@ export function mountHud(
     pendingTapTile = null;
     game.cmdUndo();
   });
-  const speedBtn = makeBtn(`${game.state.speed}×`, () => {
+  const speedBtn = makeBtn(`${game.state.speed}x`, () => {
     const idx = SPEEDS.indexOf(game.state.speed as SpeedMultiplier);
     const nextSpeed = SPEEDS[(idx + 1) % SPEEDS.length];
     game.setSpeed(nextSpeed);
-    speedBtn.textContent = `${nextSpeed}×`;
+    speedBtn.textContent = `${nextSpeed}x`;
   });
 
   const pathBtn = document.createElement("button");
@@ -930,7 +922,9 @@ export function mountHud(
 
   const systemRow = document.createElement("div");
   systemRow.className = "action-bar-system";
-  const helpBtn = makeBtn("? HELP", () => mountTutorialModal(root, undefined, game.seed));
+  const helpBtn = makeBtn("? HELP", () =>
+    mountTutorialModal(root, undefined, game.seed),
+  );
   const exitBtn = makeBtn("EXIT", onExit);
   systemRow.append(helpBtn, muteBtn, exitBtn);
   actionBar.appendChild(systemRow);
@@ -1076,7 +1070,9 @@ export function mountHud(
     threatsList.innerHTML = "";
     const cur = Math.max(1, game.state.wave || 1);
     const start = cur;
-    const end = game.state.endless ? start + 2 : Math.min(WAVES.length, start + 2);
+    const end = game.state.endless
+      ? start + 2
+      : Math.min(WAVES.length, start + 2);
     for (let n = start; n <= end; n++) {
       const def = getWaveDef(n);
       if (!def) continue;
@@ -1174,7 +1170,7 @@ export function mountHud(
     hp.append(hpVal, hpUnit);
     const cnt = document.createElement("div");
     cnt.className = "threat-count";
-    cnt.textContent = `×${waveTotalCount(def)}`;
+    cnt.textContent = `x${waveTotalCount(def)}`;
     right.append(hp, cnt);
     row.appendChild(right);
 
@@ -1205,7 +1201,7 @@ export function mountHud(
     mobileWaveNum.textContent = game.state.endless
       ? `W${game.state.wave || 0}`
       : `W${game.state.wave || 0}/${WAVES.length}`;
-    speedBtn.textContent = `${game.state.speed}×`;
+    speedBtn.textContent = `${game.state.speed}x`;
     takeOverBtn.style.display = game.aiSpectator ? "" : "none";
   }
 
@@ -1296,14 +1292,14 @@ export function mountHud(
 
   // AI spectator annotation events
   unsubs.push(
-    game.bus.on('ai:keeper', ({ candidates, reason }) => {
+    game.bus.on("ai:keeper", ({ candidates, reason }) => {
       const lines = candidates
         .sort((a, b) => b.score - a.score)
         .slice(0, 5)
         .map((c) => `${c.label}: ${c.score}`)
-        .join(' | ');
-      game.bus.emit('toast', {
-        kind: 'info',
+        .join(" | ");
+      game.bus.emit("toast", {
+        kind: "info",
         text: `AI Keep: ${reason} (${lines})`,
         duration: 4000,
       });
@@ -1538,16 +1534,16 @@ export function mountHud(
       game.cmdUndo();
     } else if (ev.key === "1") {
       game.setSpeed(1);
-      speedBtn.textContent = "1×";
+      speedBtn.textContent = "1x";
     } else if (ev.key === "2") {
       game.setSpeed(2);
-      speedBtn.textContent = "2×";
+      speedBtn.textContent = "2x";
     } else if (ev.key === "4") {
       game.setSpeed(4);
-      speedBtn.textContent = "4×";
+      speedBtn.textContent = "4x";
     } else if (ev.key === "8") {
       game.setSpeed(8);
-      speedBtn.textContent = "8×";
+      speedBtn.textContent = "8x";
     } else if (ev.key === "Escape") {
       if (radialOpen) {
         closeRadial();
@@ -1687,22 +1683,6 @@ export function mountHud(
     return b;
   }
 
-  function makeHardcoreDivider(): HTMLDivElement {
-    const d = document.createElement("div");
-    d.className = "hardcore-divider";
-    d.innerHTML =
-      '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-      '<rect x="4" y="1" width="6" height="6" rx="1" fill="#8a7a58"/>' +
-      '<rect x="5" y="2" width="1" height="1" fill="#2e2840"/>' +
-      '<rect x="8" y="2" width="1" height="1" fill="#2e2840"/>' +
-      '<rect x="6" y="4" width="2" height="1" fill="#2e2840"/>' +
-      '<rect x="1" y="8" width="12" height="2" rx="1" fill="#8a7a58"/>' +
-      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#8a7a58" transform="rotate(-20 7 11)"/>' +
-      '<rect x="3" y="10" width="8" height="2" rx="1" fill="#8a7a58" transform="rotate(20 7 11)"/>' +
-      "</svg>";
-    return d;
-  }
-
   function makeChancePanel(g: Game): {
     root: HTMLDivElement;
     refresh: () => void;
@@ -1792,10 +1772,26 @@ export function mountHud(
     const title = document.createElement("div");
     title.className = "panel-h px-h";
     title.textContent = "GEMS · 0/5";
+    const tagCol = document.createElement("div");
+    tagCol.className = "draw-tag-col";
     const tag = document.createElement("div");
     tag.className = "draw-keeper-tag";
-    head.append(title, tag);
+    // Recipe line: while a draw is selected, name the special recipe(s) it can
+    // form — rendered directly under the gem tag, same type style. Names whose
+    // partner gem is already on the board glow in the gem's colour (matching
+    // the board "resonance" highlight).
+    const recipeLine = document.createElement("div");
+    recipeLine.className = "draw-keeper-tag draw-recipe-line";
+    tagCol.append(tag, recipeLine);
+    head.append(title, tagCol);
     r.appendChild(head);
+
+    // Combo banner: when the 5 gems in hand already contain a complete special
+    // recipe, name it here and glow the contributing cells (below). Persistent
+    // signal — shown regardless of which draw is selected.
+    const comboBanner = document.createElement("div");
+    comboBanner.className = "draw-combo-banner";
+    r.appendChild(comboBanner);
 
     const grid = document.createElement("div");
     grid.className = "draw-grid";
@@ -1803,12 +1799,108 @@ export function mountHud(
 
     let cellRefs: HTMLButtonElement[] = [];
     let lastFingerprint = "";
+    let lastHintKey = "";
+
+    function renderRecipeHint(): void {
+      const ad = activeDraw(g.state);
+      if (!ad || g.state.phase !== "build") {
+        if (lastHintKey !== "") {
+          lastHintKey = "";
+          recipeLine.innerHTML = "";
+          recipeLine.classList.remove("is-shown");
+        }
+        return;
+      }
+      const all = findAllCombosFor(ad.gem, ad.quality);
+      const counts = new Map<string, number>();
+      for (const l of findDrawPartners(ad.gem, ad.quality, g.state.towers)) {
+        counts.set(l.combo.key, l.partnerTowerIds.length);
+      }
+      const key =
+        `${ad.gem}:${ad.quality}|` +
+        all.map((c) => `${c.key}:${counts.get(c.key) ?? 0}`).join(",");
+      if (key === lastHintKey) return;
+      lastHintKey = key;
+
+      recipeLine.innerHTML = "";
+      recipeLine.classList.add("is-shown");
+      recipeLine.style.setProperty("--gem-glow", GEM_PALETTE[ad.gem].css.mid);
+
+      if (all.length === 0) {
+        recipeLine.classList.add("is-empty");
+        recipeLine.textContent = "RECIPE · —";
+        return;
+      }
+      recipeLine.classList.remove("is-empty");
+
+      const lead = document.createElement("span");
+      lead.className = "recipe-lead";
+      lead.textContent = all.length === 1 ? "RECIPE · " : "RECIPES · ";
+      recipeLine.appendChild(lead);
+
+      all.forEach((c, i) => {
+        if (i > 0) {
+          const sep = document.createElement("span");
+          sep.className = "recipe-sep";
+          sep.textContent = " · ";
+          recipeLine.appendChild(sep);
+        }
+        const count = counts.get(c.key) ?? 0;
+        const nm = document.createElement("span");
+        nm.className = "recipe-name" + (count > 0 ? " has-partner" : "");
+        nm.textContent = c.name.toUpperCase();
+        if (count > 0) {
+          nm.title = `${count} matching gem${count > 1 ? "s" : ""} on the board`;
+        }
+        recipeLine.appendChild(nm);
+      });
+    }
+
+    function renderComboBanner(
+      matches: ReturnType<typeof findCompletableDrawRecipes>,
+    ): void {
+      if (matches.length === 0 || g.state.phase !== "build") {
+        comboBanner.classList.remove("is-shown");
+        comboBanner.innerHTML = "";
+        return;
+      }
+      comboBanner.innerHTML = "";
+      comboBanner.classList.add("is-shown");
+
+      const mark = document.createElement("span");
+      mark.className = "combo-mark";
+      mark.textContent = "✦";
+      const lead = document.createElement("span");
+      lead.className = "combo-lead";
+      lead.textContent = " CRAFTABLE · ";
+      comboBanner.append(mark, lead);
+
+      matches.forEach((m, i) => {
+        if (i > 0) {
+          const sep = document.createElement("span");
+          sep.className = "combo-sep";
+          sep.textContent = " · ";
+          comboBanner.appendChild(sep);
+        }
+        const nm = document.createElement("span");
+        nm.className = "combo-name";
+        nm.textContent = m.combo.name.toUpperCase();
+        comboBanner.appendChild(nm);
+      });
+    }
 
     function refresh(): void {
       const draws = g.state.draws;
       const placed = draws.filter((d) => d.placedTowerId !== null).length;
       const total = draws.length || 5;
       title.textContent = `GEMS · ${placed}/${total}`;
+
+      // Recipes craftable entirely from the current hand, and the set of draw
+      // slots that feed them — drives the banner + per-cell glow. Only meaningful
+      // while building (the hand is locked in once a wave starts).
+      const comboMatches =
+        g.state.phase === "build" ? findCompletableDrawRecipes(draws) : [];
+      const comboSlots = completableDrawSlotSet(comboMatches);
 
       const fp =
         draws.length === 0
@@ -1841,6 +1933,8 @@ export function mountHud(
             tag.textContent = g.state.phase === "wave" ? "IN WAVE" : "";
             tag.style.color = "var(--px-ink-dim)";
           }
+          renderRecipeHint();
+          renderComboBanner(comboMatches);
           return;
         }
 
@@ -1859,6 +1953,7 @@ export function mountHud(
             cell.classList.add("is-active");
           }
           cell.style.setProperty("--gem-glow", GEM_PALETTE[d.gem].css.mid);
+          if (comboSlots.has(d.slotId)) cell.classList.add("is-combo");
           const host = document.createElement("div");
           host.className = "draw-sprite-host";
           host.appendChild(htmlGemTier(d.gem, d.quality, 22, d.quality > 2));
@@ -1907,6 +2002,7 @@ export function mountHud(
             d.placedTowerId !== null &&
             d.placedTowerId === g.state.designatedKeepTowerId;
           cell.classList.toggle("is-active", isActive && !isKeep);
+          cell.classList.toggle("is-combo", comboSlots.has(d.slotId));
         }
       }
 
@@ -1931,6 +2027,9 @@ export function mountHud(
       } else {
         tag.textContent = "";
       }
+
+      renderRecipeHint();
+      renderComboBanner(comboMatches);
     }
 
     return { root: r, refresh };

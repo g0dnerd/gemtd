@@ -3,14 +3,14 @@
  * Replaces the old KeeperPhase tests.
  */
 
-import { describe, expect, it } from 'vitest';
-import { BuildPhase } from '../src/controllers/BuildPhase';
-import { emptyState, State, TowerState, DrawSlot } from '../src/game/State';
-import { BASE, Cell } from '../src/data/map';
-import { findRoute, flattenRoute } from '../src/systems/Pathfinding';
-import { EventBus } from '../src/events/EventBus';
-import { RNG } from '../src/game/rng';
-import type { GemType } from '../src/render/theme';
+import { describe, expect, it } from "vitest";
+import { BuildPhase } from "../src/controllers/BuildPhase";
+import { emptyState, State, TowerState, DrawSlot } from "../src/game/State";
+import { BASE, Cell } from "../src/data/map";
+import { findRoute, flattenRoute } from "../src/systems/Pathfinding";
+import { EventBus } from "../src/events/EventBus";
+import { RNG } from "../src/game/rng";
+import type { GemType } from "../src/render/theme";
 
 interface FakeGame {
   state: State;
@@ -27,7 +27,7 @@ function setup() {
   state.gold = 1000;
   state.lives = 50;
   state.wave = 5;
-  state.phase = 'build';
+  state.phase = "build";
   const bus = new EventBus();
   const rng = new RNG(1);
   let nextId = 1;
@@ -43,18 +43,38 @@ function setup() {
       state.flatRoute = flattenRoute(r);
       return true;
     },
-    selectTower: (id) => { state.selectedTowerId = id; },
+    selectTower: (id) => {
+      state.selectedTowerId = id;
+    },
   };
   game.refreshRoute();
-  const phase = new BuildPhase(game as unknown as import('../src/game/Game').Game);
+  const phase = new BuildPhase(
+    game as unknown as import("../src/game/Game").Game,
+  );
   return { game, phase };
 }
 
-function placeTower(game: FakeGame, x: number, y: number, gem: GemType): TowerState {
+function placeTower(
+  game: FakeGame,
+  x: number,
+  y: number,
+  gem: GemType,
+): TowerState {
   const id = game.nextId();
-  const t: TowerState = { id, x, y, gem, quality: 1, lastFireTick: 0, kills: 0, totalDamage: 0, waveDamage: 0, placedWave: 1 };
+  const t: TowerState = {
+    id,
+    x,
+    y,
+    gem,
+    quality: 1,
+    lastFireTick: 0,
+    kills: 0,
+    totalDamage: 0,
+    waveDamage: 0,
+    placedWave: 1,
+  };
   game.state.towers.push(t);
-  // Tower occupies a 2×2 fine-cell footprint anchored at (x, y).
+  // Tower occupies a 2x2 fine-cell footprint anchored at (x, y).
   for (let dy = 0; dy < 2; dy++) {
     for (let dx = 0; dx < 2; dx++) {
       game.state.grid[y + dy][x + dx] = Cell.Tower;
@@ -64,19 +84,24 @@ function placeTower(game: FakeGame, x: number, y: number, gem: GemType): TowerSt
 }
 
 function asDrawSlot(slotId: number, tower: TowerState): DrawSlot {
-  return { slotId, gem: tower.gem, quality: tower.quality, placedTowerId: tower.id };
+  return {
+    slotId,
+    gem: tower.gem,
+    quality: tower.quality,
+    placedTowerId: tower.id,
+  };
 }
 
-describe('BuildPhase.applyKeepAndRock', () => {
-  it('rocks every current-round tower except the designated keep', () => {
+describe("BuildPhase.applyKeepAndRock", () => {
+  it("rocks every current-round tower except the designated keep", () => {
     const h = setup();
-    // Anchors must not overlap (each tower is a 2×2 fine-cell footprint).
+    // Anchors must not overlap (each tower is a 2x2 fine-cell footprint).
     const ts = [
-      placeTower(h.game, 4, 4, 'ruby'),
-      placeTower(h.game, 4, 6, 'sapphire'),
-      placeTower(h.game, 4, 8, 'emerald'),
-      placeTower(h.game, 6, 4, 'topaz'),
-      placeTower(h.game, 6, 6, 'amethyst'),
+      placeTower(h.game, 4, 4, "ruby"),
+      placeTower(h.game, 4, 6, "sapphire"),
+      placeTower(h.game, 4, 8, "emerald"),
+      placeTower(h.game, 6, 4, "topaz"),
+      placeTower(h.game, 6, 6, "amethyst"),
     ];
     h.game.state.draws = ts.map((t, i) => asDrawSlot(i, t));
     h.game.state.designatedKeepTowerId = ts[2].id; // keep emerald
@@ -88,7 +113,7 @@ describe('BuildPhase.applyKeepAndRock', () => {
     expect(h.game.state.towers[0].id).toBe(ts[2].id);
     expect(h.game.state.grid[ts[2].y][ts[2].x]).toBe(Cell.Tower);
 
-    // Other 4 towers each leave a 2×2 rock footprint.
+    // Other 4 towers each leave a 2x2 rock footprint.
     expect(h.game.state.rocks.length).toBe(4 * 4);
     for (const t of ts) {
       if (t.id === ts[2].id) continue;
@@ -96,29 +121,33 @@ describe('BuildPhase.applyKeepAndRock', () => {
         for (let dx = 0; dx < 2; dx++) {
           expect(h.game.state.grid[t.y + dy][t.x + dx]).toBe(Cell.Rock);
           expect(
-            h.game.state.rocks.some((r) => r.x === t.x + dx && r.y === t.y + dy),
+            h.game.state.rocks.some(
+              (r) => r.x === t.x + dx && r.y === t.y + dy,
+            ),
           ).toBe(true);
         }
       }
     }
   });
 
-  it('leaves prior-round towers untouched', () => {
+  it("leaves prior-round towers untouched", () => {
     const h = setup();
-    const kept = placeTower(h.game, 2, 5, 'diamond'); // prior-round tower
+    const kept = placeTower(h.game, 2, 5, "diamond"); // prior-round tower
     const round = [
-      placeTower(h.game, 4, 4, 'ruby'),
-      placeTower(h.game, 4, 6, 'sapphire'),
+      placeTower(h.game, 4, 4, "ruby"),
+      placeTower(h.game, 4, 6, "sapphire"),
     ];
     h.game.state.draws = round.map((t, i) => asDrawSlot(i, t));
     h.game.state.designatedKeepTowerId = round[0].id;
 
     h.phase.applyKeepAndRock();
 
-    // Kept and round[0] survive; round[1] becomes a 2×2 rock footprint.
+    // Kept and round[0] survive; round[1] becomes a 2x2 rock footprint.
     expect(h.game.state.towers.find((t) => t.id === kept.id)).toBeDefined();
     expect(h.game.state.towers.find((t) => t.id === round[0].id)).toBeDefined();
-    expect(h.game.state.towers.find((t) => t.id === round[1].id)).toBeUndefined();
+    expect(
+      h.game.state.towers.find((t) => t.id === round[1].id),
+    ).toBeUndefined();
     expect(h.game.state.rocks.length).toBe(4);
   });
 });

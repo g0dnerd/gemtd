@@ -50,6 +50,37 @@ interface WaveGemDamage {
   kills: number;
 }
 
+interface WaveGemAssist {
+  wave: number;
+  gem: string;
+  comboKey: string;
+  upgradeTier: number;
+  dmgAuraAssist: number;
+  vulnAssist: number;
+  armorShredAssist: number;
+  atkspeedAssist: number;
+  bonusGold: number;
+}
+
+/** Per-tower cumulative assist accumulators, snapshotted at wave start for delta math. */
+interface AssistSnapshot {
+  dmgAuraAssist: number;
+  vulnAssist: number;
+  armorShredAssist: number;
+  atkspeedAssist: number;
+  bonusGold: number;
+}
+
+function towerAssist(t: { dmgAuraAssist?: number; vulnAssist?: number; armorShredAssist?: number; atkSpeedAssist?: number; bonusGoldGenerated?: number }): AssistSnapshot {
+  return {
+    dmgAuraAssist: t.dmgAuraAssist ?? 0,
+    vulnAssist: t.vulnAssist ?? 0,
+    armorShredAssist: t.armorShredAssist ?? 0,
+    atkspeedAssist: t.atkSpeedAssist ?? 0,
+    bonusGold: t.bonusGoldGenerated ?? 0,
+  };
+}
+
 interface TowerSnapshot {
   gem: string;
   quality: number;
@@ -74,7 +105,7 @@ interface TelemetryEvent {
   value1: number;
 }
 
-export type TelemetryMode = "normal" | "hardcore" | "blueprint" | "sim";
+export type TelemetryMode = "normal" | "blueprint" | "sim";
 
 export interface TelemetryOptions {
   version?: string;
@@ -99,6 +130,7 @@ export class TelemetryCollector {
   private readonly events: TelemetryEvent[] = [];
   private readonly waveCreepStats: WaveCreepStat[] = [];
   private readonly waveGemDamage: WaveGemDamage[] = [];
+  private readonly waveGemAssign: WaveGemAssist[] = [];
 
   private waveStartTick = 0;
   private towerDamageAtWaveStart = 0;
@@ -115,7 +147,7 @@ export class TelemetryCollector {
     Array<{ tier: number; damage: number; wave: number }>
   >();
   private readonly kindBuckets = new Map<CreepKind, CreepKindBucket>();
-  private readonly towerWaveStart = new Map<number, { damage: number; kills: number }>();
+  private readonly towerWaveStart = new Map<number, { damage: number; kills: number; assist: AssistSnapshot }>();
 
   constructor(game: Game, opts?: TelemetryOptions) {
     this.runId = crypto.randomUUID();
@@ -125,9 +157,7 @@ export class TelemetryCollector {
     // `??` short-circuits, so the bare `__GAME_VERSION__` (a Vite define that
     // is undefined under tsx) is never evaluated when a version is injected.
     this.version = opts?.version ?? __GAME_VERSION__;
-    this.mode =
-      opts?.mode ??
-      (game.state.hardcore ? "hardcore" : game.blueprintMode ? "blueprint" : "normal");
+    this.mode = opts?.mode ?? (game.blueprintMode ? "blueprint" : "normal");
     this.ai = opts?.ai;
     this.seed = opts?.seed;
     this.transport = opts?.transport;
@@ -153,7 +183,7 @@ export class TelemetryCollector {
         this.kindBuckets.clear();
         this.towerWaveStart.clear();
         for (const t of s.towers) {
-          this.towerWaveStart.set(t.id, { damage: t.totalDamage, kills: t.kills });
+          this.towerWaveStart.set(t.id, { damage: t.totalDamage, kills: t.kills, assist: towerAssist(t) });
         }
 
         const kept = s.keptTowerIdThisRound;
@@ -289,6 +319,40 @@ export class TelemetryCollector {
         }
         for (const entry of gemDmg.values()) {
           this.waveGemDamage.push(entry);
+        }
+
+        // Assist deltas, grouped at the same grain as wave_gem_damage.
+        const gemAssist = new Map<string, WaveGemAssist>();
+        for (const t of s.towers) {
+          const snap = this.towerWaveStart.get(t.id);
+          const cur = towerAssist(t);
+          const base = snap?.assist;
+          const dDmgAura = cur.dmgAuraAssist - (base?.dmgAuraAssist ?? cur.dmgAuraAssist);
+          const dVuln = cur.vulnAssist - (base?.vulnAssist ?? cur.vulnAssist);
+          const dArmor = cur.armorShredAssist - (base?.armorShredAssist ?? cur.armorShredAssist);
+          const dAtk = cur.atkspeedAssist - (base?.atkspeedAssist ?? cur.atkspeedAssist);
+          const dGold = cur.bonusGold - (base?.bonusGold ?? cur.bonusGold);
+          if (dDmgAura <= 0 && dVuln <= 0 && dArmor <= 0 && dAtk <= 0 && dGold <= 0) continue;
+          const comboKey = t.comboKey || "";
+          const tier = t.upgradeTier ?? 0;
+          const key = `${t.gem}:${comboKey}:${tier}`;
+          const existing = gemAssist.get(key);
+          if (existing) {
+            existing.dmgAuraAssist += dDmgAura;
+            existing.vulnAssist += dVuln;
+            existing.armorShredAssist += dArmor;
+            existing.atkspeedAssist += dAtk;
+            existing.bonusGold += dGold;
+          } else {
+            gemAssist.set(key, {
+              wave: s.wave, gem: t.gem, comboKey, upgradeTier: tier,
+              dmgAuraAssist: dDmgAura, vulnAssist: dVuln, armorShredAssist: dArmor,
+              atkspeedAssist: dAtk, bonusGold: dGold,
+            });
+          }
+        }
+        for (const entry of gemAssist.values()) {
+          this.waveGemAssign.push(entry);
         }
 
         this.totalLeaks += ws.leakedThisWave;
@@ -434,6 +498,7 @@ export class TelemetryCollector {
       events: this.events,
       waveCreepStats: this.waveCreepStats,
       waveGemDamage: this.waveGemDamage,
+      waveGemAssign: this.waveGemAssign,
     });
   }
 

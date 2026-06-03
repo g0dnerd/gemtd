@@ -4,10 +4,10 @@
  * is a cheap follow-on if we ever change our mind.
  */
 
-import { Cell } from '../data/map';
-import type { CreepKind } from '../data/creeps';
-import type { WaveDef } from '../data/waves';
-import type { GemType, Quality } from '../render/theme';
+import { Cell } from "../data/map";
+import type { CreepKind } from "../data/creeps";
+import type { WaveDef } from "../data/waves";
+import type { GemType, Quality } from "../render/theme";
 
 export interface CreepPayload {
   kind: CreepKind;
@@ -24,7 +24,7 @@ export interface CreepPayload {
   payload?: CreepPayload[];
 }
 
-export type Phase = 'title' | 'build' | 'wave' | 'gameover' | 'victory';
+export type Phase = "title" | "build" | "wave" | "gameover" | "victory";
 
 /** Number of gems drawn at the start of each build phase (canonical: 5). */
 export const DRAW_COUNT = 5;
@@ -69,12 +69,33 @@ export interface TowerState {
   silencedUntil?: number;
   /** Eruption pressure stacks — persists between waves. */
   pressureStacks?: number;
+  /** Momentum stacks for Pyrite-style towers (resets when idle). */
+  momentumStacks?: number;
+  /** Ametrine adaptive tower: current firing mode. */
+  ametrineMode?: "focus" | "scatter";
+  /** Tick when ametrineMode last flipped — gates mode-switch cooldown. */
+  lastModeSwitchTick?: number;
+  /**
+   * Support-assist accumulators (telemetry-only; never affect damage dealt).
+   * Cumulative over the run; the collector snapshots per-wave deltas.
+   * - dmgAuraAssist  — extra damage this tower's `aura_dmg` enabled on buffed towers.
+   * - vulnAssist     — extra damage this tower's `vulnerability_aura`/`frostbite` enabled.
+   * - armorShredAssist — extra damage this tower's armor reduction (any of the 4 mechanisms) enabled.
+   * - atkSpeedAssist — extra damage this tower's `aura_atkspeed` enabled (more shots).
+   * - bonusGoldGenerated — gold awarded by this tower's `bonus_gold` rolls.
+   * Optional so existing tower-construction sites need no change; read as `?? 0`.
+   */
+  dmgAuraAssist?: number;
+  vulnAssist?: number;
+  armorShredAssist?: number;
+  atkSpeedAssist?: number;
+  bonusGoldGenerated?: number;
 }
 
 export interface RockState {
   x: number;
   y: number;
-  /** Footprint anchor id — all 4 cells of one 2×2 rock share the same id. */
+  /** Footprint anchor id — all 4 cells of one 2x2 rock share the same id. */
   id: number;
   /** Wave whose build phase this rock was placed in. Used to gate removal. */
   placedAtBuildOfWave: number;
@@ -104,12 +125,23 @@ export interface CreepState {
   poisonResist: number;
   /** Active status effects. */
   slow?: { factor: number; expiresAt: number };
-  poison?: { dps: number; expiresAt: number; nextTick: number; ownerId: number };
+  poison?: {
+    dps: number;
+    expiresAt: number;
+    nextTick: number;
+    ownerId: number;
+  };
   stun?: { expiresAt: number };
   /** Proximity-aura armor reduction applied this tick (reset each step). */
   armorReduction: number;
+  /**
+   * Per-source prox armor-reduce contributions this tick (towerId → armor pts).
+   * `armorReduction` is the applied (max) value; this map is for assist attribution
+   * only. Reset each tick alongside `armorReduction`. JSON-clean (plain Record).
+   */
+  armorReductionSources?: Record<number, number>;
   /** On-hit armor debuff (duration-tracked, separate from proximity armorReduction). */
-  armorDebuff?: { value: number; expiresAt: number };
+  armorDebuff?: { value: number; expiresAt: number; ownerId: number };
   /** Proximity slow applied this tick (reset each step, like armorReduction). */
   proxSlowFactor?: number;
   /** Boss / armored / air flags. */
@@ -123,18 +155,40 @@ export interface CreepState {
   abilityCooldown?: number;
   /** Vulnerability multiplier from auras/frostbite — reset each tick. */
   vulnerability: number;
+  /**
+   * Per-source vulnerability contributions this tick (towerId → vuln pct), summing to
+   * `vulnerability`. Assist attribution only; reset each tick. JSON-clean (plain Record).
+   */
+  vulnSources?: Record<number, number>;
   /** Sim tick when this creep was spawned (for ticks-to-kill telemetry). */
   spawnTick?: number;
   /** Accumulated armor decay from Uranium radiation (persistent). */
   radiationArmor?: number;
+  /**
+   * Per-source accumulated radiation armor (towerId → armor pts). Persists like
+   * `radiationArmor` (NOT reset per tick); their sum tracks `radiationArmor` (modulo
+   * the per-source cap). Assist attribution only. JSON-clean (plain Record).
+   */
+  radiationArmorSources?: Record<number, number>;
   /** Lingering burn after leaving a burn aura. */
   lingerBurn?: { dps: number; ticksLeft: number; ownerId: number };
   /** Stacking armor shred from Paraiba hits. */
-  armorStacks?: { count: number; armorPer: number; decayTicks: number; lastDecayTick: number };
+  armorStacks?: {
+    count: number;
+    armorPer: number;
+    decayTicks: number;
+    lastDecayTick: number;
+    ownerId: number;
+  };
   /** Poison spread params — stored when stun_poison applies. */
   poisonSpread?: { count: number; radius: number };
   /** Afterburn DoT from eruption (short/intense, distinct from poison). */
-  afterburn?: { dps: number; expiresAt: number; nextTick: number; ownerId: number };
+  afterburn?: {
+    dps: number;
+    expiresAt: number;
+    nextTick: number;
+    ownerId: number;
+  };
   /** Chrysalid awakened state — high resistances + speed boost. */
   chrysalidAwakened?: boolean;
   /** Chrysalid dodge counter — ignores every Nth hit when awakened. */
@@ -164,6 +218,14 @@ export interface ProjectileState {
   wasCrit?: boolean;
   /** Set when this is the Nth demote shot — grounds air targets on impact. */
   isDemoteShot?: boolean;
+  /** Splash at landing position, no direct hit tracking (mortar). */
+  isGroundTarget?: boolean;
+  /** Parabolic arc height in pixels for rendering. */
+  arcHeight?: number;
+  /** Number of additional targets this projectile can pierce through. */
+  pierceCount?: number;
+  /** Whether this projectile should trigger kill_explode on kill. */
+  killExplode?: { radius: number; falloff: number };
 }
 
 export interface DrawOffer {
@@ -226,8 +288,6 @@ export interface State {
   selectedCreepId: number | null;
   /** Lifetime count of rocks the player has demolished. */
   rocksRemoved: number;
-  /** Started with 1 life. */
-  hardcore: boolean;
   /** Whether the one-per-round downgrade has been used this round. */
   downgradeUsedThisRound: boolean;
   /** Total simulation ticks since game start. */
@@ -262,7 +322,9 @@ export function activeDraw(state: State): DrawSlot | null {
 
 /** True if every draw slot has been placed (gates wave start). */
 export function allDrawsPlaced(state: State): boolean {
-  return state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null);
+  return (
+    state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null)
+  );
 }
 
 /** Lowest-slotId unplaced draw, or null. Used to auto-advance after a place. */
@@ -274,7 +336,7 @@ export function nextUnplacedSlot(state: State): number | null {
 
 export function emptyState(grid: Cell[][], totalWaves: number): State {
   return {
-    phase: 'title',
+    phase: "title",
     wave: 0,
     lives: 0,
     gold: 0,
@@ -298,11 +360,15 @@ export function emptyState(grid: Cell[][], totalWaves: number): State {
     selectedRockId: null,
     selectedCreepId: null,
     rocksRemoved: 0,
-    hardcore: false,
     downgradeUsedThisRound: false,
     tick: 0,
     totalWaves,
-    waveStats: { spawnedThisWave: 0, killedThisWave: 0, leakedThisWave: 0, totalToSpawn: 0 },
+    waveStats: {
+      spawnedThisWave: 0,
+      killedThisWave: 0,
+      leakedThisWave: 0,
+      totalToSpawn: 0,
+    },
     seenCreepKinds: [],
     newKindsByWave: {},
     endless: false,
@@ -316,7 +382,8 @@ export function creepDeathMetrics(
 ): { pathProgress: number; ticksAlive: number } {
   const route = c.flags?.air ? state.airRoute : state.flatRoute;
   return {
-    pathProgress: route.length > 1 ? Math.min(1, c.pathPos / (route.length - 1)) : 0,
+    pathProgress:
+      route.length > 1 ? Math.min(1, c.pathPos / (route.length - 1)) : 0,
     ticksAlive: state.tick - (c.spawnTick ?? state.tick),
   };
 }

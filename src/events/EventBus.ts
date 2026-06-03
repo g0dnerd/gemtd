@@ -44,6 +44,9 @@ export interface GameEvents {
   'creep:demoted': { id: number };
   'creep:gestationEnrage': { id: number };
   'vfx:eruption': { x: number; y: number; radiusPx: number };
+  'vfx:groundImpact': { x: number; y: number; radiusPx: number };
+  'vfx:pierce': { x: number; y: number; dirX: number; dirY: number };
+  'vfx:killExplode': { x: number; y: number; radiusPx: number };
   'vfx:mycoidPulse': { x: number; y: number; radiusPx: number };
   'vfx:gestationTransition': { x: number; y: number };
   'vfx:chainPulse': { points: Array<{ x: number; y: number; id: number }> };

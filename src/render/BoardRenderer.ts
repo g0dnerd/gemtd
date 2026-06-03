@@ -145,32 +145,132 @@ export function renderGround(layer: Container, grid: Cell[][]): void {
   drawVictoryBeacon(layer, END.x * FINE_TILE, END.y * FINE_TILE);
 }
 
-/** Grass tile — verdant meadow with 3 alternating bases + scattered decorations. */
-function drawGrassCell(g: Graphics, cx: number, cy: number, x: number, y: number): void {
-  const bases = [CELL.grass, CELL.grassAlt1, CELL.grassAlt2];
-  g.rect(cx, cy, FINE_TILE, FINE_TILE).fill(bases[((x * 13 + y * 37) % 3 + 3) % 3]);
+/* =====================================================================
+ * Soft-horror "Caul" ground. A continuous warped value-noise field that
+ * breaks the 18px tile grid, plus a worn "ideal path" road baked into the
+ * tissue under the rocks. Replaces the old verdant grass. The ground layer
+ * is static (baked once in renderGround, not per frame), so the per-3px-block
+ * sampling here is a one-time cost; 3px blocks keep the pixel-art crunch
+ * without any cell-aligned tiling.
+ * ===================================================================== */
+const GROUND_BLOCK = 3;
 
-  const n = ((x * 31 + y * 53 + (x ^ y) * 7) % 41 + 41) % 41;
-  if (n < 5) {
-    const ox = [3, 8, 5, 10, 2][n], oy = [4, 3, 8, 2, 10][n];
-    g.rect(cx + ox, cy + oy, 2, 3).fill(CELL.grassBlade);
-    g.rect(cx + ox + 3, cy + oy + 1, 2, 2).fill(CELL.grassBlade);
+/** Integer hash -> [0,1). Math.imul + unsigned shifts span the full range. */
+function hashNoise(x: number, y: number): number {
+  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  h ^= h >>> 16;
+  return (h >>> 0) / 4294967296;
+}
+function valueNoise(x: number, y: number): number {
+  const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi;
+  const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hashNoise(xi, yi), b = hashNoise(xi + 1, yi);
+  const c = hashNoise(xi, yi + 1), d = hashNoise(xi + 1, yi + 1);
+  return a * (1 - u) * (1 - v) + b * u * (1 - v) + c * (1 - u) * v + d * u * v;
+}
+function fbm(x: number, y: number): number {
+  let s = 0, amp = 0.5, f = 1;
+  for (let i = 0; i < 4; i++) {
+    s += amp * valueNoise(x * f, y * f);
+    f *= 2;
+    amp *= 0.5;
   }
-  if (n === 7 || n === 24) {
-    const fx = n === 7 ? 10 : 5, fy = n === 7 ? 10 : 4;
-    g.rect(cx + fx, cy + fy, 2, 2).fill(CELL.grassFlowerYellow);
+  return s; // ~0..1
+}
+
+const GROUND_STOPS = [CELL.ground0, CELL.ground1, CELL.ground2, CELL.ground3];
+/** Caul ground colour for an absolute board pixel. */
+function groundColor(px: number, py: number): number {
+  const nx = px / 27, ny = py / 27;
+  const w = (fbm(nx + 11.3, ny + 4.1) - 0.5) * 2.4;
+  const n = fbm(nx + w, ny - w * 0.7);
+  const vn = fbm(nx * 1.6 + 30, ny * 1.6 + 7);
+  if (Math.abs(vn - 0.5) < 0.011) return CELL.groundVein; // sparse blood capillary
+  const idx = n < 0.46 ? 0 : n < 0.58 ? 1 : n < 0.70 ? 2 : 3;
+  if (idx === 3 && hashNoise((px / 3) | 0, (py / 3) | 0) > 0.945) return CELL.groundSheen;
+  return GROUND_STOPS[idx];
+}
+
+/* --- Worn "ideal path" road: the straight line air units fly through the
+ * waypoints, worn into the tissue (not a UI overlay). --- */
+const ROAD_HALF = FINE_TILE * 0.72; // trodden-core half-width
+const ROAD_FEATHER = FINE_TILE * 1.55; // total fade reach
+const ROAD_PTS: Array<[number, number]> = (() => {
+  // Endpoints sit at waypoint height (row centre), matching the interior
+  // waypoints, so the road runs flat along its entry/exit rows.
+  const pts: Array<[number, number]> = [[START.x * FINE_TILE + 20, (START.y + 0.5) * FINE_TILE]];
+  for (let i = 1; i < WAYPOINTS.length - 1; i++) {
+    pts.push([(WAYPOINTS[i].x + 0.5) * FINE_TILE, (WAYPOINTS[i].y + 0.5) * FINE_TILE]);
   }
-  if (n === 14) {
-    g.rect(cx + 12, cy + 6, 2, 2).fill(CELL.grassFlowerWhite);
+  pts.push([END.x * FINE_TILE + 20, (END.y + 0.5) * FINE_TILE]);
+  return pts;
+})();
+function distToRoad(x: number, y: number): number {
+  let best = Infinity;
+  for (let i = 1; i < ROAD_PTS.length; i++) {
+    const [ax, ay] = ROAD_PTS[i - 1];
+    const [bx, by] = ROAD_PTS[i];
+    const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+    let t = l2 ? ((x - ax) * dx + (y - ay) * dy) / l2 : 0;
+    t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const ex = x - (ax + t * dx), ey = y - (ay + t * dy);
+    const d = ex * ex + ey * ey;
+    if (d < best) best = d;
   }
-  if (n === 20 || n === 35) {
-    g.rect(cx + 2, cy + (n === 20 ? 11 : 5), 4, 1).fill(CELL.grassStripe);
-  }
-  if (n === 30) {
-    g.rect(cx + 8, cy + 13, 3, 2).fill(CELL.grassPebble);
-  }
-  if (n === 38) {
-    g.rect(cx + 1, cy + 14, 2, 2).fill(CELL.grassTuft);
+  return Math.sqrt(best);
+}
+function smoothstep(e0: number, e1: number, x: number): number {
+  const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
+  return t * t * (3 - 2 * t);
+}
+function mixColor(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+  const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bl;
+}
+/** Blend the worn road channel into a ground colour at an absolute pixel.
+ * Soft-edged and noise-jittered so it reads as organic terrain, never a
+ * clean stroke: lifted callus core, sunken darker rim just outside it. */
+function applyRoad(col: number, x: number, y: number): number {
+  const j = (fbm(x * 0.045 + 11.3, y * 0.045 + 4.1) - 0.5) * FINE_TILE * 1.4;
+  const d = distToRoad(x, y) + j;
+  if (d > ROAD_FEATHER) return col;
+  const wear = 1 - smoothstep(0, ROAD_FEATHER, d);
+  let out = mixColor(col, CELL.groundRoadCore, wear * 0.7);
+  const rim = 1 - Math.min(1, Math.abs(d - ROAD_HALF) / (FINE_TILE * 0.55));
+  if (d > ROAD_HALF * 0.55) out = mixColor(out, CELL.groundRoadLip, Math.max(0, rim) * 0.3);
+  if (d < ROAD_HALF * 0.35) out = mixColor(out, CELL.groundRoadCore, 0.16);
+  return out;
+}
+
+/** Ground tile — the Caul field sampled per 3px block, with the worn ideal-
+ * path road baked in. Identical-colour blocks in a row are merged into one
+ * rect to keep the baked geometry small. */
+function drawGrassCell(g: Graphics, cx: number, cy: number, _x: number, _y: number): void {
+  for (let by = 0; by < FINE_TILE; by += GROUND_BLOCK) {
+    let runStart = 0;
+    let runCol = -1;
+    for (let bx = 0; bx <= FINE_TILE; bx += GROUND_BLOCK) {
+      const col =
+        bx < FINE_TILE
+          ? applyRoad(
+              groundColor(cx + bx + 1, cy + by + 1),
+              cx + bx + GROUND_BLOCK / 2,
+              cy + by + GROUND_BLOCK / 2,
+            )
+          : -1;
+      if (col !== runCol) {
+        if (runCol >= 0) {
+          g.rect(cx + runStart, cy + by, bx - runStart, GROUND_BLOCK).fill(runCol);
+        }
+        runStart = bx;
+        runCol = col;
+      }
+    }
   }
 }
 

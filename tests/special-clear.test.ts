@@ -174,6 +174,20 @@ describe("special gem wave 1 clear", () => {
       }
     });
   }
+
+  for (const w of combatGems) {
+    it(`Pyrite clears wave 1 across ${SEED_COUNT} seeds (weakness=${w})`, () => {
+      for (let seed = 0; seed < SEED_COUNT; seed++) {
+        const { game, metrics } = setupR1Combo("pyrite", "spinel", w, seed);
+        game.runWave();
+        const [w1] = metrics.waveSummaries();
+        expect(w1, `seed=${seed}`).toBeDefined();
+        expect(w1.leaked, `seed=${seed} weakness=${w}`).toBe(0);
+        expect(w1.killed, `seed=${seed} weakness=${w}`).toBe(13);
+        metrics.detach();
+      }
+    });
+  }
 });
 
 describe("special gem wave 1 clear without maze", () => {
@@ -197,9 +211,23 @@ describe("special gem wave 1 clear without maze", () => {
   }
 
   for (const w of combatGems) {
-    it(`Malachite clears wave 1 across ${SEED_COUNT} seeds (weakness=${w})`, () => {
+    it(`Malachite clears wave 1 across ${SEED_COUNT} seeds (weakness=${w}) with no maze`, () => {
       for (let seed = 0; seed < SEED_COUNT; seed++) {
-        const { game, metrics } = setupR1Combo("malachite", "emerald", w, seed);
+        const { game, metrics } = setupR1ComboNoMaze("malachite", "emerald", w, seed);
+        game.runWave();
+        const [w1] = metrics.waveSummaries();
+        expect(w1, `seed=${seed}`).toBeDefined();
+        expect(w1.leaked, `seed=${seed} weakness=${w}`).toBe(0);
+        expect(w1.killed, `seed=${seed} weakness=${w}`).toBe(13);
+        metrics.detach();
+      }
+    });
+  }
+
+  for (const w of combatGems) {
+    it(`Pyrite clears wave 1 across ${SEED_COUNT} seeds (weakness=${w}) with no maze`, () => {
+      for (let seed = 0; seed < SEED_COUNT; seed++) {
+        const { game, metrics } = setupR1ComboNoMaze("pyrite", "spinel", w, seed);
         game.runWave();
         const [w1] = metrics.waveSummaries();
         expect(w1, `seed=${seed}`).toBeDefined();

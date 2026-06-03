@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-- `npm run dev` — Vite dev server at http://localhost:5173
+- `npm run dev` — Vite dev server at <http://localhost:5173>
 - `npm run build` — `tsc -b && tsc -p tsconfig.worker.json && vite build` (typechecks both app and worker, then bundles; output in `dist/`)
 - `npm run typecheck` — typecheck app and worker, no emit
 - `npm test` — Vitest run-once (**excludes** `sim.test.ts` and `sim-run.test.ts`)
@@ -54,14 +54,14 @@ Game progresses through phases in `state.phase`: `title → build → wave → c
 
 ### Pathfinding
 
-`src/systems/Pathfinding.ts` runs 4-directional A* between consecutive `WAYPOINTS` (defined in `src/data/map.ts`) and concatenates segments. `findRoute` is called on every placement attempt to verify the maze still connects; `Game.refreshRoute()` caches `routeSegments` + `flatRoute` for creep movement. The grid is `Cell[][]` — `Grass` is buildable, `Path` is forced-walkable, `Tower`/`Rock`/`Wall` block.
+`src/systems/Pathfinding.ts` runs 4-directional A\* between consecutive `WAYPOINTS` (defined in `src/data/map.ts`) and concatenates segments. `findRoute` is called on every placement attempt to verify the maze still connects; `Game.refreshRoute()` caches `routeSegments` + `flatRoute` for creep movement. The grid is `Cell[][]` — `Grass` is buildable, `Path` is forced-walkable, `Tower`/`Rock`/`Wall` block.
 
 ### Pure-data game content
 
 Everything in `src/data/` is data-only (no Pixi, no DOM):
 
-- `map.ts` — 21×17 grid layout, waypoints, `Cell` enum.
-- `gems.ts` — 8 gem types × 5 qualities. `gemStats(gem, quality)` is the canonical stat resolver; quality scales damage/range/atk-speed and effect potency. Note: `GemType` and `Quality` types are defined in `src/render/theme.ts`, not here — `gems.ts` imports them.
+- `map.ts` — 21x17 grid layout, waypoints, `Cell` enum.
+- `gems.ts` — 11 gem types x 5 qualities. `gemStats(gem, quality)` is the canonical stat resolver; quality scales damage/range/atk-speed and effect potency. Note: `GemType` and `Quality` types are defined in `src/render/theme.ts`, not here — `gems.ts` imports them. Three newer gems (garnet, spinel, peridot) have extended mechanics: `targetPriority`, `projectileSpeed`, `groundTarget` on GemBase/GemStats, and a `charge_burst` effect kind.
 - `combos.ts` — multi-gem recipes; `findCombo` matches greedily.
 - `creeps.ts`, `waves.ts` — per-wave creep specs.
 - `maze-blueprint.ts` — blueprint consumed by `BlueprintAI` (output of the Python `maze_optimizer`).
@@ -69,6 +69,17 @@ Everything in `src/data/` is data-only (no Pixi, no DOM):
 - `gemtd-reference.ts` — reference data extracted from another GemTD port, used for cross-checking.
 
 Add new gems/combos/waves here and they flow through automatically.
+
+### In-progress: new gem types (branch `new_gems`)
+
+Three new basic gems added — **Garnet** (mortar/artillery), **Spinel** (sniper), **Peridot** (charged burst). Phase 1 is complete: stats, combat mechanics, rendering (parabolic arc for garnet), AI support. What remains for phase 2:
+
+- **Combo recipes** — no recipes in `combos.ts` use garnet/spinel/peridot yet. Need new specials + possible reshuffle of existing ingredient lists.
+- **Special sprites** — `SPECIAL_SPRITES` / `SPECIAL_TIER_GRIDS` in `spriteData.ts` need entries for any new combos.
+- **VFX** — `vfx:groundImpact` event is emitted but has no visual handler in `VfxRenderer.ts` (needs splash/crater effect for garnet mortar).
+- **Wave-1 starter** — currently Silver + Malachite only (`BuildPhase.ts`). A third option using new gems is deferred.
+- **Maze optimizer** — should be re-run once combos land (fitness function depends on gem roster).
+- **Balance tuning** — damage numbers are first-pass estimates, need sim-compare passes.
 
 ### UI / events
 
@@ -114,6 +125,10 @@ Offline beam-search tool that produces the blueprint JSON consumed by `Blueprint
 - **Never deploy** (`npm run deploy`) without explicit confirmation — it hits production.
 
 ## Working on this codebase
+
+### Vocabulary
+
+A gem or combo's `dmgMin` / `dmgMax` is the **damage range** (or just "damage"). Do **NOT** call it "weapon damage" — that term doesn't exist in this codebase or in the game's mental model, and the user has flagged it repeatedly. Applies everywhere: balance reports, code comments, PR descriptions, commit messages, and questions you ask the user. If you catch yourself about to type "weapon" near a damage number, replace with "damage range" or just drop the noun.
 
 ### Balance-affecting changes
 

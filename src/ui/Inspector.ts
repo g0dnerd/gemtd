@@ -5,26 +5,33 @@
 
 import { Game } from "../game/Game";
 import { GEM_PALETTE, GemType, Quality, QUALITY_NAMES } from "../render/theme";
-import { htmlGem, htmlGemTier, htmlSpecial, htmlCreep } from "../render/htmlSprites";
+import {
+  htmlGem,
+  htmlGemTier,
+  htmlSpecial,
+  htmlCreep,
+} from "../render/htmlSprites";
 import { EffectKind, gemStats } from "../data/gems";
 import {
   COMBOS,
   COMBO_BY_NAME,
   ComboRecipe,
   comboStatsAtTier,
-  findAllCombosFor,
+  findComboFor,
   nextUpgrade,
 } from "../data/combos";
 import { CreepState, TowerState } from "../game/State";
-import { CREEP_ARCHETYPES } from "../data/creeps";
 import { towerLevel } from "../systems/Combat";
 import { SIM_HZ } from "../game/constants";
 
-type LbMode = 'total' | 'wave';
+type LbMode = "total" | "wave";
 
 let lbMode: LbMode = (() => {
-  try { return (localStorage.getItem('gemtd:lb-mode') as LbMode) || 'total'; }
-  catch { return 'total'; }
+  try {
+    return (localStorage.getItem("gemtd:lb-mode") as LbMode) || "total";
+  } catch {
+    return "total";
+  }
 })();
 
 export interface InspectorRefs {
@@ -112,7 +119,10 @@ function fingerprint(game: Game): string {
     id !== null ? (game.state.towers.find((t) => t.id === id) ?? null) : null;
   if (!tower) {
     const dmgFp = game.state.towers
-      .map((t) => `${t.id}:${Math.floor(t.totalDamage)}:${Math.floor(t.waveDamage)}`)
+      .map(
+        (t) =>
+          `${t.id}:${Math.floor(t.totalDamage)}:${Math.floor(t.waveDamage)}`,
+      )
       .join(",");
     return `lb|${lbMode}|${game.state.phase}|${dmgFp}`;
   }
@@ -123,6 +133,7 @@ function fingerprint(game: Game): string {
   const specialCount = countSpecialRecipes(game, tower);
   const upgradeCost = getUpgradeCost(tower);
   const canAfford = upgradeCost !== null && game.state.gold >= upgradeCost;
+  const ingredientFp = tower.comboKey ? "" : ingredientFingerprint(game, tower);
   return [
     tower.id,
     tower.gem,
@@ -138,15 +149,30 @@ function fingerprint(game: Game): string {
     upgradeCost ?? "",
     canAfford ? 1 : 0,
     game.state.downgradeUsedThisRound ? 1 : 0,
+    ingredientFp,
   ].join("|");
+}
+
+function ingredientFingerprint(game: Game, tower: TowerState): string {
+  const recipe = findComboFor(tower.gem, tower.quality as Quality);
+  if (!recipe) return "";
+  const states = computeIngredientStates(recipe, tower, game.state.towers);
+  return states.join("");
 }
 
 function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
   const lvl = towerLevel(tower);
-  el.textContent =
+  const kills = tower.kills;
+  const bonus =
     lvl > 0
-      ? `${tower.kills} kills · LV ${lvl} (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)`
-      : `${tower.kills} / 10 kills to next level`;
+      ? ` <span class="hm-bonus"> (+${Math.round(((0.05 * lvl) / (1 + 0.03 * lvl)) * 100)}%)</span>`
+      : "";
+  el.innerHTML =
+    `<span class="hm-lvl">LV ${lvl}${bonus}</span>` +
+    `<span class="hm-sep">·</span>` +
+    `<span class="hm-kills">${kills}</span>` +
+    `<span class="hm-lbl">KILLS</span>`;
+  el.classList.toggle("is-lvl", lvl > 0);
 }
 
 function render(refs: InspectorRefs, game: Game): void {
@@ -208,15 +234,13 @@ function render(refs: InspectorRefs, game: Game): void {
   frame.className = "inspector-hero-frame";
   frame.appendChild(
     tower.comboKey
-      ? htmlSpecial(tower.comboKey, 40, true, tower.upgradeTier ?? 0)
-      : htmlGemTier(tower.gem, tower.quality as Quality, 36, true),
+      ? htmlSpecial(tower.comboKey, 24, true, tower.upgradeTier ?? 0)
+      : htmlGemTier(tower.gem, tower.quality as Quality, 24, true),
   );
   const mid = document.createElement("div");
   mid.className = "inspector-tower-hero-mid";
   const heroName = document.createElement("div");
   heroName.className = "inspector-tower-hero-name";
-  const heroSub = document.createElement("div");
-  heroSub.className = "inspector-tower-hero-sub";
   if (tower.comboKey) {
     const combo = COMBO_BY_NAME.get(tower.comboKey!);
     const tier = tower.upgradeTier ?? 0;
@@ -225,20 +249,16 @@ function render(refs: InspectorRefs, game: Game): void {
         ? combo.upgrades[tier - 1].name
         : combo?.name;
     heroName.textContent = (tierName ?? "COMBO").toUpperCase();
-    heroSub.textContent =
-      (combo ? comboStatsAtTier(combo, tier) : null)?.blurb ??
-      combo?.stats.blurb ??
-      "COMBO";
   } else {
-    heroName.textContent = GEM_PALETTE[tower.gem].name.toUpperCase();
-    heroSub.textContent = QUALITY_NAMES[tower.quality].toUpperCase();
+    heroName.textContent =
+      `${QUALITY_NAMES[tower.quality as Quality]} ${GEM_PALETTE[tower.gem].name}`.toUpperCase();
   }
   const heroMeta = document.createElement("div");
   heroMeta.className = "inspector-tower-hero-meta";
   updateHeroMeta(heroMeta, tower);
   refs.heroMeta = heroMeta;
   refs.lastKills = tower.kills;
-  mid.append(heroName, heroSub, heroMeta);
+  mid.append(heroName, heroMeta);
   hero.append(frame, mid);
   body.appendChild(hero);
 
@@ -278,30 +298,9 @@ function render(refs: InspectorRefs, game: Game): void {
   }
 
   if (!tower.comboKey) {
-    const recipes = findAllCombosFor(tower.gem, tower.quality as Quality);
-    for (const recipe of recipes) {
-      const row = document.createElement("div");
-      row.className = "inspector-forge-row";
-      const head = document.createElement("div");
-      head.className = "inspector-forge-row-head";
-      head.textContent = "FORGES INTO";
-      const rowBody = document.createElement("div");
-      rowBody.className = "inspector-forge-row-body";
-      const icon = document.createElement("div");
-      icon.className = "forge-icon";
-      icon.appendChild(htmlSpecial(recipe.key, 22));
-      const fname = document.createElement("div");
-      fname.className = "forge-name";
-      fname.textContent = recipe.name.toUpperCase();
-      const arrow = document.createElement("div");
-      arrow.className = "forge-arrow";
-      arrow.textContent = "›";
-      rowBody.append(icon, fname, arrow);
-      row.append(head, rowBody);
-      row.addEventListener("click", () => {
-        game.bus.emit("focusRecipe", { key: recipe.key });
-      });
-      body.appendChild(row);
+    const recipe = findComboFor(tower.gem, tower.quality as Quality);
+    if (recipe) {
+      body.appendChild(renderForgeCard(game, tower, recipe));
     }
   }
 
@@ -384,6 +383,112 @@ function render(refs: InspectorRefs, game: Game): void {
   comboRow.append(combineBtn, specialBtn);
   actions.append(comboRow);
   body.appendChild(actions);
+}
+
+type IngredientState = "this" | "have" | "missing";
+
+function computeIngredientStates(
+  recipe: ComboRecipe,
+  selected: TowerState,
+  towers: readonly TowerState[],
+): IngredientState[] {
+  const available = towers
+    .filter((t) => !t.comboKey && t.id !== selected.id)
+    .map((t) => ({ gem: t.gem, quality: t.quality, used: false }));
+  const states: (IngredientState | null)[] = recipe.inputs.map(() => null);
+  let selfConsumed = false;
+  for (let i = 0; i < recipe.inputs.length; i++) {
+    const inp = recipe.inputs[i];
+    if (
+      !selfConsumed &&
+      inp.gem === selected.gem &&
+      inp.quality === selected.quality
+    ) {
+      states[i] = "this";
+      selfConsumed = true;
+    }
+  }
+  for (let i = 0; i < recipe.inputs.length; i++) {
+    if (states[i] !== null) continue;
+    const inp = recipe.inputs[i];
+    const match = available.find(
+      (a) => !a.used && a.gem === inp.gem && a.quality === inp.quality,
+    );
+    if (match) {
+      match.used = true;
+      states[i] = "have";
+    } else {
+      states[i] = "missing";
+    }
+  }
+  return states as IngredientState[];
+}
+
+function renderForgeCard(
+  game: Game,
+  tower: TowerState,
+  recipe: ComboRecipe,
+): HTMLDivElement {
+  const card = document.createElement("div");
+  card.className = "inspector-forge-card";
+
+  const states = computeIngredientStates(recipe, tower, game.state.towers);
+  const readyCount = states.filter((s) => s !== "missing").length;
+  const totalCount = states.length;
+
+  const stripHead = document.createElement("div");
+  stripHead.className = "forge-strip-head";
+  const stripIcon = document.createElement("span");
+  stripIcon.className = "strip-icon";
+  stripIcon.appendChild(htmlSpecial(recipe.key, 22));
+  const stripName = document.createElement("span");
+  stripName.className = "strip-name";
+  stripName.textContent = recipe.name.toUpperCase();
+  const stripTally = document.createElement("span");
+  stripTally.className = "strip-tally";
+  const tallyNum = document.createElement("b");
+  tallyNum.textContent = String(readyCount);
+  stripTally.append(tallyNum, `/${totalCount}`);
+  stripHead.append(stripIcon, stripName, stripTally);
+  card.appendChild(stripHead);
+
+  const blurb = comboStatsAtTier(recipe, 0).blurb ?? recipe.stats.blurb;
+  if (blurb) {
+    const blurbEl = document.createElement("div");
+    blurbEl.className = "forge-blurb";
+    blurbEl.textContent = blurb;
+    card.appendChild(blurbEl);
+  }
+
+  const fromList = document.createElement("div");
+  fromList.className = "forge-from";
+  for (let i = 0; i < recipe.inputs.length; i++) {
+    const inp = recipe.inputs[i];
+    const state = states[i];
+    const row = document.createElement("div");
+    row.className = `forge-ingredient state-${state}`;
+    const slot = document.createElement("span");
+    slot.className = "ing-slot";
+    slot.appendChild(htmlGemTier(inp.gem, inp.quality, 18));
+    const name = document.createElement("span");
+    name.className = "ing-name";
+    name.textContent = GEM_PALETTE[inp.gem].name.toUpperCase();
+    if (state !== "missing" && state !== "this") {
+      name.style.color = GEM_PALETTE[inp.gem].css.light;
+    }
+    const q = document.createElement("span");
+    q.className = "ing-q";
+    q.textContent = `L${inp.quality}`;
+    row.append(slot, name, q);
+    fromList.appendChild(row);
+  }
+  card.appendChild(fromList);
+
+  card.addEventListener("click", () => {
+    game.bus.emit("focusRecipe", { key: recipe.key });
+  });
+
+  return card;
 }
 
 function towerDisplayName(t: TowerState): string {
@@ -474,28 +579,53 @@ function lbGemColors(gem: GemType): {
         fillAlpha: 0.2,
         borderAlpha: 0.3,
       };
+    case "garnet":
+      return {
+        text: "#d06848",
+        fill: "#8a2830",
+        fillAlpha: 0.22,
+        borderAlpha: 0.3,
+      };
+    case "spinel":
+      return {
+        text: "#f080c0",
+        fill: "#c03888",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
+    case "peridot":
+      return {
+        text: "#d8f060",
+        fill: "#a8c828",
+        fillAlpha: 0.2,
+        borderAlpha: 0.3,
+      };
   }
 }
 
 function mountLbToggle(refs: InspectorRefs, game: Game): void {
   const head = refs.title.parentElement!;
-  const existing = head.querySelector('.lb-toggle');
+  const existing = head.querySelector(".lb-toggle");
   if (existing) {
-    const btns = existing.querySelectorAll('.lb-toggle-btn');
-    btns[0]?.classList.toggle('active', lbMode === 'total');
-    btns[1]?.classList.toggle('active', lbMode === 'wave');
+    const btns = existing.querySelectorAll(".lb-toggle-btn");
+    btns[0]?.classList.toggle("active", lbMode === "total");
+    btns[1]?.classList.toggle("active", lbMode === "wave");
     return;
   }
-  const toggle = document.createElement('div');
-  toggle.className = 'lb-toggle';
-  const btnTotal = document.createElement('button');
-  btnTotal.className = `lb-toggle-btn${lbMode === 'total' ? ' active' : ''}`;
-  btnTotal.textContent = 'TOTAL';
-  const btnWave = document.createElement('button');
-  btnWave.className = `lb-toggle-btn${lbMode === 'wave' ? ' active' : ''}`;
-  btnWave.textContent = 'WAVE';
-  btnTotal.addEventListener('click', () => { setLbMode('total', refs, game); });
-  btnWave.addEventListener('click', () => { setLbMode('wave', refs, game); });
+  const toggle = document.createElement("div");
+  toggle.className = "lb-toggle";
+  const btnTotal = document.createElement("button");
+  btnTotal.className = `lb-toggle-btn${lbMode === "total" ? " active" : ""}`;
+  btnTotal.textContent = "TOTAL";
+  const btnWave = document.createElement("button");
+  btnWave.className = `lb-toggle-btn${lbMode === "wave" ? " active" : ""}`;
+  btnWave.textContent = "WAVE";
+  btnTotal.addEventListener("click", () => {
+    setLbMode("total", refs, game);
+  });
+  btnWave.addEventListener("click", () => {
+    setLbMode("wave", refs, game);
+  });
   toggle.append(btnTotal, btnWave);
   head.appendChild(toggle);
 }
@@ -503,19 +633,21 @@ function mountLbToggle(refs: InspectorRefs, game: Game): void {
 function removeLbToggle(refs: InspectorRefs): void {
   const head = refs.title.parentElement;
   if (!head) return;
-  const toggle = head.querySelector('.lb-toggle');
+  const toggle = head.querySelector(".lb-toggle");
   if (toggle) toggle.remove();
 }
 
 function setLbMode(mode: LbMode, refs: InspectorRefs, game: Game): void {
   lbMode = mode;
-  try { localStorage.setItem('gemtd:lb-mode', mode); } catch {}
-  refs.lastFingerprint = '';
+  try {
+    localStorage.setItem("gemtd:lb-mode", mode);
+  } catch {}
+  refs.lastFingerprint = "";
   refs.refresh(game);
 }
 
 function getDmg(t: TowerState): number {
-  return lbMode === 'wave' ? t.waveDamage : t.totalDamage;
+  return lbMode === "wave" ? t.waveDamage : t.totalDamage;
 }
 
 function renderLeaderboard(body: HTMLDivElement, game: Game): void {
@@ -526,7 +658,8 @@ function renderLeaderboard(body: HTMLDivElement, game: Game): void {
   if (towers.length === 0) {
     const empty = document.createElement("div");
     empty.className = "inspector-empty";
-    empty.textContent = lbMode === 'wave' ? "No damage this wave." : "No gem damage yet.";
+    empty.textContent =
+      lbMode === "wave" ? "No damage this wave." : "No gem damage yet.";
     body.appendChild(empty);
     return;
   }
@@ -898,7 +1031,7 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
   const noteTxt = document.createElement("div");
   noteTxt.className = "inspector-effect-text";
   noteTxt.textContent = removable
-    ? "Frees the 2×2 footprint"
+    ? "Frees the 2x2 footprint"
     : "Available once this build phase ends";
   note.append(noteLbl, noteTxt);
   body.appendChild(note);
@@ -944,7 +1077,9 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
   hero.className = "px-panel-inset inspector-hero";
   const frame = document.createElement("div");
   frame.className = "inspector-hero-frame inspector-hero-frame-creep";
-  frame.appendChild(htmlCreep(c.kind, c.color, 44, true, !!c.chrysalidAwakened));
+  frame.appendChild(
+    htmlCreep(c.kind, c.color, 44, true, !!c.chrysalidAwakened),
+  );
   const text = document.createElement("div");
   text.className = "inspector-hero-text";
   const name = document.createElement("div");
@@ -981,18 +1116,6 @@ function renderCreep(body: HTMLDivElement, c: CreepState, game: Game): void {
     if (c.flags.armored) flagRow.appendChild(flagChip("ARMORED", "muted"));
     if (c.flags.air) flagRow.appendChild(flagChip("AIR", "accent"));
     body.appendChild(flagRow);
-  }
-
-  // Blurb (archetype description)
-  const archetype = CREEP_ARCHETYPES[c.kind as keyof typeof CREEP_ARCHETYPES];
-  if (archetype?.blurb) {
-    const blurb = document.createElement("div");
-    blurb.className = "inspector-creep-blurb";
-    blurb.textContent =
-      c.kind === "chrysalid" && c.chrysalidAwakened
-        ? "Awakened: 70% resistant to slow, stun and poison. +60% movement speed, +10 armor, dodges every 10th hit."
-        : archetype.blurb;
-    body.appendChild(blurb);
   }
 
   // HP bar (inset card)
@@ -1229,7 +1352,11 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "multi_target":
       return { label: "MULTI", text: `${e.count} targets`, tone: "aoe" };
     case "periodic_nova":
-      return { label: "NOVA", text: `every ${e.everyN} hits, 50% dmg`, tone: "aoe" };
+      return {
+        label: "NOVA",
+        text: `every ${e.everyN} hits, 50% dmg`,
+        tone: "aoe",
+      };
     case "death_nova":
       return {
         label: "DEATH NOVA",
@@ -1257,7 +1384,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "slow":
       return {
         label: "SLOW",
-        text: `×${e.factor.toFixed(2)} ${e.duration}s`,
+        text: `x${e.factor.toFixed(2)} ${e.duration}s`,
         tone: "cc",
       };
     case "stun":
@@ -1289,7 +1416,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "trap_slow":
       return {
         label: "SLOW",
-        text: `×${e.factor.toFixed(2)} ${e.duration}s`,
+        text: `x${e.factor.toFixed(2)} ${e.duration}s`,
         tone: "cc",
       };
     case "trap_knockback":
@@ -1297,7 +1424,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "prox_slow":
       return {
         label: "SLOW FIELD",
-        text: `×${e.factor.toFixed(2)} r=${e.radius.toFixed(1)}`,
+        text: `x${e.factor.toFixed(2)} r=${e.radius.toFixed(1)}`,
         tone: "cc",
       };
     case "demote_air":
@@ -1305,7 +1432,7 @@ function effectChiclet(e: EffectKind): ChicletData | null {
     case "crit":
       return {
         label: "CRIT",
-        text: `${Math.round(e.chance * 100)}% ×${e.multiplier}`,
+        text: `${Math.round(e.chance * 100)}% x${e.multiplier}`,
         tone: "buff",
       };
     case "aura_atkspeed":
@@ -1339,19 +1466,19 @@ function effectChiclet(e: EffectKind): ChicletData | null {
         tone: "buff",
       };
     case "stun_bonus_dmg":
-      return { label: "STUN DMG", text: `×${e.multiplier}`, tone: "buff" };
+      return { label: "STUN DMG", text: `x${e.multiplier}`, tone: "buff" };
     case "bonus_gold": {
       const pct = e.chance * 100;
       return {
         label: "GOLD",
-        text: `${pct % 1 ? pct.toFixed(1) : pct}% ×${e.multiplier} bounty (max 10)`,
+        text: `${pct % 1 ? pct.toFixed(1) : pct}% x${e.multiplier} bounty (max 10)`,
         tone: "buff",
       };
     }
     case "air_bonus":
       return {
         label: "AIR BONUS",
-        text: `×${e.multiplier.toFixed(1)}`,
+        text: `x${e.multiplier.toFixed(1)}`,
         tone: "buff",
       };
     case "true":
@@ -1426,6 +1553,52 @@ function effectChiclet(e: EffectKind): ChicletData | null {
         text: `${Math.round(e.dps)}/s +${Math.round(e.rampPct * 100)}%/s`,
         tone: "debuff",
       };
+    case "charge_burst":
+      return {
+        label: "CHARGE",
+        text: `up to x${e.maxMultiplier.toFixed(1)}`,
+        tone: "buff",
+      };
+    case "momentum":
+      return {
+        label: "MOMENTUM",
+        text: `${e.rampSpeed.toFixed(0)}x speed`,
+        tone: "buff",
+      };
+    case "pierce":
+      return { label: "PIERCE", text: `+${e.count} target`, tone: "aoe" };
+    case "kill_explode":
+      return {
+        label: "KILL BOOM",
+        text: `r=${e.radius.toFixed(1)}`,
+        tone: "aoe",
+      };
+    case "speed_damage_aura":
+      return {
+        label: "SPEED BURN",
+        text: `${Math.round(e.dps)}/s r=${e.radius.toFixed(1)}`,
+        tone: "debuff",
+      };
+    case "distance_scaling":
+      return {
+        label: "RANGE DMG",
+        text: `${Math.round(e.minMult * 100)}–${Math.round(e.maxMult * 100)}%`,
+        tone: "buff",
+      };
+    case "amplifying_chain":
+      return {
+        label: "AMP CHAIN",
+        text: `${e.bounces}x +${Math.round(e.ampPerBounce * 100)}%/jump`,
+        tone: "aoe",
+      };
+    case "adaptive_mode":
+      return {
+        label: "ADAPTIVE",
+        text: `focus/<${e.threshold} scatter/${e.scatterCount}${e.modeCooldown ? ` cd/${e.modeCooldown}s` : ""}`,
+        tone: "buff",
+      };
+    case "true_vs_air":
+      return { label: "TRUE vs AIR", text: "ignores armor", tone: "debuff" };
   }
 }
 

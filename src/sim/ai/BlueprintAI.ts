@@ -234,7 +234,12 @@ export class BlueprintAI extends GreedyAI {
     const slot = state.draws.find((d) => d.slotId === state.activeDrawSlot);
     if (!slot || slot.placedTowerId !== null) return false;
 
-    const routeLen = state.flatRoute.length;
+    const baseFlat = state.flatRoute;
+    const routeLen = baseFlat.length;
+    // See GreedyAI.placeGems: off-route candidates leave the route byte-identical,
+    // so they can be scored against the cached route without a redundant A* call.
+    const routeSet = new Set<number>();
+    for (const pt of baseFlat) routeSet.add(pt.y * GRID_W + pt.x);
     const stats = gemStats(slot.gem, slot.quality);
     const rangeFine = stats.range * GRID_SCALE;
     const r2 = rangeFine * rangeFine;
@@ -243,14 +248,27 @@ export class BlueprintAI extends GreedyAI {
     let bestScore = -Infinity;
 
     for (const [cx, cy] of candidates) {
-      const extra = new Set<number>();
+      let touchesRoute = false;
       for (const [dx, dy] of FOOTPRINT) {
-        extra.add((cy + dy) * GRID_W + (cx + dx));
+        if (routeSet.has((cy + dy) * GRID_W + (cx + dx))) {
+          touchesRoute = true;
+          break;
+        }
       }
-      const tryRoute = findRoute(state.grid, extra);
-      if (!tryRoute) continue;
 
-      const flatTry = flattenRoute(tryRoute);
+      let flatTry: { x: number; y: number }[];
+      if (touchesRoute) {
+        const extra = new Set<number>();
+        for (const [dx, dy] of FOOTPRINT) {
+          extra.add((cy + dy) * GRID_W + (cx + dx));
+        }
+        const tryRoute = findRoute(state.grid, extra);
+        if (!tryRoute) continue;
+        flatTry = flattenRoute(tryRoute);
+      } else {
+        flatTry = baseFlat;
+      }
+
       const towerCx = cx + 1;
       const towerCy = cy + 1;
       let exposure = 0;

@@ -11,16 +11,23 @@
  *  - Draws are free (canonical: gems aren't bought, they're rolled).
  */
 
-import { Cell, GRID_H, GRID_W, isBuildable } from '../data/map';
-import { Game } from '../game/Game';
-import { findCombo, COMBO_BY_NAME } from '../data/combos';
-import type { GemType, Quality } from '../render/theme';
-import { GEM_TYPES } from '../render/theme';
-import { findRoute } from '../systems/Pathfinding';
-import { CHANCE_TIER_WEIGHTS, QUALITY_BASE_COST } from '../game/constants';
-import { State, TowerState, DRAW_COUNT, activeDraw, allDrawsPlaced, nextUnplacedSlot } from '../game/State';
+import { Cell, GRID_H, GRID_W, isBuildable } from "../data/map";
+import { Game } from "../game/Game";
+import { findCombo, COMBO_BY_NAME } from "../data/combos";
+import type { GemType, Quality } from "../render/theme";
+import { GEM_TYPES } from "../render/theme";
+import { findRoute } from "../systems/Pathfinding";
+import { CHANCE_TIER_WEIGHTS, QUALITY_BASE_COST } from "../game/constants";
+import {
+  State,
+  TowerState,
+  DRAW_COUNT,
+  activeDraw,
+  allDrawsPlaced,
+  nextUnplacedSlot,
+} from "../game/State";
 
-/** Towers and their rock remnants both occupy a 2×2 fine-cell footprint. */
+/** Towers and their rock remnants both occupy a 2x2 fine-cell footprint. */
 const FOOTPRINT_OFFSETS: ReadonlyArray<readonly [number, number]> = [
   [0, 0],
   [1, 0],
@@ -28,7 +35,10 @@ const FOOTPRINT_OFFSETS: ReadonlyArray<readonly [number, number]> = [
   [1, 1],
 ];
 
-function footprintCells(ax: number, ay: number): Array<{ x: number; y: number }> {
+function footprintCells(
+  ax: number,
+  ay: number,
+): Array<{ x: number; y: number }> {
   return FOOTPRINT_OFFSETS.map(([dx, dy]) => ({ x: ax + dx, y: ay + dy }));
 }
 
@@ -36,7 +46,12 @@ function setFootprint(state: State, ax: number, ay: number, cell: Cell): void {
   for (const c of footprintCells(ax, ay)) state.grid[c.y][c.x] = cell;
 }
 
-function rockFootprint(state: State, ax: number, ay: number, id: number): Array<{ x: number; y: number }> {
+function rockFootprint(
+  state: State,
+  ax: number,
+  ay: number,
+  id: number,
+): Array<{ x: number; y: number }> {
   const cells = footprintCells(ax, ay);
   for (const c of cells) {
     state.grid[c.y][c.x] = Cell.Rock;
@@ -76,16 +91,20 @@ export class BuildPhase {
     const gems: Array<{ gem: GemType; quality: Quality }> = [];
 
     if (state.wave === 1) {
-      // Guarantee ingredients for a random early-game special (Silver or Malachite).
+      // Guarantee ingredients for a random early-game special (Silver, Malachite, or Pyrite).
       const recipes: GemType[][] = [
-        ['topaz', 'diamond', 'sapphire'],
-        ['opal', 'emerald', 'aquamarine'],
+        ["sapphire", "garnet", "diamond"],
+        ["opal", "emerald", "topaz"],
+        ["peridot", "spinel", "aquamarine"],
       ];
       for (const g of this.game.rng.pick(recipes)) {
         gems.push({ gem: g, quality: 1 });
       }
       for (let i = gems.length; i < DRAW_COUNT; i++) {
-        gems.push({ gem: this.game.rng.pick(GEM_TYPES), quality: pickQuality(this.game.rng.next(), state.chanceTier) });
+        gems.push({
+          gem: this.game.rng.pick(GEM_TYPES),
+          quality: pickQuality(this.game.rng.next(), state.chanceTier),
+        });
       }
       for (let i = gems.length - 1; i > 0; i--) {
         const j = this.game.rng.int(i + 1);
@@ -93,15 +112,26 @@ export class BuildPhase {
       }
     } else {
       for (let i = 0; i < DRAW_COUNT; i++) {
-        gems.push({ gem: this.game.rng.pick(GEM_TYPES), quality: pickQuality(this.game.rng.next(), state.chanceTier) });
+        gems.push({
+          gem: this.game.rng.pick(GEM_TYPES),
+          quality: pickQuality(this.game.rng.next(), state.chanceTier),
+        });
       }
     }
 
     for (let i = 0; i < DRAW_COUNT; i++) {
-      state.draws.push({ slotId: i, gem: gems[i].gem, quality: gems[i].quality, placedTowerId: null });
+      state.draws.push({
+        slotId: i,
+        gem: gems[i].gem,
+        quality: gems[i].quality,
+        placedTowerId: null,
+      });
     }
     state.activeDrawSlot = 0;
-    this.game.bus.emit('draws:roll', { count: state.draws.length });
+    // Any leftover placed-gem selection from the prior keeper UI would double
+    // up with the new draw's recipe-partner highlight — clear it.
+    this.game.selectTower(null);
+    this.game.bus.emit("draws:roll", { count: state.draws.length });
   }
 
   /** Set the active draw slot (called by HUD chip clicks / Tab key). */
@@ -110,6 +140,9 @@ export class BuildPhase {
     const slot = state.draws.find((d) => d.slotId === slotId);
     if (!slot || slot.placedTowerId !== null) return;
     state.activeDrawSlot = slotId;
+    // Clear any placed-gem selection so the two recipe-partner highlights
+    // (selected-tower vs. active-draw) can't be on screen at the same time.
+    this.game.selectTower(null);
   }
 
   /**
@@ -117,20 +150,23 @@ export class BuildPhase {
    */
   place(x: number, y: number): boolean {
     const state = this.game.state;
-    if (state.phase !== 'build') {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Wave in progress' });
+    if (state.phase !== "build") {
+      this.game.bus.emit("toast", { kind: "error", text: "Wave in progress" });
       return false;
     }
     const slot = activeDraw(state);
     if (!slot) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'No gem drawn' });
+      this.game.bus.emit("toast", { kind: "error", text: "No gem drawn" });
       return false;
     }
-    // Anchor (x, y) is the top-left of the 2×2 footprint.
+    // Anchor (x, y) is the top-left of the 2x2 footprint.
     if (x < 0 || y < 0 || x + 1 >= GRID_W || y + 1 >= GRID_H) return false;
     for (const c of footprintCells(x, y)) {
       if (!isBuildable(state.grid[c.y][c.x])) {
-        this.game.bus.emit('toast', { kind: 'error', text: 'Cannot build there' });
+        this.game.bus.emit("toast", {
+          kind: "error",
+          text: "Cannot build there",
+        });
         return false;
       }
     }
@@ -140,7 +176,7 @@ export class BuildPhase {
     for (const c of footprintCells(x, y)) tentative.add(c.y * GRID_W + c.x);
     const tryRoute = findRoute(state.grid, tentative);
     if (!tryRoute) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Would block path' });
+      this.game.bus.emit("toast", { kind: "error", text: "Would block path" });
       return false;
     }
 
@@ -151,7 +187,8 @@ export class BuildPhase {
     const placedQuality = slot.quality;
     const tower: TowerState = {
       id,
-      x, y,
+      x,
+      y,
       gem: placedGem,
       quality: placedQuality,
       lastFireTick: 0,
@@ -164,7 +201,9 @@ export class BuildPhase {
     setFootprint(state, x, y, Cell.Tower);
     slot.placedTowerId = id;
     state.activeDrawSlot = nextUnplacedSlot(state);
-    this.game.refreshRoute();
+    // Reuse the route `canPlace` just solved — the committed grid blocks exactly
+    // the cells we tested in `tentative`, so the route is identical (no re-A*).
+    this.game.refreshRoute(tryRoute);
     this.game.selectTower(null);
     this.game.selectRock(null);
 
@@ -183,14 +222,18 @@ export class BuildPhase {
           state.designatedKeepTowerId = null;
         }
         this.game.refreshRoute();
-        this.game.bus.emit('draws:change', { });
+        this.game.bus.emit("draws:change", {});
       },
     });
 
-    this.game.bus.emit('tower:placed', {
-      id, x, y, gem: tower.gem, quality: tower.quality,
+    this.game.bus.emit("tower:placed", {
+      id,
+      x,
+      y,
+      gem: tower.gem,
+      quality: tower.quality,
     });
-    this.game.bus.emit('draws:change', {});
+    this.game.bus.emit("draws:change", {});
     return true;
   }
 
@@ -198,7 +241,7 @@ export class BuildPhase {
     const state = this.game.state;
     const action = state.undoStack.pop();
     if (!action) {
-      this.game.bus.emit('toast', { kind: 'info', text: 'Nothing to undo' });
+      this.game.bus.emit("toast", { kind: "info", text: "Nothing to undo" });
       return false;
     }
     action.undo();
@@ -229,7 +272,10 @@ export class BuildPhase {
       rockFootprint(state, t.x, t.y, this.game.nextId());
     }
     this.game.refreshRoute();
-    if (state.selectedTowerId !== null && !state.towers.some((t) => t.id === state.selectedTowerId)) {
+    if (
+      state.selectedTowerId !== null &&
+      !state.towers.some((t) => t.id === state.selectedTowerId)
+    ) {
       this.game.selectTower(null);
     }
   }
@@ -248,7 +294,9 @@ export class BuildPhase {
     const state = this.game.state;
     if (towerIds.length < 2) return false;
 
-    const towers = towerIds.map((id) => state.towers.find((t) => t.id === id)).filter(Boolean) as TowerState[];
+    const towers = towerIds
+      .map((id) => state.towers.find((t) => t.id === id))
+      .filter(Boolean) as TowerState[];
     if (towers.length !== towerIds.length) return false;
 
     // Anchor the result at the currently-selected tower whenever it's one of
@@ -263,7 +311,9 @@ export class BuildPhase {
     }
 
     const currentRoundIds = new Set(
-      state.draws.map((d) => d.placedTowerId).filter((id): id is number => id !== null),
+      state.draws
+        .map((d) => d.placedTowerId)
+        .filter((id): id is number => id !== null),
     );
     const allCurrentRound = towers.every((t) => currentRoundIds.has(t.id));
     const noneCurrentRound = towers.every((t) => !currentRoundIds.has(t.id));
@@ -272,21 +322,36 @@ export class BuildPhase {
     // Only allowed during build phase.
     const sameGem = towers.every((t) => t.gem === towers[0].gem);
     const sameQuality = towers.every((t) => t.quality === towers[0].quality);
-    if (sameGem && sameQuality && (towers.length === 2 || towers.length === 4)) {
+    if (
+      sameGem &&
+      sameQuality &&
+      (towers.length === 2 || towers.length === 4)
+    ) {
       const q = towers[0].quality;
       const bump = towers.length === 2 ? 1 : 2;
       const newQ = Math.min(5, q + bump) as Quality;
       if (newQ !== q) {
-        if (state.phase !== 'build') {
-          this.game.bus.emit('toast', { kind: 'error', text: 'Level-up only during build phase' });
+        if (state.phase !== "build") {
+          this.game.bus.emit("toast", {
+            kind: "error",
+            text: "Level-up only during build phase",
+          });
           return false;
         }
         if (!allCurrentRound) {
-          this.game.bus.emit('toast', { kind: 'error', text: 'Level-up requires current-round towers only' });
+          this.game.bus.emit("toast", {
+            kind: "error",
+            text: "Level-up requires current-round towers only",
+          });
           return false;
         }
         const shouldConclude = allDrawsPlaced(state);
-        const newTowerId = this.commitTransform(towers, towers[0].gem, newQ, undefined);
+        const newTowerId = this.commitTransform(
+          towers,
+          towers[0].gem,
+          newQ,
+          undefined,
+        );
         if (shouldConclude) {
           this.autoConcludeRound(newTowerId);
           this.game.enterWave();
@@ -297,22 +362,36 @@ export class BuildPhase {
 
     // Recipe path: strict (gem, quality) tuple match.
     // During build: all-current-round, all-kept, or exactly 1 current-round piece completing a kept set.
-    if (state.phase === 'build' && !allCurrentRound && !noneCurrentRound) {
-      const currentRoundCount = towers.filter((t) => currentRoundIds.has(t.id)).length;
+    if (state.phase === "build" && !allCurrentRound && !noneCurrentRound) {
+      const currentRoundCount = towers.filter((t) =>
+        currentRoundIds.has(t.id),
+      ).length;
       if (currentRoundCount > 1) {
-        this.game.bus.emit('toast', { kind: 'error', text: 'Recipe allows at most 1 piece from the current round' });
+        this.game.bus.emit("toast", {
+          kind: "error",
+          text: "Recipe allows at most 1 piece from the current round",
+        });
         return false;
       }
     }
     const inputs = towers.map((t) => ({ gem: t.gem, quality: t.quality }));
     const combo = findCombo(inputs);
     if (!combo) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'No matching recipe' });
+      this.game.bus.emit("toast", {
+        kind: "error",
+        text: "No matching recipe",
+      });
       return false;
     }
-    const outputQ = (Math.max(...towers.map((t) => t.quality))) as Quality;
-    const inputTouchedRound = state.phase === 'build' && towers.some((t) => currentRoundIds.has(t.id));
-    const newTowerId = this.commitTransform(towers, combo.visualGem, outputQ, combo.key);
+    const outputQ = Math.max(...towers.map((t) => t.quality)) as Quality;
+    const inputTouchedRound =
+      state.phase === "build" && towers.some((t) => currentRoundIds.has(t.id));
+    const newTowerId = this.commitTransform(
+      towers,
+      combo.visualGem,
+      outputQ,
+      combo.key,
+    );
     if (inputTouchedRound) {
       this.autoConcludeRound(newTowerId);
       this.game.enterWave();
@@ -341,7 +420,7 @@ export class BuildPhase {
     state.designatedKeepTowerId = keepTowerId;
     state.undoStack = [];
     this.game.refreshRoute();
-    this.game.bus.emit('draws:change', {});
+    this.game.bus.emit("draws:change", {});
   }
 
   private commitTransform(
@@ -359,10 +438,15 @@ export class BuildPhase {
     const slotsConsumed: Array<{ slotId: number; placedTowerId: number }> = [];
     for (const d of state.draws) {
       if (d.placedTowerId !== null && removedIds.has(d.placedTowerId)) {
-        slotsConsumed.push({ slotId: d.slotId, placedTowerId: d.placedTowerId });
+        slotsConsumed.push({
+          slotId: d.slotId,
+          placedTowerId: d.placedTowerId,
+        });
       }
     }
-    const wasKeep = state.designatedKeepTowerId !== null && removedIds.has(state.designatedKeepTowerId);
+    const wasKeep =
+      state.designatedKeepTowerId !== null &&
+      removedIds.has(state.designatedKeepTowerId);
 
     state.towers = state.towers.filter((t) => !removedIds.has(t.id));
     for (const t of inputs) {
@@ -371,7 +455,7 @@ export class BuildPhase {
 
     // Place the new tower at the first input's anchor.
     const comboRecipe = comboKey ? COMBO_BY_NAME.get(comboKey) : undefined;
-    const isTrap = comboRecipe?.type === 'trap';
+    const isTrap = comboRecipe?.type === "trap";
     const newTower: TowerState = {
       id: this.game.nextId(),
       x: baseTower.x,
@@ -380,16 +464,21 @@ export class BuildPhase {
       quality: outQuality,
       comboKey,
       lastFireTick: 0,
-      kills: 0,
+      kills: Math.max(...inputs.map((t) => t.kills)),
       totalDamage: 0,
       waveDamage: 0,
       placedWave: state.wave,
       isTrap: isTrap || undefined,
     };
     state.towers.push(newTower);
-    setFootprint(state, baseTower.x, baseTower.y, isTrap ? Cell.Trap : Cell.Tower);
+    setFootprint(
+      state,
+      baseTower.x,
+      baseTower.y,
+      isTrap ? Cell.Trap : Cell.Tower,
+    );
 
-    // Non-result anchors become 2×2 rock footprints (mirrors keeper-rock).
+    // Non-result anchors become 2x2 rock footprints (mirrors keeper-rock).
     const rockedAnchors: Array<{ x: number; y: number }> = [];
     for (let i = 1; i < inputs.length; i++) {
       const t = inputs[i];
@@ -412,7 +501,8 @@ export class BuildPhase {
       }
     }
     if (wasKeep) {
-      state.designatedKeepTowerId = slotsConsumed.length === inputs.length ? newTower.id : null;
+      state.designatedKeepTowerId =
+        slotsConsumed.length === inputs.length ? newTower.id : null;
     }
 
     this.game.refreshRoute();
@@ -434,17 +524,18 @@ export class BuildPhase {
           const d = state.draws.find((dd) => dd.slotId === c.slotId);
           if (d) d.placedTowerId = c.placedTowerId;
         }
-        if (wasKeep) state.designatedKeepTowerId = slotsConsumed[0]?.placedTowerId ?? null;
+        if (wasKeep)
+          state.designatedKeepTowerId = slotsConsumed[0]?.placedTowerId ?? null;
         this.game.refreshRoute();
       },
     });
 
-    this.game.bus.emit('combine:done', {
+    this.game.bus.emit("combine:done", {
       inputIds: inputs.map((t) => t.id),
       outputGem: outGem,
       outputQuality: outQuality,
     });
-    this.game.bus.emit('draws:change', {});
+    this.game.bus.emit("draws:change", {});
     return newTower.id;
   }
 
@@ -455,32 +546,49 @@ export class BuildPhase {
    */
   downgrade(towerId: number): boolean {
     const state = this.game.state;
-    const duringWave = state.phase === 'wave';
+    const duringWave = state.phase === "wave";
 
     const tower = state.towers.find((t) => t.id === towerId);
     if (!tower) return false;
     if (tower.comboKey) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Cannot downgrade specials' });
+      this.game.bus.emit("toast", {
+        kind: "error",
+        text: "Cannot downgrade specials",
+      });
       return false;
     }
     if (tower.quality <= 1) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Already lowest tier' });
+      this.game.bus.emit("toast", {
+        kind: "error",
+        text: "Already lowest tier",
+      });
       return false;
     }
     if (state.downgradeUsedThisRound) {
-      this.game.bus.emit('toast', { kind: 'error', text: 'Already downgraded this round' });
+      this.game.bus.emit("toast", {
+        kind: "error",
+        text: "Already downgraded this round",
+      });
       return false;
     }
 
     if (duringWave) {
       if (state.keptTowerIdThisRound !== towerId) {
-        this.game.bus.emit('toast', { kind: 'error', text: 'Only the kept tower can be downgraded' });
+        this.game.bus.emit("toast", {
+          kind: "error",
+          text: "Only the kept tower can be downgraded",
+        });
         return false;
       }
     } else {
-      const isCurrentDraw = state.draws.some((d) => d.placedTowerId === towerId);
+      const isCurrentDraw = state.draws.some(
+        (d) => d.placedTowerId === towerId,
+      );
       if (!isCurrentDraw) {
-        this.game.bus.emit('toast', { kind: 'error', text: 'Only current-round gems can be downgraded' });
+        this.game.bus.emit("toast", {
+          kind: "error",
+          text: "Only current-round gems can be downgraded",
+        });
         return false;
       }
     }
@@ -489,7 +597,7 @@ export class BuildPhase {
     tower.quality = (tower.quality - 1) as Quality;
     state.downgradeUsedThisRound = true;
 
-    this.game.bus.emit('tower:downgrade', {
+    this.game.bus.emit("tower:downgrade", {
       id: towerId,
       gem: tower.gem,
       oldQuality: oldQuality as Quality,
@@ -515,13 +623,16 @@ export class BuildPhase {
 }
 
 function pickQuality(r: number, tier: number): Quality {
-  const row = CHANCE_TIER_WEIGHTS[Math.max(0, Math.min(CHANCE_TIER_WEIGHTS.length - 1, tier))];
+  const row =
+    CHANCE_TIER_WEIGHTS[
+      Math.max(0, Math.min(CHANCE_TIER_WEIGHTS.length - 1, tier))
+    ];
   let acc = 0;
   for (let i = 0; i < row.length; i++) {
     acc += row[i];
     if (r <= acc) return (i + 1) as Quality;
   }
-  return (row.findIndex((w) => w > 0) + 1) as Quality || 1;
+  return ((row.findIndex((w) => w > 0) + 1) as Quality) || 1;
 }
 
 void QUALITY_BASE_COST;

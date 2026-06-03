@@ -1,7 +1,7 @@
 /**
  * query-telemetry.ts — balance-observations analysis engine.
  *
- * Reads the local sim telemetry DB (`.local/telemetry.db`, populated by
+ * Reads the local sim telemetry DB (`.local/telemetry.duckdb`, populated by
  * `npm run sim:run -- --telemetry` while `npm run telemetry:local` runs) and
  * prints ONE JSON blob with both the raw aggregates AND the derived metrics the
  * skill needs (damage/kill shares + ratios, combo build rates, within-archetype
@@ -19,23 +19,40 @@
  * Defaults: ai=HeuristicAI, version=<package.json version>, thin-sample cutoff=50.
  * Scope for every aggregation: mode='sim' AND wave_reached > 1 AND ai=? AND version=?.
  */
-import Database from "better-sqlite3";
+import { DuckDBInstance, type DuckDBValue } from "@duckdb/node-api";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { CREEP_ARCHETYPES } from "../../../../src/data/creeps.ts";
 import { COMBOS } from "../../../../src/data/combos.ts";
+import { GEM_BASE, type EffectKind } from "../../../../src/data/gems.ts";
 import { WAVES, type PayloadGroup, type WaveGroup } from "../../../../src/data/waves.ts";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, "../../../.."); // <root>/.claude/skills/balance-observations/scripts
-const DB_PATH = join(ROOT, ".local", "telemetry.db");
+const DB_PATH = join(ROOT, ".local", "telemetry.duckdb");
 
-// Opal is the one pure-support gem: its value is the attack-speed aura, not its
-// (incidental) hit damage. This is a mechanical-role fact, not a balance target —
-// it lets us report a damage-dealer mean that isn't dragged down by a gem that was
-// never meant to top the damage charts. The skill explains this in the report.
-const SUPPORT_GEMS = new Set(["opal"]);
+// Support items are derived from their effect kinds, not hardcoded — a gem/combo is
+// "support" when EVERY one of its effects only helps OTHER towers / the creep clock /
+// economy (auras, vulnerability, armor shred, air-grounding, bonus gold) and it has no
+// damaging effect of its own. Their value lands on other rows, never their own damage
+// row, so we exclude them from the damage-dealer mean (which would otherwise be dragged
+// down) and report them on the assist/keep/presence axes instead. This is a
+// mechanical-role classification, not a balance target; it auto-updates as content
+// changes. On the current roster this resolves to opal (gem) + black_opal, red_crystal
+// (combos); sapphire et al. stay damage dealers (their slow/CC is not in this set).
+const SUPPORT_KINDS = new Set<EffectKind["kind"]>([
+  "aura_atkspeed", "aura_dmg", "vulnerability_aura", "prox_armor_reduce",
+  "stacking_armor_reduce", "armor_decay_aura", "demote_air", "bonus_gold",
+]);
+const isSupportEffects = (effects: EffectKind[]): boolean =>
+  effects.length > 0 && effects.every((e) => SUPPORT_KINDS.has(e.kind));
+const supportGemSet = new Set(
+  Object.entries(GEM_BASE).filter(([, b]) => isSupportEffects(b.effects)).map(([g]) => g),
+);
+const supportComboSet = new Set(
+  COMBOS.filter((c) => isSupportEffects(c.stats.effects)).map((c) => c.key),
+);
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -111,22 +128,57 @@ function creepGroup(kind: string): "air" | "boss" | "container" | "standard" {
 }
 const comboName = new Map(COMBOS.map((c) => [c.key, c.name]));
 
-const db = new Database(DB_PATH, { readonly: true, fileMustExist: true });
-db.pragma("query_only = ON");
+let instance: Awaited<ReturnType<typeof DuckDBInstance.create>>;
+try {
+  instance = await DuckDBInstance.create(DB_PATH, { access_mode: "READ_ONLY" });
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (msg.includes("Conflicting lock")) {
+    console.log(JSON.stringify({
+      ok: false,
+      reason: "db-locked",
+      dbPath: DB_PATH,
+      message:
+        "DuckDB DB is held in read-write mode by another process (most likely " +
+        "`npm run telemetry:local`). DuckDB allows only one R/W process per file; " +
+        "stop the telemetry server before running this script.",
+    }));
+    process.exit(0);
+  }
+  throw err;
+}
+const db = await instance.connect();
 
-const inventory = db
-  .prepare(
-    `SELECT version, ai, count(*) AS runs FROM runs
-     WHERE mode='sim' AND wave_reached > 1
-     GROUP BY version, ai ORDER BY version DESC, runs DESC`,
-  )
-  .all();
+// Coerce bigints to plain numbers — DuckDB returns BIGINT for count/sum-of-INT;
+// the script's downstream math assumes Number. Counts here stay well within
+// MAX_SAFE_INTEGER so the lossy coercion is fine.
+function jsToNumbers<T>(rows: Record<string, unknown>[]): T[] {
+  for (const row of rows) {
+    for (const k in row) if (typeof row[k] === "bigint") row[k] = Number(row[k]);
+  }
+  return rows as unknown as T[];
+}
+async function all<T>(sql: string, params: DuckDBValue[] | Record<string, DuckDBValue> = []): Promise<T[]> {
+  const reader = await db.runAndReadAll(sql, params as DuckDBValue[]);
+  return jsToNumbers<T>(reader.getRowObjectsJS() as Record<string, unknown>[]);
+}
+async function one<T>(sql: string, params: DuckDBValue[] | Record<string, DuckDBValue> = []): Promise<T | undefined> {
+  const rows = await all<T>(sql, params);
+  return rows[0];
+}
 
-const targetRunCount = (
-  db
-    .prepare(`SELECT count(*) AS c FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=? AND version=?`)
-    .get(ai, version) as { c: number }
-).c;
+const inventory = await all(
+  `SELECT version, ai, count(*) AS runs FROM runs
+   WHERE mode='sim' AND wave_reached > 1
+   GROUP BY version, ai ORDER BY version DESC, runs DESC`,
+);
+
+const targetRunCount = Number((
+  await one(
+    `SELECT count(*) AS c FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
+    { ai, version },
+  ) as { c: number }
+).c);
 
 const meta = { ok: true as const, dbPath: DB_PATH, targetAi: ai, targetVersion: version, targetRunCount, inventory };
 
@@ -136,55 +188,283 @@ if (targetRunCount === 0) {
 }
 
 const scope = (col: string) =>
-  `${col} IN (SELECT run_id FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version)`;
+  `${col} IN (SELECT run_id FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version)`;
 const bind = { ai, version };
-const q = <T>(sql: string) => db.prepare(sql).all(bind) as T[];
+const q = <T>(sql: string) => all<T>(sql, bind);
 
-const overview = db
-  .prepare(
-    `SELECT count(*) AS runs, avg(wave_reached) AS avg_wave, max(wave_reached) AS max_wave,
-            sum(CASE WHEN outcome='victory' THEN 1 ELSE 0 END) AS victories
-     FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
-  )
-  .get(bind);
+// ── Keeper events → keep-rate (A1) + presence reconstruction (A2) ──────────────
+// Exactly one tower is kept per wave; the keeper event records (gem, detail=combo_key,
+// wave, run). Raw-gem keeps carry detail=''; combo keeps carry the combo_key. We split
+// keep credit so raw-gem and combo shares are disjoint (a combo keeper counts for the
+// combo, not its base gem), so gem keep_share + combo keep_share ≈ 1 across kept items.
+const keeperRows = await q<{ gem: string; combo_key: string; run_id: string; wave: number }>(
+  `SELECT gem, detail AS combo_key, run_id, wave FROM events
+   WHERE event_type='keeper' AND ${scope("run_id")}`,
+);
+const totalKeepers = keeperRows.length || 1;
+const gemKeepCount = new Map<string, number>();
+const gemKeepRuns = new Map<string, Set<string>>();
+const comboKeepCount = new Map<string, number>();
+const comboKeepRuns = new Map<string, Set<string>>();
+// earliest keep wave per (item, run) — kept towers persist, so item is "present" from then on.
+const gemKeepWave = new Map<string, Map<string, number>>();
+const comboKeepWave = new Map<string, Map<string, number>>();
+const bumpKeep = (
+  cnt: Map<string, number>, runs: Map<string, Set<string>>, wave: Map<string, Map<string, number>>,
+  key: string, run: string, w: number,
+) => {
+  cnt.set(key, (cnt.get(key) ?? 0) + 1);
+  let s = runs.get(key); if (!s) { s = new Set(); runs.set(key, s); } s.add(run);
+  let m = wave.get(key); if (!m) { m = new Map(); wave.set(key, m); }
+  m.set(run, Math.min(m.get(run) ?? Infinity, w));
+};
+for (const r of keeperRows) {
+  if (r.combo_key) bumpKeep(comboKeepCount, comboKeepRuns, comboKeepWave, r.combo_key, r.run_id, r.wave);
+  else bumpKeep(gemKeepCount, gemKeepRuns, gemKeepWave, r.gem, r.run_id, r.wave);
+}
+const gemKeep = (gem: string) => ({
+  keep_incidence: round((gemKeepRuns.get(gem)?.size ?? 0) / targetRunCount),
+  keep_share: round((gemKeepCount.get(gem) ?? 0) / totalKeepers),
+});
+const comboKeep = (key: string) => ({
+  keep_incidence: round((comboKeepRuns.get(key)?.size ?? 0) / targetRunCount),
+  keep_share: round((comboKeepCount.get(key) ?? 0) / totalKeepers),
+});
+
+// Presence-conditioning data (support items only). CORRELATIONAL, not a counterfactual:
+// presence correlates with progression and stronger boards. The skill must caveat loudly.
+const runFull = await q<{ run_id: string; wave_reached: number; total_leaks: number }>(
+  `SELECT run_id, wave_reached, total_leaks FROM runs
+   WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
+);
+const waveDetail = await q<{ run_id: string; wave: number; leaks: number; total_damage: number; avg_ticks_to_kill: number; avg_path_progress: number }>(
+  `SELECT run_id, wave, leaks, total_damage, avg_ticks_to_kill, avg_path_progress
+   FROM waves WHERE ${scope("run_id")}`,
+);
+const waveDetailByWave = new Map<number, typeof waveDetail>();
+for (const r of waveDetail) {
+  let a = waveDetailByWave.get(r.wave); if (!a) { a = []; waveDetailByWave.set(r.wave, a); }
+  a.push(r);
+}
+const avgBy = <T>(rows: T[], f: (r: T) => number) =>
+  rows.length ? rows.reduce((s, r) => s + f(r), 0) / rows.length : 0;
+function presenceForItem(keepWaveByRun: Map<string, number> | undefined) {
+  const kw = keepWaveByRun ?? new Map<string, number>();
+  const ever = new Set(kw.keys());
+  const kept = runFull.filter((r) => ever.has(r.run_id));
+  const never = runFull.filter((r) => !ever.has(r.run_id));
+  const outcomeSplit = {
+    kept_runs: kept.length,
+    never_runs: never.length,
+    thin_sample: kept.length < thinCutoff || never.length < thinCutoff,
+    kept: kept.length ? { avg_wave_reached: round(avgBy(kept, (r) => r.wave_reached), 2), avg_total_leaks: round(avgBy(kept, (r) => r.total_leaks), 2) } : null,
+    never: never.length ? { avg_wave_reached: round(avgBy(never, (r) => r.wave_reached), 2), avg_total_leaks: round(avgBy(never, (r) => r.total_leaks), 2) } : null,
+  };
+  const perWave = [...waveDetailByWave.keys()].sort((a, b) => a - b).map((w) => {
+    const rows = waveDetailByWave.get(w)!;
+    const present = rows.filter((r) => { const k = kw.get(r.run_id); return k !== undefined && k <= w; });
+    const absent = rows.filter((r) => { const k = kw.get(r.run_id); return k === undefined || k > w; });
+    const adequate = present.length >= thinCutoff && absent.length >= thinCutoff;
+    const agg = (rs: typeof rows) => ({
+      avg_ticks_to_kill: round(avgBy(rs, (r) => r.avg_ticks_to_kill), 0),
+      avg_path_progress: round(avgBy(rs, (r) => r.avg_path_progress)),
+      avg_total_damage: round(avgBy(rs, (r) => r.total_damage), 0),
+      avg_leaks: round(avgBy(rs, (r) => r.leaks)),
+    });
+    return {
+      wave: w,
+      present_runs: present.length,
+      absent_runs: absent.length,
+      thin_sample: !adequate,
+      present: adequate ? agg(present) : null,
+      absent: adequate ? agg(absent) : null,
+    };
+  });
+  return { outcomeSplit, perWave };
+}
+const PRESENCE_CAVEAT =
+  "Correlational, NOT a counterfactual: a support item's presence correlates with run " +
+  "progression and stronger boards, so 'present' cohorts look better partly because " +
+  "better runs keep more towers. Only a leave-one-out sim measures marginal value.";
+
+const overview = await one(
+  `SELECT count(*) AS runs, avg(wave_reached) AS avg_wave, max(wave_reached) AS max_wave,
+          sum(CASE WHEN outcome='victory' THEN 1 ELSE 0 END) AS victories
+   FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
+  bind,
+);
 
 // ── Gems: per-gem damage/kill share + ratio to the damage-dealer mean ──────────
-const gemRows = q<{ gem: string; total_damage: number; total_kills: number; runs: number }>(
+const gemRows = await q<{ gem: string; total_damage: number; total_kills: number; runs: number }>(
   `SELECT gem, sum(damage) AS total_damage, sum(kills) AS total_kills, count(DISTINCT run_id) AS runs
    FROM wave_gem_damage WHERE is_combo = 0 AND ${scope("run_id")}
    GROUP BY gem ORDER BY total_damage DESC`,
 );
 const rosterDamage = gemRows.reduce((s, r) => s + r.total_damage, 0) || 1;
 const rosterKills = gemRows.reduce((s, r) => s + r.total_kills, 0) || 1;
-const dealerShares = gemRows.filter((r) => !SUPPORT_GEMS.has(r.gem)).map((r) => r.total_damage / rosterDamage);
+const dealerShares = gemRows.filter((r) => !supportGemSet.has(r.gem)).map((r) => r.total_damage / rosterDamage);
 const dealerMean = dealerShares.length ? dealerShares.reduce((s, x) => s + x, 0) / dealerShares.length : 0;
+
+// ── DMG/HP: damage normalized by the incoming HP pool (mirrors dashboard.ts "Dmg/HP") ──
+// For each wave an item dealt damage on: (its damage that wave / runs that dealt it) ÷
+// (avg enemy HP that spawned that wave), then averaged across those waves. Gold- AND
+// run-length-agnostic — a wave-by-wave share of the HP that actually walked the board — so
+// it's the cleanest cross-gem / cross-special damage-output lens. avg_hp_pool mirrors the
+// dashboard's waveHpPool query exactly (sum(total_hp_spawned) ÷ distinct runs, per wave).
+const hpPoolByWave = new Map(
+  (await q<{ wave: number; avg_hp_pool: number }>(
+    `SELECT wave, sum(total_hp_spawned) * 1.0 / count(DISTINCT run_id) AS avg_hp_pool
+     FROM wave_creep_stats WHERE ${scope("run_id")} GROUP BY wave`,
+  )).map((r) => [r.wave, r.avg_hp_pool] as const),
+);
+const dmgPerHpByKey = (rows: { key: string; wave: number; total_damage: number; runs: number }[]) => {
+  const byKey = new Map<string, { wave: number; total_damage: number; runs: number }[]>();
+  for (const r of rows) {
+    let a = byKey.get(r.key); if (!a) { a = []; byKey.set(r.key, a); }
+    a.push(r);
+  }
+  const out = new Map<string, number | null>();
+  for (const [k, rs] of byKey) {
+    let sum = 0, n = 0;
+    for (const r of rs) {
+      const hp = hpPoolByWave.get(r.wave);
+      if (hp && hp > 0 && r.runs > 0) { sum += r.total_damage / r.runs / hp; n++; }
+    }
+    out.set(k, n ? round(sum / n) : null);
+  }
+  return out;
+};
+const gemDmgPerHp = dmgPerHpByKey(
+  await q<{ key: string; wave: number; total_damage: number; runs: number }>(
+    `SELECT gem AS key, wave, sum(damage) AS total_damage, count(DISTINCT run_id) AS runs
+     FROM wave_gem_damage WHERE is_combo = 0 AND ${scope("run_id")} GROUP BY gem, wave`,
+  ),
+);
+const comboDmgPerHp = dmgPerHpByKey(
+  await q<{ key: string; wave: number; total_damage: number; runs: number }>(
+    `SELECT combo_key AS key, wave, sum(damage) AS total_damage, count(DISTINCT run_id) AS runs
+     FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key, wave`,
+  ),
+);
+// Dealer-gem mean DMG/HP → anchor for a per-gem deviation ratio (parallels dealerMeanDamageShare).
+const dealerDmgPerHps = gemRows
+  .filter((r) => !supportGemSet.has(r.gem))
+  .map((r) => gemDmgPerHp.get(r.gem))
+  .filter((x): x is number => typeof x === "number");
+const dealerMeanDmgPerHp = dealerDmgPerHps.length
+  ? dealerDmgPerHps.reduce((s, x) => s + x, 0) / dealerDmgPerHps.length
+  : 0;
+
+// ── Assist (A3): assisted damage credited to support sources, from wave_gem_assist ──
+// Pre-instrumentation runs (older versions) have no such table/rows; we omit the block
+// then (the script already version-filters, so it returns automatically once new runs land).
+const assistTableRow = await one<{ n: number }>(
+  `SELECT count(*) AS n FROM information_schema.tables
+   WHERE table_schema='main' AND table_name='wave_gem_assist'`,
+);
+const hasAssistTable = (assistTableRow?.n ?? 0) > 0;
+type AssistAgg = { dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number };
+const zeroAssist = (): AssistAgg => ({ dmg_aura: 0, vuln: 0, armor_shred: 0, atkspeed: 0, bonus_gold: 0 });
+const assistByGem = new Map<string, AssistAgg>();
+const assistByCombo = new Map<string, AssistAgg>();
+if (hasAssistTable) {
+  const assistRows = await q<{ gem: string; combo_key: string; dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number }>(
+    `SELECT gem, combo_key,
+            sum(dmg_aura_assist) AS dmg_aura, sum(vuln_assist) AS vuln,
+            sum(armor_shred_assist) AS armor_shred, sum(atkspeed_assist) AS atkspeed,
+            sum(bonus_gold) AS bonus_gold
+     FROM wave_gem_assist WHERE ${scope("run_id")} GROUP BY gem, combo_key`,
+  );
+  for (const r of assistRows) {
+    const target = r.combo_key ? assistByCombo : assistByGem;
+    const key = r.combo_key || r.gem;
+    const a = target.get(key) ?? zeroAssist();
+    a.dmg_aura += r.dmg_aura; a.vuln += r.vuln; a.armor_shred += r.armor_shred;
+    a.atkspeed += r.atkspeed; a.bonus_gold += r.bonus_gold;
+    target.set(key, a);
+  }
+}
+const assistedTotal = (a: AssistAgg) => a.dmg_aura + a.vuln + a.armor_shred + a.atkspeed;
+// Support-set median assisted_damage_share → deviation band (parallels the dealer mean).
+const supportShares: number[] = [];
+for (const [g, a] of assistByGem) if (supportGemSet.has(g)) supportShares.push(assistedTotal(a) / rosterDamage);
+for (const [k, a] of assistByCombo) if (supportComboSet.has(k)) supportShares.push(assistedTotal(a) / rosterDamage);
+const supportMedianShare = supportShares.length ? median(supportShares) : 0;
+const assistRow = (isSupport: boolean, a: AssistAgg) => {
+  const assisted = assistedTotal(a);
+  const share = assisted / rosterDamage;
+  return {
+    isSupport,
+    dmg_aura_assist: round(a.dmg_aura, 0),
+    vuln_assist: round(a.vuln, 0),
+    armor_shred_assist: round(a.armor_shred, 0),
+    atkspeed_assist: round(a.atkspeed, 0),
+    assisted_damage: round(assisted, 0),
+    // share against the GEM roster total, so it's directly comparable to dealers' damage_share
+    assisted_damage_share: round(share),
+    // gold units, NOT folded into damage shares
+    bonus_gold: round(a.bonus_gold, 0),
+    ratio_to_support_median: isSupport && supportMedianShare > 0 ? round(share / supportMedianShare, 2) : null,
+  };
+};
+const gemAssist = hasAssistTable ? {
+  rosterTotalDamage: rosterDamage,
+  support_median_assisted_damage_share: supportShares.length ? round(supportMedianShare) : null,
+  perGem: [...assistByGem.entries()]
+    .map(([gem, a]) => ({ gem, ...assistRow(supportGemSet.has(gem), a) }))
+    .filter((r) => r.assisted_damage > 0 || r.bonus_gold > 0)
+    .sort((x, y) => y.assisted_damage - x.assisted_damage),
+} : null;
+const comboAssist = hasAssistTable ? {
+  rosterTotalDamage: rosterDamage,
+  support_median_assisted_damage_share: supportShares.length ? round(supportMedianShare) : null,
+  perCombo: [...assistByCombo.entries()]
+    .map(([key, a]) => ({ key, name: comboName.get(key) ?? key, ...assistRow(supportComboSet.has(key), a) }))
+    .filter((r) => r.assisted_damage > 0 || r.bonus_gold > 0)
+    .sort((x, y) => y.assisted_damage - x.assisted_damage),
+} : null;
+
 const gems = {
   rosterTotalDamage: rosterDamage,
   rosterTotalKills: rosterKills,
   dealerMeanDamageShare: round(dealerMean),
-  supportGems: [...SUPPORT_GEMS],
+  dealerMeanDmgPerHp: round(dealerMeanDmgPerHp),
+  supportGems: [...supportGemSet],
   perGem: gemRows.map((r) => {
     const dmgShare = r.total_damage / rosterDamage;
     return {
       gem: r.gem,
-      isSupport: SUPPORT_GEMS.has(r.gem),
+      isSupport: supportGemSet.has(r.gem),
       total_damage: r.total_damage,
       total_kills: r.total_kills,
       runs: r.runs,
       damage_share: round(dmgShare),
       kill_share: round(r.total_kills / rosterKills),
       // ratio to the dealer mean; null for support gems (not measured against it)
-      ratio_to_dealer_mean: SUPPORT_GEMS.has(r.gem) || !dealerMean ? null : round(dmgShare / dealerMean, 2),
+      ratio_to_dealer_mean: supportGemSet.has(r.gem) || !dealerMean ? null : round(dmgShare / dealerMean, 2),
+      // DMG/HP (dashboard "Dmg/HP"): damage per unit of wave HP pool; gold- and run-length-
+      // agnostic, so comparable across gems regardless of cost or how far the run got.
+      dmg_per_hp: gemDmgPerHp.get(r.gem) ?? null,
+      dmg_per_hp_ratio_to_dealer_mean:
+        supportGemSet.has(r.gem) || !dealerMeanDmgPerHp || gemDmgPerHp.get(r.gem) == null
+          ? null
+          : round((gemDmgPerHp.get(r.gem) as number) / dealerMeanDmgPerHp, 2),
+      ...gemKeep(r.gem),
     };
   }),
+  assist: gemAssist,
+  presenceConditioning: {
+    caveat: PRESENCE_CAVEAT,
+    items: [...supportGemSet].map((g) => ({ gem: g, ...presenceForItem(gemKeepWave.get(g)) })),
+  },
 };
 
 // ── Combos: build rate + damage per build (two source tables differ by design) ──
-const comboDmg = q<{ combo_key: string; total_damage: number; total_kills: number; runs: number }>(
+const comboDmg = await q<{ combo_key: string; total_damage: number; total_kills: number; runs: number }>(
   `SELECT combo_key, sum(damage) AS total_damage, sum(kills) AS total_kills, count(DISTINCT run_id) AS runs
    FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key`,
 );
-const comboBuild = q<{ combo_key: string; built: number; runs: number }>(
+const comboBuild = await q<{ combo_key: string; built: number; runs: number }>(
   `SELECT combo_key, count(*) AS built, count(DISTINCT run_id) AS runs
    FROM towers WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key`,
 );
@@ -204,6 +484,10 @@ const combos = {
         total_kills: d?.total_kills ?? 0,
         damage_runs: d?.runs ?? 0, // runs where it dealt damage (≠ built_runs, different table)
         dmg_per_build: round((d?.total_damage ?? 0) / b.built, 0),
+        // DMG/HP (dashboard "Dmg/HP"): damage per unit of wave HP pool — run-length-agnostic,
+        // so it's the cleanest cross-special damage-output lens. null if it never dealt damage.
+        dmg_per_hp: comboDmgPerHp.get(b.combo_key) ?? null,
+        ...comboKeep(b.combo_key),
       };
     })
     .sort((a, b) => b.build_rate - a.build_rate),
@@ -223,11 +507,11 @@ const combos = {
 // Outliers are read ACROSS combos WITHIN a tier bucket (gold scales differ by tier),
 // so each row carries the tier's median cum_dmg_per_gold and a ratio to it.
 const comboUpgradeCosts = new Map(COMBOS.map((c) => [c.key, c.upgrades.map((u) => u.cost)]));
-const tierDmgRows = q<{ combo_key: string; upgrade_tier: number; total_damage: number; total_kills: number; runs: number }>(
+const tierDmgRows = await q<{ combo_key: string; upgrade_tier: number; total_damage: number; total_kills: number; runs: number }>(
   `SELECT combo_key, upgrade_tier, sum(damage) AS total_damage, sum(kills) AS total_kills, count(DISTINCT run_id) AS runs
    FROM wave_gem_damage WHERE combo_key != '' AND ${scope("run_id")} GROUP BY combo_key, upgrade_tier`,
 );
-const towerTierRows = q<{ combo_key: string; upgrade_tier: number; n: number }>(
+const towerTierRows = await q<{ combo_key: string; upgrade_tier: number; n: number }>(
   `SELECT combo_key, upgrade_tier, count(*) AS n FROM towers WHERE combo_key != '' AND ${scope("run_id")}
    GROUP BY combo_key, upgrade_tier`,
 );
@@ -307,10 +591,19 @@ const combos2 = {
       };
     })
     .sort((a, b) => a.tier - b.tier || (b.cum_dmg_per_gold ?? -1) - (a.cum_dmg_per_gold ?? -1)),
+  assist: comboAssist,
+  presenceConditioning: {
+    caveat: PRESENCE_CAVEAT,
+    items: [...supportComboSet].map((k) => ({
+      key: k,
+      name: comboName.get(k) ?? k,
+      ...presenceForItem(comboKeepWave.get(k)),
+    })),
+  },
 };
 
 // ── Creeps: within-archetype leak rates ────────────────────────────────────────
-const creepRows = q<{
+const creepRows = await q<{
   creep_kind: string;
   spawned: number;
   kills: number;
@@ -369,20 +662,20 @@ const creeps = {
 };
 
 // ── Waves: per-wave death/leak, guarded neighbor comparison, creep attribution ──
-const waveStatRows = q<{ wave: number; samples: number; avg_leaks: number; total_leaks: number; avg_damage: number; avg_path_progress: number }>(
+const waveStatRows = await q<{ wave: number; samples: number; avg_leaks: number; total_leaks: number; avg_damage: number; avg_path_progress: number }>(
   `SELECT wave, count(*) AS samples, avg(leaks) AS avg_leaks, sum(leaks) AS total_leaks,
           avg(total_damage) AS avg_damage, avg(avg_path_progress) AS avg_path_progress
    FROM waves WHERE ${scope("run_id")} GROUP BY wave ORDER BY wave`,
 );
-const reachRows = q<{ wave: number; reached: number }>(
+const reachRows = await q<{ wave: number; reached: number }>(
   `SELECT wave, count(DISTINCT run_id) AS reached FROM waves WHERE ${scope("run_id")} GROUP BY wave`,
 );
-const deathRows = q<{ wave: number; deaths: number }>(
+const deathRows = await q<{ wave: number; deaths: number }>(
   `SELECT wave_reached AS wave, count(*) AS deaths FROM runs
-   WHERE outcome='gameover' AND mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version
+   WHERE outcome='gameover' AND mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version
    GROUP BY wave_reached`,
 );
-const leakAttrRows = q<{ wave: number; creep_kind: string; spawned: number; leaks: number }>(
+const leakAttrRows = await q<{ wave: number; creep_kind: string; spawned: number; leaks: number }>(
   `SELECT wave, creep_kind, sum(spawned) AS spawned, sum(leaks) AS leaks
    FROM wave_creep_stats WHERE ${scope("run_id")} GROUP BY wave, creep_kind HAVING sum(leaks) > 0`,
 );
@@ -437,21 +730,25 @@ const waves = {
   }),
 };
 
-// ── Wave-1 choice: Malachite vs Silver cohorts (by the forced starter offer) ────
-// On wave 1 the game guarantees ingredients for exactly ONE of two early specials
-// (BuildPhase.rollDraws): Malachite = opal/emerald/aquamarine, Silver = topaz/diamond/
-// sapphire. Every run is therefore in exactly one cohort. We recover the offer from the
-// run's wave-1 keeper event — `detail` carries the kept combo_key (malachite/silver),
-// the direct record of the forced choice. (Older runs predating per-wave keeper events
-// won't have one; we fall back to the kept gem's recipe membership.) This is a
-// BETWEEN-COHORT comparison: both cohorts are driven by the same AI, so the *relative*
-// gap in wave reached is a valid signal even though the absolute level is not (the skill
-// states this caveat). 'unassigned' counts runs whose wave-1 keeper matches neither
-// special (expected to be ~0).
-const MALACHITE_RECIPE = new Set(["opal", "emerald", "aquamarine"]);
-const SILVER_RECIPE = new Set(["topaz", "diamond", "sapphire"]);
-type Cohort = "malachite" | "silver";
-const w1Keepers = q<{ run_id: string; gem: string; combo_key: string }>(
+// ── Wave-1 choice: Malachite / Silver / Pyrite cohorts (by the forced starter offer) ──
+// On wave 1 the game guarantees ingredients for exactly ONE of three early specials
+// (BuildPhase.rollDraws): Malachite = opal/emerald/topaz, Silver = sapphire/garnet/diamond,
+// Pyrite = peridot/spinel/aquamarine. Every run is therefore in exactly one cohort. We
+// recover the offer from the run's wave-1 keeper event — `detail` carries the kept combo_key
+// (malachite/silver/pyrite), the direct record of the forced choice. (Older runs predating
+// per-wave keeper events won't have one; we fall back to the kept gem's recipe membership.)
+// This is a BETWEEN-COHORT comparison: all cohorts are driven by the same AI, so the *relative*
+// gap in wave reached is a valid signal even though the absolute level is not (the skill states
+// this caveat). 'unassigned' counts runs whose wave-1 keeper matches no special (expected ~0).
+const STARTER_RECIPES: Record<string, Set<string>> = {
+  malachite: new Set(["opal", "emerald", "topaz"]),
+  silver: new Set(["sapphire", "garnet", "diamond"]),
+  // "carnelian" kept for historical runs before the rename — safe to drop once those runs age out of the dashboards.
+  pyrite: new Set(["peridot", "carnelian", "spinel", "aquamarine"]),
+};
+type Cohort = "malachite" | "silver" | "pyrite";
+const COHORT_KEYS = Object.keys(STARTER_RECIPES) as Cohort[];
+const w1Keepers = await q<{ run_id: string; gem: string; combo_key: string }>(
   `SELECT run_id, gem, detail AS combo_key FROM events
    WHERE event_type = 'keeper' AND wave = 1 AND ${scope("run_id")}`,
 );
@@ -459,15 +756,17 @@ const cohortByRun = new Map<string, Cohort>();
 let unassigned = 0;
 for (const r of w1Keepers) {
   // Prefer the kept combo (direct signal); fall back to the kept gem's recipe.
-  if (r.combo_key === "malachite" || (!r.combo_key && MALACHITE_RECIPE.has(r.gem))) cohortByRun.set(r.run_id, "malachite");
-  else if (r.combo_key === "silver" || (!r.combo_key && SILVER_RECIPE.has(r.gem))) cohortByRun.set(r.run_id, "silver");
+  const matched = COHORT_KEYS.find(
+    (c) => r.combo_key === c || (!r.combo_key && STARTER_RECIPES[c].has(r.gem)),
+  );
+  if (matched) cohortByRun.set(r.run_id, matched);
   else unassigned++;
 }
-const runMetaRows = q<{ run_id: string; wave_reached: number; outcome: string }>(
-  `SELECT run_id, wave_reached, outcome FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=@ai AND version=@version`,
+const runMetaRows = await q<{ run_id: string; wave_reached: number; outcome: string }>(
+  `SELECT run_id, wave_reached, outcome FROM runs WHERE mode='sim' AND wave_reached > 1 AND ai=$ai AND version=$version`,
 );
-const cohortWaves: Record<Cohort, number[]> = { malachite: [], silver: [] };
-const cohortVictories: Record<Cohort, number> = { malachite: 0, silver: 0 };
+const cohortWaves = Object.fromEntries(COHORT_KEYS.map((c) => [c, []])) as Record<Cohort, number[]>;
+const cohortVictories = Object.fromEntries(COHORT_KEYS.map((c) => [c, 0])) as Record<Cohort, number>;
 for (const r of runMetaRows) {
   const c = cohortByRun.get(r.run_id);
   if (!c) continue;
@@ -488,13 +787,15 @@ const cohortSummary = (c: Cohort) => {
   };
 };
 // per-wave death & leak, split by cohort, so we can see WHERE each choice falls behind
-const waveLeakRows = q<{ run_id: string; wave: number; leaks: number }>(
+const waveLeakRows = await q<{ run_id: string; wave: number; leaks: number }>(
   `SELECT run_id, wave, leaks FROM waves WHERE ${scope("run_id")}`,
 );
 type WaveAgg = { reached: number; leakSum: number };
 const perWaveCohort = new Map<number, Record<Cohort, WaveAgg>>();
+const emptyWaveAgg = (): Record<Cohort, WaveAgg> =>
+  Object.fromEntries(COHORT_KEYS.map((c) => [c, { reached: 0, leakSum: 0 }])) as Record<Cohort, WaveAgg>;
 const ensureWave = (w: number) => {
-  if (!perWaveCohort.has(w)) perWaveCohort.set(w, { malachite: { reached: 0, leakSum: 0 }, silver: { reached: 0, leakSum: 0 } });
+  if (!perWaveCohort.has(w)) perWaveCohort.set(w, emptyWaveAgg());
   return perWaveCohort.get(w)!;
 };
 for (const r of waveLeakRows) {
@@ -510,7 +811,7 @@ for (const r of runMetaRows) {
   if (r.outcome !== "gameover") continue;
   const c = cohortByRun.get(r.run_id);
   if (!c) continue;
-  if (!deathsByWaveCohort.has(r.wave_reached)) deathsByWaveCohort.set(r.wave_reached, { malachite: 0, silver: 0 });
+  if (!deathsByWaveCohort.has(r.wave_reached)) deathsByWaveCohort.set(r.wave_reached, Object.fromEntries(COHORT_KEYS.map((c) => [c, 0])) as Record<Cohort, number>);
   deathsByWaveCohort.get(r.wave_reached)![c] += 1;
 }
 const cohortWaveStats = (w: number, c: Cohort) => {
@@ -524,18 +825,24 @@ const cohortWaveStats = (w: number, c: Cohort) => {
     thin_sample: agg.reached < thinCutoff,
   };
 };
-const mSum = cohortSummary("malachite");
-const sSum = cohortSummary("silver");
+const cohortSummaries = Object.fromEntries(COHORT_KEYS.map((c) => [c, cohortSummary(c)])) as Record<Cohort, ReturnType<typeof cohortSummary>>;
+const pairwiseDeltas: Record<string, number | null> = {};
+for (let i = 0; i < COHORT_KEYS.length; i++) {
+  for (let j = i + 1; j < COHORT_KEYS.length; j++) {
+    const a = COHORT_KEYS[i], b = COHORT_KEYS[j];
+    const aAvg = cohortSummaries[a].avg_wave, bAvg = cohortSummaries[b].avg_wave;
+    pairwiseDeltas[`${b}_minus_${a}_avg_wave`] = aAvg !== null && bAvg !== null ? round(bAvg - aAvg, 2) : null;
+  }
+}
 const waveOneChoice = {
-  detector: "wave-1 keeper event combo_key (Malachite / Silver; falls back to the kept gem's recipe for runs without keeper events)",
+  detector: "wave-1 keeper event combo_key (Malachite / Silver / Pyrite; falls back to the kept gem's recipe for runs without keeper events)",
   unassigned,
-  cohorts: { malachite: mSum, silver: sSum },
-  // positive → Silver reaches further on average; relative gap only (same AI both sides).
-  silver_minus_malachite_avg_wave: mSum.avg_wave !== null && sSum.avg_wave !== null ? round(sSum.avg_wave - mSum.avg_wave, 2) : null,
+  cohorts: cohortSummaries,
+  deltas: pairwiseDeltas,
   perWave: [...perWaveCohort.keys()]
     .sort((a, b) => a - b)
-    .map((w) => ({ wave: w, malachite: cohortWaveStats(w, "malachite"), silver: cohortWaveStats(w, "silver") })),
+    .map((w) => ({ wave: w, ...Object.fromEntries(COHORT_KEYS.map((c) => [c, cohortWaveStats(w, c)])) })),
 };
 
 console.log(JSON.stringify({ ...meta, overview, gems, combos: combos2, creeps, waves, waveOneChoice }, null, 2));
-db.close();
+db.disconnectSync();

@@ -78,7 +78,7 @@ export function opalFleckHue(frame: number): number {
   );
 }
 
-// ===== Tier silhouettes (10×10) =========================================
+// ===== Tier silhouettes (10x10) =========================================
 
 /** T1 Chipped — three broken pieces. */
 export const TIER_SHARD: PixelGrid = [
@@ -158,7 +158,7 @@ export const TIER_GRIDS: Record<1 | 2 | 3 | 4 | 5, PixelGrid> = {
   5: TIER_CROWN,
 };
 
-// ===== Special silhouettes (8×8) =========================================
+// ===== Special silhouettes (8x8) =========================================
 
 const STAR_RUBY: PixelGrid = [
   [0, 0, 0, 4, 4, 0, 0, 0],
@@ -667,6 +667,186 @@ const YELLOW_SAPPH_T2: PixelGrid = [
   [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
 ];
 
+// PYRITE — T1: Fractured Core (8x8), dark iron shell with glowing vein seams
+const PYRITE_T1: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 4, 3, 1, 2, 3, 4, 0],
+  [4, 3, 5, 5, 2, 3, 3, 4],
+  [4, 1, 5, 1, 5, 2, 3, 4],
+  [4, 2, 2, 5, 3, 5, 3, 4],
+  [4, 3, 3, 2, 5, 5, 3, 4],
+  [0, 4, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+];
+
+// PYRITE — T2: Molten Pyrite (10x10), more fractures, brighter core
+const PYRITE_T2: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 4, 0, 0, 0],
+  [0, 4, 3, 3, 1, 2, 3, 3, 4, 0],
+  [4, 3, 5, 5, 5, 5, 2, 3, 3, 4],
+  [4, 3, 5, 1, 1, 2, 5, 2, 3, 4],
+  [4, 1, 5, 1, 5, 5, 2, 5, 3, 4],
+  [4, 2, 5, 5, 5, 2, 3, 5, 3, 4],
+  [4, 3, 5, 2, 2, 3, 5, 3, 3, 4],
+  [4, 3, 3, 5, 5, 5, 3, 3, 3, 4],
+  [0, 4, 3, 3, 2, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+// PYRITE — T3: Pyroclast (12x12), white-hot core, volcanic black crust
+const PYRITE_T3: PixelGrid = [
+  [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
+  [0, 0, 4, 3, 3, 1, 2, 3, 3, 4, 0, 0],
+  [0, 4, 3, 5, 5, 5, 5, 5, 3, 3, 4, 0],
+  [4, 3, 5, 1, 1, 5, 5, 2, 5, 3, 3, 4],
+  [4, 3, 5, 1, 5, 1, 2, 5, 2, 5, 3, 4],
+  [4, 1, 5, 5, 1, 5, 5, 2, 5, 5, 3, 4],
+  [4, 2, 5, 5, 5, 5, 5, 3, 5, 5, 3, 4],
+  [4, 3, 5, 2, 5, 2, 3, 5, 3, 5, 3, 4],
+  [4, 3, 3, 5, 5, 5, 5, 5, 3, 3, 3, 4],
+  [0, 4, 3, 3, 5, 2, 3, 3, 3, 3, 4, 0],
+  [0, 0, 4, 3, 3, 3, 3, 3, 3, 4, 0, 0],
+  [0, 0, 0, 4, 4, 4, 4, 4, 4, 0, 0, 0],
+];
+
+// GOLDEN BERYL — T1: hexagonal prism with detached sparkle corona (8x8)
+const GOLDEN_BERYL_T1: PixelGrid = [
+  [0, 0, 0, 5, 5, 0, 0, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 4, 1, 1, 2, 2, 4, 0],
+  [5, 4, 1, 1, 2, 2, 4, 5],
+  [5, 4, 2, 2, 3, 3, 4, 5],
+  [0, 4, 2, 2, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 0, 0],
+  [0, 0, 0, 5, 5, 0, 0, 0],
+];
+
+// GOLDEN BERYL — T2: Radiant Beryl (10x10)
+const GOLDEN_BERYL_T2: PixelGrid = [
+  [0, 0, 0, 0, 5, 5, 0, 0, 0, 0],
+  [0, 0, 5, 4, 4, 4, 4, 5, 0, 0],
+  [0, 0, 4, 1, 1, 2, 2, 4, 0, 0],
+  [0, 4, 1, 1, 5, 5, 2, 2, 4, 0],
+  [5, 4, 1, 5, 1, 2, 5, 2, 4, 5],
+  [5, 4, 2, 5, 2, 3, 5, 3, 4, 5],
+  [0, 4, 2, 2, 5, 5, 3, 3, 4, 0],
+  [0, 0, 4, 2, 2, 3, 3, 4, 0, 0],
+  [0, 0, 5, 4, 4, 4, 4, 5, 0, 0],
+  [0, 0, 0, 0, 5, 5, 0, 0, 0, 0],
+];
+
+// GOLDEN BERYL — T3: Prismatic Beryl (12x12)
+const GOLDEN_BERYL_T3: PixelGrid = [
+  [0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0],
+  [0, 0, 0, 5, 4, 4, 4, 4, 5, 0, 0, 0],
+  [0, 0, 5, 4, 1, 1, 2, 2, 4, 5, 0, 0],
+  [0, 5, 4, 1, 1, 5, 5, 2, 2, 4, 5, 0],
+  [0, 4, 1, 1, 5, 1, 2, 5, 2, 2, 4, 0],
+  [5, 4, 1, 5, 1, 5, 5, 2, 5, 2, 4, 5],
+  [5, 4, 2, 5, 2, 5, 5, 3, 5, 3, 4, 5],
+  [0, 4, 2, 2, 5, 2, 3, 5, 3, 3, 4, 0],
+  [0, 5, 4, 2, 2, 5, 5, 3, 3, 4, 5, 0],
+  [0, 0, 5, 4, 2, 3, 3, 3, 4, 5, 0, 0],
+  [0, 0, 0, 5, 4, 4, 4, 4, 5, 0, 0, 0],
+  [0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0],
+];
+
+// TIGER'S EYE — T1: Obsidian Eye, dark anthracite with gold eye (8x8)
+const TIGERS_EYE_T1: PixelGrid = [
+  [0, 4, 4, 4, 4, 4, 4, 0],
+  [4, 1, 1, 2, 2, 2, 2, 4],
+  [4, 1, 2, 2, 5, 2, 3, 4],
+  [4, 1, 2, 5, 5, 2, 3, 4],
+  [4, 2, 3, 5, 5, 3, 3, 4],
+  [4, 2, 3, 5, 2, 3, 3, 4],
+  [4, 2, 3, 3, 3, 3, 3, 4],
+  [0, 4, 4, 4, 4, 4, 4, 0],
+];
+
+// TIGER'S EYE — T2: Dragon's Eye (10x10)
+const TIGERS_EYE_T2: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+  [0, 4, 1, 1, 1, 5, 2, 2, 4, 0],
+  [4, 1, 1, 1, 5, 5, 2, 2, 3, 4],
+  [4, 1, 1, 5, 5, 5, 5, 3, 3, 4],
+  [4, 1, 5, 5, 1, 2, 5, 5, 3, 4],
+  [4, 2, 5, 5, 2, 3, 5, 5, 3, 4],
+  [4, 2, 2, 5, 5, 5, 5, 3, 3, 4],
+  [4, 2, 3, 3, 5, 5, 3, 3, 3, 4],
+  [0, 4, 3, 3, 3, 5, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+// THUNDERSTONE — T1: Raw Bolt, jagged asymmetric shard (8x8)
+const THUNDERSTONE_T1: PixelGrid = [
+  [0, 0, 4, 4, 0, 0, 0, 0],
+  [0, 4, 1, 1, 4, 4, 0, 0],
+  [0, 4, 1, 5, 5, 2, 4, 0],
+  [4, 1, 5, 2, 5, 3, 4, 0],
+  [4, 2, 5, 2, 3, 5, 3, 4],
+  [0, 4, 2, 5, 5, 3, 4, 0],
+  [0, 0, 4, 2, 3, 4, 0, 0],
+  [0, 0, 0, 4, 4, 0, 0, 0],
+];
+
+// THUNDERSTONE — T2: Storm Crown (10x10)
+const THUNDERSTONE_T2: PixelGrid = [
+  [0, 0, 4, 4, 0, 0, 4, 4, 0, 0],
+  [0, 4, 1, 1, 4, 4, 1, 2, 4, 0],
+  [4, 1, 1, 5, 5, 5, 5, 2, 2, 4],
+  [4, 1, 5, 1, 2, 2, 5, 2, 3, 4],
+  [4, 2, 5, 2, 5, 5, 2, 5, 3, 4],
+  [4, 2, 2, 5, 2, 3, 5, 3, 3, 4],
+  [4, 2, 5, 2, 2, 5, 3, 5, 3, 4],
+  [4, 2, 2, 5, 5, 3, 5, 3, 3, 4],
+  [0, 4, 2, 2, 3, 5, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+// AMETRINE — T1: Raw chunk, jagged asymmetric (8x8)
+const AMETRINE_T1: PixelGrid = [
+  [0, 0, 0, 4, 4, 4, 0, 0],
+  [0, 0, 4, 5, 5, 2, 4, 0],
+  [0, 4, 5, 2, 5, 2, 3, 4],
+  [4, 5, 2, 1, 5, 3, 3, 4],
+  [4, 1, 1, 5, 2, 3, 4, 0],
+  [4, 1, 2, 1, 3, 3, 4, 0],
+  [0, 4, 1, 3, 3, 4, 0, 0],
+  [0, 0, 4, 4, 4, 0, 0, 0],
+];
+
+// AMETRINE — T2: Imperial Ametrine, tall emerald-cut rectangle (10x12)
+const AMETRINE_T2: PixelGrid = [
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+  [0, 4, 5, 5, 5, 2, 2, 2, 4, 0],
+  [4, 5, 5, 5, 5, 2, 2, 2, 2, 4],
+  [4, 5, 5, 5, 5, 2, 2, 2, 3, 4],
+  [4, 5, 5, 5, 5, 1, 2, 3, 3, 4],
+  [4, 5, 5, 5, 1, 5, 3, 3, 3, 4],
+  [4, 1, 1, 5, 1, 3, 3, 3, 3, 4],
+  [4, 1, 1, 1, 3, 3, 3, 3, 3, 4],
+  [4, 1, 1, 1, 3, 3, 3, 3, 3, 4],
+  [4, 1, 1, 1, 1, 3, 3, 3, 3, 4],
+  [0, 4, 1, 1, 1, 3, 3, 3, 4, 0],
+  [0, 0, 4, 4, 4, 4, 4, 4, 0, 0],
+];
+
+// AMETRINE — T3: Ametrine Sovereign, tall crowned jewel (12x12)
+const AMETRINE_T3: PixelGrid = [
+  [0, 0, 0, 0, 0, 5, 5, 0, 0, 0, 0, 0],
+  [0, 0, 0, 0, 5, 5, 5, 5, 0, 0, 0, 0],
+  [0, 0, 0, 5, 5, 5, 5, 5, 5, 0, 0, 0],
+  [0, 0, 4, 5, 5, 5, 5, 5, 5, 4, 0, 0],
+  [0, 4, 1, 1, 5, 5, 5, 5, 1, 1, 4, 0],
+  [4, 1, 1, 1, 5, 5, 5, 5, 1, 1, 1, 4],
+  [4, 3, 1, 1, 5, 5, 5, 5, 1, 1, 3, 4],
+  [4, 3, 3, 1, 1, 5, 5, 1, 1, 3, 3, 4],
+  [0, 4, 3, 3, 1, 5, 5, 1, 3, 3, 4, 0],
+  [0, 0, 4, 3, 3, 1, 1, 3, 3, 4, 0, 0],
+  [0, 0, 0, 4, 3, 3, 3, 3, 4, 0, 0, 0],
+  [0, 0, 0, 0, 4, 4, 4, 4, 0, 0, 0, 0],
+];
+
 export type SpecialTier = 1 | 2 | 3;
 
 /** Per-tier grids for all specials. T1 is the base grid in SPECIAL_SPRITES. */
@@ -686,6 +866,11 @@ export const SPECIAL_TIER_GRIDS: Partial<
   red_crystal: { 2: RED_CRYSTAL_T2, 3: RED_CRYSTAL_T3 },
   paraiba_tourmaline: { 2: PARAIBA_T2 },
   yellow_sapphire: { 2: YELLOW_SAPPH_T2 },
+  pyrite: { 2: PYRITE_T2, 3: PYRITE_T3 },
+  golden_beryl: { 2: GOLDEN_BERYL_T2, 3: GOLDEN_BERYL_T3 },
+  tigers_eye: { 2: TIGERS_EYE_T2 },
+  thunderstone: { 2: THUNDERSTONE_T2 },
+  ametrine: { 2: AMETRINE_T2, 3: AMETRINE_T3 },
 };
 
 const STARGEM: PixelGrid = [
@@ -924,6 +1109,56 @@ export const SPECIAL_SPRITES: Record<string, SpecialSpriteSpec> = {
     },
     visualGem: "sapphire",
   },
+  pyrite: {
+    grid: PYRITE_T1,
+    palette: {
+      light: hex("#e8c868"),
+      mid: hex("#b08830"),
+      dark: hex("#483818"),
+      sparkle: hex("#fff0a0"),
+    },
+    visualGem: "spinel",
+  },
+  golden_beryl: {
+    grid: GOLDEN_BERYL_T1,
+    palette: {
+      light: hex("#f0d068"),
+      mid: hex("#c09028"),
+      dark: hex("#584010"),
+      sparkle: hex("#fff0a0"),
+    },
+    visualGem: "topaz",
+  },
+  tigers_eye: {
+    grid: TIGERS_EYE_T1,
+    palette: {
+      light: hex("#8a9098"),
+      mid: hex("#505860"),
+      dark: hex("#202428"),
+      sparkle: hex("#e8c040"),
+    },
+    visualGem: "diamond",
+  },
+  thunderstone: {
+    grid: THUNDERSTONE_T1,
+    palette: {
+      light: hex("#a0a0ff"),
+      mid: hex("#5858c8"),
+      dark: hex("#201040"),
+      sparkle: hex("#e0e8ff"),
+    },
+    visualGem: "sapphire",
+  },
+  ametrine: {
+    grid: AMETRINE_T1,
+    palette: {
+      light: hex("#d098e8"),
+      mid: hex("#8848b0"),
+      dark: hex("#381858"),
+      sparkle: hex("#f0c038"),
+    },
+    visualGem: "amethyst",
+  },
   rune_holding: {
     grid: RUNE_HOLDING_GRID,
     palette: {
@@ -1036,6 +1271,64 @@ export const SPECIAL_TIER_PALETTES: Partial<
       sparkle: hex("#e0ffff"),
     },
   },
+  pyrite: {
+    2: {
+      light: hex("#f0a040"),
+      mid: hex("#c06020"),
+      dark: hex("#301810"),
+      sparkle: hex("#ffe080"),
+    },
+    3: {
+      light: hex("#fff0d0"),
+      mid: hex("#f07830"),
+      dark: hex("#181010"),
+      sparkle: hex("#ffffff"),
+    },
+  },
+  golden_beryl: {
+    2: {
+      light: hex("#f8e080"),
+      mid: hex("#d0a030"),
+      dark: hex("#604818"),
+      sparkle: hex("#fff8c0"),
+    },
+    3: {
+      light: hex("#fff0a0"),
+      mid: hex("#e0b838"),
+      dark: hex("#685020"),
+      sparkle: hex("#ffffff"),
+    },
+  },
+  tigers_eye: {
+    2: {
+      light: hex("#909898"),
+      mid: hex("#585e68"),
+      dark: hex("#282c30"),
+      sparkle: hex("#f0d050"),
+    },
+  },
+  thunderstone: {
+    2: {
+      light: hex("#b0b0ff"),
+      mid: hex("#6868d8"),
+      dark: hex("#281850"),
+      sparkle: hex("#f0f0ff"),
+    },
+  },
+  ametrine: {
+    2: {
+      light: hex("#d8a8f0"),
+      mid: hex("#9858c0"),
+      dark: hex("#402060"),
+      sparkle: hex("#f8d048"),
+    },
+    3: {
+      light: hex("#e0b8f8"),
+      mid: hex("#a868d0"),
+      dark: hex("#482868"),
+      sparkle: hex("#ffe068"),
+    },
+  },
 };
 
 // ===== Special FX descriptors ============================================
@@ -1078,7 +1371,7 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     pulse: 1.2,
     orbit: false,
     aura: false,
-    ground: hex("#446618"),
+    ground: null,
   },
   black_opal: {
     glow: hex("#a0a0ff"),
@@ -1150,7 +1443,7 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     pulse: 1.8,
     orbit: false,
     aura: false,
-    // No ground tint: the old #0a4858 square filled the whole 2×2 footprint
+    // No ground tint: the old #0a4858 square filled the whole 2x2 footprint
     // and, under the near-white gem + bright halo, read as glow flooding the
     // tile. Keep the glow emanating from the crystal instead.
     ground: null,
@@ -1163,9 +1456,49 @@ export const SPECIAL_FX: Record<string, SpecialFx> = {
     aura: false,
     ground: null,
   },
+  pyrite: {
+    glow: hex("#e8c868"),
+    halo: 0.5,
+    pulse: 2.4,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  golden_beryl: {
+    glow: hex("#f0c038"),
+    halo: 0.55,
+    pulse: 2.8,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  tigers_eye: {
+    glow: hex("#e8c040"),
+    halo: 0.45,
+    pulse: 3.0,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  thunderstone: {
+    glow: hex("#8080ff"),
+    halo: 0.5,
+    pulse: 2.0,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
+  ametrine: {
+    glow: hex("#c080e0"),
+    halo: 0.55,
+    pulse: 2.4,
+    orbit: false,
+    aura: false,
+    ground: null,
+  },
 };
 
-// ===== Rocks (16×16, tile-filling) =======================================
+// ===== Rocks (16x16, tile-filling) =======================================
 
 export const ROCK_BOULDER: PixelGrid = [
   [1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3],

@@ -29,25 +29,11 @@
   --px-accent-hi: #f7c878;
   --px-accent-lo: #a06820;
   --px-good: #58c850;
+  --px-good-d: #2c6428;
   --px-bad: #d04848;
   --px-info: #78a8f8;
   --px-ink-dimmer: #8c7a5e;
   --px-panel-2-hi: #7c66a4;
-
-  --gem-ruby: #e8384c;
-  --gem-ruby-d: #8c1820;
-  --gem-sapphire: #3878e8;
-  --gem-sapphire-d: #1c3878;
-  --gem-emerald: #38c860;
-  --gem-emerald-d: #186830;
-  --gem-topaz: #f0c038;
-  --gem-topaz-d: #886820;
-  --gem-amethyst: #a050e0;
-  --gem-amethyst-d: #582878;
-  --gem-opal: #1e2632;
-  --gem-opal-d: #06080e;
-  --gem-diamond: #d8f0f8;
-  --gem-diamond-d: #6890a8;
 
   /* Variant B "Cobblestone Keep" tokens. */
   --px-wall-seam: #0a0510;
@@ -55,8 +41,6 @@
   --px-path-stone: #9a7c54;
   --px-path-stone-alt: #7a5e38;
   --px-path-mortar: #3a2818;
-  --px-grass-clover: #88e878;
-  --px-grass-tuft: #5a8a60;
   --px-crystal-light: #c8e0ff;
   --px-crystal-core: #78a8f8;
   --px-crystal-deep: #3868c8;

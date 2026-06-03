@@ -8,16 +8,35 @@
  */
 
 import { Container, Graphics, Sprite, Texture } from "pixi.js";
-import type { CreepState, ProjectileState, RockState, State, TowerState } from "../game/State";
+import type {
+  CreepState,
+  ProjectileState,
+  RockState,
+  State,
+  TowerState,
+} from "../game/State";
 import { activeDraw } from "../game/State";
-import { FINE_TILE, TILE } from "../game/constants";
+import { FINE_TILE, SIM_HZ, TILE } from "../game/constants";
 import { GEM_PALETTE, type GemType, RUNE, THEME } from "./theme";
 import { TowerSpriteCache, makeTowerSprite } from "./TowerRenderer";
-import { OPAL_FRAME_COUNT, SPECIAL_SPRITES, SPECIAL_TIER_GRIDS } from "./spriteData";
+import {
+  OPAL_FRAME_COUNT,
+  SPECIAL_SPRITES,
+  SPECIAL_TIER_GRIDS,
+} from "./spriteData";
 import { gemStats } from "../data/gems";
-import { COMBO_BY_NAME, comboStatsAtTier } from "../data/combos";
-import { SPRITE_BY_KIND, SPRITE_CHRYSALID_AWAKE, SPRITE_GESTATION_ENRAGED } from "./sprites";
-import { drawPixelGrid } from "./pixelTexture";
+import {
+  COMBO_BY_NAME,
+  comboStatsAtTier,
+  findDrawPartners,
+  partnerTowerIdSet,
+} from "../data/combos";
+import {
+  SPRITE_BY_KIND,
+  SPRITE_CHRYSALID_AWAKE,
+  SPRITE_GESTATION_ENRAGED,
+} from "./sprites";
+import { drawPixelGrid, generateRingTexture } from "./pixelTexture";
 import { GRID_W, GRID_H } from "../data/map";
 import { SPECIAL_FX } from "./spriteData";
 import { rasterizeToTexture } from "./pixelTexture";
@@ -60,6 +79,41 @@ interface MalachiteFx {
 interface ParaibaFx {
   arcs: Graphics[];
   tier: number;
+}
+
+interface PyriteFx {
+  dots: Graphics[];
+  trails?: Graphics[];
+  arcs?: Graphics[];
+  tier: number;
+}
+
+interface GoldenBerylFx {
+  rings: Graphics[];
+  motes: Graphics[];
+  tier: number;
+}
+
+interface ThunderstoneFx {
+  arc?: Graphics;
+  tier: number;
+}
+
+interface AmetrineFx {
+  /** Palette-swapped (purple→gold, sparkle→amethyst) version of the gem itself.
+   *  alpha = modePhase, so this fades in as the tower flips to scatter. */
+  goldOverlay: Sprite;
+  /** Lens rings around the gem: closed purple ring (focus) / gold arc segments
+   *  (scatter), plus T2 inner counter-ring and T3 orbiting pip ticks. Rebuilt
+   *  every frame; rings only — no fills over the gem. */
+  lens: Graphics;
+  /** A-side tier flourishes: T2 mode-fault line through the gem during scatter,
+   *  T3 crown ticks above the gem (color matched to current mode). */
+  flourish: Graphics;
+  tier: number;
+  /** Cached sprite dimensions for radius math (TOWER_SCALE applied). */
+  spriteW: number;
+  spriteH: number;
 }
 
 interface TowerEntry {
@@ -110,6 +164,30 @@ interface TowerEntry {
   starRubyCoronaSprite?: Sprite;
   paraibaBobWrap?: Container;
   paraibaFx?: ParaibaFx;
+  pyriteBobWrap?: Container;
+  pyriteFx?: PyriteFx;
+  goldenBerylBobWrap?: Container;
+  goldenBerylFx?: GoldenBerylFx;
+  tigersEyeBobWrap?: Container;
+  thunderstoneBobWrap?: Container;
+  thunderstoneFx?: ThunderstoneFx;
+  ametrineBobWrap?: Container;
+  ametrineFx?: AmetrineFx;
+  /** Currently-displayed adaptive mode (0 = focus/purple, 1 = scatter/gold).
+   *  Snaps discretely at the midpoint of the iris-shutter transition; no easing. */
+  ametrineModePhase?: number;
+  /** Last target mode (0/1) — detects a flip to trigger the iris transition. */
+  ametrineModeTarget?: number;
+  /** Wall-clock ms of the most recent mode flip; drives the iris-shutter envelope. */
+  ametrineFlashStart?: number;
+  /** Peridot charge ring — antialiased track + clockwise fill arc reading the idle wind-up. */
+  peridotChargeFx?: PeridotChargeFx;
+  /** Idle ticks needed for a full charge (chargeSeconds x SIM_HZ), cached at build. */
+  peridotChargeTicks?: number;
+  /** Last seen lastFireTick, to detect a shot and trigger the discharge flash. */
+  peridotLastFireTick?: number;
+  /** Wall-clock ms of the most recent fire, for the discharge-flash envelope. */
+  peridotDischargeStart?: number;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -172,14 +250,26 @@ const projectileObjs = new Map<number, PerEntity>();
 
 const runeTextureCache = new Map<string, Texture>();
 
-export function renderTowers(layer: Container, towers: TowerState[], cache: TowerSpriteCache, selectedTowerId: number | null = null, hoveredTowerId: number | null = null): void {
+export function renderTowers(
+  layer: Container,
+  towers: TowerState[],
+  cache: TowerSpriteCache,
+  tick: number,
+  selectedTowerId: number | null = null,
+  hoveredTowerId: number | null = null,
+): void {
   const now = performance.now();
   const seen = new Set<number>();
   for (const t of towers) {
     seen.add(t.id);
     const tier = t.upgradeTier ?? 0;
     let entry = towerObjs.get(t.id);
-    if (!entry || entry.comboKey !== t.comboKey || entry.quality !== t.quality || entry.upgradeTier !== tier) {
+    if (
+      !entry ||
+      entry.comboKey !== t.comboKey ||
+      entry.quality !== t.quality ||
+      entry.upgradeTier !== tier
+    ) {
       if (entry) {
         entry.obj.destroy({ children: true });
         towerObjs.delete(t.id);
@@ -205,9 +295,21 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       let starRubyCoronaSprite: Sprite | undefined;
       let paraibaBobWrap: Container | undefined;
       let paraibaFx: ParaibaFx | undefined;
+      let pyriteBobWrap: Container | undefined;
+      let pyriteFx: PyriteFx | undefined;
+      let goldenBerylBobWrap: Container | undefined;
+      let goldenBerylFx: GoldenBerylFx | undefined;
+      let tigersEyeBobWrap: Container | undefined;
+      let thunderstoneBobWrap: Container | undefined;
+      let thunderstoneFx: ThunderstoneFx | undefined;
+      let ametrineBobWrap: Container | undefined;
+      let ametrineFx: AmetrineFx | undefined;
+      let peridotChargeFx: PeridotChargeFx | undefined;
+      let peridotChargeTicks = 0;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
-      const runeEffect = t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
+      const runeEffect =
+        t.isTrap && t.comboKey ? runeEffectFromComboKey(t.comboKey) : null;
       if (runeEffect) {
         let tex = runeTextureCache.get(runeEffect);
         if (!tex) {
@@ -224,33 +326,53 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
         const halo = new Graphics();
         const r = FINE_TILE * 0.9;
         for (let i = 5; i > 0; i--) {
-          halo.circle(0, 0, r * (i / 5)).fill({ color: palette.glow, alpha: 0.08 });
+          halo
+            .circle(0, 0, r * (i / 5))
+            .fill({ color: palette.glow, alpha: 0.08 });
         }
         obj.addChild(halo);
         fx = { halo, haloPeak: 0.7, haloPulse: 2.4, glow: palette.glow };
       } else if (t.comboKey === "stargem") {
         sgfx = makeStargemFx(obj);
-        const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
+        const towerSprite = makeTowerSprite(
+          t.gem,
+          t.quality,
+          cache,
+          t.comboKey,
+          tier,
+        );
         sgfx.spriteWrap.addChild(towerSprite);
       } else {
         if (t.comboKey && SPECIAL_FX[t.comboKey]) {
           fx = makeSpecialFx(obj, t.comboKey);
         }
-        const towerSprite = makeTowerSprite(t.gem, t.quality, cache, t.comboKey, tier);
-        if (t.comboKey === 'jade') {
+        const towerSprite = makeTowerSprite(
+          t.gem,
+          t.quality,
+          cache,
+          t.comboKey,
+          tier,
+        );
+        if (t.comboKey === "jade") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
           obj.addChild(wrap);
           jadeBobWrap = wrap;
-        } else if (t.comboKey === 'bloodstone') {
+        } else if (t.comboKey === "bloodstone") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
           if (tier >= 1) {
-            const spec = SPECIAL_SPRITES['bloodstone'];
-            const tierGrids = SPECIAL_TIER_GRIDS['bloodstone'];
+            const spec = SPECIAL_SPRITES["bloodstone"];
+            const tierGrids = SPECIAL_TIER_GRIDS["bloodstone"];
             const effectiveTier = Math.min(tier + 1, 3) as 2 | 3;
-            const grid = (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
-            const emberTex = rasterizeToTexture(cache.renderer, grid, BLOODSTONE_EMBER_PALETTE, 3);
+            const grid =
+              (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
+            const emberTex = rasterizeToTexture(
+              cache.renderer,
+              grid,
+              BLOODSTONE_EMBER_PALETTE,
+              3,
+            );
             const es = new Sprite(emberTex);
             es.anchor.set(0.5, 0.5);
             es.alpha = 0;
@@ -259,114 +381,231 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
           }
           obj.addChild(wrap);
           bloodstoneBobWrap = wrap;
-        } else if (t.comboKey === 'silver') {
+        } else if (t.comboKey === "silver") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
-          const sSpec = SPECIAL_SPRITES['silver'];
-          const sTierGrids = SPECIAL_TIER_GRIDS['silver'];
+          const sSpec = SPECIAL_SPRITES["silver"];
+          const sTierGrids = SPECIAL_TIER_GRIDS["silver"];
           const sEff = Math.min(tier + 1, 3) as 2 | 3;
           const sGrid = (sEff > 1 && sTierGrids?.[sEff]) || sSpec.grid;
           if (tier >= 2) {
-            const frostTex = rasterizeToTexture(cache.renderer, sGrid, SILVER_FROST_PALETTE, 3);
+            const frostTex = rasterizeToTexture(
+              cache.renderer,
+              sGrid,
+              SILVER_FROST_PALETTE,
+              3,
+            );
             const fs = new Sprite(frostTex);
             fs.anchor.set(0.5, 0.5);
             fs.alpha = 0;
-            fs.blendMode = 'add';
+            fs.blendMode = "add";
             wrap.addChild(fs);
             silverFrostSprite = fs;
           }
           obj.addChild(wrap);
           silverBobWrap = wrap;
-        } else if (t.comboKey === 'yellow_sapphire') {
+        } else if (t.comboKey === "yellow_sapphire") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
           if (tier >= 1) {
-            const ysSpec = SPECIAL_SPRITES['yellow_sapphire'];
-            const ysTierGrids = SPECIAL_TIER_GRIDS['yellow_sapphire'];
+            const ysSpec = SPECIAL_SPRITES["yellow_sapphire"];
+            const ysTierGrids = SPECIAL_TIER_GRIDS["yellow_sapphire"];
             const ysEff = Math.min(tier + 1, 3) as 2 | 3;
             const ysGrid = (ysEff > 1 && ysTierGrids?.[ysEff]) || ysSpec.grid;
-            const frostTex = rasterizeToTexture(cache.renderer, ysGrid, YS_FROST_PALETTE, 3);
+            const frostTex = rasterizeToTexture(
+              cache.renderer,
+              ysGrid,
+              YS_FROST_PALETTE,
+              3,
+            );
             const fs = new Sprite(frostTex);
             fs.anchor.set(0.5, 0.5);
             fs.alpha = 0;
-            fs.blendMode = 'add';
+            fs.blendMode = "add";
             wrap.addChild(fs);
             ysFrostSprite = fs;
           }
           obj.addChild(wrap);
           ysBobWrap = wrap;
-        } else if (t.comboKey === 'uranium') {
+        } else if (t.comboKey === "uranium") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
-          const uSpec = SPECIAL_SPRITES['uranium'];
-          const uTierGrids = SPECIAL_TIER_GRIDS['uranium'];
+          const uSpec = SPECIAL_SPRITES["uranium"];
+          const uTierGrids = SPECIAL_TIER_GRIDS["uranium"];
           const uEff = Math.min(tier + 1, 3) as 2 | 3;
           const uGrid = (uEff > 1 && uTierGrids?.[uEff]) || uSpec.grid;
-          const irradTex = rasterizeToTexture(cache.renderer, uGrid, URANIUM_IRRADIATED_PALETTE, 3);
+          const irradTex = rasterizeToTexture(
+            cache.renderer,
+            uGrid,
+            URANIUM_IRRADIATED_PALETTE,
+            3,
+          );
           const is = new Sprite(irradTex);
           is.anchor.set(0.5, 0.5);
           is.alpha = 0;
-          is.blendMode = 'add';
+          is.blendMode = "add";
           wrap.addChild(is);
           uraniumIrradiatedSprite = is;
           obj.addChild(wrap);
           uraniumBobWrap = wrap;
-        } else if (t.comboKey === 'black_opal') {
+        } else if (t.comboKey === "black_opal") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
-          const boSpec = SPECIAL_SPRITES['black_opal'];
-          const boTierGrids = SPECIAL_TIER_GRIDS['black_opal'];
+          const boSpec = SPECIAL_SPRITES["black_opal"];
+          const boTierGrids = SPECIAL_TIER_GRIDS["black_opal"];
           const boEff = Math.min(tier + 1, 3) as 2 | 3;
           const boGrid = (boEff > 1 && boTierGrids?.[boEff]) || boSpec.grid;
-          const shimmerTex = rasterizeToTexture(cache.renderer, boGrid, BLACK_OPAL_SHIMMER_PALETTE, 3);
+          const shimmerTex = rasterizeToTexture(
+            cache.renderer,
+            boGrid,
+            BLACK_OPAL_SHIMMER_PALETTE,
+            3,
+          );
           const ss = new Sprite(shimmerTex);
           ss.anchor.set(0.5, 0.5);
           ss.alpha = 0;
-          ss.blendMode = 'add';
+          ss.blendMode = "add";
           wrap.addChild(ss);
           blackOpalShimmerSprite = ss;
           obj.addChild(wrap);
           blackOpalBobWrap = wrap;
-        } else if (t.comboKey === 'star_ruby') {
+        } else if (t.comboKey === "star_ruby") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
           if (tier >= 1) {
-            const srSpec = SPECIAL_SPRITES['star_ruby'];
-            const srTierGrids = SPECIAL_TIER_GRIDS['star_ruby'];
+            const srSpec = SPECIAL_SPRITES["star_ruby"];
+            const srTierGrids = SPECIAL_TIER_GRIDS["star_ruby"];
             const srEff = Math.min(tier + 1, 3) as 2 | 3;
             const srGrid = (srEff > 1 && srTierGrids?.[srEff]) || srSpec.grid;
-            const coronaTex = rasterizeToTexture(cache.renderer, srGrid, STAR_RUBY_CORONA_PALETTE, 3);
+            const coronaTex = rasterizeToTexture(
+              cache.renderer,
+              srGrid,
+              STAR_RUBY_CORONA_PALETTE,
+              3,
+            );
             const cs = new Sprite(coronaTex);
             cs.anchor.set(0.5, 0.5);
             cs.alpha = 0;
-            cs.blendMode = 'add';
+            cs.blendMode = "add";
             wrap.addChild(cs);
             starRubyCoronaSprite = cs;
           }
           obj.addChild(wrap);
           starRubyBobWrap = wrap;
-        } else if (t.comboKey === 'paraiba_tourmaline') {
+        } else if (t.comboKey === "paraiba_tourmaline") {
           const wrap = new Container();
           wrap.addChild(towerSprite);
           paraibaFx = makeParaibaArcFx(wrap, tier);
           obj.addChild(wrap);
           paraibaBobWrap = wrap;
+        } else if (t.comboKey === "pyrite") {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          pyriteFx = makePyriteFx(wrap, tier);
+          obj.addChild(wrap);
+          pyriteBobWrap = wrap;
+        } else if (t.comboKey === "golden_beryl") {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          goldenBerylFx = makeGoldenBerylFx(wrap, tier);
+          obj.addChild(wrap);
+          goldenBerylBobWrap = wrap;
+        } else if (t.comboKey === "tigers_eye") {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          obj.addChild(wrap);
+          tigersEyeBobWrap = wrap;
+        } else if (t.comboKey === "thunderstone") {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          thunderstoneFx = makeThunderstoneFx(wrap, tier);
+          obj.addChild(wrap);
+          thunderstoneBobWrap = wrap;
+        } else if (t.comboKey === "ametrine") {
+          const wrap = new Container();
+          wrap.addChild(towerSprite);
+          ametrineFx = makeAmetrineFx(wrap, cache, tier);
+          obj.addChild(wrap);
+          ametrineBobWrap = wrap;
         } else {
           obj.addChild(towerSprite);
         }
         if (t.gem === "opal" && !t.comboKey) {
           opalFrames = cache.opalFrameTextures(t.quality);
         }
-        if (t.comboKey === 'red_crystal') {
+        if (t.gem === "peridot" && !t.comboKey) {
+          const { tex, scale } = peridotRing(cache);
+          const track = new Sprite(tex);
+          track.anchor.set(0.5);
+          track.scale.set(scale);
+          track.tint = PERIDOT_RING.dark;
+          track.alpha = 0.5;
+          const fill = new Sprite(tex);
+          fill.anchor.set(0.5);
+          fill.scale.set(scale);
+          const mask = new Graphics();
+          fill.mask = mask;
+          const extras = new Graphics();
+          obj.addChild(track, fill, mask, extras);
+          peridotChargeFx = { track, fill, mask, extras };
+          const cb = gemStats(t.gem as GemType, t.quality).effects.find(
+            (e) => e.kind === "charge_burst",
+          );
+          peridotChargeTicks =
+            (cb && "chargeSeconds" in cb ? cb.chargeSeconds : 8) * SIM_HZ;
+        }
+        if (t.comboKey === "red_crystal") {
           redCrystalFx = makeRedCrystalFx(obj, tier);
         }
-        if (t.comboKey === 'malachite') {
+        if (t.comboKey === "malachite") {
           malachiteFx = makeMalachiteFx(obj, tier);
         }
       }
       layer.addChild(obj);
-      const opalSprite = opalFrames ? (obj.children[obj.children.length - 1] as Container).children[0] as Sprite : undefined;
-      entry = { obj, comboKey: t.comboKey, gem: t.gem, quality: t.quality, upgradeTier: tier, fx, stargemFx: sgfx, opalFrames, opalSprite, jadeBobWrap, bloodstoneBobWrap, bloodstoneEmberSprite, silverBobWrap, silverFrostSprite, ysBobWrap, ysFrostSprite, redCrystalFx, malachiteFx, uraniumBobWrap, uraniumIrradiatedSprite, blackOpalBobWrap, blackOpalShimmerSprite, starRubyBobWrap, starRubyCoronaSprite, paraibaBobWrap, paraibaFx };
+      const opalSprite = opalFrames
+        ? ((obj.children[obj.children.length - 1] as Container)
+            .children[0] as Sprite)
+        : undefined;
+      entry = {
+        obj,
+        comboKey: t.comboKey,
+        gem: t.gem,
+        quality: t.quality,
+        upgradeTier: tier,
+        fx,
+        stargemFx: sgfx,
+        opalFrames,
+        opalSprite,
+        jadeBobWrap,
+        bloodstoneBobWrap,
+        bloodstoneEmberSprite,
+        silverBobWrap,
+        silverFrostSprite,
+        ysBobWrap,
+        ysFrostSprite,
+        redCrystalFx,
+        malachiteFx,
+        uraniumBobWrap,
+        uraniumIrradiatedSprite,
+        blackOpalBobWrap,
+        blackOpalShimmerSprite,
+        starRubyBobWrap,
+        starRubyCoronaSprite,
+        paraibaBobWrap,
+        paraibaFx,
+        pyriteBobWrap,
+        pyriteFx,
+        goldenBerylBobWrap,
+        goldenBerylFx,
+        tigersEyeBobWrap,
+        thunderstoneBobWrap,
+        thunderstoneFx,
+        ametrineBobWrap,
+        ametrineFx,
+        peridotChargeFx,
+        peridotChargeTicks,
+        peridotLastFireTick: t.lastFireTick,
+      };
       towerObjs.set(t.id, entry);
     }
     entry.obj.x = (t.x + 1) * FINE_TILE;
@@ -379,6 +618,11 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
     else if (entry.blackOpalBobWrap) animateBlackOpalFx(entry, now);
     else if (entry.starRubyBobWrap) animateStarRubyFx(entry, now);
     else if (entry.paraibaBobWrap) animateParaibaArcFx(entry, now);
+    else if (entry.pyriteBobWrap) animatePyriteFx(entry, now);
+    else if (entry.goldenBerylBobWrap) animateGoldenBerylFx(entry, now);
+    else if (entry.tigersEyeBobWrap) animateTigersEyeFx(entry, now);
+    else if (entry.thunderstoneBobWrap) animateThunderstoneFx(entry, now);
+    else if (entry.ametrineBobWrap) animateAmetrineFx(entry, t, now);
     else if (entry.fx) animateTowerFx(entry.fx, now);
     if (entry.opalFrames && entry.opalSprite) {
       const frame = Math.floor(now / 225) % OPAL_FRAME_COUNT;
@@ -392,10 +636,12 @@ export function renderTowers(layer: Container, towers: TowerState[], cache: Towe
       const tier = entry.upgradeTier;
       const amp = 1.5 + tier * 0.5;
       const period = 2.0 - tier * 0.4;
-      entry.jadeBobWrap.y = -amp * (1 - Math.cos((2 * Math.PI * sec) / period)) / 2;
+      entry.jadeBobWrap.y =
+        (-amp * (1 - Math.cos((2 * Math.PI * sec) / period))) / 2;
     }
     if (entry.redCrystalFx) animateRedCrystalFx(entry.redCrystalFx, now);
     if (entry.malachiteFx) animateMalachiteFx(entry.malachiteFx, now);
+    if (entry.peridotChargeFx) animatePeridotChargeFx(entry, t, tick, now);
     const isSelected = t.id === selectedTowerId;
     if (isSelected && !entry.selBracket) {
       const palette = GEM_PALETTE[t.gem as GemType];
@@ -434,7 +680,7 @@ function makeSpecialFx(parent: Container, comboKey: string): TowerFx {
   const fxCfg = SPECIAL_FX[comboKey];
   const ground = fxCfg.ground !== null ? new Graphics() : undefined;
   if (ground) {
-    // 1×1 coarse tile, centred on tower anchor (which sits on the 2×2 corner).
+    // 1x1 coarse tile, centred on tower anchor (which sits on the 2x2 corner).
     const half = TILE / 2;
     ground.rect(-half + 1, -half + 1, TILE - 2, TILE - 2).fill(fxCfg.ground!);
     ground.alpha = 0.45;
@@ -521,9 +767,14 @@ function animateBloodstoneFx(entry: TowerEntry, now: number): void {
   const amp = tier >= 1 ? 4 : 3;
 
   const raw = Math.sin((2 * Math.PI * sec) / period);
-  const shaped = tier >= 1
-    ? (raw > 0 ? Math.pow(raw, 0.6) : -Math.pow(-raw, 2.5))
-    : (raw > 0 ? Math.pow(raw, 0.8) : -Math.pow(-raw, 1.8));
+  const shaped =
+    tier >= 1
+      ? raw > 0
+        ? Math.pow(raw, 0.6)
+        : -Math.pow(-raw, 2.5)
+      : raw > 0
+        ? Math.pow(raw, 0.8)
+        : -Math.pow(-raw, 1.8);
 
   entry.bloodstoneBobWrap!.y = -shaped * amp;
 
@@ -533,7 +784,10 @@ function animateBloodstoneFx(entry: TowerEntry, now: number): void {
   }
 
   if (entry.bloodstoneEmberSprite) {
-    entry.bloodstoneEmberSprite.alpha = Math.max(0, Math.pow(Math.max(0, shaped), 3));
+    entry.bloodstoneEmberSprite.alpha = Math.max(
+      0,
+      Math.pow(Math.max(0, shaped), 3),
+    );
   }
 }
 
@@ -549,7 +803,8 @@ function animateSilverFx(entry: TowerEntry, now: number): void {
   if (tier >= 1) {
     const bobPeriod = 2.5;
     const bobAmp = 2;
-    entry.silverBobWrap!.y = -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
+    entry.silverBobWrap!.y =
+      -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
   }
 
   // Frost shatter pulse for Silver Knight (tier >= 2)
@@ -561,13 +816,13 @@ function animateSilverFx(entry: TowerEntry, now: number): void {
     let scale = 1;
     let flare = 0;
 
-    if (sc >= 0.60 && sc < 0.70) {
-      const p = (sc - 0.60) / 0.10;
+    if (sc >= 0.6 && sc < 0.7) {
+      const p = (sc - 0.6) / 0.1;
       freeze = p * p;
-    } else if (sc >= 0.70 && sc < 0.78) {
+    } else if (sc >= 0.7 && sc < 0.78) {
       freeze = 1;
     } else if (sc >= 0.78 && sc < 0.88) {
-      const p = (sc - 0.78) / 0.10;
+      const p = (sc - 0.78) / 0.1;
       freeze = 1 - p * p;
       scale = 1 + 0.12 * Math.sin(p * Math.PI);
       flare = (1 - p) * 0.6;
@@ -599,7 +854,10 @@ function animateYellowSapphireFx(entry: TowerEntry, now: number): void {
     const bobAmp = 2.0;
     const fig8Phase = (2 * Math.PI * sec) / fig8Period;
     entry.ysBobWrap!.x = driftAmp * Math.sin(fig8Phase);
-    entry.ysBobWrap!.y = -(driftAmp * 0.5 * Math.sin(2 * fig8Phase) + bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod));
+    entry.ysBobWrap!.y = -(
+      driftAmp * 0.5 * Math.sin(2 * fig8Phase) +
+      bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod)
+    );
 
     haloAlpha = 0.3 + 0.3 * (0.5 + 0.5 * Math.sin(fig8Phase));
   } else {
@@ -669,9 +927,9 @@ function animateUraniumThrobFx(entry: TowerEntry, now: number): void {
 // ===== Black Opal — Dark Shimmer =============================================
 
 const SHIMMER_STOPS: [number, number, number][] = [
-  [0x30, 0x48, 0xe0],  // deep blue
-  [0x80, 0x30, 0xc0],  // violet
-  [0x20, 0xa0, 0x68],  // green
+  [0x30, 0x48, 0xe0], // deep blue
+  [0x80, 0x30, 0xc0], // violet
+  [0x20, 0xa0, 0x68], // green
 ];
 
 function animateBlackOpalFx(entry: TowerEntry, now: number): void {
@@ -679,7 +937,8 @@ function animateBlackOpalFx(entry: TowerEntry, now: number): void {
 
   const bobPeriod = 3.5;
   const bobAmp = 1.5;
-  entry.blackOpalBobWrap!.y = -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  entry.blackOpalBobWrap!.y =
+    -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
 
   if (entry.blackOpalShimmerSprite) {
     const shimmerPeriod = 4.0;
@@ -689,9 +948,18 @@ function animateBlackOpalFx(entry: TowerEntry, now: number): void {
     const i = Math.floor(idx) % 3;
     const frac = idx - Math.floor(idx);
     const next = (i + 1) % 3;
-    const r = Math.round(SHIMMER_STOPS[i][0] + (SHIMMER_STOPS[next][0] - SHIMMER_STOPS[i][0]) * frac);
-    const g = Math.round(SHIMMER_STOPS[i][1] + (SHIMMER_STOPS[next][1] - SHIMMER_STOPS[i][1]) * frac);
-    const b = Math.round(SHIMMER_STOPS[i][2] + (SHIMMER_STOPS[next][2] - SHIMMER_STOPS[i][2]) * frac);
+    const r = Math.round(
+      SHIMMER_STOPS[i][0] +
+        (SHIMMER_STOPS[next][0] - SHIMMER_STOPS[i][0]) * frac,
+    );
+    const g = Math.round(
+      SHIMMER_STOPS[i][1] +
+        (SHIMMER_STOPS[next][1] - SHIMMER_STOPS[i][1]) * frac,
+    );
+    const b = Math.round(
+      SHIMMER_STOPS[i][2] +
+        (SHIMMER_STOPS[next][2] - SHIMMER_STOPS[i][2]) * frac,
+    );
     entry.blackOpalShimmerSprite.tint = (r << 16) | (g << 8) | b;
 
     const pulseRaw = Math.sin(phase * Math.PI * 6);
@@ -728,26 +996,30 @@ function animateStarRubyFx(entry: TowerEntry, now: number): void {
     entry.starRubyBobWrap!.scale.set(scale);
 
     if (entry.starRubyCoronaSprite) {
-      entry.starRubyCoronaSprite.alpha = strobeIntensity * 0.35 + breathe * 0.12;
+      entry.starRubyCoronaSprite.alpha =
+        strobeIntensity * 0.35 + breathe * 0.12;
     }
 
     haloAlpha = 0.25 + strobeIntensity * 0.3 + breathe * 0.1;
   } else if (tier >= 1) {
     const breathePeriod = 2.0;
-    const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+    const breathePhase =
+      (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
     const breatheEased = Math.pow(breathePhase, 1.3);
     const scale = 1.0 + breatheEased * 0.08;
     entry.starRubyBobWrap!.scale.set(scale);
 
     const brightCycle = (Math.sin(sec * 2.2) + 1) / 2;
     if (entry.starRubyCoronaSprite) {
-      entry.starRubyCoronaSprite.alpha = breatheEased * 0.2 + brightCycle * 0.08;
+      entry.starRubyCoronaSprite.alpha =
+        breatheEased * 0.2 + brightCycle * 0.08;
     }
 
     haloAlpha = 0.2 + breatheEased * 0.3;
   } else {
     const breathePeriod = 2.5;
-    const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+    const breathePhase =
+      (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
     const breatheEased = Math.pow(breathePhase, 1.5);
     const scale = 1.0 + breatheEased * 0.06;
     entry.starRubyBobWrap!.scale.set(scale);
@@ -783,7 +1055,13 @@ function makeParaibaArcFx(parent: Container, tier: number): ParaibaFx {
   return { arcs, tier };
 }
 
-function paraibaJaggedLine(x1: number, y1: number, x2: number, y2: number, seed: number): { x: number; y: number }[] {
+function paraibaJaggedLine(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  seed: number,
+): { x: number; y: number }[] {
   const pts = [{ x: x1, y: y1 }];
   const segments = 5;
   const dx = x2 - x1;
@@ -809,12 +1087,19 @@ function animateParaibaArcFx(entry: TowerEntry, now: number): void {
 
   const bobPeriod = 2.5 - tier * 0.5;
   const bobAmp = 1.5 + tier * 1.0;
-  entry.paraibaBobWrap!.y = -bobAmp * (1 - Math.cos((2 * Math.PI * sec) / bobPeriod)) / 2;
+  entry.paraibaBobWrap!.y =
+    (-bobAmp * (1 - Math.cos((2 * Math.PI * sec) / bobPeriod))) / 2;
 
   const fx = entry.paraibaFx!;
   const cyclePeriod = tier >= 1 ? 5.0 : 7.0;
   const tips = tier >= 1 ? PARAIBA_TIPS_T1 : PARAIBA_TIPS_T0;
-  const arcPairs = tier >= 1 ? [[0, 1], [1, 2]] : [[0, 1]];
+  const arcPairs =
+    tier >= 1
+      ? [
+          [0, 1],
+          [1, 2],
+        ]
+      : [[0, 1]];
 
   let maxArcAlpha = 0;
 
@@ -822,15 +1107,15 @@ function animateParaibaArcFx(entry: TowerEntry, now: number): void {
     const arc = fx.arcs[a];
     arc.clear();
 
-    const phase = ((sec / cyclePeriod) + a * 0.5) % 1;
+    const phase = (sec / cyclePeriod + a * 0.5) % 1;
 
     let arcAlpha: number;
-    if (phase < 0.10) {
-      arcAlpha = (phase / 0.10) * 0.85;
+    if (phase < 0.1) {
+      arcAlpha = (phase / 0.1) * 0.85;
     } else if (phase < 0.25) {
       arcAlpha = 0.85;
     } else if (phase < 0.35) {
-      arcAlpha = 0.85 * (1 - (phase - 0.25) / 0.10);
+      arcAlpha = 0.85 * (1 - (phase - 0.25) / 0.1);
     } else {
       arcAlpha = 0;
     }
@@ -853,14 +1138,824 @@ function animateParaibaArcFx(entry: TowerEntry, now: number): void {
       for (let p = 1; p < pts.length; p++) arc.lineTo(pts[p].x, pts[p].y);
       arc.stroke({ width: 2, color: 0xa8ffe8, alpha: arcAlpha });
 
-      arc.circle(tip1.x, tip1.y, 1.5).fill({ color: 0xffffff, alpha: arcAlpha * 0.85 });
-      arc.circle(tip2.x, tip2.y, 1.5).fill({ color: 0xffffff, alpha: arcAlpha * 0.85 });
+      arc
+        .circle(tip1.x, tip1.y, 1.5)
+        .fill({ color: 0xffffff, alpha: arcAlpha * 0.85 });
+      arc
+        .circle(tip2.x, tip2.y, 1.5)
+        .fill({ color: 0xffffff, alpha: arcAlpha * 0.85 });
     }
   }
 
   if (entry.fx) {
     const basePulse = (Math.sin((sec / 1.8) * Math.PI * 2) + 1) / 2;
-    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.4 * basePulse + 0.3 * maxArcAlpha);
+    entry.fx.halo.alpha =
+      entry.fx.haloPeak * (0.3 + 0.4 * basePulse + 0.3 * maxArcAlpha);
+  }
+}
+
+// ===== Peridot — Charge Ring ================================================
+// A hairline ring around the gem fills clockwise as the tower sits idle and
+// the charge_burst multiplier builds (matches Combat's idle-since-lastFire
+// model). A leading pip marks the wind-up head, the ring pulses gently at full,
+// and a short outward flash plays when the charged shot is spent. Local to the
+// tile and quiet until near-full — clear without being attention-grabbing.
+
+const PERIDOT_RING = {
+  light: 0xd8f060,
+  mid: 0xa8c828,
+  dark: 0x445818,
+  spec: 0xf0ffb0,
+};
+const PERIDOT_DISCHARGE_MS = 420;
+const PERIDOT_RING_R = TILE * 0.5;
+const PERIDOT_RING_W = 2;
+
+/**
+ * Peridot charge ring. The persistent track + fill arc — the large, thin, static
+ * curve that staircased under the game's `antialias: false` renderer — are now AA
+ * sprites sharing one supersampled ring texture (`track` tinted dark, `fill` tinted
+ * warm and revealed by a per-frame pie-wedge `mask`). The pip/pulse/discharge stay
+ * on `extras` (Graphics): they're tiny or briefly expanding, where aliasing doesn't read.
+ */
+interface PeridotChargeFx {
+  track: Sprite;
+  fill: Sprite;
+  mask: Graphics;
+  extras: Graphics;
+}
+
+/** Lazily-built, shared across all Peridot towers (radius/width are constant). */
+let peridotRingTex: { tex: Texture; scale: number } | undefined;
+function peridotRing(cache: TowerSpriteCache): {
+  tex: Texture;
+  scale: number;
+} {
+  if (!peridotRingTex) {
+    peridotRingTex = generateRingTexture(
+      cache.renderer,
+      PERIDOT_RING_R,
+      PERIDOT_RING_W,
+    );
+  }
+  return peridotRingTex;
+}
+
+/** Lerp between two packed RGB colors. */
+function lerpColor(a: number, b: number, t: number): number {
+  const ar = (a >> 16) & 255,
+    ag = (a >> 8) & 255,
+    ab = a & 255;
+  const br = (b >> 16) & 255,
+    bg = (b >> 8) & 255,
+    bb = b & 255;
+  const r = Math.round(ar + (br - ar) * t);
+  const g = Math.round(ag + (bg - ag) * t);
+  const bl = Math.round(ab + (bb - ab) * t);
+  return (r << 16) | (g << 8) | bl;
+}
+
+function animatePeridotChargeFx(
+  entry: TowerEntry,
+  t: TowerState,
+  tick: number,
+  now: number,
+): void {
+  const fx = entry.peridotChargeFx!;
+
+  // Detect a shot (lastFireTick advanced) → flash, but skip the very first shot,
+  // which is uncharged (Combat only charges when prevFireTick > 0).
+  const prev = entry.peridotLastFireTick ?? 0;
+  if (t.lastFireTick > prev && prev > 0) entry.peridotDischargeStart = now;
+  entry.peridotLastFireTick = t.lastFireTick;
+
+  // Charge fraction mirrors Combat: idle ticks since last fire / charge window.
+  // Before the first shot (lastFireTick === 0) there is no charge yet.
+  const chargeTicks = entry.peridotChargeTicks || SIM_HZ * 8;
+  const f =
+    t.lastFireTick > 0 ? Math.min(1, (tick - t.lastFireTick) / chargeTicks) : 0;
+
+  const dis = entry.peridotDischargeStart
+    ? Math.max(
+        0,
+        1 - (now - entry.peridotDischargeStart) / PERIDOT_DISCHARGE_MS,
+      )
+    : 0;
+
+  const R = PERIDOT_RING_R;
+
+  // Fill arc — the AA ring sprite revealed by a pie-wedge mask sweeping clockwise
+  // from the top, warming and brightening toward full. The curved edge is smooth
+  // (it comes from the supersampled texture); only the short radial cut is hard.
+  if (f > 0.001) {
+    fx.fill.visible = true;
+    fx.fill.tint = lerpColor(PERIDOT_RING.mid, PERIDOT_RING.light, f);
+    const base = 0.5 + f * 0.45;
+    // Gentle alpha pulse once fully charged; steady ramp otherwise.
+    fx.fill.alpha =
+      f >= 0.999 ? base * (0.8 + 0.2 * Math.sin(now * 0.006)) : base;
+
+    const start = -Math.PI / 2;
+    const end = start + f * Math.PI * 2;
+    const rad = R + 6;
+    fx.mask.clear();
+    if (f >= 0.999) {
+      fx.mask.circle(0, 0, rad).fill(0xffffff);
+    } else {
+      fx.mask
+        .moveTo(0, 0)
+        .arc(0, 0, rad, start, end)
+        .lineTo(0, 0)
+        .fill(0xffffff);
+    }
+  } else {
+    fx.fill.visible = false;
+  }
+
+  // Leading pip (a square — no curve to staircase) + the discharge shockwave (brief
+  // and expanding, where motion hides aliasing). Both stay on the lightweight Graphics.
+  const ex = fx.extras;
+  ex.clear();
+  if (f > 0.001 && f < 0.999) {
+    const end = -Math.PI / 2 + f * Math.PI * 2;
+    ex.rect(Math.cos(end) * R - 1.5, Math.sin(end) * R - 1.5, 3, 3).fill({
+      color: PERIDOT_RING.spec,
+      alpha: 0.9,
+    });
+  }
+  if (dis > 0.01) {
+    ex.circle(0, 0, R + dis * 8).stroke({
+      width: 2,
+      color: PERIDOT_RING.spec,
+      alpha: dis * 0.7,
+    });
+  }
+}
+
+// ===== Pyrite — Kinetic Charge ================================================
+
+const PYRITE_ORBIT_COLORS: [number, number, number] = [
+  0xe8c868, 0xf0a040, 0xfff0d0,
+];
+
+function makePyriteFx(parent: Container, tier: number): PyriteFx {
+  const dotCount = tier >= 2 ? 3 : tier >= 1 ? 2 : 1;
+  const dots: Graphics[] = [];
+  let trails: Graphics[] | undefined;
+  let arcs: Graphics[] | undefined;
+
+  if (tier >= 1) {
+    trails = [];
+    for (let i = 0; i < dotCount; i++) {
+      const trail = new Graphics();
+      parent.addChild(trail);
+      trails.push(trail);
+    }
+  }
+
+  if (tier >= 2) {
+    arcs = [];
+    for (let i = 0; i < 3; i++) {
+      const arc = new Graphics();
+      parent.addChild(arc);
+      arcs.push(arc);
+    }
+  }
+
+  for (let i = 0; i < dotCount; i++) {
+    const dot = new Graphics();
+    parent.addChild(dot);
+    dots.push(dot);
+  }
+
+  return { dots, trails, arcs, tier };
+}
+
+function animatePyriteFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+  const fx = entry.pyriteFx!;
+
+  // Bob: gentle for T2+, none for T1
+  if (tier >= 1) {
+    const bobPeriod = 2.5 - tier * 0.3;
+    const bobAmp = 1.5 + tier * 0.5;
+    entry.pyriteBobWrap!.y =
+      -bobAmp * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  }
+
+  // Scale throb for T3
+  if (tier >= 2) {
+    const throbPeriod = 1.8;
+    const throb = (Math.sin((2 * Math.PI * sec) / throbPeriod) + 1) / 2;
+    entry.pyriteBobWrap!.scale.set(1 + throb * 0.04);
+  }
+
+  // Orbiting dots
+  const dotCount = fx.dots.length;
+  const r = TILE * (tier >= 2 ? 0.55 : 0.5);
+  const dotSize = 1.5 + tier * 0.3;
+  const orbitPeriods = [4.0, 3.2, 4.0];
+  const orbitRadii = [r, r * 1.15, r];
+
+  const dotPositions: { x: number; y: number }[] = [];
+
+  for (let i = 0; i < dotCount; i++) {
+    const period = tier >= 2 ? orbitPeriods[2] : orbitPeriods[i];
+    const orbitR = tier >= 2 ? orbitRadii[2] : orbitRadii[i];
+    const ang =
+      tier >= 2
+        ? (sec / period) * Math.PI * 2 + (i / 3) * Math.PI * 2
+        : (sec / period) * Math.PI * 2 + i * Math.PI * 0.7;
+    const dx = Math.cos(ang) * orbitR;
+    const dy = Math.sin(ang) * orbitR * 0.85;
+    dotPositions.push({ x: dx, y: dy });
+
+    // Trails (T2+)
+    if (fx.trails && fx.trails[i]) {
+      const trail = fx.trails[i];
+      trail.clear();
+      for (let s = 1; s <= 4; s++) {
+        const trailAng = ang - s * 0.1;
+        const tx = Math.cos(trailAng) * orbitR;
+        const ty = Math.sin(trailAng) * orbitR * 0.85;
+        trail
+          .circle(tx, ty, dotSize * 0.5)
+          .fill({
+            color: PYRITE_ORBIT_COLORS[Math.min(i, 2)],
+            alpha: 0.12 / s,
+          });
+      }
+    }
+
+    const dot = fx.dots[i];
+    dot.clear();
+    dot
+      .circle(dx, dy, dotSize)
+      .fill({ color: PYRITE_ORBIT_COLORS[Math.min(i, 2)], alpha: 0.8 });
+    dot.circle(dx, dy, dotSize * 0.5).fill({ color: 0xffffff, alpha: 0.5 });
+  }
+
+  // Energy arcs connecting dots at T3
+  if (tier >= 2 && fx.arcs && dotPositions.length >= 3) {
+    const arcCyclePeriod = 3.0;
+    const arcPhase = (sec % arcCyclePeriod) / arcCyclePeriod;
+    let arcAlpha: number;
+    if (arcPhase < 0.15) arcAlpha = arcPhase / 0.15;
+    else if (arcPhase < 0.4) arcAlpha = 1;
+    else if (arcPhase < 0.55) arcAlpha = 1 - (arcPhase - 0.4) / 0.15;
+    else arcAlpha = 0;
+    arcAlpha *= 0.6;
+
+    for (let a = 0; a < 3; a++) {
+      const arc = fx.arcs[a];
+      arc.clear();
+      if (arcAlpha > 0.02) {
+        const p1 = dotPositions[a];
+        const p2 = dotPositions[(a + 1) % 3];
+        const seed = Math.floor(sec * 1.5) + a * 30;
+        const pts = pyriteJaggedLine(p1.x, p1.y, p2.x, p2.y, seed);
+        arc.moveTo(pts[0].x, pts[0].y);
+        for (let p = 1; p < pts.length; p++) arc.lineTo(pts[p].x, pts[p].y);
+        arc.stroke({ width: 3, color: 0xf0a040, alpha: arcAlpha * 0.3 });
+        arc.moveTo(pts[0].x, pts[0].y);
+        for (let p = 1; p < pts.length; p++) arc.lineTo(pts[p].x, pts[p].y);
+        arc.stroke({ width: 1.5, color: 0xfff0d0, alpha: arcAlpha });
+      }
+    }
+  }
+
+  // Halo animation
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 2.4) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.7 * haloPulse);
+  }
+}
+
+function pyriteJaggedLine(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  seed: number,
+): { x: number; y: number }[] {
+  const pts = [{ x: x1, y: y1 }];
+  const segments = 4;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const perpX = -dy / len;
+  const perpY = dx / len;
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const mx = x1 + dx * t;
+    const my = y1 + dy * t;
+    const bulge = Math.sin(t * Math.PI);
+    const jitter = Math.sin(seed * 5.3 + i * 3.7) * 4 * bulge;
+    pts.push({ x: mx + perpX * jitter, y: my + perpY * jitter });
+  }
+  pts.push({ x: x2, y: y2 });
+  return pts;
+}
+
+// ===== Golden Beryl — Heat Rings + Orbiting Motes ============================
+
+function makeGoldenBerylFx(parent: Container, tier: number): GoldenBerylFx {
+  const rings: Graphics[] = [];
+  const motes: Graphics[] = [];
+
+  if (tier >= 1) {
+    const ringCount = tier >= 2 ? 2 : 1;
+    for (let i = 0; i < ringCount; i++) {
+      const ring = new Graphics();
+      parent.addChild(ring);
+      rings.push(ring);
+    }
+  }
+
+  if (tier >= 1) {
+    const moteCount = tier >= 2 ? 4 : 2;
+    for (let i = 0; i < moteCount; i++) {
+      const mote = new Graphics();
+      parent.addChild(mote);
+      motes.push(mote);
+    }
+  }
+
+  return { rings, motes, tier };
+}
+
+function animateGoldenBerylFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const breathePeriod = 3.0;
+  const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+  const breatheAmp = 0.04 + tier * 0.01;
+  entry.goldenBerylBobWrap!.scale.set(1 + breatheAmp * breathePhase);
+
+  if (tier >= 1) {
+    const bobPeriod = 2.8;
+    entry.goldenBerylBobWrap!.y =
+      -2 * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  }
+
+  const fx = entry.goldenBerylFx!;
+
+  for (let i = 0; i < fx.rings.length; i++) {
+    const ring = fx.rings[i];
+    ring.clear();
+    const ringPeriod = 3.5;
+    const rPhase = (sec / ringPeriod + i * 0.5) % 1;
+    const ringR = rPhase * TILE * 1.0;
+    const ringAlpha = 0.25 * (1 - rPhase);
+    if (ringAlpha > 0.01) {
+      ring
+        .circle(0, 0, ringR)
+        .stroke({ width: 1.5, color: 0xfff0a0, alpha: ringAlpha });
+    }
+  }
+
+  const moteOrbitR = TILE * (0.55 + tier * 0.12);
+  const orbitPeriod = 5.0;
+  const rotAngle = (sec / orbitPeriod) * Math.PI * 2;
+  const moteCount = fx.motes.length;
+  for (let i = 0; i < moteCount; i++) {
+    const mote = fx.motes[i];
+    mote.clear();
+    const ang = rotAngle + (i / moteCount) * Math.PI * 2;
+    const mx = Math.cos(ang) * moteOrbitR;
+    const my = Math.sin(ang) * moteOrbitR * 0.85;
+    const moteAlpha = 0.5 + 0.3 * Math.sin(ang * 2 + sec * 1.5);
+    mote.circle(mx, my, 2).fill({ color: 0xfff0a0, alpha: moteAlpha });
+    mote.circle(mx, my, 1).fill({ color: 0xffffff, alpha: moteAlpha * 0.5 });
+  }
+
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 2.8) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.4 + 0.6 * haloPulse);
+  }
+}
+
+// ===== Tiger's Eye — Sentry Scope ============================================
+
+function animateTigersEyeFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const breathePeriod = 4.0;
+  const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+  entry.tigersEyeBobWrap!.scale.set(1 + 0.025 * breathePhase);
+
+  if (entry.fx) {
+    const haloAlpha = 0.2 + 0.25 * breathePhase;
+    entry.fx.halo.alpha = entry.fx.haloPeak * haloAlpha;
+  }
+
+  if (tier >= 1) {
+    const driftPeriod = 6.0;
+    entry.tigersEyeBobWrap!.x = Math.sin((2 * Math.PI * sec) / driftPeriod);
+  }
+}
+
+// ===== Thunderstone — Static Discharge =======================================
+
+function makeThunderstoneFx(parent: Container, tier: number): ThunderstoneFx {
+  let arc: Graphics | undefined;
+  if (tier >= 1) {
+    arc = new Graphics();
+    parent.addChild(arc);
+  }
+  return { arc, tier };
+}
+
+function thunderJaggedLine(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  seed: number,
+): { x: number; y: number }[] {
+  const pts = [{ x: x1, y: y1 }];
+  const segments = 4;
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy) || 1;
+  const perpX = -dy / len;
+  const perpY = dx / len;
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    const mx = x1 + dx * t;
+    const my = y1 + dy * t;
+    const bulge = Math.sin(t * Math.PI);
+    const jitter = Math.sin(seed * 5.3 + i * 3.7) * 4 * bulge;
+    pts.push({ x: mx + perpX * jitter, y: my + perpY * jitter });
+  }
+  pts.push({ x: x2, y: y2 });
+  return pts;
+}
+
+function animateThunderstoneFx(entry: TowerEntry, now: number): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  const jitterSeed = Math.floor(sec * 4);
+  const jitterX =
+    (Math.sin(jitterSeed * 7.1) > 0.5 ? 0.5 : 0) * (tier >= 1 ? 1.5 : 1);
+  const jitterY =
+    (Math.sin(jitterSeed * 3.3) > 0.6 ? 0.5 : 0) * (tier >= 1 ? 1.5 : 1);
+  entry.thunderstoneBobWrap!.x = jitterX;
+
+  if (tier >= 1) {
+    const bobPeriod = 2.5;
+    entry.thunderstoneBobWrap!.y =
+      -1.5 * Math.sin((2 * Math.PI * sec) / bobPeriod) + jitterY;
+  } else {
+    entry.thunderstoneBobWrap!.y = jitterY;
+  }
+
+  const fx = entry.thunderstoneFx!;
+  if (fx.arc) {
+    fx.arc.clear();
+    const arcPeriod = 4.0;
+    const arcPhase = (sec % arcPeriod) / arcPeriod;
+    let arcAlpha = 0;
+    if (arcPhase < 0.1) arcAlpha = arcPhase / 0.1;
+    else if (arcPhase < 0.25) arcAlpha = 1;
+    else if (arcPhase < 0.35) arcAlpha = 1 - (arcPhase - 0.25) / 0.1;
+    arcAlpha *= 0.5;
+
+    if (arcAlpha > 0.02) {
+      const tip1 = { x: -9, y: -15 };
+      const tip2 = { x: 9, y: -10 };
+      const seed = Math.floor(sec * 1.5);
+      const pts = thunderJaggedLine(tip1.x, tip1.y, tip2.x, tip2.y, seed);
+
+      fx.arc.moveTo(pts[0].x, pts[0].y);
+      for (let p = 1; p < pts.length; p++) fx.arc.lineTo(pts[p].x, pts[p].y);
+      fx.arc.stroke({ width: 3, color: 0x5858c8, alpha: arcAlpha * 0.3 });
+
+      fx.arc.moveTo(pts[0].x, pts[0].y);
+      for (let p = 1; p < pts.length; p++) fx.arc.lineTo(pts[p].x, pts[p].y);
+      fx.arc.stroke({ width: 1.5, color: 0xe0e8ff, alpha: arcAlpha });
+
+      fx.arc
+        .circle(tip1.x, tip1.y, 1.5)
+        .fill({ color: 0xffffff, alpha: arcAlpha * 0.8 });
+      fx.arc
+        .circle(tip2.x, tip2.y, 1.5)
+        .fill({ color: 0xffffff, alpha: arcAlpha * 0.8 });
+    }
+  }
+
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 2.0) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.3 + 0.7 * haloPulse);
+  }
+}
+
+// ===== Ametrine — Mode VFX (A+B: sprite swap + aperture lens) ================
+//
+// Visual contract for the two adaptive modes:
+//
+//   FOCUS  (Combat: t.ametrineMode === "focus")
+//     - Gem palette is the canonical purple ametrine (default sprite).
+//     - Lens is a single closed purple ring around the gem with four inward
+//       crosshair ticks at N/E/S/W. Reads "scoped".
+//
+//   SCATTER (Combat: t.ametrineMode === "scatter")
+//     - Gem palette flips: slots 1/2/3 become gold tones, sparkle (5) becomes
+//       amethyst. The base sprite stays underneath unchanged; a pre-rendered
+//       "gold" overlay sprite covers it (alpha = modePhase).
+//     - Lens becomes six rotating gold arc segments at a wider radius. Reads
+//       "fanning".
+//
+// Tier flourishes:
+//   T2 (Imperial)  — lens gains an inner ring (closed purple in focus, four
+//                    counter-rotating gold arcs in scatter); A-side mode-fault
+//                    line draws vertically through the gem during scatter.
+//   T3 (Sovereign) — eight orbiting outer pip ticks (color matches mode);
+//                    A-side crown ticks above the gem (color matches mode).
+//
+// On a flip the renderer stamps `ametrineFlashStart`; a brief expanding stroke-
+// only "pop" ring fires in the destination color (purple→focus, gold→scatter).
+//
+// The previous wash/motes/halo crossfade is removed. The halo crossfade in
+// particular is intentionally dropped — the gem-body swap + lens character
+// change already carry the mode signal redundantly, and a third color-modulated
+// layer was muddying it.
+
+const AMETRINE_PURPLE = 0x8848b0;
+const AMETRINE_GOLD = 0xf0c038;
+const AMETRINE_GOLD_HI = 0xffd870;
+
+/** Per-tier gold-palette (game tier index: 0 = Raw, 1 = Imperial, 2 = Sovereign).
+ *  Slots 1/2/3 carry gold tones; the sparkle slot (5) flips to amethyst, so the
+ *  inner "eye" of the gem reads as the inverse of its normal purple sparkle. */
+const AMETRINE_GOLD_PALETTES: Record<0 | 1 | 2, {
+  light: number;
+  mid: number;
+  dark: number;
+  sparkle: number;
+}> = {
+  0: { light: 0xffd870, mid: 0xf0a020, dark: 0x785010, sparkle: 0xa050e0 },
+  1: { light: 0xffe080, mid: 0xf8b030, dark: 0x7c5818, sparkle: 0xb878e0 },
+  2: { light: 0xffe890, mid: 0xffbc48, dark: 0x84601c, sparkle: 0xc890f0 },
+};
+
+function easeSmoothstep(p: number): number {
+  const x = Math.min(1, Math.max(0, p));
+  return x * x * (3 - 2 * x);
+}
+
+function ametrineGridForTier(tier: number) {
+  const spec = SPECIAL_SPRITES["ametrine"];
+  const tierGrids = SPECIAL_TIER_GRIDS["ametrine"];
+  const effectiveTier = Math.min(tier + 1, 3) as 2 | 3;
+  return (effectiveTier > 1 && tierGrids?.[effectiveTier]) || spec.grid;
+}
+
+function makeAmetrineFx(
+  parent: Container,
+  cache: TowerSpriteCache,
+  tier: number,
+): AmetrineFx {
+  // A — palette-swapped gold sprite overlaying the gem. Same grid + same scale
+  // as the base sprite so the two register pixel-perfect; cross-faded by alpha.
+  const grid = ametrineGridForTier(tier);
+  const pal = AMETRINE_GOLD_PALETTES[Math.min(tier, 2) as 0 | 1 | 2];
+  const goldTex = rasterizeToTexture(cache.renderer, grid, pal, 3);
+  const goldOverlay = new Sprite(goldTex);
+  goldOverlay.anchor.set(0.5, 0.5);
+  goldOverlay.alpha = 0;
+  parent.addChild(goldOverlay);
+
+  // A — flourishes (T2 mode-fault line + T3 crown ticks). Sits above the gem
+  // so the fault line reads as cutting through the crystal.
+  const flourish = new Graphics();
+  parent.addChild(flourish);
+
+  // B — lens rings layer drawn last so it's never occluded by the gem swap.
+  const lens = new Graphics();
+  parent.addChild(lens);
+
+  const spriteW = grid[0].length * 3;
+  const spriteH = grid.length * 3;
+
+  return { goldOverlay, lens, flourish, tier, spriteW, spriteH };
+}
+
+function animateAmetrineFx(
+  entry: TowerEntry,
+  t: TowerState,
+  now: number,
+): void {
+  const sec = now / 1000;
+  const tier = entry.upgradeTier;
+
+  // Breathing scale + gentle bob (tier-scaled) — unchanged idle motion.
+  const breathePeriod = 3.5 - tier * 0.3;
+  const breathePhase = (Math.sin((2 * Math.PI * sec) / breathePeriod) + 1) / 2;
+  entry.ametrineBobWrap!.scale.set(1 + (0.03 + tier * 0.01) * breathePhase);
+
+  if (tier >= 1) {
+    const bobPeriod = 3.0;
+    entry.ametrineBobWrap!.y = -1.5 * Math.sin((2 * Math.PI * sec) / bobPeriod);
+  }
+
+  // Mode follows the REAL adaptive mode (Combat sets t.ametrineMode from the
+  // in-range crowd), not a timer. 0 = focus (purple), 1 = scatter (gold).
+  // The transition is an IRIS SHUTTER, not a cross-fade: when target flips, the
+  // lens ring contracts to a tight pinpoint, the sprite snap-swaps in one frame
+  // at the midpoint, then the ring expands back out in the destination color.
+  // Discrete by design — readable at 1× and at 8×.
+  const target = t.ametrineMode === "scatter" ? 1 : 0;
+  if (
+    entry.ametrineModeTarget !== undefined &&
+    entry.ametrineModeTarget !== target
+  ) {
+    entry.ametrineFlashStart = now;
+  }
+  entry.ametrineModeTarget = target;
+
+  const TRANSITION_MS = 220;
+  const SWAP_POINT = 0.5;
+  const flipStart = entry.ametrineFlashStart;
+  const sinceFlip = flipStart !== undefined ? now - flipStart : Infinity;
+  const progress = Math.min(1, Math.max(0, sinceFlip / TRANSITION_MS));
+  const inTransition = progress < 1;
+
+  // Default the persistent displayed mode to target on first frame.
+  if (entry.ametrineModePhase === undefined) entry.ametrineModePhase = target;
+  // flipFrom = whatever we were displaying when this transition began. After
+  // the swap point we lock the persistent mode to target so a subsequent flip
+  // picks up the correct flipFrom automatically (= the new "currently shown").
+  const displayedMode: 0 | 1 = progress < SWAP_POINT
+    ? (entry.ametrineModePhase as 0 | 1)
+    : (target as 0 | 1);
+  const flipFrom: 0 | 1 = entry.ametrineModePhase as 0 | 1;
+  if (progress >= SWAP_POINT) entry.ametrineModePhase = target;
+
+  const fx = entry.ametrineFx!;
+
+  // ----- A: sprite swap (discrete — no alpha lerp) -------------------------
+  fx.goldOverlay.alpha = displayedMode === 1 ? 1 : 0;
+
+  // ----- A: tier flourishes (snap with the sprite — binary visibility) -----
+  const sw = fx.spriteW;
+  const sh = fx.spriteH;
+  fx.flourish.clear();
+
+  // T2 (Imperial)+: mode-fault — 2px purple bar through the gem during scatter
+  if (tier >= 1 && displayedMode === 1) {
+    fx.flourish
+      .rect(-1, -sh / 2 - 2, 2, sh + 4)
+      .fill({ color: AMETRINE_PURPLE, alpha: 0.5 });
+  }
+
+  // T3 (Sovereign): four crown ticks above the gem; color matches displayed mode
+  if (tier >= 2) {
+    const tickCount = 4;
+    const tickR = sw * 0.65;
+    const baseAng = -Math.PI / 2;
+    const cyCrown = -sh * 0.32;
+    const tickColor = displayedMode === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+    for (let i = 0; i < tickCount; i++) {
+      const a = baseAng + (i - (tickCount - 1) / 2) * 0.32;
+      const tx = Math.cos(a) * tickR;
+      const ty = cyCrown + Math.sin(a) * tickR;
+      fx.flourish
+        .rect(Math.round(tx) - 1, Math.round(ty) - 3, 2, 4)
+        .fill({ color: tickColor, alpha: 0.85 });
+    }
+  }
+
+  // ----- B: aperture lens --------------------------------------------------
+  fx.lens.clear();
+  const lcx = 0;
+  const lcy = sh * 0.05;
+  const maxDim = Math.max(sw, sh);
+  const focusR = maxDim * 0.7;
+  const scatterR = maxDim * 0.92;
+
+  if (!inTransition) {
+    // Settled steady state — render full lens for the displayed mode.
+    if (displayedMode === 0) {
+      // FOCUS: closed purple ring + four crosshair ticks
+      fx.lens
+        .circle(lcx, lcy, focusR)
+        .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 });
+      const tickLen = 6;
+      const angs = [-Math.PI / 2, 0, Math.PI / 2, Math.PI];
+      for (const a of angs) {
+        const x1 = lcx + Math.cos(a) * (focusR + 2);
+        const y1 = lcy + Math.sin(a) * (focusR + 2);
+        const x2 = lcx + Math.cos(a) * (focusR + 2 + tickLen);
+        const y2 = lcy + Math.sin(a) * (focusR + 2 + tickLen);
+        fx.lens
+          .moveTo(x1, y1)
+          .lineTo(x2, y2)
+          .stroke({ width: 2, color: AMETRINE_PURPLE, alpha: 0.85 });
+      }
+    } else {
+      // SCATTER: six gold arc segments at the wider radius, rotating slowly
+      const arcs = 6;
+      const gap = 0.18;
+      const seg = (Math.PI * 2) / arcs - gap;
+      const rot = sec * 0.5;
+      for (let i = 0; i < arcs; i++) {
+        const a0 = rot + i * ((Math.PI * 2) / arcs);
+        fx.lens
+          .arc(lcx, lcy, scatterR, a0, a0 + seg)
+          .stroke({ width: 3, color: AMETRINE_GOLD, alpha: 0.9 });
+      }
+    }
+
+    // T2 inner ring (closed purple in focus, four counter-rotating gold arcs in scatter)
+    if (tier >= 1) {
+      const innerR = maxDim * 0.55;
+      if (displayedMode === 0) {
+        fx.lens
+          .circle(lcx, lcy, innerR)
+          .stroke({ width: 1.5, color: AMETRINE_PURPLE, alpha: 0.45 });
+      } else {
+        const inArcs = 4;
+        const inGap = 0.22;
+        const inSeg = (Math.PI * 2) / inArcs - inGap;
+        const inRot = -sec * 0.7;
+        for (let i = 0; i < inArcs; i++) {
+          const a0 = inRot + i * ((Math.PI * 2) / inArcs);
+          fx.lens
+            .arc(lcx, lcy, innerR, a0, a0 + inSeg)
+            .stroke({ width: 1.5, color: AMETRINE_GOLD_HI, alpha: 0.65 });
+        }
+      }
+    }
+
+    // T3 orbiting pips — color matches the displayed mode
+    if (tier >= 2) {
+      const outR = maxDim * 1.05;
+      const n = 8;
+      const orbit = sec * 0.3;
+      const pipColor = displayedMode === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      for (let i = 0; i < n; i++) {
+        const a = orbit + i * ((Math.PI * 2) / n);
+        const tx = lcx + Math.cos(a) * outR;
+        const ty = lcy + Math.sin(a) * outR;
+        fx.lens
+          .rect(Math.round(tx) - 1, Math.round(ty) - 1, 2, 2)
+          .fill({ color: pipColor, alpha: 0.75 });
+      }
+    }
+  } else {
+    // ----- IRIS SHUTTER --------------------------------------------------
+    // 0.00..0.45  contract from idle radius toward a tight pinpoint
+    // 0.45..0.55  HOLD at min radius; sprite has just snap-swapped
+    // 0.55..1.00  expand from pinpoint out to settled radius in dest color
+    // A bright pinpoint flash punctuates the swap.
+    const idleR = flipFrom === 0 ? focusR : scatterR;
+    const settleR = target === 0 ? focusR : scatterR;
+    const minR = Math.max(6, maxDim * 0.18);
+
+    let ringR: number;
+    let ringColor: number;
+    let ringAlpha: number;
+    if (progress < 0.45) {
+      const p = easeSmoothstep(progress / 0.45);
+      ringR = idleR + (minR - idleR) * p;
+      ringColor = flipFrom === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      ringAlpha = 0.6 + 0.4 * p;
+    } else if (progress < 0.55) {
+      ringR = minR;
+      ringColor = target === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      ringAlpha = 1.0;
+    } else {
+      const p = easeSmoothstep((progress - 0.55) / 0.45);
+      ringR = minR + (settleR - minR) * p;
+      ringColor = target === 0 ? AMETRINE_PURPLE : AMETRINE_GOLD;
+      ringAlpha = 1.0 - 0.15 * p;
+    }
+    fx.lens
+      .circle(lcx, lcy, ringR)
+      .stroke({ width: 2.5, color: ringColor, alpha: ringAlpha });
+
+    // Pinpoint flash centered on the swap moment (additive bright disc).
+    if (progress >= 0.4 && progress <= 0.65) {
+      const flash = 1 - Math.abs((progress - 0.5) / 0.15);
+      if (flash > 0) {
+        fx.lens
+          .circle(lcx, lcy, minR * 0.55 * (0.8 + 0.4 * flash))
+          .fill({ color: AMETRINE_GOLD_HI, alpha: flash * 0.9 });
+      }
+    }
+  }
+
+  // Halo: simple ambient purple pulse — no mode lerp, no scatter widening.
+  // The two-layer sprite-swap + lens already carry mode redundantly; a third
+  // mode-modulated layer (the previous halo crossfade) was muddying the read.
+  if (entry.fx) {
+    const haloPulse = (Math.sin((sec / 2.4) * Math.PI * 2) + 1) / 2;
+    entry.fx.halo.alpha = entry.fx.haloPeak * (0.4 + 0.6 * haloPulse);
   }
 }
 
@@ -896,18 +1991,18 @@ function animateRedCrystalFx(fx: RedCrystalFx, now: number): void {
   for (let i = 0; i < fx.beams.length; i++) {
     const beam = fx.beams[i];
     beam.clear();
-    const offset = fx.beams.length === 1 ? 0 : (i === 0 ? -xSpread : xSpread);
+    const offset = fx.beams.length === 1 ? 0 : i === 0 ? -xSpread : xSpread;
     const stagger = i * 0.3;
-    const p = ((phase + stagger) % 1);
+    const p = (phase + stagger) % 1;
     const rise = p * beamH * 1.5;
-    const alpha = p < 0.5
-      ? 0.3 + 0.5 * (p / 0.5)
-      : 0.8 * (1 - (p - 0.5) / 0.5);
+    const alpha = p < 0.5 ? 0.3 + 0.5 * (p / 0.5) : 0.8 * (1 - (p - 0.5) / 0.5);
     if (alpha > 0.01) {
       const segH = beamH * (1 - p * 0.6);
-      beam.rect(offset - beamW / 2, -rise - segH, beamW, segH)
+      beam
+        .rect(offset - beamW / 2, -rise - segH, beamW, segH)
         .fill({ color: fx.color, alpha });
-      beam.circle(offset, -rise - segH, beamW)
+      beam
+        .circle(offset, -rise - segH, beamW)
         .fill({ color: 0xffffff, alpha: alpha * 0.7 });
     }
   }
@@ -920,8 +2015,7 @@ function animateRedCrystalFx(fx: RedCrystalFx, now: number): void {
     const r = rp * maxR;
     const alpha = 0.5 * (1 - rp);
     if (alpha > 0.01) {
-      fx.ripple.circle(0, 0, r)
-        .stroke({ width: 1.5, color: fx.color, alpha });
+      fx.ripple.circle(0, 0, r).stroke({ width: 1.5, color: fx.color, alpha });
     }
   }
 }
@@ -968,20 +2062,21 @@ function animateMalachiteFx(fx: MalachiteFx, now: number): void {
       const trail = fx.trails[i];
       trail.clear();
       for (let s = 1; s <= 3; s++) {
-        const trailAng = ang - (s * 0.12);
+        const trailAng = ang - s * 0.12;
         const tx = Math.cos(trailAng) * r;
         const ty = Math.sin(trailAng) * r * 0.85;
-        trail.circle(tx, ty, dotSize * 0.6)
+        trail
+          .circle(tx, ty, dotSize * 0.6)
           .fill({ color: fx.color, alpha: 0.15 / s });
       }
     }
 
     const dot = fx.dots[i];
     dot.clear();
-    dot.circle(dx, dy, dotSize)
+    dot
+      .circle(dx, dy, dotSize)
       .fill({ color: fx.color, alpha: 0.7 + fx.tier * 0.1 });
-    dot.circle(dx, dy, dotSize * 0.5)
-      .fill({ color: 0xffffff, alpha: 0.5 });
+    dot.circle(dx, dy, dotSize * 0.5).fill({ color: 0xffffff, alpha: 0.5 });
   }
 }
 
@@ -1021,11 +2116,16 @@ function makeStargemFx(parent: Container): StargemFx {
   for (let i = 0; i < 8; i++) {
     const a = (i / 8) * Math.PI * 2;
     const hw = Math.PI * 2 * 0.02;
-    rayGfx.poly([
-      Math.cos(a) * innerR, Math.sin(a) * innerR,
-      Math.cos(a - hw) * outerR, Math.sin(a - hw) * outerR,
-      Math.cos(a + hw) * outerR, Math.sin(a + hw) * outerR,
-    ]).fill({ color: APEX_STARGEM.accent, alpha: 0.7 });
+    rayGfx
+      .poly([
+        Math.cos(a) * innerR,
+        Math.sin(a) * innerR,
+        Math.cos(a - hw) * outerR,
+        Math.sin(a - hw) * outerR,
+        Math.cos(a + hw) * outerR,
+        Math.sin(a + hw) * outerR,
+      ])
+      .fill({ color: APEX_STARGEM.accent, alpha: 0.7 });
   }
   rayBurst.addChild(rayGfx);
   parent.addChild(rayBurst);
@@ -1034,7 +2134,9 @@ function makeStargemFx(parent: Container): StargemFx {
   const outerHalo = new Graphics();
   const haloR = TILE * 0.9;
   for (let i = 6; i > 0; i--) {
-    outerHalo.circle(0, 0, haloR * (i / 6)).fill({ color: APEX_STARGEM.aura, alpha: 0.14 });
+    outerHalo
+      .circle(0, 0, haloR * (i / 6))
+      .fill({ color: APEX_STARGEM.aura, alpha: 0.14 });
   }
   parent.addChild(outerHalo);
 
@@ -1068,9 +2170,9 @@ function makeStargemFx(parent: Container): StargemFx {
   // 8. Orbitals (4 dots on rotating tracks)
   const orbDefs = [
     { color: 0xffffff, r: 1.05, size: 1.5 },
-    { color: APEX_STARGEM.accent, r: 1.20, size: 1.8 },
+    { color: APEX_STARGEM.accent, r: 1.2, size: 1.8 },
     { color: APEX_STARGEM.c1, r: 1.35, size: 1.2 },
-    { color: 0xffffff, r: 1.50, size: 0.9 },
+    { color: 0xffffff, r: 1.5, size: 0.9 },
   ];
   const orbitals: Container[] = [];
   for (const def of orbDefs) {
@@ -1084,7 +2186,16 @@ function makeStargemFx(parent: Container): StargemFx {
     orbitals.push(orb);
   }
 
-  return { ground, outerHalo, innerHalo, rayBurst, crownSparks, orbitals, pinpricks, spriteWrap };
+  return {
+    ground,
+    outerHalo,
+    innerHalo,
+    rayBurst,
+    crownSparks,
+    orbitals,
+    pinpricks,
+    spriteWrap,
+  };
 }
 
 const ORBITAL_PERIODS = [1.6, 2.4, 3.4, 5.0];
@@ -1121,7 +2232,8 @@ function animateStargemFx(fx: StargemFx, now: number): void {
 
   // Orbitals (4): different speeds and phase delays
   for (let i = 0; i < 4; i++) {
-    fx.orbitals[i].rotation = ((t - ORBITAL_DELAYS[i]) / ORBITAL_PERIODS[i]) * Math.PI * 2;
+    fx.orbitals[i].rotation =
+      ((t - ORBITAL_DELAYS[i]) / ORBITAL_PERIODS[i]) * Math.PI * 2;
   }
 
   // Constellation pinpricks: twinkle 2.4s, staggered
@@ -1130,10 +2242,14 @@ function animateStargemFx(fx: StargemFx, now: number): void {
     fx.pinpricks[i].alpha = 0.2 + 0.8 * pp;
     fx.pinpricks[i].scale.set(0.7 + 0.4 * pp);
   }
-
 }
 
-export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSpriteCache, selectedRockId: number | null = null): void {
+export function renderRocks(
+  layer: Container,
+  rocks: RockState[],
+  cache: TowerSpriteCache,
+  selectedRockId: number | null = null,
+): void {
   const groups = new Map<number, { x: number; y: number }>();
   for (const r of rocks) {
     const g = groups.get(r.id);
@@ -1189,7 +2305,11 @@ export function renderRocks(layer: Container, rocks: RockState[], cache: TowerSp
   }
 }
 
-export function renderCreeps(layer: Container, creeps: CreepState[], selectedCreepId: number | null = null): void {
+export function renderCreeps(
+  layer: Container,
+  creeps: CreepState[],
+  selectedCreepId: number | null = null,
+): void {
   const seen = new Set<number>();
   for (const c of creeps) {
     if (!c.alive) continue;
@@ -1199,27 +2319,30 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
       const palette = GEM_PALETTE[c.color];
       const sprite = SPRITE_BY_KIND[c.kind];
       const g = new Graphics();
-      const px = c.kind === 'gestation' ? 2 : 3;
-      const colors = c.kind === 'gestation' ? GESTATION_COLORS_CALM : {
-        light: palette.light,
-        mid: palette.mid,
-        dark: palette.dark,
-        outline: 0x0a0510,
-        sparkle: THEME.ink,
-        extra: THEME.bad,
-        accent: THEME.accent,
-      };
+      const px = c.kind === "gestation" ? 2 : 3;
+      const colors =
+        c.kind === "gestation"
+          ? GESTATION_COLORS_CALM
+          : {
+              light: palette.light,
+              mid: palette.mid,
+              dark: palette.dark,
+              outline: 0x0a0510,
+              sparkle: THEME.ink,
+              extra: THEME.bad,
+              accent: THEME.accent,
+            };
       drawPixelGrid(
         g,
         sprite,
         colors,
         px,
-        -sprite[0].length * px / 2,
-        -sprite.length * px / 2,
+        (-sprite[0].length * px) / 2,
+        (-sprite.length * px) / 2,
       );
 
-      const hpBarY = -(sprite.length * px / 2 + 4);
-      const isLarge = c.kind === 'gestation';
+      const hpBarY = -((sprite.length * px) / 2 + 4);
+      const isLarge = c.kind === "gestation";
       const hpW = isLarge ? 30 : 20;
       const hpH = isLarge ? 4 : 3;
       const hpBg = new Graphics();
@@ -1258,8 +2381,8 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
           accent: THEME.accent,
         },
         px,
-        -SPRITE_CHRYSALID_AWAKE[0].length * px / 2,
-        -SPRITE_CHRYSALID_AWAKE.length * px / 2,
+        (-SPRITE_CHRYSALID_AWAKE[0].length * px) / 2,
+        (-SPRITE_CHRYSALID_AWAKE.length * px) / 2,
       );
       entry.lastHpRatio = undefined;
     }
@@ -1274,14 +2397,16 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
         SPRITE_GESTATION_ENRAGED,
         GESTATION_COLORS_ENRAGED,
         px,
-        -SPRITE_GESTATION_ENRAGED[0].length * px / 2,
-        -SPRITE_GESTATION_ENRAGED.length * px / 2,
+        (-SPRITE_GESTATION_ENRAGED[0].length * px) / 2,
+        (-SPRITE_GESTATION_ENRAGED.length * px) / 2,
       );
       entry.lastHpRatio = undefined;
     }
     // Selection ring
     const isSelected = c.id === selectedCreepId;
-    let ring = entry.obj.children.find((ch) => ch.label === "sel") as Graphics | undefined;
+    let ring = entry.obj.children.find((ch) => ch.label === "sel") as
+      | Graphics
+      | undefined;
     if (isSelected && !ring) {
       ring = new Graphics();
       ring.label = "sel";
@@ -1294,14 +2419,18 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
     const ratio = Math.max(0, Math.min(1, c.hp / c.maxHp));
     if (ratio !== entry.lastHpRatio) {
       entry.lastHpRatio = ratio;
-      const inner = entry.obj.children.find((ch) => ch.label !== "sel") as Container;
-      const hpBar = inner.children.find((ch) => (ch as Graphics).label === "hp") as Graphics | undefined;
+      const inner = entry.obj.children.find(
+        (ch) => ch.label !== "sel",
+      ) as Container;
+      const hpBar = inner.children.find(
+        (ch) => (ch as Graphics).label === "hp",
+      ) as Graphics | undefined;
       if (hpBar) {
         hpBar.clear();
         const sprite = SPRITE_BY_KIND[c.kind];
-        const px = c.kind === 'gestation' ? 2 : 3;
-        const hpBarY = -(sprite.length * px / 2 + 4);
-        const isLarge = c.kind === 'gestation';
+        const px = c.kind === "gestation" ? 2 : 3;
+        const hpBarY = -((sprite.length * px) / 2 + 4);
+        const isLarge = c.kind === "gestation";
         const hpW = isLarge ? 30 : 20;
         const hpH = isLarge ? 4 : 3;
         hpBar.rect(-hpW / 2, hpBarY, hpW * ratio, hpH).fill(THEME.good);
@@ -1316,7 +2445,10 @@ export function renderCreeps(layer: Container, creeps: CreepState[], selectedCre
   }
 }
 
-export function renderProjectiles(layer: Container, projectiles: ProjectileState[]): void {
+export function renderProjectiles(
+  layer: Container,
+  projectiles: ProjectileState[],
+): void {
   const seen = new Set<number>();
   for (const p of projectiles) {
     if (!p.alive) continue;
@@ -1334,7 +2466,10 @@ export function renderProjectiles(layer: Container, projectiles: ProjectileState
       projectileObjs.set(p.id, entry);
     }
     const x = p.fromX + (p.toX - p.fromX) * p.t;
-    const y = p.fromY + (p.toY - p.fromY) * p.t;
+    let y = p.fromY + (p.toY - p.fromY) * p.t;
+    if (p.arcHeight) {
+      y -= p.arcHeight * 4 * p.t * (1 - p.t);
+    }
     entry.obj.x = x;
     entry.obj.y = y;
   }
@@ -1347,7 +2482,11 @@ export function renderProjectiles(layer: Container, projectiles: ProjectileState
 }
 
 let beamGfx: Graphics | null = null;
-export function renderBeams(layer: Container, towers: TowerState[], creeps: CreepState[]): void {
+export function renderBeams(
+  layer: Container,
+  towers: TowerState[],
+  creeps: CreepState[],
+): void {
   if (!beamGfx) {
     beamGfx = new Graphics();
     layer.addChild(beamGfx);
@@ -1363,11 +2502,17 @@ export function renderBeams(layer: Container, towers: TowerState[], creeps: Cree
     const stacks = t.beam.stacks;
     const core = 2.5 + stacks * 0.14;
     const alpha = 0.55 + Math.min(stacks * 0.018, 0.4);
-    beamGfx.moveTo(fromX, fromY).lineTo(target.px, target.py)
+    beamGfx
+      .moveTo(fromX, fromY)
+      .lineTo(target.px, target.py)
       .stroke({ width: core + 4, color: palette.dark, alpha: alpha * 0.25 });
-    beamGfx.moveTo(fromX, fromY).lineTo(target.px, target.py)
+    beamGfx
+      .moveTo(fromX, fromY)
+      .lineTo(target.px, target.py)
       .stroke({ width: core + 1.5, color: palette.mid, alpha: alpha * 0.6 });
-    beamGfx.moveTo(fromX, fromY).lineTo(target.px, target.py)
+    beamGfx
+      .moveTo(fromX, fromY)
+      .lineTo(target.px, target.py)
       .stroke({ width: core, color: palette.light, alpha });
   }
 }
@@ -1383,15 +2528,16 @@ export function renderHover(
     hoverGfx = new Graphics();
     layer.addChild(hoverGfx);
   }
-  const key = hover && state.phase === "build"
-    ? `${hover.x},${hover.y},${canPlaceFootprint(state, hover.x, hover.y) ? 1 : 0}`
-    : "";
+  const key =
+    hover && state.phase === "build"
+      ? `${hover.x},${hover.y},${canPlaceFootprint(state, hover.x, hover.y) ? 1 : 0}`
+      : "";
   if (key === lastHoverKey) return;
   lastHoverKey = key;
   hoverGfx.clear();
   if (!key) return;
 
-  // Hover anchor is the top-left of a 2×2 placement footprint.
+  // Hover anchor is the top-left of a 2x2 placement footprint.
   const cx = hover!.x * FINE_TILE;
   const cy = hover!.y * FINE_TILE;
   const sz = FINE_TILE * 2;
@@ -1500,7 +2646,14 @@ function drawCornerBrackets(g: Graphics, size: number, color: number): void {
   g.rect(half - w, half - arm, w, arm).fill(color);
 }
 
-function drawDashedCircle(g: Graphics, cx: number, cy: number, r: number, color: number, alpha = 0.7): void {
+function drawDashedCircle(
+  g: Graphics,
+  cx: number,
+  cy: number,
+  r: number,
+  color: number,
+  alpha = 0.7,
+): void {
   const segs = Math.max(16, Math.floor((2 * Math.PI * r) / 8));
   const dashArc = (Math.PI * 2) / segs;
   const steps = 6;
@@ -1523,7 +2676,9 @@ let aiHighlight: { x: number; y: number; gem: GemType } | null = null;
 let aiComboIds: Set<number> | null = null;
 let aiOverlayGfx: Graphics | null = null;
 
-export function setAiHighlight(h: { x: number; y: number; gem: GemType } | null): void {
+export function setAiHighlight(
+  h: { x: number; y: number; gem: GemType } | null,
+): void {
   aiHighlight = h;
 }
 
@@ -1548,10 +2703,18 @@ export function renderAiOverlay(layer: Container): void {
     const alpha = 0.15 + 0.2 * pulse;
     aiOverlayGfx.rect(px, py, sz, sz).fill({ color: palette.mid, alpha });
     const borderAlpha = 0.5 + 0.3 * pulse;
-    aiOverlayGfx.rect(px, py, sz, 1).fill({ color: palette.light, alpha: borderAlpha });
-    aiOverlayGfx.rect(px, py + sz - 1, sz, 1).fill({ color: palette.light, alpha: borderAlpha });
-    aiOverlayGfx.rect(px, py, 1, sz).fill({ color: palette.light, alpha: borderAlpha });
-    aiOverlayGfx.rect(px + sz - 1, py, 1, sz).fill({ color: palette.light, alpha: borderAlpha });
+    aiOverlayGfx
+      .rect(px, py, sz, 1)
+      .fill({ color: palette.light, alpha: borderAlpha });
+    aiOverlayGfx
+      .rect(px, py + sz - 1, sz, 1)
+      .fill({ color: palette.light, alpha: borderAlpha });
+    aiOverlayGfx
+      .rect(px, py, 1, sz)
+      .fill({ color: palette.light, alpha: borderAlpha });
+    aiOverlayGfx
+      .rect(px + sz - 1, py, 1, sz)
+      .fill({ color: palette.light, alpha: borderAlpha });
   }
 
   if (aiComboIds && aiComboIds.size > 0) {
@@ -1565,9 +2728,136 @@ export function renderAiOverlay(layer: Container): void {
       const cy = tower.y;
       const half = FINE_TILE;
       const alpha = 0.3 + 0.3 * pulse;
-      aiOverlayGfx.rect(cx - half, cy - half, half * 2, half * 2)
+      aiOverlayGfx
+        .rect(cx - half, cy - half, half * 2, half * 2)
         .stroke({ width: 2, color: THEME.accent, alpha });
     }
   }
 }
 
+// ===== Recipe-partner highlight =============================================
+//
+// While a draw is selected during the build phase (before it's placed), every
+// placed gem that could combine with it into a special recipe gets a breathing
+// "resonance" frame in the *selected gem's own colour* — so the highlight reads
+// as an echo of the chip the player just clicked. All partners pulse in unison.
+
+let partnerGfx: Graphics | null = null;
+
+export function renderDrawPartnerHighlight(layer: Container, state: State): void {
+  if (!partnerGfx) {
+    partnerGfx = new Graphics();
+    layer.addChild(partnerGfx);
+  }
+  const g = partnerGfx;
+  g.clear();
+
+  if (state.phase !== "build") return;
+  const draw = activeDraw(state);
+  if (!draw) return;
+  const ids = partnerTowerIdSet(
+    findDrawPartners(draw.gem, draw.quality, state.towers),
+  );
+  if (ids.size === 0) return;
+
+  const pal = GEM_PALETTE[draw.gem];
+  // ~0.8 Hz breathe, shared across every partner so they shimmer together.
+  const phase = (Math.sin((performance.now() / 1000) * Math.PI * 1.6) + 1) / 2;
+
+  for (const tower of state.towers) {
+    if (!ids.has(tower.id)) continue;
+    drawResonance(
+      g,
+      tower.x * FINE_TILE,
+      tower.y * FINE_TILE,
+      FINE_TILE * 2,
+      pal,
+      phase,
+    );
+  }
+}
+
+// Parallel to `renderDrawPartnerHighlight` but driven by the currently selected
+// placed gem: highlights other placed gems that complete one of its recipes.
+// Skipped when the selected gem is itself a finished special (no raw recipe).
+let selectedPartnerGfx: Graphics | null = null;
+
+export function renderSelectedTowerPartnerHighlight(
+  layer: Container,
+  state: State,
+): void {
+  if (!selectedPartnerGfx) {
+    selectedPartnerGfx = new Graphics();
+    layer.addChild(selectedPartnerGfx);
+  }
+  const g = selectedPartnerGfx;
+  g.clear();
+
+  const selId = state.selectedTowerId;
+  if (selId === null) return;
+  const sel = state.towers.find((t) => t.id === selId);
+  if (!sel || sel.comboKey) return;
+
+  const ids = partnerTowerIdSet(
+    findDrawPartners(sel.gem, sel.quality, state.towers),
+  );
+  ids.delete(sel.id);
+  if (ids.size === 0) return;
+
+  const pal = GEM_PALETTE[sel.gem];
+  const phase = (Math.sin((performance.now() / 1000) * Math.PI * 1.6) + 1) / 2;
+
+  for (const tower of state.towers) {
+    if (!ids.has(tower.id)) continue;
+    drawResonance(
+      g,
+      tower.x * FINE_TILE,
+      tower.y * FINE_TILE,
+      FINE_TILE * 2,
+      pal,
+      phase,
+    );
+  }
+}
+
+function drawResonance(
+  g: Graphics,
+  x: number,
+  y: number,
+  size: number,
+  pal: { light: number; mid: number },
+  phase: number,
+): void {
+  // Breathing fill across the 2×2 footprint.
+  g.rect(x, y, size, size).fill({ color: pal.mid, alpha: 0.07 + 0.11 * phase });
+
+  // Pulsing frame, sitting 1px outside the footprint like a glowing bezel.
+  const o = 1;
+  const fx = x - o;
+  const fy = y - o;
+  const fw = size + 2 * o;
+  const frameA = 0.5 + 0.4 * phase;
+  g.rect(fx, fy, fw, 1).fill({ color: pal.light, alpha: frameA });
+  g.rect(fx, fy + fw - 1, fw, 1).fill({ color: pal.light, alpha: frameA });
+  g.rect(fx, fy, 1, fw).fill({ color: pal.light, alpha: frameA });
+  g.rect(fx + fw - 1, fy, 1, fw).fill({ color: pal.light, alpha: frameA });
+
+  // Edge ticks radiating outward, length driven by the breathe.
+  const mid = size / 2;
+  const len = Math.round(3 + 4 * phase);
+  const tickA = 0.85;
+  g.rect(x + mid - 1, fy - len, 2, len).fill({ color: pal.light, alpha: tickA }); // top
+  g.rect(x + mid - 1, y + size + o, 2, len).fill({ color: pal.light, alpha: tickA }); // bottom
+  g.rect(fx - len, y + mid - 1, len, 2).fill({ color: pal.light, alpha: tickA }); // left
+  g.rect(x + size + o, y + mid - 1, len, 2).fill({ color: pal.light, alpha: tickA }); // right
+
+  // Facet sparks at the four corners.
+  const cs = 2;
+  const cA = 0.6 + 0.4 * phase;
+  const x1 = fx + fw - cs;
+  const y1 = fy + fw - cs;
+  g.rect(fx, fy, cs, cs).fill({ color: pal.light, alpha: cA });
+  g.rect(x1, fy, cs, cs).fill({ color: pal.light, alpha: cA });
+  g.rect(fx, y1, cs, cs).fill({ color: pal.light, alpha: cA });
+  g.rect(x1, y1, cs, cs).fill({ color: pal.light, alpha: cA });
+}
