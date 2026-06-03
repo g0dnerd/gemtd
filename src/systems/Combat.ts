@@ -79,7 +79,12 @@ export class Combat {
           c.armorReductionSources = undefined;
           c.vulnSources = undefined;
         }
-      const inBurnAura = this.applyProximityAuras(state.towers, state.creeps);
+      // Compute tower aura mults up-front so passive burn damage (prox_burn,
+      // prox_burn_ramp, speed_damage_aura) can be amplified by aura_dmg
+      // sources (e.g. Void Opal) the same way projectile fire is.
+      const auras = computeAuraMults(state.towers, tick);
+      this.auras = auras;
+      const inBurnAura = this.applyProximityAuras(state.towers, state.creeps, auras);
 
       // Linger burn + armor stack decay processing (after proximity auras)
       for (const c of state.creeps) {
@@ -139,8 +144,7 @@ export class Combat {
 
     // Towers fire (only during waves). Traps are handled by the Traps system.
     if (state.phase === "wave") {
-      const auras = computeAuraMults(state.towers, tick);
-      this.auras = auras;
+      const auras = this.auras!;
       for (const t of state.towers) {
         if (t.isTrap) continue;
         const stats = effectiveStats(t);
@@ -1067,6 +1071,28 @@ export class Combat {
     }
   }
 
+  /**
+   * Credit dmg-aura sources for the share of a burn tick they enabled. Passive
+   * burn towers (prox_burn, prox_burn_ramp, speed_damage_aura) don't fire, so
+   * `creditFireAssist`'s atk-speed half doesn't apply — only the dmg-aura
+   * share. Same proportional-of-realized-damage formula as the fire path.
+   */
+  private creditBurnAssist(
+    tower: TowerState,
+    dmg: number,
+    dmgAuraMult: number,
+  ): void {
+    if (!this.auras || dmg <= 0 || dmgAuraMult <= 0) return;
+    const sources = this.auras.dmgSources.get(tower.id);
+    if (!sources || !sources.length) return;
+    const total = dmg * (dmgAuraMult / (1 + dmgAuraMult));
+    const sumPct = sources.reduce((s, x) => s + x.pct, 0) || 1;
+    for (const { src, pct } of sources) {
+      const t = this.towerById(src);
+      if (t) t.dmgAuraAssist = (t.dmgAuraAssist ?? 0) + total * (pct / sumPct);
+    }
+  }
+
   private rollBonusGold(
     owner: TowerState,
     target: CreepState,
@@ -1194,26 +1220,20 @@ export class Combat {
   private applyProximityAuras(
     towers: TowerState[],
     creeps: CreepState[],
+    auras: AuraMults,
   ): Set<number> {
     const tick = this.game.state.tick;
     const inBurnAura = new Set<number>();
 
+    // Pass 1: apply modifier auras (vulnerability, armor reduce, slow, armor
+    // decay) and trigger periodic_freeze. Damage-dealing burn effects are
+    // deferred to pass 2 so they see the final per-creep vulnerability and
+    // armor-reduction values regardless of tower iteration order.
     for (const src of towers) {
       if (src.silencedUntil && src.silencedUntil > tick) continue;
       const stats = effectiveStats(src);
       const tx = (src.x + 1) * FINE_TILE;
       const ty = (src.y + 1) * FINE_TILE;
-
-      // Track which creeps are in burn aura this tick (for linger_burn exit detection)
-      const hasLingerBurn = stats.effects.some((e) => e.kind === "linger_burn");
-      const hasBurn = stats.effects.some(
-        (e) => e.kind === "prox_burn" || e.kind === "prox_burn_ramp",
-      );
-      const prevBurnCreepIds = src.burnAuraCreepIds;
-      let currentBurnCreepIds: number[] | undefined;
-      if (hasLingerBurn && hasBurn) {
-        currentBurnCreepIds = [];
-      }
 
       for (const e of stats.effects) {
         if (e.kind === "prox_armor_reduce") {
@@ -1225,56 +1245,6 @@ export class Combat {
             if (dx * dx + dy * dy > r2) continue;
             c.armorReduction = Math.max(c.armorReduction, e.value);
             (c.armorReductionSources ??= {})[src.id] = e.value;
-          }
-        } else if (e.kind === "prox_burn") {
-          const r2 = (e.radius * TILE) ** 2;
-          const dmgPerTick = e.dps / SIM_HZ;
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            this.applyDamage(c, Math.max(1, Math.round(dmgPerTick)), src);
-            inBurnAura.add(c.id);
-            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
-          }
-        } else if (e.kind === "prox_burn_ramp") {
-          const r2 = (e.radius * TILE) ** 2;
-          if (!src.burnExposure) src.burnExposure = {};
-          const hasArmorPierce = stats.effects.some(
-            (ee) => ee.kind === "armor_pierce_burn",
-          );
-          const newExposure: Record<number, number> = {};
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            const prev = src.burnExposure[c.id] ?? 0;
-            const exposure = prev + 1;
-            newExposure[c.id] = exposure;
-            const rampMult =
-              1 + Math.min((exposure / SIM_HZ) * e.rampPct, e.rampCap);
-            const dmg = Math.max(1, Math.round((e.dps * rampMult) / SIM_HZ));
-            this.applyDamage(c, dmg, src, hasArmorPierce);
-            inBurnAura.add(c.id);
-            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
-          }
-          src.burnExposure = newExposure;
-        } else if (e.kind === "speed_damage_aura") {
-          const r2 = (e.radius * TILE) ** 2;
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            const dmg = Math.max(
-              1,
-              Math.round(
-                (e.dps * c.speed * c.speed) / SPEED_DMG_PIVOT / SIM_HZ,
-              ),
-            );
-            this.applyDamage(c, dmg, src);
           }
         } else if (e.kind === "prox_slow") {
           const r2 = (e.radius * TILE) ** 2;
@@ -1337,6 +1307,93 @@ export class Combat {
               y: ty,
               rangePx: stats.range * TILE,
             });
+          }
+        }
+      }
+    }
+
+    // Pass 2: apply burn-aura damage. Reads the final vulnerability/armor
+    // values from pass 1, and multiplies by the source tower's dmg-aura mult
+    // (e.g. Void Opal's +35% aura_dmg) so passive burn towers benefit from
+    // damage auras the same way projectile towers do.
+    for (const src of towers) {
+      if (src.silencedUntil && src.silencedUntil > tick) continue;
+      const stats = effectiveStats(src);
+      const tx = (src.x + 1) * FINE_TILE;
+      const ty = (src.y + 1) * FINE_TILE;
+
+      const hasLingerBurn = stats.effects.some((e) => e.kind === "linger_burn");
+      const hasBurn = stats.effects.some(
+        (e) => e.kind === "prox_burn" || e.kind === "prox_burn_ramp",
+      );
+      const prevBurnCreepIds = src.burnAuraCreepIds;
+      let currentBurnCreepIds: number[] | undefined;
+      if (hasLingerBurn && hasBurn) {
+        currentBurnCreepIds = [];
+      }
+
+      const dmgAuraMult = auras.dmg.get(src.id) ?? 0;
+      const auraScale = 1 + dmgAuraMult;
+
+      for (const e of stats.effects) {
+        if (e.kind === "prox_burn") {
+          const r2 = (e.radius * TILE) ** 2;
+          const dmgPerTick = (e.dps * auraScale) / SIM_HZ;
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx,
+              dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            const dmg = Math.max(1, Math.round(dmgPerTick));
+            this.applyDamage(c, dmg, src);
+            this.creditBurnAssist(src, dmg, dmgAuraMult);
+            inBurnAura.add(c.id);
+            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
+          }
+        } else if (e.kind === "prox_burn_ramp") {
+          const r2 = (e.radius * TILE) ** 2;
+          if (!src.burnExposure) src.burnExposure = {};
+          const hasArmorPierce = stats.effects.some(
+            (ee) => ee.kind === "armor_pierce_burn",
+          );
+          const newExposure: Record<number, number> = {};
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx,
+              dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            const prev = src.burnExposure[c.id] ?? 0;
+            const exposure = prev + 1;
+            newExposure[c.id] = exposure;
+            const rampMult =
+              1 + Math.min((exposure / SIM_HZ) * e.rampPct, e.rampCap);
+            const dmg = Math.max(
+              1,
+              Math.round((e.dps * rampMult * auraScale) / SIM_HZ),
+            );
+            this.applyDamage(c, dmg, src, hasArmorPierce);
+            this.creditBurnAssist(src, dmg, dmgAuraMult);
+            inBurnAura.add(c.id);
+            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
+          }
+          src.burnExposure = newExposure;
+        } else if (e.kind === "speed_damage_aura") {
+          const r2 = (e.radius * TILE) ** 2;
+          for (const c of creeps) {
+            if (!c.alive) continue;
+            const dx = c.px - tx,
+              dy = c.py - ty;
+            if (dx * dx + dy * dy > r2) continue;
+            const dmg = Math.max(
+              1,
+              Math.round(
+                (e.dps * c.speed * c.speed * auraScale) /
+                  SPEED_DMG_PIVOT /
+                  SIM_HZ,
+              ),
+            );
+            this.applyDamage(c, dmg, src);
+            this.creditBurnAssist(src, dmg, dmgAuraMult);
           }
         }
       }
