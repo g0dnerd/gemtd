@@ -794,16 +794,29 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.inspector-tower-hero-meta .hm-lvl { color: var(--px-ink-dim); }
-.inspector-tower-hero-meta .hm-bonus { color: var(--px-ink-dimmer); }
-.inspector-tower-hero-meta .hm-sep { color: var(--px-ink-dimmer); margin: 0 4px; }
-.inspector-tower-hero-meta .hm-kills { color: var(--px-ink-dim); }
+.inspector-tower-hero-meta .hm-lvl {
+  color: var(--px-ink-dim);
+}
+.inspector-tower-hero-meta .hm-bonus {
+  color: var(--px-ink-dimmer);
+}
+.inspector-tower-hero-meta .hm-sep {
+  color: var(--px-ink-dimmer);
+  margin: 0 4px;
+}
+.inspector-tower-hero-meta .hm-kills {
+  color: var(--px-ink-dim);
+}
 .inspector-tower-hero-meta .hm-lbl {
   color: var(--px-ink-dimmer);
   margin-left: 4px;
 }
-.inspector-tower-hero-meta.is-lvl .hm-lvl { color: var(--px-accent); }
-.inspector-tower-hero-meta.is-lvl .hm-bonus { color: var(--px-accent-hi); }
+.inspector-tower-hero-meta.is-lvl .hm-lvl {
+  color: var(--px-accent);
+}
+.inspector-tower-hero-meta.is-lvl .hm-bonus {
+  color: var(--px-accent-hi);
+}
 
 /* 3-up stat row */
 .inspector-stats-row {
@@ -1007,7 +1020,7 @@
   line-height: 1.25;
   margin-bottom: 1px;
 }
-@media (min-height: 1201px) {
+@media (min-height: 1200px) {
   .inspector-forge-card .forge-blurb {
     display: block;
   }
