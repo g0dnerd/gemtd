@@ -135,9 +135,13 @@ for (const [themeRef, cssVar] of MIRROR) {
   checkCssVar(themeRef, toHex(themeVal), cssVar);
 }
 
-// --- Gems: auto-detect by CSS var presence; check mid/dark + internal consistency ---
+// --- Gems: internal consistency only ---
+// The HUD reads gem colors via inline `element.style.setProperty('--gem-glow',
+// GEM_PALETTE[gem].css.mid)` (Hud.ts), so there are no static --gem-* CSS vars
+// in pixel.css to compare against. We still want to catch numeric-vs-css-string
+// drift *inside* a single GEM_PALETTE entry, since both shades are read from
+// theme.ts (numeric by PIXI, css by the inline-style path).
 for (const [gem, entry] of Object.entries(GEM_PALETTE)) {
-  // (a) numeric vs css string within theme.ts itself — single source can drift.
   for (const shade of ['light', 'mid', 'dark'] as const) {
     const fromNum = toHex(entry[shade]);
     const fromCss = normCss(entry.css[shade]);
@@ -147,21 +151,6 @@ for (const [gem, entry] of Object.entries(GEM_PALETTE)) {
   }
   if (entry.name !== entry.css.name) {
     err(`GEM_PALETTE.${gem}: .name="${entry.name}" != .css.name="${entry.css.name}"`);
-  }
-
-  // (b) theme.ts vs pixel.css — CSS exposes only mid (--gem-X) and dark (--gem-X-d).
-  const midVar = `--gem-${gem}`;
-  const darkVar = `--gem-${gem}-d`;
-  if (!cssDefs.has(midVar) && !cssDefs.has(darkVar)) {
-    info(`gem "${gem}" has no CSS vars (${midVar}/${darkVar}) — UI does not theme it yet`);
-    continue;
-  }
-  for (const [shade, cssVar] of [['mid', midVar], ['dark', darkVar]] as const) {
-    if (!cssDefs.has(cssVar)) {
-      err(`${cssVar} missing from pixel.css but its sibling exists (partial gem "${gem}")`);
-      continue;
-    }
-    checkCssVar(`GEM_PALETTE.${gem}.${shade}`, toHex(entry[shade]), cssVar);
   }
 }
 

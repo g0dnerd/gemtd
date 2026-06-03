@@ -54,9 +54,9 @@ export const CELL = {
   crystalDeep: 0x3868c8,
 } as const;
 
-export type GemType = 'ruby' | 'sapphire' | 'emerald' | 'topaz' | 'amethyst' | 'opal' | 'diamond' | 'aquamarine' | 'garnet' | 'spinel' | 'carnelian';
+export type GemType = 'ruby' | 'sapphire' | 'emerald' | 'topaz' | 'amethyst' | 'opal' | 'diamond' | 'aquamarine' | 'garnet' | 'spinel' | 'peridot';
 
-export const GEM_TYPES: GemType[] = ['ruby', 'sapphire', 'emerald', 'topaz', 'amethyst', 'opal', 'diamond', 'aquamarine', 'garnet', 'spinel', 'carnelian'];
+export const GEM_TYPES: GemType[] = ['ruby', 'sapphire', 'emerald', 'topaz', 'amethyst', 'opal', 'diamond', 'aquamarine', 'garnet', 'spinel', 'peridot'];
 
 export interface GemPaletteEntry {
   name: string;
@@ -118,10 +118,10 @@ export const GEM_PALETTE: Record<GemType, GemPaletteEntry> = {
     light: 0xf080c0, mid: 0xc03888, dark: 0x601840,
     css: { name: 'Spinel', light: '#f080c0', mid: '#c03888', dark: '#601840' },
   },
-  carnelian: {
-    name: 'Carnelian',
-    light: 0xe89060, mid: 0xc06030, dark: 0x502818,
-    css: { name: 'Carnelian', light: '#e89060', mid: '#c06030', dark: '#502818' },
+  peridot: {
+    name: 'Peridot',
+    light: 0xd8f060, mid: 0xa8c828, dark: 0x445818,
+    css: { name: 'Peridot', light: '#d8f060', mid: '#a8c828', dark: '#445818' },
   },
 };
 

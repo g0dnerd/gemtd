@@ -180,14 +180,14 @@ interface TowerEntry {
   ametrineModeTarget?: number;
   /** Wall-clock ms of the most recent mode flip; drives the iris-shutter envelope. */
   ametrineFlashStart?: number;
-  /** Carnelian charge ring — antialiased track + clockwise fill arc reading the idle wind-up. */
-  carnelianChargeFx?: CarnelianChargeFx;
+  /** Peridot charge ring — antialiased track + clockwise fill arc reading the idle wind-up. */
+  peridotChargeFx?: PeridotChargeFx;
   /** Idle ticks needed for a full charge (chargeSeconds x SIM_HZ), cached at build. */
-  carnelianChargeTicks?: number;
+  peridotChargeTicks?: number;
   /** Last seen lastFireTick, to detect a shot and trigger the discharge flash. */
-  carnelianLastFireTick?: number;
+  peridotLastFireTick?: number;
   /** Wall-clock ms of the most recent fire, for the discharge-flash envelope. */
-  carnelianDischargeStart?: number;
+  peridotDischargeStart?: number;
   selBracket?: Graphics;
   hoverBracket?: Graphics;
 }
@@ -304,8 +304,8 @@ export function renderTowers(
       let thunderstoneFx: ThunderstoneFx | undefined;
       let ametrineBobWrap: Container | undefined;
       let ametrineFx: AmetrineFx | undefined;
-      let carnelianChargeFx: CarnelianChargeFx | undefined;
-      let carnelianChargeTicks = 0;
+      let peridotChargeFx: PeridotChargeFx | undefined;
+      let peridotChargeTicks = 0;
 
       // Rune (trap) rendering — flat stone tablet with glyph + glow halo
       const runeEffect =
@@ -533,12 +533,12 @@ export function renderTowers(
         if (t.gem === "opal" && !t.comboKey) {
           opalFrames = cache.opalFrameTextures(t.quality);
         }
-        if (t.gem === "carnelian" && !t.comboKey) {
-          const { tex, scale } = carnelianRing(cache);
+        if (t.gem === "peridot" && !t.comboKey) {
+          const { tex, scale } = peridotRing(cache);
           const track = new Sprite(tex);
           track.anchor.set(0.5);
           track.scale.set(scale);
-          track.tint = CARNELIAN_RING.dark;
+          track.tint = PERIDOT_RING.dark;
           track.alpha = 0.5;
           const fill = new Sprite(tex);
           fill.anchor.set(0.5);
@@ -547,11 +547,11 @@ export function renderTowers(
           fill.mask = mask;
           const extras = new Graphics();
           obj.addChild(track, fill, mask, extras);
-          carnelianChargeFx = { track, fill, mask, extras };
+          peridotChargeFx = { track, fill, mask, extras };
           const cb = gemStats(t.gem as GemType, t.quality).effects.find(
             (e) => e.kind === "charge_burst",
           );
-          carnelianChargeTicks =
+          peridotChargeTicks =
             (cb && "chargeSeconds" in cb ? cb.chargeSeconds : 8) * SIM_HZ;
         }
         if (t.comboKey === "red_crystal") {
@@ -602,9 +602,9 @@ export function renderTowers(
         thunderstoneFx,
         ametrineBobWrap,
         ametrineFx,
-        carnelianChargeFx,
-        carnelianChargeTicks,
-        carnelianLastFireTick: t.lastFireTick,
+        peridotChargeFx,
+        peridotChargeTicks,
+        peridotLastFireTick: t.lastFireTick,
       };
       towerObjs.set(t.id, entry);
     }
@@ -641,7 +641,7 @@ export function renderTowers(
     }
     if (entry.redCrystalFx) animateRedCrystalFx(entry.redCrystalFx, now);
     if (entry.malachiteFx) animateMalachiteFx(entry.malachiteFx, now);
-    if (entry.carnelianChargeFx) animateCarnelianChargeFx(entry, t, tick, now);
+    if (entry.peridotChargeFx) animatePeridotChargeFx(entry, t, tick, now);
     const isSelected = t.id === selectedTowerId;
     if (isSelected && !entry.selBracket) {
       const palette = GEM_PALETTE[t.gem as GemType];
@@ -1154,51 +1154,51 @@ function animateParaibaArcFx(entry: TowerEntry, now: number): void {
   }
 }
 
-// ===== Carnelian — Charge Ring ================================================
+// ===== Peridot — Charge Ring ================================================
 // A hairline ring around the gem fills clockwise as the tower sits idle and
 // the charge_burst multiplier builds (matches Combat's idle-since-lastFire
 // model). A leading pip marks the wind-up head, the ring pulses gently at full,
 // and a short outward flash plays when the charged shot is spent. Local to the
 // tile and quiet until near-full — clear without being attention-grabbing.
 
-const CARNELIAN_RING = {
-  light: 0xe89060,
-  mid: 0xc06030,
-  dark: 0x502818,
-  spec: 0xffd9b0,
+const PERIDOT_RING = {
+  light: 0xd8f060,
+  mid: 0xa8c828,
+  dark: 0x445818,
+  spec: 0xf0ffb0,
 };
-const CARNELIAN_DISCHARGE_MS = 420;
-const CARNELIAN_RING_R = TILE * 0.5;
-const CARNELIAN_RING_W = 2;
+const PERIDOT_DISCHARGE_MS = 420;
+const PERIDOT_RING_R = TILE * 0.5;
+const PERIDOT_RING_W = 2;
 
 /**
- * Carnelian charge ring. The persistent track + fill arc — the large, thin, static
+ * Peridot charge ring. The persistent track + fill arc — the large, thin, static
  * curve that staircased under the game's `antialias: false` renderer — are now AA
  * sprites sharing one supersampled ring texture (`track` tinted dark, `fill` tinted
  * warm and revealed by a per-frame pie-wedge `mask`). The pip/pulse/discharge stay
  * on `extras` (Graphics): they're tiny or briefly expanding, where aliasing doesn't read.
  */
-interface CarnelianChargeFx {
+interface PeridotChargeFx {
   track: Sprite;
   fill: Sprite;
   mask: Graphics;
   extras: Graphics;
 }
 
-/** Lazily-built, shared across all Carnelian towers (radius/width are constant). */
-let carnelianRingTex: { tex: Texture; scale: number } | undefined;
-function carnelianRing(cache: TowerSpriteCache): {
+/** Lazily-built, shared across all Peridot towers (radius/width are constant). */
+let peridotRingTex: { tex: Texture; scale: number } | undefined;
+function peridotRing(cache: TowerSpriteCache): {
   tex: Texture;
   scale: number;
 } {
-  if (!carnelianRingTex) {
-    carnelianRingTex = generateRingTexture(
+  if (!peridotRingTex) {
+    peridotRingTex = generateRingTexture(
       cache.renderer,
-      CARNELIAN_RING_R,
-      CARNELIAN_RING_W,
+      PERIDOT_RING_R,
+      PERIDOT_RING_W,
     );
   }
-  return carnelianRingTex;
+  return peridotRingTex;
 }
 
 /** Lerp between two packed RGB colors. */
@@ -1215,41 +1215,41 @@ function lerpColor(a: number, b: number, t: number): number {
   return (r << 16) | (g << 8) | bl;
 }
 
-function animateCarnelianChargeFx(
+function animatePeridotChargeFx(
   entry: TowerEntry,
   t: TowerState,
   tick: number,
   now: number,
 ): void {
-  const fx = entry.carnelianChargeFx!;
+  const fx = entry.peridotChargeFx!;
 
   // Detect a shot (lastFireTick advanced) → flash, but skip the very first shot,
   // which is uncharged (Combat only charges when prevFireTick > 0).
-  const prev = entry.carnelianLastFireTick ?? 0;
-  if (t.lastFireTick > prev && prev > 0) entry.carnelianDischargeStart = now;
-  entry.carnelianLastFireTick = t.lastFireTick;
+  const prev = entry.peridotLastFireTick ?? 0;
+  if (t.lastFireTick > prev && prev > 0) entry.peridotDischargeStart = now;
+  entry.peridotLastFireTick = t.lastFireTick;
 
   // Charge fraction mirrors Combat: idle ticks since last fire / charge window.
   // Before the first shot (lastFireTick === 0) there is no charge yet.
-  const chargeTicks = entry.carnelianChargeTicks || SIM_HZ * 8;
+  const chargeTicks = entry.peridotChargeTicks || SIM_HZ * 8;
   const f =
     t.lastFireTick > 0 ? Math.min(1, (tick - t.lastFireTick) / chargeTicks) : 0;
 
-  const dis = entry.carnelianDischargeStart
+  const dis = entry.peridotDischargeStart
     ? Math.max(
         0,
-        1 - (now - entry.carnelianDischargeStart) / CARNELIAN_DISCHARGE_MS,
+        1 - (now - entry.peridotDischargeStart) / PERIDOT_DISCHARGE_MS,
       )
     : 0;
 
-  const R = CARNELIAN_RING_R;
+  const R = PERIDOT_RING_R;
 
   // Fill arc — the AA ring sprite revealed by a pie-wedge mask sweeping clockwise
   // from the top, warming and brightening toward full. The curved edge is smooth
   // (it comes from the supersampled texture); only the short radial cut is hard.
   if (f > 0.001) {
     fx.fill.visible = true;
-    fx.fill.tint = lerpColor(CARNELIAN_RING.mid, CARNELIAN_RING.light, f);
+    fx.fill.tint = lerpColor(PERIDOT_RING.mid, PERIDOT_RING.light, f);
     const base = 0.5 + f * 0.45;
     // Gentle alpha pulse once fully charged; steady ramp otherwise.
     fx.fill.alpha =
@@ -1279,14 +1279,14 @@ function animateCarnelianChargeFx(
   if (f > 0.001 && f < 0.999) {
     const end = -Math.PI / 2 + f * Math.PI * 2;
     ex.rect(Math.cos(end) * R - 1.5, Math.sin(end) * R - 1.5, 3, 3).fill({
-      color: CARNELIAN_RING.spec,
+      color: PERIDOT_RING.spec,
       alpha: 0.9,
     });
   }
   if (dis > 0.01) {
     ex.circle(0, 0, R + dis * 8).stroke({
       width: 2,
-      color: CARNELIAN_RING.spec,
+      color: PERIDOT_RING.spec,
       alpha: dis * 0.7,
     });
   }

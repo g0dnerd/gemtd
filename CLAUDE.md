@@ -60,7 +60,7 @@ Game progresses through phases in `state.phase`: `title → build → wave → c
 Everything in `src/data/` is data-only (no Pixi, no DOM):
 
 - `map.ts` — 21x17 grid layout, waypoints, `Cell` enum.
-- `gems.ts` — 11 gem types x 5 qualities. `gemStats(gem, quality)` is the canonical stat resolver; quality scales damage/range/atk-speed and effect potency. Note: `GemType` and `Quality` types are defined in `src/render/theme.ts`, not here — `gems.ts` imports them. Three newer gems (garnet, spinel, carnelian) have extended mechanics: `targetPriority`, `projectileSpeed`, `groundTarget` on GemBase/GemStats, and a `charge_burst` effect kind.
+- `gems.ts` — 11 gem types x 5 qualities. `gemStats(gem, quality)` is the canonical stat resolver; quality scales damage/range/atk-speed and effect potency. Note: `GemType` and `Quality` types are defined in `src/render/theme.ts`, not here — `gems.ts` imports them. Three newer gems (garnet, spinel, peridot) have extended mechanics: `targetPriority`, `projectileSpeed`, `groundTarget` on GemBase/GemStats, and a `charge_burst` effect kind.
 - `combos.ts` — multi-gem recipes; `findCombo` matches greedily.
 - `creeps.ts`, `waves.ts` — per-wave creep specs.
 - `maze-blueprint.ts` — blueprint consumed by `BlueprintAI` (output of the Python `maze_optimizer`).
@@ -71,9 +71,9 @@ Add new gems/combos/waves here and they flow through automatically.
 
 ### In-progress: new gem types (branch `new_gems`)
 
-Three new basic gems added — **Garnet** (mortar/artillery), **Spinel** (sniper), **Carnelian** (charged burst). Phase 1 is complete: stats, combat mechanics, rendering (parabolic arc for garnet), AI support. What remains for phase 2:
+Three new basic gems added — **Garnet** (mortar/artillery), **Spinel** (sniper), **Peridot** (charged burst). Phase 1 is complete: stats, combat mechanics, rendering (parabolic arc for garnet), AI support. What remains for phase 2:
 
-- **Combo recipes** — no recipes in `combos.ts` use garnet/spinel/carnelian yet. Need new specials + possible reshuffle of existing ingredient lists.
+- **Combo recipes** — no recipes in `combos.ts` use garnet/spinel/peridot yet. Need new specials + possible reshuffle of existing ingredient lists.
 - **Special sprites** — `SPECIAL_SPRITES` / `SPECIAL_TIER_GRIDS` in `spriteData.ts` need entries for any new combos.
 - **VFX** — `vfx:groundImpact` event is emitted but has no visual handler in `VfxRenderer.ts` (needs splash/crater effect for garnet mortar).
 - **Wave-1 starter** — currently Silver + Malachite only (`BuildPhase.ts`). A third option using new gems is deferred.

@@ -110,7 +110,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     name: "Black Opal",
     inputs: [
       { gem: "opal", quality: 5 },
-      { gem: "carnelian", quality: 4 },
+      { gem: "peridot", quality: 4 },
       { gem: "diamond", quality: 4 },
     ],
     stats: {
@@ -282,7 +282,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     key: "ametrine",
     name: "Raw Ametrine",
     inputs: [
-      { gem: "carnelian", quality: 5 },
+      { gem: "peridot", quality: 5 },
       { gem: "amethyst", quality: 4 },
       { gem: "sapphire", quality: 2 },
     ],
@@ -434,7 +434,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     name: "Uranium",
     inputs: [
       { gem: "topaz", quality: 5 },
-      { gem: "carnelian", quality: 3 },
+      { gem: "peridot", quality: 3 },
       { gem: "opal", quality: 3 },
     ],
     stats: {
@@ -482,7 +482,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     inputs: [
       { gem: "sapphire", quality: 5 },
       { gem: "aquamarine", quality: 4 },
-      { gem: "carnelian", quality: 2 },
+      { gem: "peridot", quality: 2 },
     ],
     stats: {
       dmgMin: 120,
@@ -720,7 +720,7 @@ const ALL_COMBOS: ComboRecipe[] = [
         },
       },
     ],
-    visualGem: "carnelian",
+    visualGem: "peridot",
   },
 
   // ─── Q2 recipes ─────────────────────────────────────────────────────────
@@ -842,7 +842,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     key: "pyrite",
     name: "Pyrite",
     inputs: [
-      { gem: "carnelian", quality: 1 },
+      { gem: "peridot", quality: 1 },
       { gem: "spinel", quality: 1 },
       { gem: "aquamarine", quality: 1 },
     ],

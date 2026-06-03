@@ -1,5 +1,7 @@
 # New Gems — Phase 2: Specials & Recipe Reshuffle
 
+> Renamed from Carnelian to Peridot on 2026-06-03. Mechanic and recipes unchanged.
+
 ## Current state (branch: `new_gems`)
 
 ### Phase 1 complete: 3 new basic gem types
@@ -8,7 +10,7 @@
 |-----|----------|--------------|-----------|
 | **Garnet** | Mortar/artillery | `groundTarget` — arcing projectile splashes at ground position; creeps can dodge | Ground only |
 | **Spinel** | Sniper | `targetPriority: 'highest_hp'` — pure damage, no effects | All |
-| **Carnelian** | Charged burst | `charge_burst` — first shot after idle deals up to 4× damage | All |
+| **Peridot** | Charged burst | `charge_burst` — first shot after idle deals up to 4× damage | All |
 
 These are fully implemented: stats in `gems.ts`, combat mechanics in `Combat.ts`, parabolic arc rendering, AI support, palette/UI, tests passing.
 
@@ -19,7 +21,7 @@ These are fully implemented: stats in `gems.ts`, combat mechanics in `Combat.ts`
 |---------|---------------------|----------|
 | Silver | sapphire + garnet + diamond | Splash + slow (unchanged mechanic, new ingredients) |
 | Malachite | opal + emerald + topaz | Multi-target (unchanged mechanic, new ingredients) |
-| Pyrite | carnelian + spinel + aquamarine | **NEW** — momentum tower |
+| Pyrite | peridot + spinel + aquamarine | **NEW** — momentum tower |
 
 **Star Ruby** (ruby Q2 + ruby Q1 + amethyst Q1) remains a lucky-draw option, not a guaranteed R1.
 
@@ -33,7 +35,7 @@ These are fully implemented: stats in `gems.ts`, combat mechanics in `Combat.ts`
 
 | Effect | Used by | Behavior |
 |--------|---------|----------|
-| `charge_burst` | Carnelian (basic) | Multiplies damage based on idle time since last fire |
+| `charge_burst` | Peridot (basic) | Multiplies damage based on idle time since last fire |
 | `momentum` | Pyrite (combo) | Stacking attack speed (+ optional damage) ramp on sustained fire |
 | `pierce` | Pyroclast (T3) | Projectile continues to next creep in line behind target |
 | `kill_explode` | Pyroclast (T3) | AoE at death position when projectile kills |
@@ -67,7 +69,7 @@ The 3 new basic gems should appear as ingredients in BOTH new specials AND reshu
 | Silver | sapphire:1 + garnet:1 + diamond:1 | Already uses garnet (new) |
 | Malachite | opal:1 + emerald:1 + topaz:1 | Reshuffled (was aquamarine) |
 | Star Ruby | ruby:2 + ruby:1 + amethyst:1 | Unchanged |
-| Pyrite | carnelian:1 + spinel:1 + aquamarine:1 | **NEW** |
+| Pyrite | peridot:1 + spinel:1 + aquamarine:1 | **NEW** |
 | Black Opal | opal:5 + diamond:4 + aquamarine:3 | |
 | Dark Emerald | emerald:4 + emerald:3 + topaz:2 | |
 | Gold | amethyst:5 + amethyst:4 + diamond:2 | |
@@ -83,11 +85,11 @@ The 3 new basic gems should appear as ingredients in BOTH new specials AND reshu
 
 ### Reshuffle opportunities
 
-Existing recipes that could swap in garnet/spinel/carnelian without breaking thematic identity:
+Existing recipes that could swap in garnet/spinel/peridot without breaking thematic identity:
 - **Bloodstone** (eruption/volcanic) — could swap aquamarine:4 → garnet:4 (mortar = volcanic artillery fits)
-- **Red Crystal** (beam/focus) — could use spinel (precision) or carnelian (burst)
+- **Red Crystal** (beam/focus) — could use spinel (precision) or peridot (burst)
 - **Pink Diamond** (crit/execute) — spinel (sniper) fits the precision-kill theme
-- **Dark Emerald** (poison/plague) — could incorporate carnelian (timing fits periodic nature)
+- **Dark Emerald** (poison/plague) — could incorporate peridot (timing fits periodic nature)
 
 ### New specials to design
 

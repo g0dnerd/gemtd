@@ -222,7 +222,7 @@ Mechanical kit, to interpret numbers (from `gems.ts` — verify current effects 
 | opal | **support aura (attack-speed buff)** — the one derived-support *gem*; near-zero damage share is mechanically inevitable. Primary assist channel: `atkspeed_assist`. Read it on assist/keep/presence, not damage |
 | garnet | mortar — slow-firing, long-range, ground-target splash (hits a position, not a creep); **ground-only** |
 | spinel | sniper — high damage, long range, slow fire; targets highest-HP creep |
-| carnelian | charged burst — first shot after idle deals up to 4× damage; quality scales the multiplier |
+| peridot | charged burst — first shot after idle deals up to 4× damage; quality scales the multiplier |
 
 How to describe (the deviation, with its size):
 - Use `ratio_to_dealer_mean`. Mark 🔴 for a ratio above ~2× or below ~0.4×, 🟡 for ~1.5–2× or
@@ -389,7 +389,7 @@ observations — report them the same way.
 
 On wave 1 the game forces the player toward **one** of three early specials by guaranteeing its
 ingredients (`BuildPhase.rollDraws`): **Malachite** (opal/emerald/topaz), **Silver**
-(sapphire/garnet/diamond), or **Pyrite** (carnelian/spinel/aquamarine). Every run is in exactly
+(sapphire/garnet/diamond), or **Pyrite** (peridot/spinel/aquamarine). Every run is in exactly
 one cohort. The script recovers the offer from the run's **wave-1 keeper event** — its
 `combo_key` directly records which special was kept (older runs without per-wave keeper events
 fall back to the kept gem's recipe) — and splits all runs into the three cohorts (`detector`

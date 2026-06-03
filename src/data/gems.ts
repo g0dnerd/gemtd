@@ -239,8 +239,8 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     targeting: "all",
     targetPriority: "highest_hp",
   },
-  carnelian: {
-    name: "Carnelian",
+  peridot: {
+    name: "Peridot",
     blurb: "Charged burst — first shot after idle hits hard.",
     baseDmg: 18,
     spread: 0.2,

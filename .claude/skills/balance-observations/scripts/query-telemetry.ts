@@ -733,7 +733,7 @@ const waves = {
 // ── Wave-1 choice: Malachite / Silver / Pyrite cohorts (by the forced starter offer) ──
 // On wave 1 the game guarantees ingredients for exactly ONE of three early specials
 // (BuildPhase.rollDraws): Malachite = opal/emerald/topaz, Silver = sapphire/garnet/diamond,
-// Pyrite = carnelian/spinel/aquamarine. Every run is therefore in exactly one cohort. We
+// Pyrite = peridot/spinel/aquamarine. Every run is therefore in exactly one cohort. We
 // recover the offer from the run's wave-1 keeper event — `detail` carries the kept combo_key
 // (malachite/silver/pyrite), the direct record of the forced choice. (Older runs predating
 // per-wave keeper events won't have one; we fall back to the kept gem's recipe membership.)
@@ -743,7 +743,8 @@ const waves = {
 const STARTER_RECIPES: Record<string, Set<string>> = {
   malachite: new Set(["opal", "emerald", "topaz"]),
   silver: new Set(["sapphire", "garnet", "diamond"]),
-  pyrite: new Set(["carnelian", "spinel", "aquamarine"]),
+  // "carnelian" kept for historical runs before the rename — safe to drop once those runs age out of the dashboards.
+  pyrite: new Set(["peridot", "carnelian", "spinel", "aquamarine"]),
 };
 type Cohort = "malachite" | "silver" | "pyrite";
 const COHORT_KEYS = Object.keys(STARTER_RECIPES) as Cohort[];

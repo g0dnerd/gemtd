@@ -31,7 +31,7 @@ const GEM_NAMES: Record<string, string> = {
   aquamarine: "Aquamarine",
   garnet: "Garnet",
   spinel: "Spinel",
-  carnelian: "Carnelian",
+  peridot: "Peridot",
 };
 
 function gemLabel(gem: string, quality: number): string {

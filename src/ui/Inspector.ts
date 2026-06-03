@@ -593,10 +593,10 @@ function lbGemColors(gem: GemType): {
         fillAlpha: 0.2,
         borderAlpha: 0.3,
       };
-    case "carnelian":
+    case "peridot":
       return {
-        text: "#e89060",
-        fill: "#c06030",
+        text: "#d8f060",
+        fill: "#a8c828",
         fillAlpha: 0.2,
         borderAlpha: 0.3,
       };

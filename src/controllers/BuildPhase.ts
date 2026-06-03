@@ -95,7 +95,7 @@ export class BuildPhase {
       const recipes: GemType[][] = [
         ["sapphire", "garnet", "diamond"],
         ["opal", "emerald", "topaz"],
-        ["carnelian", "spinel", "aquamarine"],
+        ["peridot", "spinel", "aquamarine"],
       ];
       for (const g of this.game.rng.pick(recipes)) {
         gems.push({ gem: g, quality: 1 });

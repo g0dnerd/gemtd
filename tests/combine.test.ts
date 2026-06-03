@@ -248,12 +248,12 @@ describe("combine: recipe path", () => {
     expect(h.game.state.towers[0].comboKey).toBe("thunderstone");
   });
 
-  it("matches Raw Ametrine (Flawed Sapphire + Flawless Amethyst + Perfect Carnelian)", () => {
+  it("matches Raw Ametrine (Flawed Sapphire + Flawless Amethyst + Perfect Peridot)", () => {
     const h = setup();
     const ts = [
       placeTower(h.game, 4, 4, "sapphire", 2),
       placeTower(h.game, 4, 6, "amethyst", 4),
-      placeTower(h.game, 4, 8, "carnelian", 5),
+      placeTower(h.game, 4, 8, "peridot", 5),
     ];
     h.game.state.draws = asDraws(ts);
     expect(h.phase.combine(ts.map((t) => t.id))).toBe(true);
