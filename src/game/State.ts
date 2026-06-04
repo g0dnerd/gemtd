@@ -82,6 +82,9 @@ export interface TowerState {
    * - vulnAssist     — extra damage this tower's `vulnerability_aura`/`frostbite` enabled.
    * - armorShredAssist — extra damage this tower's armor reduction (any of the 4 mechanisms) enabled.
    * - atkSpeedAssist — extra damage this tower's `aura_atkspeed` enabled (more shots).
+   * - demoteAirAssist — damage landed on creeps this tower grounded with `demote_air`,
+   *                     counted only when the firing tower was `targeting: "ground"`
+   *                     (i.e. wouldn't have been able to hit pre-demote).
    * - bonusGoldGenerated — gold awarded by this tower's `bonus_gold` rolls.
    * Optional so existing tower-construction sites need no change; read as `?? 0`.
    */
@@ -89,6 +92,7 @@ export interface TowerState {
   vulnAssist?: number;
   armorShredAssist?: number;
   atkSpeedAssist?: number;
+  demoteAirAssist?: number;
   bonusGoldGenerated?: number;
 }
 
@@ -146,6 +150,13 @@ export interface CreepState {
   proxSlowFactor?: number;
   /** Boss / armored / air flags. */
   flags?: { boss?: boolean; armored?: boolean; air?: boolean };
+  /**
+   * Tower id that grounded this creep with `demote_air`. Set on demote, never cleared
+   * (one demote per creep — `flags.air` is the guard, and nothing flips it back on).
+   * Telemetry attribution only: subsequent damage from ground-only towers gets credited
+   * back to this tower as `demoteAirAssist`.
+   */
+  demotedByTowerId?: number;
   alive: boolean;
   /** Heal-over-time buff from a nearby healer creep. */
   healBuff?: { hpPerTick: number; expiresAt: number };

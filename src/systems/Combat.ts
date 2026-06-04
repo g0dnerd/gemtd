@@ -620,6 +620,7 @@ export class Combat {
       this.rollBonusGold(owner, target, stats);
       if (p.isDemoteShot && target.flags?.air) {
         target.flags.air = false;
+        target.demotedByTowerId = owner.id;
         owner.attackCount = 0;
         const route = state.flatRoute;
         if (route.length > 0) {
@@ -965,6 +966,22 @@ export class Combat {
     }
     owner.totalDamage += dmg;
     owner.waveDamage += dmg;
+    // Demote-air assist: damage landed by a ground-only tower on a creep that
+    // a Red Crystal grounded with `demote_air` is credited back to the demoter.
+    // Pre-demote, this damage couldn't have landed at all — so attributing it to
+    // the demoter measures the air-grounding's enabling value on the same axis
+    // as the other assist channels.
+    if (
+      c.demotedByTowerId !== undefined &&
+      c.demotedByTowerId !== owner.id &&
+      dmg > 0 &&
+      effectiveStats(owner).targeting === "ground"
+    ) {
+      const demoter = this.towerById(c.demotedByTowerId);
+      if (demoter) {
+        demoter.demoteAirAssist = (demoter.demoteAirAssist ?? 0) + dmg;
+      }
+    }
     c.hp -= dmg;
     this.game.bus.emit("tower:hit", {
       id: owner.id,

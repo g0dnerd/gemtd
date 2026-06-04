@@ -160,12 +160,13 @@ export async function handleIngest(
     stmts.push(
       db.prepare(
         `INSERT INTO wave_gem_assist (run_id, wave, gem, combo_key, upgrade_tier,
-           dmg_aura_assist, vuln_assist, armor_shred_assist, atkspeed_assist, bonus_gold)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           dmg_aura_assist, vuln_assist, armor_shred_assist, atkspeed_assist,
+           demote_air_assist, bonus_gold)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       ).bind(
         runId, wga.wave, wga.gem, wga.comboKey ?? "", wga.upgradeTier ?? 0,
         wga.dmgAuraAssist ?? 0, wga.vulnAssist ?? 0, wga.armorShredAssist ?? 0,
-        wga.atkspeedAssist ?? 0, wga.bonusGold ?? 0,
+        wga.atkspeedAssist ?? 0, wga.demoteAirAssist ?? 0, wga.bonusGold ?? 0,
       ),
     );
   }

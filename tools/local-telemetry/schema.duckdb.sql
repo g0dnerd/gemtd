@@ -119,6 +119,7 @@ CREATE TABLE wave_gem_assist (
   vuln_assist        DOUBLE  NOT NULL DEFAULT 0,
   armor_shred_assist DOUBLE  NOT NULL DEFAULT 0,
   atkspeed_assist    DOUBLE  NOT NULL DEFAULT 0,
+  demote_air_assist  DOUBLE  NOT NULL DEFAULT 0,
   bonus_gold         DOUBLE  NOT NULL DEFAULT 0
 );
 CREATE INDEX idx_wga_run  ON wave_gem_assist(run_id);

@@ -59,6 +59,7 @@ interface WaveGemAssist {
   vulnAssist: number;
   armorShredAssist: number;
   atkspeedAssist: number;
+  demoteAirAssist: number;
   bonusGold: number;
 }
 
@@ -68,15 +69,17 @@ interface AssistSnapshot {
   vulnAssist: number;
   armorShredAssist: number;
   atkspeedAssist: number;
+  demoteAirAssist: number;
   bonusGold: number;
 }
 
-function towerAssist(t: { dmgAuraAssist?: number; vulnAssist?: number; armorShredAssist?: number; atkSpeedAssist?: number; bonusGoldGenerated?: number }): AssistSnapshot {
+function towerAssist(t: { dmgAuraAssist?: number; vulnAssist?: number; armorShredAssist?: number; atkSpeedAssist?: number; demoteAirAssist?: number; bonusGoldGenerated?: number }): AssistSnapshot {
   return {
     dmgAuraAssist: t.dmgAuraAssist ?? 0,
     vulnAssist: t.vulnAssist ?? 0,
     armorShredAssist: t.armorShredAssist ?? 0,
     atkspeedAssist: t.atkSpeedAssist ?? 0,
+    demoteAirAssist: t.demoteAirAssist ?? 0,
     bonusGold: t.bonusGoldGenerated ?? 0,
   };
 }
@@ -331,8 +334,9 @@ export class TelemetryCollector {
           const dVuln = cur.vulnAssist - (base?.vulnAssist ?? cur.vulnAssist);
           const dArmor = cur.armorShredAssist - (base?.armorShredAssist ?? cur.armorShredAssist);
           const dAtk = cur.atkspeedAssist - (base?.atkspeedAssist ?? cur.atkspeedAssist);
+          const dDemote = cur.demoteAirAssist - (base?.demoteAirAssist ?? cur.demoteAirAssist);
           const dGold = cur.bonusGold - (base?.bonusGold ?? cur.bonusGold);
-          if (dDmgAura <= 0 && dVuln <= 0 && dArmor <= 0 && dAtk <= 0 && dGold <= 0) continue;
+          if (dDmgAura <= 0 && dVuln <= 0 && dArmor <= 0 && dAtk <= 0 && dDemote <= 0 && dGold <= 0) continue;
           const comboKey = t.comboKey || "";
           const tier = t.upgradeTier ?? 0;
           const key = `${t.gem}:${comboKey}:${tier}`;
@@ -342,12 +346,13 @@ export class TelemetryCollector {
             existing.vulnAssist += dVuln;
             existing.armorShredAssist += dArmor;
             existing.atkspeedAssist += dAtk;
+            existing.demoteAirAssist += dDemote;
             existing.bonusGold += dGold;
           } else {
             gemAssist.set(key, {
               wave: s.wave, gem: t.gem, comboKey, upgradeTier: tier,
               dmgAuraAssist: dDmgAura, vulnAssist: dVuln, armorShredAssist: dArmor,
-              atkspeedAssist: dAtk, bonusGold: dGold,
+              atkspeedAssist: dAtk, demoteAirAssist: dDemote, bonusGold: dGold,
             });
           }
         }

@@ -363,15 +363,28 @@ const assistTableRow = await one<{ n: number }>(
    WHERE table_schema='main' AND table_name='wave_gem_assist'`,
 );
 const hasAssistTable = (assistTableRow?.n ?? 0) > 0;
-type AssistAgg = { dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number };
-const zeroAssist = (): AssistAgg => ({ dmg_aura: 0, vuln: 0, armor_shred: 0, atkspeed: 0, bonus_gold: 0 });
+// The `demote_air_assist` column was added in migration 0008; older sim runs (and
+// pre-migration local DBs) won't have it. Probe once and `coalesce` so the same query
+// works against both shapes — when missing, the channel contributes 0 everywhere.
+const demoteColRow = hasAssistTable
+  ? await one<{ n: number }>(
+      `SELECT count(*) AS n FROM information_schema.columns
+       WHERE table_schema='main' AND table_name='wave_gem_assist'
+         AND column_name='demote_air_assist'`,
+    )
+  : null;
+const hasDemoteCol = (demoteColRow?.n ?? 0) > 0;
+const demoteSqlExpr = hasDemoteCol ? "demote_air_assist" : "0";
+type AssistAgg = { dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; demote_air: number; bonus_gold: number };
+const zeroAssist = (): AssistAgg => ({ dmg_aura: 0, vuln: 0, armor_shred: 0, atkspeed: 0, demote_air: 0, bonus_gold: 0 });
 const assistByGem = new Map<string, AssistAgg>();
 const assistByCombo = new Map<string, AssistAgg>();
 if (hasAssistTable) {
-  const assistRows = await q<{ gem: string; combo_key: string; dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; bonus_gold: number }>(
+  const assistRows = await q<{ gem: string; combo_key: string; dmg_aura: number; vuln: number; armor_shred: number; atkspeed: number; demote_air: number; bonus_gold: number }>(
     `SELECT gem, combo_key,
             sum(dmg_aura_assist) AS dmg_aura, sum(vuln_assist) AS vuln,
             sum(armor_shred_assist) AS armor_shred, sum(atkspeed_assist) AS atkspeed,
+            sum(${demoteSqlExpr}) AS demote_air,
             sum(bonus_gold) AS bonus_gold
      FROM wave_gem_assist WHERE ${scope("run_id")} GROUP BY gem, combo_key`,
   );
@@ -380,11 +393,11 @@ if (hasAssistTable) {
     const key = r.combo_key || r.gem;
     const a = target.get(key) ?? zeroAssist();
     a.dmg_aura += r.dmg_aura; a.vuln += r.vuln; a.armor_shred += r.armor_shred;
-    a.atkspeed += r.atkspeed; a.bonus_gold += r.bonus_gold;
+    a.atkspeed += r.atkspeed; a.demote_air += r.demote_air; a.bonus_gold += r.bonus_gold;
     target.set(key, a);
   }
 }
-const assistedTotal = (a: AssistAgg) => a.dmg_aura + a.vuln + a.armor_shred + a.atkspeed;
+const assistedTotal = (a: AssistAgg) => a.dmg_aura + a.vuln + a.armor_shred + a.atkspeed + a.demote_air;
 // Support-set median assisted_damage_share → deviation band (parallels the dealer mean).
 const supportShares: number[] = [];
 for (const [g, a] of assistByGem) if (supportGemSet.has(g)) supportShares.push(assistedTotal(a) / rosterDamage);
@@ -399,6 +412,7 @@ const assistRow = (isSupport: boolean, a: AssistAgg) => {
     vuln_assist: round(a.vuln, 0),
     armor_shred_assist: round(a.armor_shred, 0),
     atkspeed_assist: round(a.atkspeed, 0),
+    demote_air_assist: round(a.demote_air, 0),
     assisted_damage: round(assisted, 0),
     // share against the GEM roster total, so it's directly comparable to dealers' damage_share
     assisted_damage_share: round(share),

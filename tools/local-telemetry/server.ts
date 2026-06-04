@@ -137,8 +137,9 @@ const INSERT_WGD_SQL =
 
 const INSERT_WGA_SQL =
   `INSERT INTO wave_gem_assist (run_id, wave, gem, combo_key, upgrade_tier,
-     dmg_aura_assist, vuln_assist, armor_shred_assist, atkspeed_assist, bonus_gold)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+     dmg_aura_assist, vuln_assist, armor_shred_assist, atkspeed_assist,
+     demote_air_assist, bonus_gold)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
 // Serialise ingest so concurrent posts can't interleave their transactions
 // (DuckDB has a single writer per connection; chaining the promises keeps the
@@ -201,7 +202,7 @@ async function ingest(
       await exec(INSERT_WGA_SQL, [
         runId, wga.wave, wga.gem, wga.comboKey ?? "", wga.upgradeTier ?? 0,
         wga.dmgAuraAssist ?? 0, wga.vulnAssist ?? 0, wga.armorShredAssist ?? 0,
-        wga.atkspeedAssist ?? 0, wga.bonusGold ?? 0,
+        wga.atkspeedAssist ?? 0, wga.demoteAirAssist ?? 0, wga.bonusGold ?? 0,
       ]);
     }
     await exec(`COMMIT`);

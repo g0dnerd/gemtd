@@ -74,9 +74,9 @@ claim that it is undesirable. Say this in the report so the reader doesn't read 
   and **presence-conditioning** (A2). This means a support gem that's low on *all* of these
   is a stronger weakness signal than damage_share alone ever was. But the coverage is still
   incomplete: assisted damage is an **attribution approximation** (per-channel marginal credit,
-  normalized — not a ground-truth counterfactual), and **slow / crowd-control duration,
-  path-distance-denied, and air-grounding value remain unmeasured**. So absence of assist data
-  is *not* proof of weakness — name what's still unmeasured before reading a low number as a problem.
+  normalized — not a ground-truth counterfactual), and **slow / crowd-control duration and
+  path-distance-denied remain unmeasured**. So absence of assist data is *not* proof of
+  weakness — name what's still unmeasured before reading a low number as a problem.
 
 ## Step 1 — Check data freshness (do this first, always)
 
@@ -129,10 +129,13 @@ gems.perGem[]       { gem, isSupport, total_damage, total_kills, damage_share, k
 gems.assist         // A3 — null/absent on pre-instrumentation runs (then OMIT it entirely):
                     { rosterTotalDamage, support_median_assisted_damage_share,
                       perGem[]{ gem, isSupport, dmg_aura_assist, vuln_assist, armor_shred_assist,
-                                atkspeed_assist, assisted_damage, assisted_damage_share,
+                                atkspeed_assist, demote_air_assist,
+                                assisted_damage, assisted_damage_share,
                                 bonus_gold, ratio_to_support_median } }
                       // assisted_damage_share uses the GEM roster total → comparable to damage_share;
-                      // ratio_to_support_median null for non-support; bonus_gold is GOLD, not damage
+                      // ratio_to_support_median null for non-support; bonus_gold is GOLD, not damage;
+                      // demote_air_assist = damage landed by ground-only towers on creeps the
+                      // source grounded with demote_air (Red Crystal's air-grounding value)
 gems.presenceConditioning  // A2 — CORRELATIONAL (see `caveat`); support gems only:
                     { caveat, items[]{ gem,
                         outcomeSplit{ kept_runs, never_runs, thin_sample,
@@ -321,11 +324,12 @@ How to describe:
 - **Derived support combos** (those in the support set — currently Black Opal and Red Crystal;
   Void Opal is Black Opal's tier-1, same key). Treat them exactly like support gems: lead with
   **`assisted_damage_share`** from `combos.assist` (Black/Void Opal earn on `dmg_aura_assist` +
-  `vuln_assist`; Red Crystal's value is `demote_air` air-grounding, which is **unmeasured** —
-  its `bonus_gold` and tiny direct damage are all that show, so read it on keep-rate + presence,
-  not assist), then **keep-rate** (`keep_incidence` / `keep_share`), then
-  **`combos.presenceConditioning`** (correlational caveat). If `combos.assist` is absent
-  (pre-instrumentation), say so and fall back to keep-rate + presence.
+  `vuln_assist`; Red Crystal earns on `demote_air_assist` — damage landed by ground-only towers
+  on creeps it grounded — alongside its `bonus_gold` and direct damage), then **keep-rate**
+  (`keep_incidence` / `keep_share`), then **`combos.presenceConditioning`** (correlational caveat).
+  If `combos.assist` is absent (pre-instrumentation), say so and fall back to keep-rate + presence.
+  Older runs (pre-migration 0008) won't have `demote_air_assist` on their rows; the channel
+  reads as 0 there and the script handles the missing-column case.
 
 #### Upgrade-tier ROI (`combos.tierRoi[]`)
 
