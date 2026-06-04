@@ -311,6 +311,59 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "2.0.1-alpha-1",
+      notes: [
+        {
+          tag: "buff",
+          text: "Aquamarine beam_ramp rampPerHit 0.27 -> 0.32, maxStacks 30 -> 35 (peak +810% -> +1088%).",
+        },
+        {
+          tag: "nerf",
+          text: "Pyrite / Molten Pyrite / Pyroclast momentum rampDmg 1.5/1.55/1.75 -> 1.4/1.45/1.65 at all tiers.",
+        },
+        {
+          tag: "buff",
+          text: "Jade base dmg 50-80 -> 55-88, poison 30 -> 36 dps.",
+        },
+        {
+          tag: "buff",
+          text: "Lucky Asian Jade dmg 257-385 -> 283-424, poison 75 -> 90 dps.",
+        },
+        {
+          tag: "buff",
+          text: "Raw Ametrine scatter dmg multiplier 0.7 -> 0.85.",
+        },
+        {
+          tag: "new",
+          text: "Ametrine Sovereign execute-kills now shred -6 armor in 2.5-tile AoE for 4s.",
+        },
+        {
+          tag: "bal",
+          text: "Silver base atkSpeed 1.56 -> 1.35, dmg 42-45 -> 49-52; Silver Knight atkSpeed 1.0 -> 1.35, dmgMax 225 -> 245 (removes T1 -> T2 stat regression).",
+        },
+        {
+          tag: "nerf",
+          text: "Ancient Paraiba stacking_armor_reduce maxStacks 8 -> 6 (peak armor shred -24 -> -18).",
+        },
+        {
+          tag: "buff",
+          text: "Wave 18 carapace HP 4800 -> 6000.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 38 shrike HP 27500 -> 20000.",
+        },
+        {
+          tag: "buff",
+          text: "Wave 45 inner skitter payload HP 43000 -> 54000.",
+        },
+        {
+          tag: "nerf",
+          text: "Wave 50 amalgam HP 80000 -> 72000, mender HP 75000 -> 60000.",
+        },
+      ],
+    },
+    {
       ver: "2.0.0",
       notes: [
         {

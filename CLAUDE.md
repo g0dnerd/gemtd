@@ -70,17 +70,6 @@ Everything in `src/data/` is data-only (no Pixi, no DOM):
 
 Add new gems/combos/waves here and they flow through automatically.
 
-### In-progress: new gem types (branch `new_gems`)
-
-Three new basic gems added — **Garnet** (mortar/artillery), **Spinel** (sniper), **Peridot** (charged burst). Phase 1 is complete: stats, combat mechanics, rendering (parabolic arc for garnet), AI support. What remains for phase 2:
-
-- **Combo recipes** — no recipes in `combos.ts` use garnet/spinel/peridot yet. Need new specials + possible reshuffle of existing ingredient lists.
-- **Special sprites** — `SPECIAL_SPRITES` / `SPECIAL_TIER_GRIDS` in `spriteData.ts` need entries for any new combos.
-- **VFX** — `vfx:groundImpact` event is emitted but has no visual handler in `VfxRenderer.ts` (needs splash/crater effect for garnet mortar).
-- **Wave-1 starter** — currently Silver + Malachite only (`BuildPhase.ts`). A third option using new gems is deferred.
-- **Maze optimizer** — should be re-run once combos land (fitness function depends on gem roster).
-- **Balance tuning** — damage numbers are first-pass estimates, need sim-compare passes.
-
 ### UI / events
 
 UI is **HTML/CSS, not Pixi** (`src/ui/`, styled by `src/styles/`). The Pixi canvas is mounted into the HUD's center column by `Shell.ts`. UI talks to the sim through:

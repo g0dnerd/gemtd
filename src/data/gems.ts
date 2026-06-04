@@ -42,7 +42,14 @@ export type EffectKind =
   | { kind: "vulnerability_aura"; radius: number; pct: number }
   | { kind: "crit_splash"; radius: number; falloff: number }
   | { kind: "focus_crit"; pctPerHit: number; maxBonus: number }
-  | { kind: "execute"; dmgBonus: number; hpThreshold: number }
+  | {
+      kind: "execute";
+      dmgBonus: number;
+      hpThreshold: number;
+      onKillShredRadius?: number;
+      onKillShredValue?: number;
+      onKillShredDuration?: number;
+    }
   | { kind: "freeze_chance"; chance: number; duration: number }
   | { kind: "periodic_nova"; everyN: number }
   | {
@@ -213,7 +220,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     spread: 0.15,
     baseRange: 3.0,
     baseAtkSpeed: 3.0,
-    effects: [{ kind: "beam_ramp", rampPerHit: 0.27, maxStacks: 30 }],
+    effects: [{ kind: "beam_ramp", rampPerHit: 0.32, maxStacks: 35 }],
     targeting: "all",
   },
   garnet: {

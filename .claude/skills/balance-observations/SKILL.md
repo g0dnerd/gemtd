@@ -81,14 +81,16 @@ claim that it is undesirable. Say this in the report so the reader doesn't read 
 ## Step 1 — Check data freshness (do this first, always)
 
 The analysis is only meaningful on sim runs that match the **current game version** and
-use **HeuristicAI** (the canonical balance evaluator). Run the bundled query script from
-the repo root:
+use **HeuristicAI** (the canonical balance evaluator). Run **both** bundled query scripts from
+the repo root — the first computes outlier deviations, the second computes deep-run /
+victory-cohort keeper composition:
 
 ```bash
 npx tsx .claude/skills/balance-observations/scripts/query-telemetry.ts
+npx tsx .claude/skills/balance-observations/scripts/winning-runs-query.ts
 ```
 
-It reads the current version from `package.json` and targets
+`query-telemetry.ts` reads the current version from `package.json` and targets
 `mode='sim' AND ai='HeuristicAI' AND version=<current> AND wave_reached > 1`. Inspect the
 JSON it prints:
 
@@ -98,16 +100,23 @@ JSON it prints:
   data — use it to tell the user whether they have stale data from an older version.
 - `ok: true` → `targetRunCount` runs are available; the full analysis is included.
 
-**This script is the only command you need to run.** It does all the extraction *and* the
-derived math (shares, ratios, leak rates, guarded wave comparisons, creep attribution) and
-prints one JSON blob. Read that JSON and reason over it directly — do **not** write inline
-`python`/`jq`/`node -e` to parse or recompute it (the values are already there, and ad-hoc
-scripts trigger approval prompts for no benefit). The blob is sizeable (tens of KB for a full
-run set), so it's normally persisted to a file rather than shown inline — that's expected;
-just Read the persisted file. When you need a gem/combo/creep's kit or a wave's composition
-for context, **Read** the data file (`gems.ts`, `combos.ts`, `creeps.ts`, `waves.ts`) — prefer
-the Read tool over `grep`/`head`, per the repo's conventions. The key output fields (a few
-extra raw fields also appear; these are the ones you'll use):
+`winning-runs-query.ts` returns per-cohort keeper composition: how often each (combo, max
+upgrade tier kept) and bare gem appears across **All runs**, **Beat W30**, **Beat W40**,
+**Beat W45**, and **Made W50** (the victory-adjacent cohort). The ratio of presence in the
+W50 cohort vs All-runs tells you which keepers are *associated with deep-run progress*. This
+is one of the strongest signals available — see "Deep-run keeper composition" in Step 2.
+
+**These two scripts are the only commands you need to run.** They do all the extraction *and*
+the derived math (shares, ratios, leak rates, guarded wave comparisons, creep attribution,
+cohort presence rates) and print JSON blobs. Read those JSON outputs and reason over them
+directly — do **not** write inline `python`/`jq`/`node -e` to parse or recompute (the values
+are already there, and ad-hoc scripts trigger approval prompts for no benefit). The blobs
+are sizeable (tens to hundreds of KB for a full run set), so they're normally persisted to
+files rather than shown inline — that's expected; just Read the persisted file. When you
+need a gem/combo/creep's kit or a wave's composition for context, **Read** the data file
+(`gems.ts`, `combos.ts`, `creeps.ts`, `waves.ts`) — prefer the Read tool over `grep`/`head`,
+per the repo's conventions. The key output fields (a few extra raw fields also appear; these
+are the ones you'll use):
 
 ```
 overview            { runs, avg_wave, max_wave, victories }
@@ -138,9 +147,17 @@ combos.assist       // A3 — same shape as gems.assist but perCombo[]{ key, nam
 combos.presenceConditioning  // A2 — { caveat, items[]{ key, name, outcomeSplit, perWave } }
 combos.tierRoi[]    { combo_key, name, tier, tier_name, runs, total_damage, total_kills,
                       builds_to_tier, dmg_per_build_at_tier, marginal_gold, cum_gold,
-                      marginal_dmg_per_gold, cum_dmg_per_gold, tier_group_size,
-                      tier_median_cum_dmg_per_gold, ratio_to_tier_median }
-                      // ROI fields null at base (tier 0, no gold); ratio null if tier has <2 combos.
+                      marginal_dmg_per_gold, cum_dmg_per_gold,
+                      // Peer-group split: intermediate-T1 vs final-T1 vs final-T2.
+                      // A combo's FINAL upgrade carries the combo's ceiling, so its
+                      // dmg/gold is structurally higher than any intermediate at the same
+                      // numeric tier. We split the peer pool on this axis (use ONLY these
+                      // fields for cross-combo deviation reads — they're the honest comparison).
+                      is_final, peer_group,            // "intermediate-t1" | "final-t1" | "final-t2" | null at base
+                      peer_group_size,
+                      peer_group_median_cum_dmg_per_gold,
+                      ratio_to_peer_group_median }    // null at base or when peer group < 2 combos
+                      // ROI fields null at base (tier 0, no gold).
                       // sorted by tier asc, then cum_dmg_per_gold desc
 waveOneChoice       { detector, unassigned,
                       deltas.{<b>_minus_<a>_avg_wave} (pairwise, positive → b further),
@@ -156,6 +173,16 @@ waves.perWave[]     { wave, reached, samples, deaths, death_rate, avg_leaks, avg
                       thin_sample, neighbor_avg_leaks, neighbor_avg_death_rate,
                       leak_ratio_to_neighbors, death_ratio_to_neighbors, neighbor_near_zero,
                       top_leak_creeps[] }          // ratios null when the neighbor anchor is ~0
+```
+
+`winning-runs-query.ts` output (separate JSON):
+
+```
+version, cohorts.{name}.{ runs, combos[], gems[] }
+  // name ∈ "All runs" | "Beat wave 30" | "Beat wave 40" | "Beat wave 45" | "Victories (W50)"
+  // combos[]: { combo_key, tier, runs_with_it, presence_rate }
+  //   tier = MAX tier kept for that combo in each run; sorted by runs_with_it desc.
+  // gems[]:  { gem, runs_with_it, presence_rate } — bare uncombined kept gems
 ```
 
 **If data is missing or stale, STOP and tell the user to generate it manually.** Do not run
@@ -318,17 +345,34 @@ different build rates stay comparable):
   step. Isolates whether buying *this specific* tier pays off (a great combo can still have a
   weak final tier, or vice-versa).
 
-Compare **across combos within the same tier** — gold scales differ between tiers, so a
-tier-1 number isn't comparable to a tier-2 number. The script does this grouping for you:
-`ratio_to_tier_median` is each row's `cum_dmg_per_gold` ÷ the median across all combos at
-that tier (null at base, or when a tier has only one combo). Mark 🔴 for a ratio above ~2×
-or below ~0.5×, 🟡 for ~1.5–2× or ~0.5–0.66×.
+Compare **only across structurally-comparable peers**. The naïve "compare every tier-1 row
+against every other tier-1 row" is wrong: some combos *stop* at T1 (Ancient Paraiba,
+Pharaoh's Gold, Uranium 235, Dark Emerald, …) — for them, T1 is the combo's full ceiling,
+so their dmg/gold is structurally higher than any combo's intermediate T1 (Plasma Star,
+Vivid Malachite, Frosted Silver, …) that leads to a stronger T2. Comparing a mid-step to
+another combo's final inflates the perceived gap and produces phantom "below-median"
+findings for combos that are actually fine.
+
+The script handles this split for you. Use these fields and NOTHING else for cross-combo
+deviation reads:
+
+- **`peer_group`** — `"intermediate-t1"` | `"final-t1"` | `"final-t2"` | `null` at base.
+- **`peer_group_median_cum_dmg_per_gold`** — median across structurally-comparable peers.
+- **`ratio_to_peer_group_median`** — the honest comparison ratio. Mark 🔴 for above ~2× or
+  below ~0.5×, 🟡 for ~1.5–2× or ~0.5–0.66×. null at base or when the peer group has < 2
+  combos.
+
+A practical consequence: a low `ratio_to_peer_group_median` on a final-tier upgrade is
+*much* more concerning than the same ratio on an intermediate, because intermediates are
+allowed to be modest stepping stones whose ceiling lives at T2. Never collapse the
+distinction.
 
 How to describe:
-- Lead with the cross-combo outliers per tier: "At tier 1, Uranium's cum dmg/gold is 2.81×
-  the tier-1 median (raw vs median), over N builds — its 165g upgrade buys far more damage
-  per gold than the field." Show the numbers and the build count (`builds_to_tier`); thin
-  builds are a weak signal, say so.
+- Lead with the cross-combo outliers per peer group: "Among final-T1 upgrades, Ancient
+  Paraiba's cum dmg/gold is 1.81× the final-T1 median, over N builds — its 400g upgrade
+  buys far more damage per gold than the field." Always name the peer group explicitly so
+  the reader knows the comparison is fair. Show the numbers and the build count
+  (`builds_to_tier`); thin builds are a weak signal, say so.
 - When `cum` and `marginal` **disagree**, surface it — e.g. a combo strong cumulatively but
   whose top tier is a poor marginal buy means "the early tiers carry it; the last upgrade is
   overpriced for what it adds." That split is the actionable part.
@@ -385,6 +429,50 @@ payload tree) to ground the finding. Mark 🔴 for a large, well-supported devia
 milder or `thin_sample` one. Troughs (a wave far softer than both neighbors) are equally valid
 observations — report them the same way.
 
+### Deep-run keeper composition (`winning-runs-query.ts` output)
+
+This is the highest-signal cross-cut available: **which keepers do progressively-deeper-run
+cohorts share?** Read the JSON from `winning-runs-query.ts`. Each cohort lists every
+(combo_key, max_tier) and bare gem with its presence rate. Compute the **lift** = (W50
+cohort presence rate ÷ All-runs presence rate) for each combo+tier and each gem.
+
+**Why this signal is legitimate at the cohort level.** Same logic as the Wave-1 carve-out:
+every cohort is driven by the SAME AI, so the AI's weakness cancels out and the *relative
+difference between cohorts* is the valid signal. Report the deep-run-conditioned presence
+rates and the lift ratio; do NOT report absolute "% of all runs that win." Absolute win
+rate stays an invalid signal because the AI is weaker than human play.
+
+How to describe:
+- **Top finding.** Identify the combo+tier with the largest lift. A lift of **2× or more**
+  in the W50 cohort vs All-runs is structurally significant — that keeper is over-represented
+  in deep-run boards. A lift of **5×+ at W50-cohort presence near-100%** is the strongest
+  signal: that keeper is *effectively mandatory* for winning. Frame the finding as a fact
+  about cohort composition, not a verdict ("X% of W50-cohort runs kept Y" — let the user
+  decide whether the dependence is intended or accidental).
+- **Cluster reads.** Group combos by mechanic family (armor-shred, damage-aura, splash,
+  single-target). If an entire mechanical lane appears in 60%+ of the W50 cohort, surface
+  it as a bottleneck pattern: "armor-shred coverage (Paraiba + Uranium + Gold) is in 64–99%
+  of the W50 cohort vs 22–27% of all runs."
+- **Wave-1 starter sanity check.** Look at the three Wave-1 starter T2s (Mighty Malachite,
+  Silver Knight, Pyroclast) in the W50 cohort. If their lifts are ≈ 1.0× (no association
+  with deep runs), that's a real observation: which starter you build into doesn't predict
+  victory. Combined with `waveOneChoice.deltas` near-zero, this confirms the starter choice
+  is fair on average.
+- **Cohort size honesty.** The W50 cohort is small (single-digit % of total runs). Lift
+  ratios have wide confidence intervals at this sample size; treat the 2×+ band as the
+  threshold for "worth talking about" and don't read precision into a 1.4× vs 1.6× lift.
+- **Not a marginal-value claim.** Same correlational caveat as `presenceConditioning`: a
+  keeper appearing in 70% of deep-run boards doesn't *prove* it caused those runs to reach
+  deep — better boards keep more towers in general. The only clean marginal-value test is a
+  leave-one-out sim, out of scope here.
+
+Sample-size guard: do not analyze cohorts below ~50 runs; flag as `thin_sample` and skip.
+At full sample (typical runs >= a few thousand), the W50 cohort is ~5–7% of total runs.
+
+This subsection's findings often surface the **single most actionable item in the entire
+report** (a near-mandatory keeper, a missing alternate path). It belongs near the top of
+Step 3's report when present.
+
 ### Wave-1 starter choice — Malachite / Silver / Pyrite (`waveOneChoice`)
 
 On wave 1 the game forces the player toward **one** of three early specials by guaranteeing its
@@ -440,8 +528,15 @@ item sits from its comparison group — not a judgment that it is undesirable.
 🟡 <Combo display name> — <build rate, dmg/build, dmg/hp (DMG/HP), recipe note> · <availability-vs-value read>
 <Support combo> — assisted_damage_share <X> (channels) · keep_incidence <Y> · bonus_gold <G> gold · presence Δ <Z>
 
-**Upgrade-tier ROI** (damage per gold, compared across combos within each tier):
-🔴 <Combo, tier name> — <cum_dmg_per_gold vs tier median → ratio, over N builds> · <marginal note if it disagrees> · <kit reason if low ROI is utility>
+**Upgrade-tier ROI** (damage per gold, compared only within structurally-comparable peer groups: intermediate-t1 vs other intermediate-t1, final-t1+final-t2 each within themselves):
+🔴 <Combo, tier name> — <cum_dmg_per_gold vs PEER GROUP median → ratio_to_peer_group_median, over N builds> · <name the peer group: intermediate-t1 / final-t1 / final-t2> · <marginal note if it disagrees> · <kit reason if low ROI is utility>
+
+### Deep-run keeper composition (`winning-runs-query.ts`)
+Cohort sizes: All <n> · Beat W30 <n> · Beat W40 <n> · Beat W45 <n> · Made W50 <n>
+🔴 <Combo, tier name> — All-runs <X%>, W50 <Y%> (<lift>× lift) · <kit mechanic / role>
+<Repeat for each combo+tier with W50/All-runs lift ≥ 2× or W50 presence ≥ 60%>
+Cluster reads: <mechanical-family pattern, e.g. "armor-shred trio (A/B/C) appears in 60-99% of W50 cohort">
+Starter sanity: Wave-1 starter T2s (Mighty Malachite/Silver Knight/Pyroclast) lift ≈ <ratios> — <"interchangeable" or "one dominates">
 
 ### Creeps
 🔴 <Creep> — <leak rate vs named same-archetype peers, over N spawns>

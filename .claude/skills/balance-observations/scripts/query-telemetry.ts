@@ -569,25 +569,51 @@ const tierRoiRaw = tierDmgRows.map((r) => {
     cum_dmg_per_gold: r.upgrade_tier >= 1 && cGold > 0 ? round(cumDmgPerBuild(r.combo_key, r.upgrade_tier) / cGold, 1) : null,
   };
 });
-// within-tier (across-combo) median of the headline cum_dmg_per_gold → deviation ratio
-const cumByTier = new Map<number, number[]>();
+// Peer-group medians. Two structurally-different cohorts share a tier number
+// but should NOT share a comparison peer set:
+//   • INTERMEDIATE: an upgrade leading to a stronger upgrade above it
+//     (e.g. Plasma Star T1, Asian Jade T1) — its job is to be a stepping stone.
+//   • FINAL: the LAST upgrade in the combo's chain (T1 for combos that stop at T1,
+//     T2 for combos that go to T2). It carries the combo's ceiling, so its dmg/gold
+//     is structurally higher than any intermediate at the same numeric tier.
+// Comparing a mid-step against another combo's final inflates the perceived gap.
+// Split the peer pool on this axis. Within each group, ALSO split by tier number
+// because gold scales differ between tier-1 and tier-2 finals (a tier-2 final
+// has paid for the tier-1 step on the way through).
+const comboMaxTier = new Map(COMBOS.map((c) => [c.key, c.upgrades.length]));
+const peerGroupKey = (r: { combo_key: string; tier: number }): string | null => {
+  if (r.tier === 0) return null; // base = no ROI, no peer comparison
+  const maxT = comboMaxTier.get(r.combo_key) ?? 0;
+  const isFinal = r.tier === maxT;
+  return `${isFinal ? "final" : "intermediate"}-t${r.tier}`;
+};
+const cumByPeerGroup = new Map<string, number[]>();
 for (const r of tierRoiRaw) {
   if (r.cum_dmg_per_gold === null) continue;
-  if (!cumByTier.has(r.tier)) cumByTier.set(r.tier, []);
-  cumByTier.get(r.tier)!.push(r.cum_dmg_per_gold);
+  const key = peerGroupKey(r);
+  if (!key) continue;
+  if (!cumByPeerGroup.has(key)) cumByPeerGroup.set(key, []);
+  cumByPeerGroup.get(key)!.push(r.cum_dmg_per_gold);
 }
 const combos2 = {
   ...combos,
   tierRoi: tierRoiRaw
     .map((r) => {
-      const peers = cumByTier.get(r.tier) ?? [];
+      const maxT = comboMaxTier.get(r.combo_key) ?? 0;
+      const isFinal = r.tier > 0 && r.tier === maxT;
+      const key = peerGroupKey(r);
+      const peers = key ? cumByPeerGroup.get(key) ?? [] : [];
       const med = median(peers);
       return {
         ...r,
-        tier_group_size: peers.length,
-        tier_median_cum_dmg_per_gold: peers.length ? round(med) : null,
-        // null at base (no ROI) or when the tier has only one combo to compare against
-        ratio_to_tier_median: r.cum_dmg_per_gold !== null && peers.length >= 2 && med > 0 ? round(r.cum_dmg_per_gold / med, 2) : null,
+        is_final: r.tier === 0 ? null : isFinal,
+        peer_group: key, // "intermediate-t1" / "final-t1" / "final-t2" / null at base
+        peer_group_size: peers.length,
+        peer_group_median_cum_dmg_per_gold: peers.length ? round(med) : null,
+        // The HONEST cross-combo ratio: each tier compared only against
+        // structurally-comparable peers (intermediate vs intermediate, final vs final).
+        // null at base or when the peer group has only one combo to compare against.
+        ratio_to_peer_group_median: r.cum_dmg_per_gold !== null && peers.length >= 2 && med > 0 ? round(r.cum_dmg_per_gold / med, 2) : null,
       };
     })
     .sort((a, b) => a.tier - b.tier || (b.cum_dmg_per_gold ?? -1) - (a.cum_dmg_per_gold ?? -1)),

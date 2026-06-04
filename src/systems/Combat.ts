@@ -651,6 +651,51 @@ export class Combat {
           radiusPx: r,
         });
       }
+      // Imperial Mandate: an execute-kill (sub-threshold HP target finished by
+      // this hit) emits an AoE armor-shred debuff to nearby creeps. Lets the
+      // rest of the board cash in on the finisher.
+      if (hpBefore > 0 && !target.alive) {
+        const exec = stats.effects.find(
+          (e): e is Extract<EffectKind, { kind: "execute" }> =>
+            e.kind === "execute",
+        );
+        if (
+          exec &&
+          exec.onKillShredRadius !== undefined &&
+          exec.onKillShredValue !== undefined &&
+          exec.onKillShredDuration !== undefined &&
+          hpBefore / target.maxHp < exec.hpThreshold
+        ) {
+          const r = exec.onKillShredRadius * TILE;
+          const r2 = r * r;
+          const expires = tick + Math.round(exec.onKillShredDuration * SIM_HZ);
+          for (const c of state.creeps) {
+            if (!c.alive || c === target || isBurrowed(c, tick)) continue;
+            if (!canTarget(stats.targeting, c)) continue;
+            const ddx = c.px - target.px,
+              ddy = c.py - target.py;
+            if (ddx * ddx + ddy * ddy > r2) continue;
+            if (!c.armorDebuff || c.armorDebuff.value < exec.onKillShredValue) {
+              c.armorDebuff = {
+                value: exec.onKillShredValue,
+                expiresAt: expires,
+                ownerId: owner.id,
+              };
+            } else if (c.armorDebuff.value === exec.onKillShredValue) {
+              c.armorDebuff.expiresAt = Math.max(
+                c.armorDebuff.expiresAt,
+                expires,
+              );
+              c.armorDebuff.ownerId = owner.id;
+            }
+          }
+          this.game.bus.emit("vfx:killExplode", {
+            x: target.px,
+            y: target.py,
+            radiusPx: r,
+          });
+        }
+      }
       // Pierce: continue to next creep in line behind the target
       if (p.pierceCount && p.pierceCount > 0) {
         const fromX = (owner.x + 1) * FINE_TILE;
