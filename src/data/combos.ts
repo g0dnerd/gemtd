@@ -93,7 +93,7 @@ const ALL_COMBOS: ComboRecipe[] = [
               kind: "stacking_armor_reduce",
               perHit: 3,
               maxStacks: 6,
-              decayInterval: 3,
+              decayInterval: 2,
             },
             { kind: "prox_slow", factor: 0.85, radius: 4.5 },
           ],
@@ -268,10 +268,10 @@ const ALL_COMBOS: ComboRecipe[] = [
           atkSpeed: 1.1,
           effects: [
             { kind: "crit", chance: 0.09, multiplier: 6 },
-            { kind: "focus_crit", pctPerHit: 0.06, maxBonus: 0.18 },
+            { kind: "focus_crit", pctPerHit: 0.06, maxBonus: 0.18, trueAtMax: true },
             { kind: "execute", dmgBonus: 0.4, hpThreshold: 0.25 },
           ],
-          blurb: "9% crit x6. Focus: +6% crit/hit. Execute below 25% HP.",
+          blurb: "9% crit x6. Focus: +6% crit/hit; true dmg at max focus. Execute below 25% HP.",
           targeting: "ground",
         },
       },
@@ -703,7 +703,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Radiant Beryl",
-        cost: 80,
+        cost: 120,
         stats: {
           dmgMin: 0,
           dmgMax: 0,
@@ -832,7 +832,7 @@ const ALL_COMBOS: ComboRecipe[] = [
       },
       {
         name: "Mighty Malachite",
-        cost: 250,
+        cost: 280,
         stats: {
           dmgMin: 68,
           dmgMax: 96,
@@ -855,10 +855,10 @@ const ALL_COMBOS: ComboRecipe[] = [
       { gem: "aquamarine", quality: 1 },
     ],
     stats: {
-      dmgMin: 32,
-      dmgMax: 40,
+      dmgMin: 44,
+      dmgMax: 46,
       range: 5.5,
-      atkSpeed: 0.65,
+      atkSpeed: 0.55,
       effects: [
         { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.4 },
       ],
@@ -870,14 +870,14 @@ const ALL_COMBOS: ComboRecipe[] = [
         name: "Molten Pyrite",
         cost: 100,
         stats: {
-          dmgMin: 72,
-          dmgMax: 92,
+          dmgMin: 55,
+          dmgMax: 80,
           range: 5.5,
-          atkSpeed: 0.5,
+          atkSpeed: 0.55,
           effects: [
-            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.45 },
+            { kind: "momentum", maxStacks: 15, rampSpeed: 4.5, rampDmg: 1.55 },
           ],
-          blurb: "Momentum ramps speed and damage (+45% at max).",
+          blurb: "Momentum ramps speed and damage (+55% at max).",
           targeting: "all",
         },
       },
@@ -941,7 +941,7 @@ const ALL_COMBOS: ComboRecipe[] = [
       },
       {
         name: "Silver Knight",
-        cost: 270,
+        cost: 320,
         stats: {
           dmgMin: 185,
           dmgMax: 245,

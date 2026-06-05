@@ -85,10 +85,10 @@ describe('escalating leak cost', () => {
     expect(setupAndLeak(50)).toBe(4);
   });
 
-  it('boss leaks add wave scaling on top of base 6', () => {
-    expect(setupAndLeak(10, true)).toBe(7);  // 6 + floor(10/10)
-    expect(setupAndLeak(30, true)).toBe(9);  // 6 + floor(30/10)
-    expect(setupAndLeak(50, true)).toBe(11); // 6 + floor(50/10)
+  it('boss leaks add wave scaling on top of base 5', () => {
+    expect(setupAndLeak(10, true)).toBe(6);  // 5 + floor(10/10)
+    expect(setupAndLeak(30, true)).toBe(8);  // 5 + floor(30/10)
+    expect(setupAndLeak(50, true)).toBe(10); // 5 + floor(50/10)
   });
 
   it('multiple leaks in the same wave each cost the escalated amount', () => {

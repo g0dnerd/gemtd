@@ -629,6 +629,30 @@ export class Combat {
             route.length - 2,
           );
         }
+        // Path-extension delta: how much extra path the creep now walks vs the
+        // air route it was on. Credit a fraction (1 - airRem/groundRem) of all
+        // subsequent damage to the demoter — that's the marginal exposure the
+        // grounding caused.
+        const airRoute = state.airRoute;
+        if (route.length > 0 && airRoute.length > 0) {
+          const groundRemaining = (route.length - 1) - target.pathPos;
+          const airExit = airRoute[airRoute.length - 1];
+          const exitPx = (airExit.x + 0.5) * FINE_TILE;
+          const exitPy = (airExit.y + 0.5) * FINE_TILE;
+          const dxAir = exitPx - target.px;
+          const dyAir = exitPy - target.py;
+          const airRemaining = Math.sqrt(dxAir * dxAir + dyAir * dyAir) / FINE_TILE;
+          if (groundRemaining > 0 && airRemaining > 0) {
+            target.demoteExtensionFactor = Math.max(
+              0,
+              Math.min(1, 1 - airRemaining / groundRemaining),
+            );
+          } else {
+            target.demoteExtensionFactor = 0;
+          }
+        } else {
+          target.demoteExtensionFactor = 0;
+        }
         this.game.bus.emit("creep:demoted", { id: target.id });
       }
       // Kill explosion: AoE at death position when target dies from this hit
@@ -931,6 +955,18 @@ export class Combat {
         }
       }
     }
+    if (!ignoreArmor && owner.focusTarget) {
+      const ownerEffects = effectiveStats(owner).effects;
+      for (const e of ownerEffects) {
+        if (e.kind === "focus_crit" && e.trueAtMax) {
+          const maxStacks = Math.round(e.maxBonus / e.pctPerHit);
+          if (owner.focusTarget.creepId === c.id && owner.focusTarget.stacks >= maxStacks) {
+            ignoreArmor = true;
+          }
+          break;
+        }
+      }
+    }
     const incoming = dmg;
     let armorMultFull = 1;
     let armorMultBase = 1;
@@ -966,20 +1002,24 @@ export class Combat {
     }
     owner.totalDamage += dmg;
     owner.waveDamage += dmg;
-    // Demote-air assist: damage landed by a ground-only tower on a creep that
-    // a Red Crystal grounded with `demote_air` is credited back to the demoter.
-    // Pre-demote, this damage couldn't have landed at all — so attributing it to
-    // the demoter measures the air-grounding's enabling value on the same axis
-    // as the other assist channels.
+    // Demote-air assist (path-extension delta): credit a fraction of all damage
+    // taken on the ground path back to the demoter. The fraction is the
+    // extension factor captured at demote — `1 - airRemaining/groundRemaining` —
+    // representing the marginal exposure window the grounding opened up. Was
+    // previously narrowed to ground-only towers at 100%, which under-counted
+    // the dwell-time amplifier on all-targeting towers.
     if (
       c.demotedByTowerId !== undefined &&
       c.demotedByTowerId !== owner.id &&
       dmg > 0 &&
-      effectiveStats(owner).targeting === "ground"
+      c.demoteExtensionFactor &&
+      c.demoteExtensionFactor > 0
     ) {
       const demoter = this.towerById(c.demotedByTowerId);
       if (demoter) {
-        demoter.demoteAirAssist = (demoter.demoteAirAssist ?? 0) + dmg;
+        demoter.demoteAirAssist =
+          (demoter.demoteAirAssist ?? 0) +
+          Math.round(dmg * c.demoteExtensionFactor);
       }
     }
     c.hp -= dmg;

@@ -1,6 +1,6 @@
 {
   "name": "gemtd",
-  "version": "2.0.1-alpha-1",
+  "version": "2.0.1",
   "private": true,
   "type": "module",
   "scripts": {

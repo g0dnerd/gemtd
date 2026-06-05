@@ -62,7 +62,7 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
     color: "opal",
     hpMult: 1.49,
     bountyMult: 1.2,
-    defaultArmor: 12,
+    defaultArmor: 11,
     flags: { armored: true },
   },
   shrike: {

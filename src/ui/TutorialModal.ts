@@ -311,15 +311,11 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
-      ver: "2.0.1-alpha-1",
+      ver: "2.0.1",
       notes: [
         {
           tag: "buff",
           text: "Aquamarine beam_ramp rampPerHit 0.27 -> 0.32, maxStacks 30 -> 35 (peak +810% -> +1088%).",
-        },
-        {
-          tag: "nerf",
-          text: "Pyrite / Molten Pyrite / Pyroclast momentum rampDmg 1.5/1.55/1.75 -> 1.4/1.45/1.65 at all tiers.",
         },
         {
           tag: "buff",
@@ -338,14 +334,6 @@ function changesBody(): HTMLElement {
           text: "Ametrine Sovereign execute-kills now shred -6 armor in 2.5-tile AoE for 4s.",
         },
         {
-          tag: "bal",
-          text: "Silver base atkSpeed 1.56 -> 1.35, dmg 42-45 -> 49-52; Silver Knight atkSpeed 1.0 -> 1.35, dmgMax 225 -> 245 (removes T1 -> T2 stat regression).",
-        },
-        {
-          tag: "nerf",
-          text: "Ancient Paraiba stacking_armor_reduce maxStacks 8 -> 6 (peak armor shred -24 -> -18).",
-        },
-        {
           tag: "buff",
           text: "Wave 18 carapace HP 4800 -> 6000.",
         },
@@ -360,6 +348,62 @@ function changesBody(): HTMLElement {
         {
           tag: "nerf",
           text: "Wave 50 amalgam HP 80000 -> 72000, mender HP 75000 -> 60000.",
+        },
+        {
+          tag: "bal",
+          text: "Pyrite base dmg 32-40 -> 44-46, atkSpeed 0.65 -> 0.55, rampDmg 1.5 -> 1.4.",
+        },
+        {
+          tag: "bal",
+          text: "Molten Pyrite dmg 72-92 -> 55-80, atkSpeed 0.5 -> 0.55.",
+        },
+        {
+          tag: "nerf",
+          text: "Pyroclast momentum rampDmg 1.75 -> 1.65.",
+        },
+        {
+          tag: "nerf",
+          text: "Ancient Paraiba stacking_armor_reduce maxStacks 8 -> 6 (peak -24 -> -18), decayInterval 3 -> 2.",
+        },
+        {
+          tag: "bal",
+          text: "Silver base atkSpeed 1.56 -> 1.35, dmg 42-45 -> 49-52; Silver Knight atkSpeed 1.0 -> 1.35, dmgMax 225 -> 245, cost 270g -> 320g (removes T1 -> T2 stat regression).",
+        },
+        {
+          tag: "buff",
+          text: "Sapphire dmg quality multiplier Q3 5x -> 6.25x, Q4 9x -> 11.25x, Q5 17x -> 21.25x.",
+        },
+        {
+          tag: "buff",
+          text: "Spinel dmg +20% at all qualities.",
+        },
+        {
+          tag: "new",
+          text: "Living Diamond focus_crit now deals true damage at max stacks (3 hits).",
+        },
+        {
+          tag: "nerf",
+          text: "Mighty Malachite cost 250g -> 280g.",
+        },
+        {
+          tag: "nerf",
+          text: "Radiant Beryl cost 80g -> 120g.",
+        },
+        {
+          tag: "nerf",
+          text: "Carapace armor 12 -> 11.",
+        },
+        {
+          tag: "buff",
+          text: "Wave 42 chrysalid HP 39000 -> 45000.",
+        },
+        {
+          tag: "buff",
+          text: "Boss leak life cost base 6 -> 5 (W10: 7 -> 6, W30: 9 -> 8, W50: 11 -> 10).",
+        },
+        {
+          tag: "bal",
+          text: "Wave 30+ award +18% bonus gold on wave clear.",
         },
       ],
     },

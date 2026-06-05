@@ -153,10 +153,16 @@ export interface CreepState {
   /**
    * Tower id that grounded this creep with `demote_air`. Set on demote, never cleared
    * (one demote per creep — `flags.air` is the guard, and nothing flips it back on).
-   * Telemetry attribution only: subsequent damage from ground-only towers gets credited
-   * back to this tower as `demoteAirAssist`.
+   * Telemetry attribution only: subsequent damage taken on the ground path gets credited
+   * back to this tower as `demoteAirAssist`, scaled by `demoteExtensionFactor`.
    */
   demotedByTowerId?: number;
+  /**
+   * Path-extension delta captured at moment of demote: `1 - airRemaining / groundRemaining`.
+   * Represents the fraction of post-demote damage attributable to the demote (the extra
+   * path exposure the creep walks because grounded). Clamped to [0, 1]. Telemetry only.
+   */
+  demoteExtensionFactor?: number;
   alive: boolean;
   /** Heal-over-time buff from a nearby healer creep. */
   healBuff?: { hpPerTick: number; expiresAt: number };

@@ -41,7 +41,7 @@ export type EffectKind =
   | { kind: "bonus_gold"; chance: number; multiplier: number }
   | { kind: "vulnerability_aura"; radius: number; pct: number }
   | { kind: "crit_splash"; radius: number; falloff: number }
-  | { kind: "focus_crit"; pctPerHit: number; maxBonus: number }
+  | { kind: "focus_crit"; pctPerHit: number; maxBonus: number; trueAtMax?: boolean }
   | {
       kind: "execute";
       dmgBonus: number;
@@ -159,6 +159,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     baseAtkSpeed: 0.9,
     effects: [{ kind: "slow", factor: 0.7, duration: 1.5 }],
     targeting: "all",
+    qualityDmgMult: { 3: 6.25, 4: 11.25, 5: 21.25 },
   },
   emerald: {
     name: "Emerald",
@@ -245,6 +246,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
     effects: [],
     targeting: "all",
     targetPriority: "highest_hp",
+    qualityDmgMult: { 1: 1.2, 2: 2.6, 3: 6.0, 4: 10.8, 5: 20.4 },
   },
   peridot: {
     name: "Peridot",

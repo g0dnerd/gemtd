@@ -385,7 +385,7 @@ export const WAVES: WaveDef[] = [
     0.35,
     23,
     ["skitter", 24, 57000, 2, 0.54, 15],
-    ["chrysalid", 7, 39000, 2, 0.54, 15],
+    ["chrysalid", 7, 45000, 2, 0.54, 15],
   ),
   wm(
     43,

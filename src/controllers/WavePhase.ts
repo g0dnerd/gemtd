@@ -248,7 +248,7 @@ export class WavePhase {
   private leak(c: CreepState): void {
     const state = this.game.state;
     const waveNum = state.wave;
-    const baseCost = c.flags?.boss ? 6 : 1;
+    const baseCost = c.flags?.boss ? 5 : 1;
     const rawCost = baseCost + Math.floor(waveNum / 10);
     const cost = c.flags?.boss ? rawCost : Math.min(4, rawCost);
     state.lives = Math.max(0, state.lives - cost);
@@ -370,6 +370,11 @@ export class WavePhase {
     if (state.waveStats.leakedThisWave === 0) {
       state.gold += def.bonus;
       this.goldEarned += def.bonus;
+    }
+    if (state.wave >= 30) {
+      const bonus = Math.round(this.goldEarned * 0.18);
+      state.gold += bonus;
+      this.goldEarned += bonus;
     }
     this.game.bus.emit('gold:change', { gold: state.gold });
     this.game.endWave(lifeLost, this.goldEarned);
