@@ -311,6 +311,39 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "2.0.2",
+      notes: [
+        {
+          tag: "buff",
+          text: "Pharaoh's Gold armor reduction -6 -> -8 to ground.",
+        },
+        {
+          tag: "buff",
+          text: "Uranium 235 armor_decay_aura max reduction 4 -> 6.",
+        },
+        {
+          tag: "bal",
+          text: "Ametrine Sovereign damage 255-400 -> 255-350; execute on-kill armor shred -6 for 4s -> -8 for 5s.",
+        },
+        {
+          tag: "buff",
+          text: "Molten Pyrite damage 55-80 -> 65-90.",
+        },
+        {
+          tag: "buff",
+          text: "Red Crystal demote-air everyN 12/11/10 -> 10/9/8 across base/Facet/Rose Quartz.",
+        },
+        {
+          tag: "nerf",
+          text: "Silver Knight periodic nova everyN 10 -> 11.",
+        },
+        {
+          tag: "bal",
+          text: "Burrower speed 1.65 -> 1.5, hpMult 1.65 -> 1.8.",
+        },
+      ],
+    },
+    {
       ver: "2.0.1",
       notes: [
         {

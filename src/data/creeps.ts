@@ -101,9 +101,9 @@ export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
   },
   burrower: {
     kind: "burrower",
-    speed: 1.65,
+    speed: 1.5,
     color: "topaz",
-    hpMult: 1.65,
+    hpMult: 1.8,
     bountyMult: 1.3,
     flags: {},
     blurb: "Burrows underground, untargetable and regenerating",

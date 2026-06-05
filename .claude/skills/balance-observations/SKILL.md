@@ -325,7 +325,7 @@ How to describe:
   Void Opal is Black Opal's tier-1, same key). Treat them exactly like support gems: lead with
   **`assisted_damage_share`** from `combos.assist` (Black/Void Opal earn on `dmg_aura_assist` +
   `vuln_assist`; Red Crystal earns on `demote_air_assist` — damage landed by ground-only towers
-  on creeps it grounded — alongside its `bonus_gold` and direct damage), then **keep-rate**
+  on creeps it grounded — alongside its direct damage), then **keep-rate**
   (`keep_incidence` / `keep_share`), then **`combos.presenceConditioning`** (correlational caveat).
   If `combos.assist` is absent (pre-instrumentation), say so and fall back to keep-rate + presence.
   Older runs (pre-migration 0008) won't have `demote_air_assist` on their rows; the channel

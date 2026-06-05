@@ -130,12 +130,12 @@ describe("red crystal demote mechanic", () => {
     expect(ground.hp).toBeLessThan(hpBefore);
   });
 
-  it("demotes air creep to ground on every 12th hit", () => {
+  it("demotes air creep to ground on every 10th hit", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     const air = makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 11;
+    tower.attackCount = 9;
 
     let demoted = false;
     bus.on("creep:demoted", () => { demoted = true; });
@@ -146,7 +146,7 @@ describe("red crystal demote mechanic", () => {
     expect(air.flags?.air).toBe(false);
   });
 
-  it("does not demote on non-12th hits", () => {
+  it("does not demote on non-10th hits", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
@@ -163,12 +163,12 @@ describe("red crystal demote mechanic", () => {
     expect(air.flags?.air).toBe(true);
   });
 
-  it("does not demote ground creeps on 12th hit", () => {
+  it("does not demote ground creeps on 10th hit", () => {
     const { game, state, bus } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeGroundCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 11;
+    tower.attackCount = 9;
 
     let demoted = false;
     bus.on("creep:demoted", () => { demoted = true; });
@@ -183,7 +183,7 @@ describe("red crystal demote mechanic", () => {
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     const air = makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 11;
+    tower.attackCount = 9;
 
     step(combat, state, SIM_HZ);
 
@@ -198,19 +198,19 @@ describe("red crystal demote mechanic", () => {
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 11;
+    tower.attackCount = 9;
 
     step(combat, state, SIM_HZ);
 
     expect(tower.attackCount).toBe(0);
   });
 
-  it("does not reset attackCount when hitting a ground creep on 12th hit", () => {
+  it("does not reset attackCount when hitting a ground creep on 10th hit", () => {
     const { game, state } = makeFakeGame();
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeGroundCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 11;
+    tower.attackCount = 9;
 
     step(combat, state, SIM_HZ);
 
@@ -222,7 +222,7 @@ describe("red crystal demote mechanic", () => {
     const combat = new Combat(game);
     const tower = makeRedCrystal(game);
     makeAirCreep(game, { x: 5, y: 5, hp: 500000 });
-    tower.attackCount = 11;
+    tower.attackCount = 9;
 
     step(combat, state, SIM_HZ);
     expect(tower.attackCount).toBe(0);
@@ -230,10 +230,10 @@ describe("red crystal demote mechanic", () => {
     let demoteCount = 0;
     bus.on("creep:demoted", () => { demoteCount++; });
 
-    // Step enough for several attacks but not 13 more
+    // Step enough for several attacks but not 11 more
     step(combat, state, SIM_HZ * 5);
     expect(tower.attackCount).toBeGreaterThan(0);
-    expect(tower.attackCount).toBeLessThan(12);
+    expect(tower.attackCount).toBeLessThan(10);
     expect(demoteCount).toBe(0);
   });
 
