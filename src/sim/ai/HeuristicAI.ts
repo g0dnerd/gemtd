@@ -38,7 +38,6 @@ function gemLabel(gem: string, quality: number): string {
   return `${QUALITY_NAMES[quality] ?? "?"} ${GEM_NAMES[gem] ?? gem}`;
 }
 
-const PRIORITY_COMBOS = new Set(["stargem"]);
 const ARMOR_SHRED_COMBOS = new Set([
   "paraiba_tourmaline",
   "gold",
@@ -637,9 +636,6 @@ export class HeuristicAI extends BlueprintAI {
       const wantArmorShred = wave >= ARMOR_SHRED_PRIORITY_WAVE;
 
       const best = completions.sort((a, b) => {
-        const aPri = PRIORITY_COMBOS.has(a.key);
-        const bPri = PRIORITY_COMBOS.has(b.key);
-        if (aPri !== bPri) return aPri ? -1 : 1;
         if (wantArmorShred) {
           const aShred = ARMOR_SHRED_COMBOS.has(a.key);
           const bShred = ARMOR_SHRED_COMBOS.has(b.key);
@@ -653,10 +649,9 @@ export class HeuristicAI extends BlueprintAI {
         return estimateComboDps(b) - estimateComboDps(a);
       })[0];
 
-      const priorityBonus = PRIORITY_COMBOS.has(best.key) ? 200000 : 0;
       const shredBonus =
         wantArmorShred && ARMOR_SHRED_COMBOS.has(best.key) ? 100000 : 0;
-      return 10000 + estimateComboDps(best) + priorityBonus + shredBonus;
+      return 10000 + estimateComboDps(best) + shredBonus;
     }
 
     // Rule 2: uniqueness + quality

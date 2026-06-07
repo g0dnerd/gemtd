@@ -70,8 +70,6 @@ claim that it is undesirable. Say this in the report so the reader doesn't read 
   The AI is not a neutral scorer; it intentionally tilts toward specific combos. Treat elevated
   `build_rate` / `keep_incidence` / upgrade-tier presence on these items as **at least partly
   policy, not just strength**, and say so in the report:
-  - **Stargem completion** gets a massive keeper-score bonus whenever a draw would complete it.
-    High Stargem build/keep rates reflect this bias — do not read them as "Stargem is dominant."
   - **Armor-shred combos** (`paraiba_tourmaline`, `gold`, `uranium`, `ametrine`) get a keeper-score
     bonus from **wave 20+** (and an ingredient-progress bias from wave 15+), and the bonus keeps
     applying even after one shred combo is already on the board — so the AI will stack multiple
@@ -88,7 +86,7 @@ claim that it is undesirable. Say this in the report so the reader doesn't read 
     So a Black Opal build_rate ≈ its peers is the expected baseline now; if it's still elevated
     that's a real signal.
 
-  Practical rule: when reporting on Stargem / Paraiba / Gold / Uranium / Ametrine, lead with
+  Practical rule: when reporting on Paraiba / Gold / Uranium / Ametrine, lead with
   damage and assist axes; treat `build_rate` / `keep_incidence` as confounded; and when computing
   W50-cohort lift, name the AI bias as one of the candidate explanations alongside genuine strength.
 
@@ -495,9 +493,9 @@ How to describe:
   keeper appearing in 70% of deep-run boards doesn't *prove* it caused those runs to reach
   deep — better boards keep more towers in general. The only clean marginal-value test is a
   leave-one-out sim, out of scope here.
-- **AI-bias caveat for specific keepers.** Stargem (build-time bonus), the four armor-shred
-  combos (build-time bonus from wave 20+, Paraiba preferred), and Paraiba/Black-Opal max-tier
-  presence (upgrade-order policy) all carry hardcoded AI biases — see the "HeuristicAI has
+- **AI-bias caveat for specific keepers.** The four armor-shred combos (build-time bonus
+  from wave 20+, Paraiba preferred) and Paraiba/Black-Opal max-tier presence (upgrade-order
+  policy) all carry hardcoded AI biases — see the "HeuristicAI has
   hardcoded build/upgrade biases" bullet in Scope. When their W50-cohort lift is high, name
   the bias as a candidate explanation alongside genuine strength; don't read elevated lift as
   pure "deep runs need this." Paraiba in particular will outrank Gold/Uranium/Ametrine within
