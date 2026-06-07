@@ -20,7 +20,7 @@ import {
   opalFleckHue,
   OPAL_FRAME_COUNT,
 } from "./spriteData";
-import { buildMossRock, mossShadowPalette } from "./RockSprites";
+import { buildRock, rockShadowPalette } from "./RockSprites";
 import type { EventBus } from "../events/EventBus";
 
 const TOWER_SCALE = 3; // pixels per sprite-pixel
@@ -28,7 +28,7 @@ const TOWER_SCALE = 3; // pixels per sprite-pixel
 export class TowerSpriteCache {
   private gemTextures = new Map<string, Texture>();
   private rockTextures = new Map<RockKind, Texture>();
-  private mossRockTextures = new Map<
+  private proceduralRockTextures = new Map<
     number,
     { rock: Texture; shadow: Texture; shadowAlpha: number }
   >();
@@ -126,19 +126,19 @@ export class TowerSpriteCache {
   }
 
   /**
-   * Mossy-boulder rock (the shipping rock direction). Returns the rock texture
-   * plus a separately-rasterised cast-shadow texture, both keyed off a
+   * Procedurally-built rock (the shipping rock direction). Returns the rock
+   * texture plus a separately-rasterised cast-shadow texture, both keyed off a
    * per-position seed so a field of rocks varies deterministically. Cache is
    * bounded by board cells — rocks are permanent and tied to fixed positions.
    */
-  mossRock(seed: number): { rock: Texture; shadow: Texture; shadowAlpha: number } {
-    let entry = this.mossRockTextures.get(seed);
+  proceduralRock(seed: number): { rock: Texture; shadow: Texture; shadowAlpha: number } {
+    let entry = this.proceduralRockTextures.get(seed);
     if (entry) return entry;
-    const { grid, palette, shadow, shadowAlpha } = buildMossRock(seed);
+    const { grid, palette, shadow, shadowAlpha } = buildRock(seed);
     const rock = rasterizeToTexture(this.renderer, grid, palette, 1);
-    const shadowTex = rasterizeToTexture(this.renderer, shadow, mossShadowPalette(), 1);
+    const shadowTex = rasterizeToTexture(this.renderer, shadow, rockShadowPalette(), 1);
     entry = { rock, shadow: shadowTex, shadowAlpha };
-    this.mossRockTextures.set(seed, entry);
+    this.proceduralRockTextures.set(seed, entry);
     return entry;
   }
 }

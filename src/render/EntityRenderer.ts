@@ -2266,7 +2266,7 @@ export function renderRocks(
     let entry = rockObjs.get(id);
     if (!entry) {
       const seed = (id * 73856093) ^ (pos.x * 19349663) ^ (pos.y * 83492791);
-      const { rock, shadow, shadowAlpha } = cache.mossRock(seed);
+      const { rock, shadow, shadowAlpha } = cache.proceduralRock(seed);
       const shadowSprite = new Sprite(shadow);
       shadowSprite.anchor.set(0, 0);
       shadowSprite.width = 2 * FINE_TILE;

@@ -173,17 +173,18 @@ export const QUALITY_GLOW: Record<Quality, number> = {
 };
 
 /**
- * Rock palette for permanent maze blockers — the mossy-boulder material:
- * greened granite, damp and overgrown. `light/mid/dark` map to grid slots
- * 1/2/3; `sparkle/extra/accent` map to 5/6/7 for moss flecks and tufts.
- * `shadow` is the colour of the cast contact shadow rendered as a separate
- * low-alpha sprite under the rock.
+ * Rock palette for permanent maze blockers — the bone-and-sinew material:
+ * calcified intrusions in the Caul tissue. `light/mid/dark` map to grid slots
+ * 1/2/3; `sparkle/extra/accent` map to 5/6/7 — bright bone tips, dried-blood
+ * crevices, and a single rust capillary streak respectively. `shadow` is the
+ * colour of the cast contact shadow rendered as a separate low-alpha sprite
+ * under the rock.
  */
 export const ROCK_PAL = {
-  mossBoulder: {
-    light: 0x8c9482, mid: 0x5c6452, dark: 0x2a2e26, outline: 0x0a0f0a,
-    sparkle: 0x9ad06a, extra: 0x4a7a38, accent: 0xc8e08a,
-    shadow: 0x0a1206,
+  boneSinew: {
+    light: 0xc8b9a0, mid: 0x8a7766, dark: 0x3a2e2a, outline: 0x140c0c,
+    sparkle: 0xe6d8be, extra: 0x6a2828, accent: 0xa84c3c,
+    shadow: 0x0c0608,
   },
 } as const;
 

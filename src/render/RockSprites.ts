@@ -1,17 +1,18 @@
 /**
- * Rock sprite — the mossy-boulder material used for permanent maze blockers
+ * Rock sprite — the bone-and-sinew material used for permanent maze blockers
  * (former non-kept gem towers).
  *
- * `buildMossRock(seed)` returns a 32x32 `grid` (slot values 0..7 → palette
+ * `buildRock(seed)` returns a 32x32 `grid` (slot values 0..7 → palette
  * colours via drawPixelGrid) plus the `palette` to rasterise it with, and a
- * separate low-alpha `shadow` grid: a sculpted ground-contact shadow with real
- * form (wider at the base, fading outward through a dithered penumbra) — NOT a
- * uniform offset blob. The shadow is rasterised on its own and drawn as a
- * sprite *under* the rock at reduced alpha so it reads over grass/path/terrain.
+ * separate low-alpha `shadow` grid: a footprint-projected ground-contact
+ * shadow whose shape is derived from the rock's own base silhouette (not a
+ * generic ellipse stamped under every rock — see castShadow below). The
+ * shadow is rasterised on its own and drawn as a sprite *under* the rock at
+ * reduced alpha so it reads over grass/path/terrain.
  *
  * Per-position micro-variation: pass a per-rock seed and the silhouette
- * chamfers + edge jitter + moss placement shift deterministically, so a field
- * of rocks looks natural rather than tiled-identical.
+ * chamfers + edge jitter + sparkle/vein placement shift deterministically,
+ * so a field of rocks looks natural rather than tiled-identical.
  */
 
 import type { PixelGrid } from "./sprites";
@@ -119,39 +120,68 @@ function topHighlight(grid: number[][], sil: Sil, slot = 1): void {
 }
 
 /**
- * Build a cast-shadow grid with real form: a flattened ellipse hugging the
- * rock's base, wider than the rock and offset down-right to match the top-left
- * key light. The single shadow colour is rendered at one sprite alpha, so the
- * *softness* of the rim has to come from coverage, not tone: the core is solid,
- * and the outer penumbra is dithered (checkerboard) so its edge fades into the
- * terrain instead of stopping at a hard ellipse line. This is what makes it
- * read as a grounded contact shadow rather than a uniform offset blob.
+ * Build a cast-shadow grid from the rock's own base silhouette. The bottom
+ * rows of the silhouette (the footprint band) are projected down-right —
+ * toward the cast direction of the top-left key light — expanded by 1px for
+ * foot bleed, then ringed with a checkerboard penumbra. Because the shadow
+ * inherits the rock's outline, no two rocks share a shadow shape: variation
+ * comes for free from silhouette variation rather than from an identical
+ * ellipse stamped under each rock. A per-rock dither phase keeps neighbouring
+ * penumbras from aligning into a visible pattern.
  */
 function castShadow(sil: Sil, rnd: () => number): PixelGrid {
   const g = make();
-  // Find the rock's footprint extents and its base row.
   let baseY = 0;
-  let minX = SIZE,
-    maxX = 0;
-  for (let y = 0; y < SIZE; y++) {
+  for (let y = 0; y < SIZE; y++) if (sil[y]) baseY = Math.max(baseY, y);
+
+  const footStart = Math.max(0, baseY - 8);
+  const offY = 1 + Math.floor(rnd() * 2); // 1..2 rows down
+  const offX = 2 + Math.floor(rnd() * 2); // 2..3 cols right
+
+  // Project the footprint band, dilated by 1px horizontally for foot bleed.
+  for (let y = footStart; y <= baseY; y++) {
     const r = sil[y];
     if (!r) continue;
-    baseY = Math.max(baseY, y);
-    minX = Math.min(minX, r[0]);
-    maxX = Math.max(maxX, r[1]);
+    const ty = Math.min(SIZE - 1, y + offY);
+    for (let x = r[0] - 1; x <= r[1] + 1; x++) {
+      const tx = x + offX;
+      if (tx >= 0 && tx < SIZE) g[ty][tx] = 1;
+    }
   }
-  const cx = (minX + maxX) / 2 + 2; // shift toward light's cast direction
-  const halfW = (maxX - minX) / 2 + 3;
-  const cy = Math.min(SIZE - 2, baseY - 1);
-  const halfH = 4.2 + rnd() * 1.2;
+  // Extend the base row one more cell so the shadow has a tail under the rock.
+  const baseRow = sil[baseY];
+  if (baseRow) {
+    const tailY = Math.min(SIZE - 1, baseY + offY + 1);
+    for (let x = baseRow[0]; x <= baseRow[1] + 1; x++) {
+      const tx = x + offX;
+      if (tx >= 0 && tx < SIZE) g[tailY][tx] = 1;
+    }
+  }
+  // Dithered penumbra: a 1-cell halo around the solid core, checkerboard-keyed
+  // with a per-rock phase so neighbouring rocks' penumbras don't align.
+  const pen = make();
+  const phase = Math.floor(rnd() * 4);
   for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
-      const dx = (x - cx) / halfW;
-      const dy = (y - cy) / halfH;
-      const d = dx * dx + dy * dy;
-      if (d <= 1.0)
-        g[y][x] = 1; // dense, fully-covered core
-      else if (d <= 1.45 && ((x + y) & 1) === 0) g[y][x] = 1; // dithered penumbra
+      if (g[y][x]) continue;
+      let touch = false;
+      for (let dy = -1; dy <= 1 && !touch; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (!dy && !dx) continue;
+          const ny = y + dy;
+          const nx = x + dx;
+          if (ny >= 0 && ny < SIZE && nx >= 0 && nx < SIZE && g[ny][nx]) {
+            touch = true;
+            break;
+          }
+        }
+      }
+      if (touch && ((x + y + phase) & 1) === 0) pen[y][x] = 1;
+    }
+  }
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      if (pen[y][x]) g[y][x] = 1;
     }
   }
   return g;
@@ -164,9 +194,10 @@ const SHADOW_PAL = (color: number): SpriteColors => ({
 });
 
 // ===========================================================================
-// Mossy boulder. Chunky greened granite that fills its 2x2 footprint, top
-// crusted with moss + tufts. Squarer, slightly-broken crown (not a clean dome)
-// with a planted wide base.
+// Bone-and-sinew boulder. Calcified intrusions in the Caul tissue, filling
+// the 2x2 footprint with a squarer, slightly-broken crown (not a clean dome)
+// and a planted wide base. Dried-blood crevices and a single rust capillary
+// streak break up the rim and side faces.
 // ===========================================================================
 
 function rounded(rnd: () => number): Sil {
@@ -206,8 +237,8 @@ function rounded(rnd: () => number): Sil {
   return silFromRows(rows);
 }
 
-/** Build one mossy-boulder rock for the given per-position seed. */
-export function buildMossRock(seed: number): RockBuild {
+/** Build one bone-and-sinew rock for the given per-position seed. */
+export function buildRock(seed: number): RockBuild {
   const rnd = mulberry32(seed ^ 0x9e3779b9);
   const sil = rounded(rnd);
   jitterEdges(sil, rnd, 2);
@@ -215,7 +246,7 @@ export function buildMossRock(seed: number): RockBuild {
   shade(g, sil, 0.34, 0.5);
   topHighlight(g, sil, 1);
   outline(g, sil);
-  // Moss cap: cling to the top rim + a few side dabs.
+  // Rim pass: bone-tip cling on the lit faces, occasional dark capillary creases.
   for (let y = 0; y < SIZE; y++) {
     const r = sil[y];
     if (!r) continue;
@@ -226,7 +257,7 @@ export function buildMossRock(seed: number): RockBuild {
       else if (nearTop && g[y][x] && g[y][x] !== 4 && rnd() < 0.25) g[y][x] = 6;
     }
   }
-  // Bright moss specks + a couple of hanging strands.
+  // Scattered bright bone specks + the occasional rust capillary streak.
   for (let i = 0; i < 14; i++) {
     const y = 3 + Math.floor(rnd() * 12);
     const r = sil[y];
@@ -236,13 +267,13 @@ export function buildMossRock(seed: number): RockBuild {
   }
   return {
     grid: g,
-    palette: ROCK_PAL.mossBoulder,
+    palette: ROCK_PAL.boneSinew,
     shadow: castShadow(sil, rnd),
     shadowAlpha: 0.34,
   };
 }
 
-/** Palette used to rasterise the mossy-boulder cast-shadow grid. */
-export function mossShadowPalette(): SpriteColors {
-  return SHADOW_PAL(ROCK_PAL.mossBoulder.shadow);
+/** Palette used to rasterise the rock cast-shadow grid. */
+export function rockShadowPalette(): SpriteColors {
+  return SHADOW_PAL(ROCK_PAL.boneSinew.shadow);
 }
