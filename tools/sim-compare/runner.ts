@@ -50,14 +50,14 @@ function mean(arr: number[]): number {
 }
 
 async function runBatch(
-  seedCount: number,
+  seeds: number[],
   ai: SimAI,
   aiName: string,
   telemetry?: TelemetryConfig,
 ): Promise<RunData[]> {
   const runs: RunData[] = [];
   const transport = telemetry ? makeTransport(telemetry.url) : undefined;
-  for (let seed = 1; seed <= seedCount; seed++) {
+  for (const seed of seeds) {
     const game = new HeadlessGame(seed);
     const collector =
       telemetry && transport
@@ -249,15 +249,15 @@ export const ALL_AIS: AIEntry[] = [
 ];
 
 export async function runAllAIsSequential(
-  seedCount: number,
+  seeds: number[],
   ais: AIEntry[],
   telemetry?: TelemetryConfig,
 ): Promise<Record<string, AISnapshot>> {
   const result: Record<string, AISnapshot> = {};
   for (const { name, ai } of ais) {
     const t0 = Date.now();
-    process.stdout.write(`  Running ${name} (${seedCount} seeds)...`);
-    const runs = await runBatch(seedCount, ai, name, telemetry);
+    process.stdout.write(`  Running ${name} (${seeds.length} seeds)...`);
+    const runs = await runBatch(seeds, ai, name, telemetry);
     const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
     process.stdout.write(` done (${elapsed}s)\n`);
     result[name] = collectAISnapshot(runs);
@@ -266,26 +266,26 @@ export async function runAllAIsSequential(
 }
 
 export function runAllAIs(
-  seedCount: number,
+  seeds: number[],
   ais: AIEntry[],
   workerCount?: number,
   telemetry?: TelemetryConfig,
 ): Promise<Record<string, AISnapshot>> {
   const numWorkers = Math.min(
     workerCount ?? Math.max(1, cpus().length - 1),
-    seedCount * ais.length,
+    seeds.length * ais.length,
   );
 
   const workQueue: Array<{ aiName: string; seed: number }> = [];
   for (const { name } of ais) {
-    for (let seed = 1; seed <= seedCount; seed++) {
+    for (const seed of seeds) {
       workQueue.push({ aiName: name, seed });
     }
   }
 
   const total = workQueue.length;
   console.log(
-    `  Running ${ais.length} AI${ais.length > 1 ? "s" : ""} x ${seedCount} seeds across ${numWorkers} workers...`,
+    `  Running ${ais.length} AI${ais.length > 1 ? "s" : ""} x ${seeds.length} seeds across ${numWorkers} workers...`,
   );
 
   return new Promise((resolve, reject) => {

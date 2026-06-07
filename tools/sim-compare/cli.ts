@@ -33,9 +33,26 @@ function parseArgs(args: string[]): { flags: Record<string, string>; positional:
   return { flags, positional };
 }
 
+function generateRandomSeeds(count: number): number[] {
+  // 32-bit positive ints, deduped so 8000-seed runs never repeat.
+  const seen = new Set<number>();
+  const out: number[] = [];
+  while (out.length < count) {
+    const seed = Math.floor(Math.random() * 0x7fffffff) + 1;
+    if (seen.has(seed)) continue;
+    seen.add(seed);
+    out.push(seed);
+  }
+  return out;
+}
+
 async function handleRun(args: string[]): Promise<void> {
   const { flags } = parseArgs(args);
   const seedCount = flags.seeds ? parseInt(flags.seeds, 10) : DEFAULT_SEEDS;
+  const randomSeeds = flags['random-seeds'] === 'true';
+  const seeds = randomSeeds
+    ? generateRandomSeeds(seedCount)
+    : Array.from({ length: seedCount }, (_, i) => i + 1);
   const tag = flags.tag;
   const sequential = flags.sequential === 'true';
   const workerCount = flags.workers ? parseInt(flags.workers, 10) : undefined;
@@ -98,10 +115,13 @@ async function handleRun(args: string[]): Promise<void> {
   }
 
   console.log(`Running sim for commit ${git.shortHash} (${git.message})...`);
+  if (randomSeeds) {
+    console.log(`  Using ${seedCount} random seeds (first few: ${seeds.slice(0, 5).join(', ')}…)`);
+  }
   const t0 = Date.now();
   const aisResult = await (sequential
-    ? runAllAIsSequential(seedCount, ais, telemetry)
-    : runAllAIs(seedCount, ais, workerCount, telemetry));
+    ? runAllAIsSequential(seeds, ais, telemetry)
+    : runAllAIs(seeds, ais, workerCount, telemetry));
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
   console.log(`  Total: ${elapsed}s`);
 
@@ -184,8 +204,8 @@ function printUsage(): void {
 Usage: npx tsx tools/sim-compare/cli.ts <command> [options]
 
 Commands:
-  run [--seeds N] [--tag <ref>] [--ai <name>] [--workers N] [--sequential]
-      [--telemetry] [--remote] [--telemetry-url <url>]
+  run [--seeds N] [--random-seeds] [--tag <ref>] [--ai <name>] [--workers N]
+      [--sequential] [--telemetry] [--remote] [--telemetry-url <url>]
                                    Run sim and store snapshot
   compare [current] [base]         Compare two snapshots (default current: HEAD, default base: most recent other)
   history [--limit N]              List stored snapshots (default: 20)
@@ -193,6 +213,7 @@ Commands:
 Options for 'run':
   --workers N         Number of worker threads (default: CPU count - 1)
   --sequential        Disable parallelization, run AIs one at a time
+  --random-seeds      Use unique random seeds instead of 1..N (no repeats)
   --telemetry         Emit runs to the telemetry pipeline (mode='sim'). Off by
                       default. Defaults --ai to HeuristicAI when --ai is unset.
                       Target is http://localhost:\${TELEMETRY_PORT:-3456}/api/telemetry.
@@ -204,6 +225,7 @@ Examples:
   npm run sim:run
   npm run sim:run -- --workers 8
   npm run sim:run -- --sequential
+  npm run sim:run -- --seeds 8000 --random-seeds
   npm run sim:run -- --telemetry --seeds 10
   GEMTD_TELEMETRY_URL=https://example.com/api/telemetry npm run sim:run -- --telemetry --remote --seeds 5
   npm run sim:compare                          # HEAD vs most recent other
