@@ -391,7 +391,7 @@ export const WAVES: WaveDef[] = [
     43,
     0.75,
     24,
-    ["carapace", 20, 44000, 2, 0.36, 40],
+    ["carapace", 20, 44000, 2, 0.36, 37],
     ["mender", 2, 36000, 2, 0.36, 17],
   ),
   wm(
@@ -461,7 +461,7 @@ export const WAVES: WaveDef[] = [
     47,
     0.75,
     24,
-    ["carapace", 18, 60040, 2, 0.54, 45],
+    ["carapace", 18, 60040, 2, 0.54, 40],
     ["mender", 4, 42240, 2, 0.54, 27],
   ),
   wm(

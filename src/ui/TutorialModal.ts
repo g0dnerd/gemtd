@@ -311,6 +311,15 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "2.0.3",
+      notes: [
+        {
+          tag: "nerf",
+          text: "Reduce wave 43 and 47 carapace armor slightly.",
+        },
+      ],
+    },
+    {
       ver: "2.0.2",
       notes: [
         {
