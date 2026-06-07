@@ -362,26 +362,27 @@ function render(refs: InspectorRefs, game: Game): void {
     actions.appendChild(upgBtn);
   }
 
-  const comboRow = document.createElement("div");
-  comboRow.className = "inspector-action-row";
+  if (!tower.comboKey) {
+    const comboRow = document.createElement("div");
+    comboRow.className = "inspector-action-row";
 
-  const combineCount = countCombinePairs(game, tower);
-  const specialCount = countSpecialRecipes(game, tower);
+    const combineCount = countCombinePairs(game, tower);
+    const specialCount = countSpecialRecipes(game, tower);
 
-  const combineBtn = document.createElement("button");
-  combineBtn.className = "px-btn";
-  combineBtn.disabled = !inBuild || !!tower.comboKey || tower.quality >= 5;
-  setComboButton(combineBtn, "★ COMBINE", combineCount, false);
-  combineBtn.addEventListener("click", () => tryAutoCombine(game));
+    const combineBtn = document.createElement("button");
+    combineBtn.className = "px-btn";
+    combineBtn.disabled = !inBuild || tower.quality >= 5;
+    setComboButton(combineBtn, "★ COMBINE", combineCount, false);
+    combineBtn.addEventListener("click", () => tryAutoCombine(game));
 
-  const specialBtn = document.createElement("button");
-  specialBtn.className = "px-btn";
-  specialBtn.disabled = !!tower.comboKey;
-  setComboButton(specialBtn, "★ SPECIAL", specialCount, true);
-  specialBtn.addEventListener("click", () => tryAutoCombineSpecial(game));
+    const specialBtn = document.createElement("button");
+    specialBtn.className = "px-btn";
+    setComboButton(specialBtn, "★ SPECIAL", specialCount, true);
+    specialBtn.addEventListener("click", () => tryAutoCombineSpecial(game));
 
-  comboRow.append(combineBtn, specialBtn);
-  actions.append(comboRow);
+    comboRow.append(combineBtn, specialBtn);
+    actions.append(comboRow);
+  }
   body.appendChild(actions);
 }
 
