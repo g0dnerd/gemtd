@@ -1,5 +1,5 @@
 import type { HeadlessGame } from "../HeadlessGame";
-import type { TowerState } from "../../game/State";
+import type { TargetingPriority, TowerState } from "../../game/State";
 import type { ComboRecipe } from "../../data/combos";
 import type { GemType, Quality } from "../../render/theme";
 import {
@@ -37,6 +37,14 @@ const GEM_NAMES: Record<string, string> = {
 function gemLabel(gem: string, quality: number): string {
   return `${QUALITY_NAMES[quality] ?? "?"} ${GEM_NAMES[gem] ?? gem}`;
 }
+
+const SHRIKE_THEN_MENDER: TargetingPriority[] = [
+  { kind: "creep_kind", creep: "shrike" },
+  { kind: "creep_kind", creep: "mender" },
+];
+const MENDER_ONLY: TargetingPriority[] = [
+  { kind: "creep_kind", creep: "mender" },
+];
 
 const ARMOR_SHRED_COMBOS = new Set([
   "paraiba_tourmaline",
@@ -86,6 +94,11 @@ export class HeuristicAI extends BlueprintAI {
   override playBuild(game: HeadlessGame): void {
     this._game = game;
     const s = game.state;
+    s.globalTargetingDefault = structuredClone(MENDER_ONLY);
+    s.gemTargetingDefaults = { amethyst: structuredClone(SHRIKE_THEN_MENDER) };
+    s.comboTargetingDefaults = {
+      red_crystal: structuredClone(SHRIKE_THEN_MENDER),
+    };
     if (this.logging) {
       const ws = s.waveStats;
       const prevWaveInfo =
