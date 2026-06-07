@@ -9,7 +9,7 @@ import { BuildPhase } from '../controllers/BuildPhase';
 import { WavePhase } from '../controllers/WavePhase';
 import { WAVES } from '../data/waves';
 import { COMBO_BY_NAME, nextUpgrade } from '../data/combos';
-import { Combat } from '../systems/Combat';
+import { Combat, invalidateTowerStats } from '../systems/Combat';
 import { Traps } from '../systems/Traps';
 import { GEM_TYPES, type GemType } from '../render/theme';
 import { Metrics } from './Metrics';
@@ -260,6 +260,7 @@ export class HeadlessGame {
     if (!isCurrentDraw) return false;
     const oldQuality = tower.quality;
     tower.quality = (tower.quality - 1) as 1 | 2 | 3 | 4 | 5;
+    invalidateTowerStats(tower);
     state.downgradeUsedThisRound = true;
     this.bus.emit('tower:downgrade', {
       id: towerId,
@@ -297,6 +298,7 @@ export class HeadlessGame {
     if (state.gold < upgrade.cost) return false;
     state.gold -= upgrade.cost;
     tower.upgradeTier = currentTier + 1;
+    invalidateTowerStats(tower);
     this.bus.emit('gold:change', { gold: state.gold });
     this.bus.emit('tower:upgrade', { id: towerId, comboKey: tower.comboKey, tier: tower.upgradeTier });
     return true;

@@ -94,6 +94,15 @@ export interface TowerState {
   atkSpeedAssist?: number;
   demoteAirAssist?: number;
   bonusGoldGenerated?: number;
+  /**
+   * Cached `ResolvedStats` (see Combat.ts). Opaque to State; Combat.ts owns the
+   * type. Cleared whenever quality / comboKey / upgradeTier change. The kills
+   * dimension (which only matters once every 10 kills via towerLevel) is
+   * validated lazily by comparing `_statsLevel` on read.
+   * Not part of the save format — recomputed on demand. JSON-clean.
+   */
+  _stats?: unknown;
+  _statsLevel?: number;
 }
 
 export interface RockState {

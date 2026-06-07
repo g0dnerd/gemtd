@@ -17,6 +17,7 @@ import { findCombo, COMBO_BY_NAME } from "../data/combos";
 import type { GemType, Quality } from "../render/theme";
 import { GEM_TYPES } from "../render/theme";
 import { findRoute } from "../systems/Pathfinding";
+import { invalidateTowerStats } from "../systems/Combat";
 import { CHANCE_TIER_WEIGHTS, QUALITY_BASE_COST } from "../game/constants";
 import {
   State,
@@ -595,6 +596,7 @@ export class BuildPhase {
 
     const oldQuality = tower.quality;
     tower.quality = (tower.quality - 1) as Quality;
+    invalidateTowerStats(tower);
     state.downgradeUsedThisRound = true;
 
     this.game.bus.emit("tower:downgrade", {
@@ -610,6 +612,7 @@ export class BuildPhase {
       description: `Demote ${tower.gem} L${oldQuality} → L${tower.quality}`,
       undo: () => {
         tower.quality = oldQuality as Quality;
+        invalidateTowerStats(tower);
         state.downgradeUsedThisRound = false;
       },
     });

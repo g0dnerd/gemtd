@@ -51,7 +51,7 @@ import {
 } from "./constants";
 import { COMBOS, COMBO_BY_NAME, nextUpgrade } from "../data/combos";
 import { GEM_TYPES, type GemType, type Quality } from "../render/theme";
-import { Combat } from "../systems/Combat";
+import { Combat, invalidateTowerStats } from "../systems/Combat";
 import { Traps } from "../systems/Traps";
 import { VfxRenderer } from "../render/VfxRenderer";
 import { TowerSpriteCache } from "../render/TowerRenderer";
@@ -1101,6 +1101,7 @@ export class Game {
     }
     state.gold -= upgrade.cost;
     tower.upgradeTier = currentTier + 1;
+    invalidateTowerStats(tower);
     this.bus.emit("gold:change", { gold: state.gold });
     this.bus.emit("tower:upgrade", {
       id: towerId,

@@ -149,21 +149,9 @@ export class Combat {
         if (t.isTrap) continue;
         const stats = effectiveStats(t);
         // Passive burn towers don't fire projectiles.
-        if (
-          stats.effects.some(
-            (e) =>
-              e.kind === "prox_burn" ||
-              e.kind === "prox_burn_ramp" ||
-              e.kind === "speed_damage_aura",
-          )
-        )
-          continue;
+        if (stats.hasPassiveBurn) continue;
         const atkMult = auras.atkSpeed.get(t.id) ?? 0;
-        // Momentum: scale attack speed with stacks
-        const momentumEffect = stats.effects.find(
-          (e): e is Extract<EffectKind, { kind: "momentum" }> =>
-            e.kind === "momentum",
-        );
+        const momentumEffect = stats.momentum;
         let effectiveAtkSpeed = stats.atkSpeed * (1 + atkMult);
         if (momentumEffect && t.momentumStacks) {
           const frac = t.momentumStacks / momentumEffect.maxStacks;
@@ -174,22 +162,10 @@ export class Combat {
           Math.round(SIM_HZ / effectiveAtkSpeed),
         );
         if (tick - t.lastFireTick < cooldownTicks) continue;
-        const beamEffect = stats.effects.find(
-          (e): e is Extract<EffectKind, { kind: "beam_ramp" }> =>
-            e.kind === "beam_ramp",
-        );
-        const multiEffect = stats.effects.find(
-          (e): e is Extract<EffectKind, { kind: "multi_target" }> =>
-            e.kind === "multi_target",
-        );
-        const demoteEffect = stats.effects.find(
-          (e): e is Extract<EffectKind, { kind: "demote_air" }> =>
-            e.kind === "demote_air",
-        );
-        const adaptiveEffect = stats.effects.find(
-          (e): e is Extract<EffectKind, { kind: "adaptive_mode" }> =>
-            e.kind === "adaptive_mode",
-        );
+        const beamEffect = stats.beamRamp;
+        const multiEffect = stats.multiTarget;
+        const demoteEffect = stats.demoteAir;
+        const adaptiveEffect = stats.adaptiveMode;
         if (adaptiveEffect) {
           const inRange = pickTargets(
             t,
@@ -273,10 +249,7 @@ export class Combat {
           t.lastFireTick = tick;
           const dmgMult = auras.dmg.get(t.id) ?? 0;
 
-          const novaEffect = stats.effects.find(
-            (e): e is Extract<EffectKind, { kind: "periodic_nova" }> =>
-              e.kind === "periodic_nova",
-          );
+          const novaEffect = stats.periodicNova;
           if (novaEffect) {
             t.attackCount = (t.attackCount ?? 0) + 1;
             if (t.attackCount % novaEffect.everyN === 0) {
@@ -311,11 +284,7 @@ export class Combat {
             );
           } else if (beamEffect) {
             this.beamHit(t, target, stats, beamEffect, dmgMult);
-            const hasOnHitEffects = stats.effects.some(
-              (e) =>
-                e.kind === "slow" || e.kind === "poison" || e.kind === "stun",
-            );
-            if (hasOnHitEffects)
+            if (stats.hasOnHitSlowPoisonStun)
               this.fire(t, target, stats, dmgMult, false, 1, prevFireTick);
           } else {
             this.fire(t, target, stats, dmgMult, false, 1, prevFireTick);
@@ -375,10 +344,7 @@ export class Combat {
   }
 
   private checkEruption(tower: TowerState, stats: ResolvedStats): void {
-    const eruption = stats.effects.find(
-      (e): e is Extract<EffectKind, { kind: "eruption" }> =>
-        e.kind === "eruption",
-    );
+    const eruption = stats.eruption;
     if (!eruption) return;
     tower.pressureStacks = (tower.pressureStacks ?? 0) + 1;
     if (tower.pressureStacks < eruption.threshold) return;
@@ -436,10 +402,7 @@ export class Combat {
     let dmg = Math.round(baseDmg * baseDmgMult * (1 + dmgAuraMult));
 
     // Distance scaling: damage multiplier based on distance to target
-    const distScale = stats.effects.find(
-      (e): e is Extract<EffectKind, { kind: "distance_scaling" }> =>
-        e.kind === "distance_scaling",
-    );
+    const distScale = stats.distanceScaling;
     if (distScale) {
       const dx = target.px - fromX,
         dy = target.py - fromY;
@@ -452,10 +415,7 @@ export class Combat {
     }
 
     // Charge burst: scale damage based on idle time since last fire
-    const chargeBurst = stats.effects.find(
-      (e): e is Extract<EffectKind, { kind: "charge_burst" }> =>
-        e.kind === "charge_burst",
-    );
+    const chargeBurst = stats.chargeBurst;
     if (chargeBurst && prevFireTick > 0) {
       const idleTicks = state.tick - prevFireTick;
       const chargeFraction = Math.min(
@@ -467,20 +427,14 @@ export class Combat {
     }
 
     // Momentum: scale damage with current stacks
-    const momentumEffect = stats.effects.find(
-      (e): e is Extract<EffectKind, { kind: "momentum" }> =>
-        e.kind === "momentum",
-    );
+    const momentumEffect = stats.momentum;
     if (momentumEffect && momentumEffect.rampDmg && tower.momentumStacks) {
       const frac = tower.momentumStacks / momentumEffect.maxStacks;
       dmg = Math.round(dmg * (1 + (momentumEffect.rampDmg - 1) * frac));
     }
 
     // Focus crit: track target and accumulate bonus crit chance
-    const focusCrit = stats.effects.find(
-      (e): e is Extract<EffectKind, { kind: "focus_crit" }> =>
-        e.kind === "focus_crit",
-    );
+    const focusCrit = stats.focusCrit;
     if (focusCrit) {
       if (tower.focusTarget && tower.focusTarget.creepId === target.id) {
         const maxStacks = Math.round(focusCrit.maxBonus / focusCrit.pctPerHit);
@@ -1354,79 +1308,88 @@ export class Combat {
       const tx = (src.x + 1) * FINE_TILE;
       const ty = (src.y + 1) * FINE_TILE;
 
-      for (const e of stats.effects) {
-        if (e.kind === "prox_armor_reduce") {
-          const r2 = (e.radius * TILE) ** 2;
-          for (const c of creeps) {
-            if (!c.alive || !canTargetProx(e.targets, c)) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            c.armorReduction = Math.max(c.armorReduction, e.value);
-            (c.armorReductionSources ??= {})[src.id] = e.value;
-          }
-        } else if (e.kind === "prox_slow") {
-          const r2 = (e.radius * TILE) ** 2;
+      // Direct slot reads instead of iterating `stats.effects` looking for each
+      // kind. Order matches the previous if/else-if chain exactly.
+      const par = stats.proxArmorReduce;
+      if (par) {
+        const r2 = (par.radius * TILE) ** 2;
+        for (const c of creeps) {
+          if (!c.alive || !canTargetProx(par.targets, c)) continue;
+          const dx = c.px - tx,
+            dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          c.armorReduction = Math.max(c.armorReduction, par.value);
+          (c.armorReductionSources ??= {})[src.id] = par.value;
+        }
+      }
+      const ps = stats.proxSlow;
+      if (ps) {
+        const r2 = (ps.radius * TILE) ** 2;
+        for (const c of creeps) {
+          if (!c.alive) continue;
+          const dx = c.px - tx,
+            dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          const factor = ps.factor + (1 - ps.factor) * c.slowResist;
+          c.proxSlowFactor = Math.min(c.proxSlowFactor ?? 1, factor);
+        }
+      }
+      const va = stats.vulnerabilityAura;
+      if (va) {
+        const r2 = (va.radius * TILE) ** 2;
+        for (const c of creeps) {
+          if (!c.alive) continue;
+          const dx = c.px - tx,
+            dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          c.vulnerability += va.pct;
+          (c.vulnSources ??= {})[src.id] =
+            (c.vulnSources[src.id] ?? 0) + va.pct;
+        }
+      }
+      const ada = stats.armorDecayAura;
+      if (ada) {
+        const r2 = (ada.radius * TILE) ** 2;
+        for (const c of creeps) {
+          if (!c.alive) continue;
+          const dx = c.px - tx,
+            dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          c.radiationArmor = Math.min(
+            (c.radiationArmor ?? 0) + ada.armorPerSec / SIM_HZ,
+            ada.maxReduction,
+          );
+          (c.radiationArmorSources ??= {})[src.id] = Math.min(
+            (c.radiationArmorSources[src.id] ?? 0) + ada.armorPerSec / SIM_HZ,
+            ada.maxReduction,
+          );
+        }
+      }
+      const pf = stats.periodicFreeze;
+      if (pf) {
+        const intervalTicks = Math.round(pf.interval * SIM_HZ);
+        if (tick - (src.lastFreezeTick ?? 0) >= intervalTicks) {
+          src.lastFreezeTick = tick;
+          const r2 = (stats.range * TILE) ** 2;
           for (const c of creeps) {
             if (!c.alive) continue;
             const dx = c.px - tx,
               dy = c.py - ty;
             if (dx * dx + dy * dy > r2) continue;
-            const factor = e.factor + (1 - e.factor) * c.slowResist;
-            c.proxSlowFactor = Math.min(c.proxSlowFactor ?? 1, factor);
-          }
-        } else if (e.kind === "vulnerability_aura") {
-          const r2 = (e.radius * TILE) ** 2;
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            c.vulnerability += e.pct;
-            (c.vulnSources ??= {})[src.id] =
-              (c.vulnSources[src.id] ?? 0) + e.pct;
-          }
-        } else if (e.kind === "armor_decay_aura") {
-          const r2 = (e.radius * TILE) ** 2;
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            c.radiationArmor = Math.min(
-              (c.radiationArmor ?? 0) + e.armorPerSec / SIM_HZ,
-              e.maxReduction,
+            const stunDuration = Math.max(
+              1,
+              Math.round(pf.duration * SIM_HZ * (1 - c.stunResist)),
             );
-            (c.radiationArmorSources ??= {})[src.id] = Math.min(
-              (c.radiationArmorSources[src.id] ?? 0) + e.armorPerSec / SIM_HZ,
-              e.maxReduction,
-            );
-          }
-        } else if (e.kind === "periodic_freeze") {
-          const intervalTicks = Math.round(e.interval * SIM_HZ);
-          if (tick - (src.lastFreezeTick ?? 0) >= intervalTicks) {
-            src.lastFreezeTick = tick;
-            const r2 = (stats.range * TILE) ** 2;
-            for (const c of creeps) {
-              if (!c.alive) continue;
-              const dx = c.px - tx,
-                dy = c.py - ty;
-              if (dx * dx + dy * dy > r2) continue;
-              const stunDuration = Math.max(
-                1,
-                Math.round(e.duration * SIM_HZ * (1 - c.stunResist)),
-              );
-              const expires = tick + stunDuration;
-              if (!c.stun || c.stun.expiresAt < expires) {
-                c.stun = { expiresAt: expires };
-              }
+            const expires = tick + stunDuration;
+            if (!c.stun || c.stun.expiresAt < expires) {
+              c.stun = { expiresAt: expires };
             }
-            this.game.bus.emit("vfx:periodicFreeze", {
-              x: tx,
-              y: ty,
-              rangePx: stats.range * TILE,
-            });
           }
+          this.game.bus.emit("vfx:periodicFreeze", {
+            x: tx,
+            y: ty,
+            rangePx: stats.range * TILE,
+          });
         }
       }
     }
@@ -1441,13 +1404,14 @@ export class Combat {
       const tx = (src.x + 1) * FINE_TILE;
       const ty = (src.y + 1) * FINE_TILE;
 
-      const hasLingerBurn = stats.effects.some((e) => e.kind === "linger_burn");
-      const hasBurn = stats.effects.some(
-        (e) => e.kind === "prox_burn" || e.kind === "prox_burn_ramp",
-      );
+      const lingerBurnE = stats.lingerBurn;
+      const proxBurnE = stats.proxBurn;
+      const proxBurnRampE = stats.proxBurnRamp;
+      const speedDmgE = stats.speedDamageAura;
+      const hasBurn = proxBurnE !== undefined || proxBurnRampE !== undefined;
       const prevBurnCreepIds = src.burnAuraCreepIds;
       let currentBurnCreepIds: number[] | undefined;
-      if (hasLingerBurn && hasBurn) {
+      if (lingerBurnE && hasBurn) {
         currentBurnCreepIds = [];
       }
 
@@ -1458,79 +1422,75 @@ export class Combat {
       // continuous-DoT sources.
       const auraScale = (1 + dmgAuraMult) * (1 + atkAuraMult);
 
-      for (const e of stats.effects) {
-        if (e.kind === "prox_burn") {
-          const r2 = (e.radius * TILE) ** 2;
-          const dmgPerTick = (e.dps * auraScale) / SIM_HZ;
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            const dmg = Math.max(1, Math.round(dmgPerTick));
-            this.applyDamage(c, dmg, src);
-            this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
-            inBurnAura.add(c.id);
-            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
-          }
-        } else if (e.kind === "prox_burn_ramp") {
-          const r2 = (e.radius * TILE) ** 2;
-          if (!src.burnExposure) src.burnExposure = {};
-          const hasArmorPierce = stats.effects.some(
-            (ee) => ee.kind === "armor_pierce_burn",
+      if (proxBurnE) {
+        const r2 = (proxBurnE.radius * TILE) ** 2;
+        const dmgPerTick = (proxBurnE.dps * auraScale) / SIM_HZ;
+        for (const c of creeps) {
+          if (!c.alive) continue;
+          const dx = c.px - tx,
+            dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          const dmg = Math.max(1, Math.round(dmgPerTick));
+          this.applyDamage(c, dmg, src);
+          this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
+          inBurnAura.add(c.id);
+          if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
+        }
+      }
+      if (proxBurnRampE) {
+        const r2 = (proxBurnRampE.radius * TILE) ** 2;
+        if (!src.burnExposure) src.burnExposure = {};
+        const hasArmorPierce = stats.hasArmorPierceBurn;
+        const newExposure: Record<number, number> = {};
+        for (const c of creeps) {
+          if (!c.alive) continue;
+          const dx = c.px - tx,
+            dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          const prev = src.burnExposure[c.id] ?? 0;
+          const exposure = prev + 1;
+          newExposure[c.id] = exposure;
+          const rampMult =
+            1 +
+            Math.min(
+              (exposure / SIM_HZ) * proxBurnRampE.rampPct,
+              proxBurnRampE.rampCap,
+            );
+          const dmg = Math.max(
+            1,
+            Math.round((proxBurnRampE.dps * rampMult * auraScale) / SIM_HZ),
           );
-          const newExposure: Record<number, number> = {};
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            const prev = src.burnExposure[c.id] ?? 0;
-            const exposure = prev + 1;
-            newExposure[c.id] = exposure;
-            const rampMult =
-              1 + Math.min((exposure / SIM_HZ) * e.rampPct, e.rampCap);
-            const dmg = Math.max(
-              1,
-              Math.round((e.dps * rampMult * auraScale) / SIM_HZ),
-            );
-            this.applyDamage(c, dmg, src, hasArmorPierce);
-            this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
-            inBurnAura.add(c.id);
-            if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
-          }
-          src.burnExposure = newExposure;
-        } else if (e.kind === "speed_damage_aura") {
-          const r2 = (e.radius * TILE) ** 2;
-          for (const c of creeps) {
-            if (!c.alive) continue;
-            const dx = c.px - tx,
-              dy = c.py - ty;
-            if (dx * dx + dy * dy > r2) continue;
-            const dmg = Math.max(
-              1,
-              Math.round(
-                (e.dps * c.speed * c.speed * auraScale) /
-                  SPEED_DMG_PIVOT /
-                  SIM_HZ,
-              ),
-            );
-            this.applyDamage(c, dmg, src);
-            this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
-          }
+          this.applyDamage(c, dmg, src, hasArmorPierce);
+          this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
+          inBurnAura.add(c.id);
+          if (currentBurnCreepIds) currentBurnCreepIds.push(c.id);
+        }
+        src.burnExposure = newExposure;
+      }
+      if (speedDmgE) {
+        const r2 = (speedDmgE.radius * TILE) ** 2;
+        for (const c of creeps) {
+          if (!c.alive) continue;
+          const dx = c.px - tx,
+            dy = c.py - ty;
+          if (dx * dx + dy * dy > r2) continue;
+          const dmg = Math.max(
+            1,
+            Math.round(
+              (speedDmgE.dps * c.speed * c.speed * auraScale) /
+                SPEED_DMG_PIVOT /
+                SIM_HZ,
+            ),
+          );
+          this.applyDamage(c, dmg, src);
+          this.creditBurnAssist(src, dmg, dmgAuraMult, atkAuraMult);
         }
       }
 
       // Linger burn: detect creeps that left the burn aura
-      if (hasLingerBurn && currentBurnCreepIds && prevBurnCreepIds) {
+      if (lingerBurnE && currentBurnCreepIds && prevBurnCreepIds) {
         const currentSet = new Set(currentBurnCreepIds);
-        const lingerEffect = stats.effects.find(
-          (ee): ee is Extract<EffectKind, { kind: "linger_burn" }> =>
-            ee.kind === "linger_burn",
-        )!;
-        const burnEffect = stats.effects.find(
-          (ee) => ee.kind === "prox_burn" || ee.kind === "prox_burn_ramp",
-        );
+        const burnEffect = proxBurnE ?? proxBurnRampE;
         if (burnEffect) {
           const burnDps = burnEffect.dps;
           for (const id of prevBurnCreepIds) {
@@ -1539,7 +1499,7 @@ export class Combat {
             if (!c) continue;
             c.lingerBurn = {
               dps: burnDps,
-              ticksLeft: Math.round(lingerEffect.duration * SIM_HZ),
+              ticksLeft: Math.round(lingerBurnE.duration * SIM_HZ),
               ownerId: src.id,
             };
           }
@@ -1551,24 +1511,23 @@ export class Combat {
     // Second pass: frostbite (needs final proxSlowFactor)
     for (const src of towers) {
       const stats = effectiveStats(src);
+      const fb = stats.frostbite;
+      if (!fb) continue;
       const tx = (src.x + 1) * FINE_TILE;
       const ty = (src.y + 1) * FINE_TILE;
-      for (const e of stats.effects) {
-        if (e.kind !== "frostbite") continue;
-        const r2 = (stats.range * TILE) ** 2;
-        for (const c of creeps) {
-          if (!c.alive) continue;
-          const dx = c.px - tx,
-            dy = c.py - ty;
-          if (dx * dx + dy * dy > r2) continue;
-          const slowFactor =
-            c.slow && c.slow.expiresAt > tick ? c.slow.factor : 1;
-          const proxFactor = c.proxSlowFactor ?? 1;
-          if (slowFactor * proxFactor <= e.speedThreshold) {
-            c.vulnerability += e.dmgBonus;
-            (c.vulnSources ??= {})[src.id] =
-              (c.vulnSources[src.id] ?? 0) + e.dmgBonus;
-          }
+      const r2 = (stats.range * TILE) ** 2;
+      for (const c of creeps) {
+        if (!c.alive) continue;
+        const dx = c.px - tx,
+          dy = c.py - ty;
+        if (dx * dx + dy * dy > r2) continue;
+        const slowFactor =
+          c.slow && c.slow.expiresAt > tick ? c.slow.factor : 1;
+        const proxFactor = c.proxSlowFactor ?? 1;
+        if (slowFactor * proxFactor <= fb.speedThreshold) {
+          c.vulnerability += fb.dmgBonus;
+          (c.vulnSources ??= {})[src.id] =
+            (c.vulnSources[src.id] ?? 0) + fb.dmgBonus;
         }
       }
     }
@@ -1656,6 +1615,37 @@ interface ResolvedStats {
   targetPriority?: "furthest" | "highest_hp";
   projectileSpeed?: number;
   groundTarget?: boolean;
+  // Pre-bucketed effect slots — populated once at cache-build time so the per-tick
+  // hot paths in Combat.step / applyProximityAuras / computeAuraMults / fire can
+  // read `stats.momentum` etc. directly instead of running `effects.find(...)`
+  // multiple times per tower per tick. First-match-wins semantics match the
+  // previous .find() behaviour exactly. Cold sites that aren't in the per-tick
+  // path (impact, death-effects, projectile build) still use effects.find().
+  momentum?: Extract<EffectKind, { kind: "momentum" }>;
+  beamRamp?: Extract<EffectKind, { kind: "beam_ramp" }>;
+  multiTarget?: Extract<EffectKind, { kind: "multi_target" }>;
+  demoteAir?: Extract<EffectKind, { kind: "demote_air" }>;
+  adaptiveMode?: Extract<EffectKind, { kind: "adaptive_mode" }>;
+  periodicNova?: Extract<EffectKind, { kind: "periodic_nova" }>;
+  eruption?: Extract<EffectKind, { kind: "eruption" }>;
+  distanceScaling?: Extract<EffectKind, { kind: "distance_scaling" }>;
+  chargeBurst?: Extract<EffectKind, { kind: "charge_burst" }>;
+  focusCrit?: Extract<EffectKind, { kind: "focus_crit" }>;
+  proxArmorReduce?: Extract<EffectKind, { kind: "prox_armor_reduce" }>;
+  proxSlow?: Extract<EffectKind, { kind: "prox_slow" }>;
+  vulnerabilityAura?: Extract<EffectKind, { kind: "vulnerability_aura" }>;
+  armorDecayAura?: Extract<EffectKind, { kind: "armor_decay_aura" }>;
+  periodicFreeze?: Extract<EffectKind, { kind: "periodic_freeze" }>;
+  proxBurn?: Extract<EffectKind, { kind: "prox_burn" }>;
+  proxBurnRamp?: Extract<EffectKind, { kind: "prox_burn_ramp" }>;
+  speedDamageAura?: Extract<EffectKind, { kind: "speed_damage_aura" }>;
+  lingerBurn?: Extract<EffectKind, { kind: "linger_burn" }>;
+  frostbite?: Extract<EffectKind, { kind: "frostbite" }>;
+  auraAtkspeed?: Extract<EffectKind, { kind: "aura_atkspeed" }>;
+  auraDmg?: Extract<EffectKind, { kind: "aura_dmg" }>;
+  hasPassiveBurn: boolean;
+  hasOnHitSlowPoisonStun: boolean;
+  hasArmorPierceBurn: boolean;
 }
 
 export function towerLevel(t: TowerState): number {
@@ -1675,25 +1665,96 @@ function scaleBurnEffects(effects: EffectKind[], mult: number): EffectKind[] {
 }
 
 /**
+ * Walk effects once at cache-build time and populate the typed slots that the
+ * hot tick path reads. `??=` preserves first-match-wins (== `effects.find`).
+ */
+function populateBuckets(out: ResolvedStats): void {
+  out.hasPassiveBurn = false;
+  out.hasOnHitSlowPoisonStun = false;
+  out.hasArmorPierceBurn = false;
+  for (const e of out.effects) {
+    switch (e.kind) {
+      case "momentum": out.momentum ??= e; break;
+      case "beam_ramp": out.beamRamp ??= e; break;
+      case "multi_target": out.multiTarget ??= e; break;
+      case "demote_air": out.demoteAir ??= e; break;
+      case "adaptive_mode": out.adaptiveMode ??= e; break;
+      case "periodic_nova": out.periodicNova ??= e; break;
+      case "eruption": out.eruption ??= e; break;
+      case "distance_scaling": out.distanceScaling ??= e; break;
+      case "charge_burst": out.chargeBurst ??= e; break;
+      case "focus_crit": out.focusCrit ??= e; break;
+      case "prox_armor_reduce": out.proxArmorReduce ??= e; break;
+      case "prox_slow": out.proxSlow ??= e; break;
+      case "vulnerability_aura": out.vulnerabilityAura ??= e; break;
+      case "armor_decay_aura": out.armorDecayAura ??= e; break;
+      case "periodic_freeze": out.periodicFreeze ??= e; break;
+      case "prox_burn":
+        out.proxBurn ??= e;
+        out.hasPassiveBurn = true;
+        break;
+      case "prox_burn_ramp":
+        out.proxBurnRamp ??= e;
+        out.hasPassiveBurn = true;
+        break;
+      case "speed_damage_aura":
+        out.speedDamageAura ??= e;
+        out.hasPassiveBurn = true;
+        break;
+      case "linger_burn": out.lingerBurn ??= e; break;
+      case "frostbite": out.frostbite ??= e; break;
+      case "aura_atkspeed": out.auraAtkspeed ??= e; break;
+      case "aura_dmg": out.auraDmg ??= e; break;
+      case "armor_pierce_burn": out.hasArmorPierceBurn = true; break;
+      case "slow":
+      case "poison":
+      case "stun":
+        out.hasOnHitSlowPoisonStun = true;
+        break;
+    }
+  }
+}
+
+/**
  * Resolved stats are a pure function of (comboKey|gem, quality, upgradeTier,
- * towerLevel), so they are memoized — this used to allocate a fresh object plus
- * (via gemStats/scaleBurnEffects) one or two effect arrays on every call, and is
- * invoked ~4× per tower per tick (two aura passes, aura-mults, fire) plus per
- * projectile/death. The cached object is shared and read-only to all callers.
+ * towerLevel). Two-tier cache:
+ *  - Per-tower stash on `TowerState._stats` (validated against `_statsLevel`)
+ *    skips the cache-key string allocation + map lookup on the hot path. This is
+ *    what the per-tick loops hit ~4× per tower per tick.
+ *  - Process-wide `Map<key, ResolvedStats>` keeps the object identity stable
+ *    across towers with matching (combo|gem, quality, tier, level), so memory
+ *    stays bounded and effects[] arrays are shared.
+ * Invalidate the per-tower stash by clearing `t._stats = undefined` whenever
+ * gem / quality / comboKey / upgradeTier changes (see callers of
+ * `invalidateTowerStats` below).
  */
 const effectiveStatsCache = new Map<string, ResolvedStats>();
 
-function effectiveStats(t: TowerState): ResolvedStats {
+// Exported for tests; otherwise file-private.
+export function effectiveStats(t: TowerState): ResolvedStats {
   const lvl = towerLevel(t);
+  const stash = t._stats as ResolvedStats | undefined;
+  if (stash !== undefined && t._statsLevel === lvl) return stash;
+
   const cacheKey = `${t.comboKey ?? ""}:${t.gem}:${t.quality}:${t.upgradeTier ?? 0}:${lvl}`;
-  const cached = effectiveStatsCache.get(cacheKey);
-  if (cached) return cached;
+  let result = effectiveStatsCache.get(cacheKey);
+  if (result === undefined) {
+    result = buildResolvedStats(t, lvl);
+    effectiveStatsCache.set(cacheKey, result);
+  }
+  t._stats = result;
+  t._statsLevel = lvl;
+  return result;
+}
+
+function buildResolvedStats(t: TowerState, lvl: number): ResolvedStats {
   const mult = 1 + (0.05 * lvl) / (1 + 0.06 * lvl);
+  let result: ResolvedStats;
   if (t.comboKey) {
     const combo = COMBO_BY_NAME.get(t.comboKey);
     if (combo) {
       const s = comboStatsAtTier(combo, t.upgradeTier ?? 0);
-      const result: ResolvedStats = {
+      result = {
         dmgMin: Math.round(s.dmgMin * mult),
         dmgMax: Math.round(s.dmgMax * mult),
         range: s.range,
@@ -1701,13 +1762,16 @@ function effectiveStats(t: TowerState): ResolvedStats {
         effects: scaleBurnEffects(s.effects, mult),
         visualGem: combo.visualGem,
         targeting: s.targeting,
+        hasPassiveBurn: false,
+        hasOnHitSlowPoisonStun: false,
+        hasArmorPierceBurn: false,
       };
-      effectiveStatsCache.set(cacheKey, result);
+      populateBuckets(result);
       return result;
     }
   }
   const s = gemStats(t.gem, t.quality);
-  const result: ResolvedStats = {
+  result = {
     dmgMin: Math.round(s.dmgMin * mult),
     dmgMax: Math.round(s.dmgMax * mult),
     range: s.range,
@@ -1718,9 +1782,20 @@ function effectiveStats(t: TowerState): ResolvedStats {
     targetPriority: s.targetPriority,
     projectileSpeed: s.projectileSpeed,
     groundTarget: s.groundTarget,
+    hasPassiveBurn: false,
+    hasOnHitSlowPoisonStun: false,
+    hasArmorPierceBurn: false,
   };
-  effectiveStatsCache.set(cacheKey, result);
+  populateBuckets(result);
   return result;
+}
+
+/** Clear the per-tower resolved-stats stash. Call at every site that mutates
+ *  gem / quality / comboKey / upgradeTier (level changes are caught lazily by
+ *  the `_statsLevel` check in `effectiveStats`). */
+export function invalidateTowerStats(t: TowerState): void {
+  t._stats = undefined;
+  t._statsLevel = undefined;
 }
 
 /** A single aura contribution to a buffed tower: which source, and at what pct. */
@@ -1747,21 +1822,37 @@ function computeAuraMults(towers: TowerState[], tick: number): AuraMults {
     if (src.isTrap) continue;
     if (src.silencedUntil && src.silencedUntil > tick) continue;
     const stats = effectiveStats(src);
-    for (const e of stats.effects) {
-      if (e.kind !== "aura_atkspeed" && e.kind !== "aura_dmg") continue;
-      const radiusFine = e.radius * GRID_SCALE;
+    const aas = stats.auraAtkspeed;
+    if (aas) {
+      const radiusFine = aas.radius * GRID_SCALE;
       const r2 = radiusFine * radiusFine;
-      const map = e.kind === "aura_atkspeed" ? atkSpeed : dmg;
-      const srcMap = e.kind === "aura_atkspeed" ? atkSpeedSources : dmgSources;
       for (const tgt of towers) {
         if (tgt.id === src.id || tgt.isTrap) continue;
         const dx = tgt.x - src.x;
         const dy = tgt.y - src.y;
         if (dx * dx + dy * dy > r2) continue;
-        map.set(tgt.id, 1 - (1 - (map.get(tgt.id) ?? 0)) * (1 - e.pct));
-        const list = srcMap.get(tgt.id);
-        if (list) list.push({ src: src.id, pct: e.pct });
-        else srcMap.set(tgt.id, [{ src: src.id, pct: e.pct }]);
+        atkSpeed.set(
+          tgt.id,
+          1 - (1 - (atkSpeed.get(tgt.id) ?? 0)) * (1 - aas.pct),
+        );
+        const list = atkSpeedSources.get(tgt.id);
+        if (list) list.push({ src: src.id, pct: aas.pct });
+        else atkSpeedSources.set(tgt.id, [{ src: src.id, pct: aas.pct }]);
+      }
+    }
+    const ad = stats.auraDmg;
+    if (ad) {
+      const radiusFine = ad.radius * GRID_SCALE;
+      const r2 = radiusFine * radiusFine;
+      for (const tgt of towers) {
+        if (tgt.id === src.id || tgt.isTrap) continue;
+        const dx = tgt.x - src.x;
+        const dy = tgt.y - src.y;
+        if (dx * dx + dy * dy > r2) continue;
+        dmg.set(tgt.id, 1 - (1 - (dmg.get(tgt.id) ?? 0)) * (1 - ad.pct));
+        const list = dmgSources.get(tgt.id);
+        if (list) list.push({ src: src.id, pct: ad.pct });
+        else dmgSources.set(tgt.id, [{ src: src.id, pct: ad.pct }]);
       }
     }
   }

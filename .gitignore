@@ -64,6 +64,7 @@ tools/sim-compare/results/compare*.json
 
 .od-skills/
 .local/
+.profiles/
 
 notes.txt
 roadmap.md
