@@ -11,16 +11,27 @@ import {
   htmlSpecial,
   htmlCreep,
 } from "../render/htmlSprites";
-import { EffectKind, gemStats } from "../data/gems";
+import { EffectKind, GEM_BASE, gemStats } from "../data/gems";
 import {
   COMBOS,
   COMBO_BY_NAME,
   ComboRecipe,
+  ComboInput,
   comboStatsAtTier,
   findComboFor,
   nextUpgrade,
 } from "../data/combos";
-import { CreepState, TowerState } from "../game/State";
+import {
+  CreepState,
+  TargetingPriority,
+  TowerState,
+} from "../game/State";
+import {
+  CREEP_DISPLAY_NAMES,
+  TARGETABLE_CREEP_KINDS,
+  TARGET_GROUPS,
+  TARGET_GROUP_KEYS,
+} from "../data/creeps";
 import { towerLevel } from "../systems/Combat";
 import { SIM_HZ } from "../game/constants";
 
@@ -134,6 +145,7 @@ function fingerprint(game: Game): string {
   const upgradeCost = getUpgradeCost(tower);
   const canAfford = upgradeCost !== null && game.state.gold >= upgradeCost;
   const ingredientFp = tower.comboKey ? "" : ingredientFingerprint(game, tower);
+  const targetingFp = targetingFingerprint(tower.targetingPriority);
   return [
     tower.id,
     tower.gem,
@@ -150,7 +162,14 @@ function fingerprint(game: Game): string {
     canAfford ? 1 : 0,
     game.state.downgradeUsedThisRound ? 1 : 0,
     ingredientFp,
+    targetingFp,
   ].join("|");
+}
+
+function targetingFingerprint(list: TargetingPriority[] | undefined): string {
+  if (!list) return "u";
+  if (list.length === 0) return "e";
+  return list.map(priorityChipId).join(",");
 }
 
 function ingredientFingerprint(game: Game, tower: TowerState): string {
@@ -159,6 +178,8 @@ function ingredientFingerprint(game: Game, tower: TowerState): string {
   const states = computeIngredientStates(recipe, tower, game.state.towers);
   return states.join("");
 }
+
+export type { IngredientState };
 
 function updateHeroMeta(el: HTMLDivElement, tower: TowerState): void {
   const lvl = towerLevel(tower);
@@ -297,12 +318,7 @@ function render(refs: InspectorRefs, game: Game): void {
     body.appendChild(grid);
   }
 
-  if (!tower.comboKey) {
-    const recipe = findComboFor(tower.gem, tower.quality as Quality);
-    if (recipe) {
-      body.appendChild(renderForgeCard(game, tower, recipe));
-    }
-  }
+  body.appendChild(renderTargetingEditor(game, tower));
 
   const actions = document.createElement("div");
   actions.className = "inspector-actions";
@@ -388,25 +404,33 @@ function render(refs: InspectorRefs, game: Game): void {
 
 type IngredientState = "this" | "have" | "missing";
 
-function computeIngredientStates(
+/**
+ * Determine each input slot's state relative to the player's board: `this`
+ * for the slot consumed by the selected tower (if any), `have` if a placed
+ * basic tower matches, `missing` otherwise. Pass `selected = null` from the
+ * recipe panel when no tower is selected (no slot gets `this`).
+ */
+export function computeIngredientStates(
   recipe: ComboRecipe,
-  selected: TowerState,
+  selected: TowerState | null,
   towers: readonly TowerState[],
 ): IngredientState[] {
   const available = towers
-    .filter((t) => !t.comboKey && t.id !== selected.id)
+    .filter((t) => !t.comboKey && (!selected || t.id !== selected.id))
     .map((t) => ({ gem: t.gem, quality: t.quality, used: false }));
   const states: (IngredientState | null)[] = recipe.inputs.map(() => null);
   let selfConsumed = false;
-  for (let i = 0; i < recipe.inputs.length; i++) {
-    const inp = recipe.inputs[i];
-    if (
-      !selfConsumed &&
-      inp.gem === selected.gem &&
-      inp.quality === selected.quality
-    ) {
-      states[i] = "this";
-      selfConsumed = true;
+  if (selected) {
+    for (let i = 0; i < recipe.inputs.length; i++) {
+      const inp = recipe.inputs[i];
+      if (
+        !selfConsumed &&
+        inp.gem === selected.gem &&
+        inp.quality === selected.quality
+      ) {
+        states[i] = "this";
+        selfConsumed = true;
+      }
     }
   }
   for (let i = 0; i < recipe.inputs.length; i++) {
@@ -425,71 +449,466 @@ function computeIngredientStates(
   return states as IngredientState[];
 }
 
-function renderForgeCard(
+/**
+ * Render one ingredient row for a recipe card. The same row markup is used
+ * by the (now-removed) inspector forge card and the live recipe panel — so
+ * the `state-this` / `state-have` / `state-missing` highlight stays
+ * identical in both.
+ */
+export function renderIngredientRow(
+  input: ComboInput,
+  state: IngredientState,
+): HTMLDivElement {
+  const row = document.createElement("div");
+  row.className = `forge-ingredient state-${state}`;
+  const slot = document.createElement("span");
+  slot.className = "ing-slot";
+  slot.appendChild(htmlGemTier(input.gem, input.quality, 18));
+  const name = document.createElement("span");
+  name.className = "ing-name";
+  name.textContent = GEM_PALETTE[input.gem].name.toUpperCase();
+  if (state !== "missing" && state !== "this") {
+    name.style.color = GEM_PALETTE[input.gem].css.light;
+  }
+  const q = document.createElement("span");
+  q.className = "ing-q";
+  q.textContent = `L${input.quality}`;
+  row.append(slot, name, q);
+  return row;
+}
+
+function priorityLabel(p: TargetingPriority): string {
+  switch (p.kind) {
+    case "lowest_hp_pct":
+      return "Lowest HP %";
+    case "highest_hp_abs":
+      return "Highest HP (abs)";
+    case "fastest":
+      return "Fastest";
+    case "slowest":
+      return "Slowest";
+    case "nearest_spawn":
+      return "Nearest spawn";
+    case "creep_kind":
+      return CREEP_DISPLAY_NAMES[p.creep];
+    case "creep_group":
+      return TARGET_GROUPS[p.group].displayName;
+  }
+}
+
+/**
+ * Terminal orderings reorder every in-range creep — anything after one is
+ * unreachable. Includes HP, speed, and reverse-pathPos.
+ */
+function isTerminalOrdering(p: TargetingPriority): boolean {
+  return (
+    p.kind === "lowest_hp_pct" ||
+    p.kind === "highest_hp_abs" ||
+    p.kind === "fastest" ||
+    p.kind === "slowest" ||
+    p.kind === "nearest_spawn"
+  );
+}
+
+function listEndsWithTerminal(list: TargetingPriority[]): boolean {
+  return list.length > 0 && isTerminalOrdering(list[list.length - 1]);
+}
+
+/**
+ * Stable string ID for a TargetingPriority — used to dedupe chips in the
+ * drawer and to fingerprint a list for the inspector cache. Shared so the
+ * encoding can never drift between dedup and fingerprint.
+ */
+function priorityChipId(p: TargetingPriority): string {
+  if (p.kind === "creep_kind") return `k:${p.creep}`;
+  if (p.kind === "creep_group") return `g:${p.group}`;
+  return p.kind;
+}
+
+/**
+ * Targeting editor — Rule Rail (direction "A" from mockups/targeting.html).
+ *
+ * Layout:
+ *   ┌── TARGETING ───────────────────────────┐
+ *   │  1. ● Menders                        × │
+ *   │  2. ● Carapaces                      × │
+ *   │  3. + pick a target                    │  ← empty slot opens drawer
+ *   │  ↳  Furthest along path                │  ← always-on ghost tail
+ *   │ ┌── ADD A RULE ────────────────────┐   │  ← drawer (only when open)
+ *   │ │ [Amalgams] [Burrowers] ...       │   │
+ *   │ │ [Containers] [Menders] ...       │   │
+ *   │ │ ── HP ORDERING ──────────────────│   │
+ *   │ │ [Lowest HP %] [Highest HP (abs)] │   │
+ *   │ └──────────────────────────────────┘   │
+ *   │             [APPLY TO ALL TOPAZ]       │
+ *   └────────────────────────────────────────┘
+ *
+ * Invariants enforced visibly:
+ *  - HP ordering ends the list — its slot wears a gold halo + "STOP" cap;
+ *    the next-slot picker disappears once HP is locked in.
+ *  - No duplicate kind/group — used chips are disabled in the drawer.
+ *  - Fallback is the always-on ghost tail "↳ Furthest along path"; no
+ *    fine-print needed.
+ *  - Apply-to-all is a peer primary button under the rail — one tap away,
+ *    no meta text.
+ */
+function renderTargetingEditor(
   game: Game,
   tower: TowerState,
-  recipe: ComboRecipe,
 ): HTMLDivElement {
   const card = document.createElement("div");
-  card.className = "inspector-forge-card";
+  card.className = "inspector-targeting";
 
-  const states = computeIngredientStates(recipe, tower, game.state.towers);
-  const readyCount = states.filter((s) => s !== "missing").length;
-  const totalCount = states.length;
+  const head = document.createElement("div");
+  head.className = "inspector-targeting-head";
+  head.textContent = "TARGETING";
+  card.appendChild(head);
 
-  const stripHead = document.createElement("div");
-  stripHead.className = "forge-strip-head";
-  const stripIcon = document.createElement("span");
-  stripIcon.className = "strip-icon";
-  stripIcon.appendChild(htmlSpecial(recipe.key, 22));
-  const stripName = document.createElement("span");
-  stripName.className = "strip-name";
-  stripName.textContent = recipe.name.toUpperCase();
-  const stripTally = document.createElement("span");
-  stripTally.className = "strip-tally";
-  const tallyNum = document.createElement("b");
-  tallyNum.textContent = String(readyCount);
-  stripTally.append(tallyNum, `/${totalCount}`);
-  stripHead.append(stripIcon, stripName, stripTally);
-  card.appendChild(stripHead);
+  // `list` is the snapshot used to render the current frame; event handlers
+  // always go through `live()` to pick up edits made between renders so two
+  // rapid drops in the same frame compose correctly instead of overwriting.
+  const list = tower.targetingPriority ?? [];
+  const live = (): TargetingPriority[] => tower.targetingPriority ?? [];
+  const terminalHp = listEndsWithTerminal(list);
+  const hasHp = list.some(isTerminalOrdering);
+  const usedIds = new Set(list.map(priorityChipId));
 
-  const blurb = comboStatsAtTier(recipe, 0).blurb ?? recipe.stats.blurb;
-  if (blurb) {
-    const blurbEl = document.createElement("div");
-    blurbEl.className = "forge-blurb";
-    blurbEl.textContent = blurb;
-    card.appendChild(blurbEl);
-  }
+  // ------------------------------------------------------------------
+  // Rail — numbered slots, empty add slot, ghost tail "Furthest".
+  // ------------------------------------------------------------------
+  const rail = document.createElement("div");
+  rail.className = "inspector-targeting-rail";
 
-  const fromList = document.createElement("div");
-  fromList.className = "forge-from";
-  for (let i = 0; i < recipe.inputs.length; i++) {
-    const inp = recipe.inputs[i];
-    const state = states[i];
-    const row = document.createElement("div");
-    row.className = `forge-ingredient state-${state}`;
-    const slot = document.createElement("span");
-    slot.className = "ing-slot";
-    slot.appendChild(htmlGemTier(inp.gem, inp.quality, 18));
-    const name = document.createElement("span");
-    name.className = "ing-name";
-    name.textContent = GEM_PALETTE[inp.gem].name.toUpperCase();
-    if (state !== "missing" && state !== "this") {
-      name.style.color = GEM_PALETTE[inp.gem].css.light;
-    }
-    const q = document.createElement("span");
-    q.className = "ing-q";
-    q.textContent = `L${inp.quality}`;
-    row.append(slot, name, q);
-    fromList.appendChild(row);
-  }
-  card.appendChild(fromList);
-
-  card.addEventListener("click", () => {
-    game.bus.emit("focusRecipe", { key: recipe.key });
+  list.forEach((entry, i) => {
+    rail.appendChild(makeFilledSlot(entry, i));
   });
 
+  // Empty add-slot — only when HP hasn't locked the tail.
+  if (!terminalHp) {
+    const addSlot = document.createElement("button");
+    addSlot.className = "tt-slot tt-slot-empty";
+    addSlot.setAttribute("aria-label", "Add a targeting rule");
+
+    const num = document.createElement("span");
+    num.className = "tt-slot-num";
+    num.textContent = `${list.length + 1}.`;
+    const body = document.createElement("span");
+    body.className = "tt-slot-body";
+    const hint = document.createElement("span");
+    hint.className = "tt-slot-add-hint";
+    hint.textContent = "+ add rule";
+    body.appendChild(hint);
+
+    addSlot.append(num, body);
+    addSlot.addEventListener("click", () => {
+      drawer.classList.toggle("is-open");
+    });
+    rail.appendChild(addSlot);
+  }
+
+  // Ghost tail — always visible. Reads "Furthest along path".
+  const tail = document.createElement("div");
+  tail.className = "tt-slot tt-slot-tail";
+  const tailNum = document.createElement("span");
+  tailNum.className = "tt-slot-num";
+  tailNum.textContent = "↳";
+  const tailBody = document.createElement("span");
+  tailBody.className = "tt-slot-body";
+  const tailName = document.createElement("span");
+  tailName.className = "tt-slot-name";
+  tailName.textContent = "Furthest along path";
+  tailBody.appendChild(tailName);
+  tail.append(tailNum, tailBody);
+  rail.appendChild(tail);
+
+  card.appendChild(rail);
+
+  // ------------------------------------------------------------------
+  // Drawer — kinds + Containers + HP ordering. Hidden until tap.
+  // ------------------------------------------------------------------
+  const drawer = document.createElement("div");
+  drawer.className = "inspector-targeting-drawer";
+
+  const drawerHead = document.createElement("div");
+  drawerHead.className = "tt-drawer-head";
+  const drawerHeadL = document.createElement("span");
+  drawerHeadL.textContent = "ADD A RULE";
+  const drawerClose = document.createElement("button");
+  drawerClose.className = "tt-drawer-close";
+  drawerClose.textContent = "×";
+  drawerClose.title = "Close";
+  drawerClose.addEventListener("click", () => drawer.classList.remove("is-open"));
+  drawerHead.append(drawerHeadL, drawerClose);
+  drawer.appendChild(drawerHead);
+
+  // Kind + group chips, alpha-sorted so Containers sits naturally.
+  const kindOptions: { label: string; entry: TargetingPriority }[] =
+    TARGETABLE_CREEP_KINDS.map((k) => ({
+      label: CREEP_DISPLAY_NAMES[k],
+      entry: { kind: "creep_kind", creep: k },
+    }));
+  const groupOptions: { label: string; entry: TargetingPriority }[] =
+    TARGET_GROUP_KEYS.map((g) => ({
+      label: TARGET_GROUPS[g].displayName,
+      entry: { kind: "creep_group", group: g },
+    }));
+  const allKindyChips = [...kindOptions, ...groupOptions].sort((a, b) =>
+    a.label.localeCompare(b.label),
+  );
+
+  const chipGrid = document.createElement("div");
+  chipGrid.className = "tt-chip-grid";
+  for (const c of allKindyChips) {
+    const chip = makeChip(c.label);
+    if (usedIds.has(priorityChipId(c.entry))) chip.disabled = true;
+    chip.addEventListener("click", () => {
+      drawer.classList.remove("is-open");
+      const current = live();
+      // Re-check against the LIVE list — between this render and the click
+      // another action may have added the same chip already.
+      if (current.some((p) => priorityChipId(p) === priorityChipId(c.entry))) return;
+      game.cmdSetTowerTargeting(tower.id, [...current, structuredClone(c.entry)]);
+    });
+    chipGrid.appendChild(chip);
+  }
+  drawer.appendChild(chipGrid);
+
+  if (!hasHp) {
+    const hpDivider = document.createElement("div");
+    hpDivider.className = "tt-hp-divider";
+    hpDivider.textContent = "ORDERING — ENDS THE LIST";
+    drawer.appendChild(hpDivider);
+
+    const hpGrid = document.createElement("div");
+    hpGrid.className = "tt-hp-grid";
+    const hpOptions: { entry: TargetingPriority; label: string }[] = [
+      { entry: { kind: "lowest_hp_pct" }, label: "Lowest HP %" },
+      { entry: { kind: "highest_hp_abs" }, label: "Highest HP (abs)" },
+      { entry: { kind: "fastest" }, label: "Fastest" },
+      { entry: { kind: "slowest" }, label: "Slowest" },
+      { entry: { kind: "nearest_spawn" }, label: "Nearest spawn" },
+    ];
+    for (const h of hpOptions) {
+      const chip = makeChip(h.label);
+      chip.classList.add("tt-chip-hp");
+      chip.addEventListener("click", () => {
+        drawer.classList.remove("is-open");
+        const current = live();
+        // Live re-check — terminal already present? Drop this click.
+        if (current.some(isTerminalOrdering)) return;
+        game.cmdSetTowerTargeting(tower.id, [...current, structuredClone(h.entry)]);
+      });
+      hpGrid.appendChild(chip);
+    }
+    drawer.appendChild(hpGrid);
+  }
+  card.appendChild(drawer);
+
+  // ------------------------------------------------------------------
+  // Apply buttons — two peer buttons under the rail.
+  //   • APPLY TO ALL <TYPE_PLURAL> — same-type only (the common case).
+  //   • APPLY GLOBALLY            — every other tower on the board.
+  // ------------------------------------------------------------------
+  const { singular: typeName, plural: typeNamePlural } = towerTypeNames(tower);
+
+  const applyRow = document.createElement("div");
+  applyRow.className = "inspector-targeting-apply-row";
+
+  const apply = document.createElement("button");
+  apply.className = "px-btn px-btn-primary inspector-targeting-apply";
+  // Two stacked lines so the gem name owns its own line — keeps button height
+  // stable across short names ("RUBIES") and long ones ("STAR RUBIES").
+  apply.append(
+    makeApplyLine("APPLY TO ALL", "tt-apply-prefix"),
+    makeApplyLine(typeNamePlural.toUpperCase(), "tt-apply-target"),
+  );
+  apply.addEventListener("click", () => {
+    const n = game.cmdApplyTargetingToType(tower.id);
+    // The default is stashed regardless of `n` — every future tower of this
+    // type will inherit the list. Make that visible even when there are no
+    // siblings on the board yet.
+    game.bus.emit("toast", {
+      kind: "good",
+      text: n > 0
+        ? `Applied to ${n} ${n === 1 ? typeName : typeNamePlural}; future ${typeNamePlural} will match`
+        : `Default saved — future ${typeNamePlural} will match`,
+    });
+  });
+
+  const applyGlobal = document.createElement("button");
+  applyGlobal.className = "px-btn inspector-targeting-apply inspector-targeting-apply-global";
+  applyGlobal.append(
+    makeApplyLine("APPLY", "tt-apply-prefix"),
+    makeApplyLine("GLOBALLY", "tt-apply-target"),
+  );
+  applyGlobal.title = "Apply this list to every other tower on the board";
+  applyGlobal.addEventListener("click", () => {
+    const n = game.cmdApplyTargetingGlobally(tower.id);
+    game.bus.emit("toast", {
+      kind: "good",
+      text: n > 0
+        ? `Applied globally to ${n} tower${n === 1 ? "" : "s"}; future towers will match`
+        : "Global default saved — future towers will match",
+    });
+  });
+
+  applyRow.append(apply, applyGlobal);
+  card.appendChild(applyRow);
+
   return card;
+
+  // ------------------------------------------------------------------
+  // Slot factory — closed over `tower`, `game`, `live()`.
+  // ------------------------------------------------------------------
+  function makeFilledSlot(entry: TargetingPriority, i: number): HTMLDivElement {
+    const slot = document.createElement("div");
+    slot.className = "tt-slot tt-slot-filled";
+    if (isTerminalOrdering(entry)) slot.classList.add("is-hp");
+    slot.draggable = true;
+
+    slot.addEventListener("dragstart", (e) => {
+      e.dataTransfer?.setData("text/plain", String(i));
+      slot.classList.add("is-dragging");
+    });
+    slot.addEventListener("dragend", () => slot.classList.remove("is-dragging"));
+    slot.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      slot.classList.add("is-drop-target");
+    });
+    slot.addEventListener("dragleave", () =>
+      slot.classList.remove("is-drop-target"),
+    );
+    slot.addEventListener("drop", (e) => {
+      e.preventDefault();
+      slot.classList.remove("is-drop-target");
+      const raw = e.dataTransfer?.getData("text/plain");
+      const from = raw ? parseInt(raw, 10) : NaN;
+      if (!Number.isInteger(from) || from === i) return;
+      // Always reorder against the LIVE list — a sibling drop may have moved
+      // entries already in the same render frame.
+      const current = live();
+      if (from < 0 || from >= current.length || i >= current.length) return;
+      const next = current.slice();
+      const [moved] = next.splice(from, 1);
+      // Insert BEFORE the visual target. When dragging forward (from < i)
+      // the target's index shifts down by one after the splice, so the
+      // insertion point is i - 1; otherwise it's i. This makes the
+      // "drop on slot X" gesture land before X in both directions.
+      const insertAt = from < i ? i - 1 : i;
+      next.splice(insertAt, 0, moved);
+      // Reject reorders that strand entries after a terminal — that would
+      // make them unreachable. The drawer + add-slot already enforce this
+      // for additions; drag-and-drop has to enforce it for reorders.
+      if (!isValidPriorityList(next)) return;
+      game.cmdSetTowerTargeting(tower.id, next);
+    });
+
+    const num = document.createElement("span");
+    num.className = "tt-slot-num";
+    num.textContent = `${i + 1}.`;
+
+    const body = document.createElement("span");
+    body.className = "tt-slot-body";
+    const name = document.createElement("span");
+    name.className = "tt-slot-name";
+    name.textContent = priorityLabel(entry);
+    body.appendChild(name);
+    if (isTerminalOrdering(entry)) {
+      const cap = document.createElement("span");
+      cap.className = "tt-slot-hp-cap";
+      cap.textContent = "STOP";
+      body.appendChild(cap);
+    }
+
+    const rm = document.createElement("button");
+    rm.className = "tt-slot-rm";
+    rm.textContent = "×";
+    rm.title = "Remove";
+    rm.addEventListener("click", (e) => {
+      e.stopPropagation();
+      // Match the live entry by chip identity rather than the captured
+      // index — the live list may differ from the snapshot used to render
+      // this slot, and the index could now point at a different rule.
+      const current = live();
+      const id = priorityChipId(entry);
+      const next = current.filter((p) => priorityChipId(p) !== id);
+      if (next.length === current.length) return;
+      game.cmdSetTowerTargeting(tower.id, next);
+    });
+
+    slot.append(num, body, rm);
+    return slot;
+  }
+}
+
+/**
+ * Returns true iff no terminal ordering appears before any other entry —
+ * the same invariant the drawer enforces on additions. Reorders that
+ * violate this would silently make later rules unreachable.
+ */
+function isValidPriorityList(list: readonly TargetingPriority[]): boolean {
+  for (let i = 0; i < list.length - 1; i++) {
+    if (isTerminalOrdering(list[i])) return false;
+  }
+  return true;
+}
+
+/**
+ * Singular + plural display name for a tower's "type" (gem-or-combo). Prefers
+ * the authored `namePlural` field on GemBase / ComboRecipe (handles "Gold"
+ * uncountable and "Runes of Holding" head-noun inflection); falls back to a
+ * trailing-word heuristic for combos that haven't set one explicitly.
+ */
+function towerTypeNames(t: TowerState): { singular: string; plural: string } {
+  if (t.comboKey) {
+    const combo = COMBO_BY_NAME.get(t.comboKey);
+    if (!combo) return { singular: t.comboKey, plural: t.comboKey };
+    return {
+      singular: combo.name,
+      plural: combo.namePlural ?? heuristicPlural(combo.name),
+    };
+  }
+  const base = GEM_BASE[t.gem];
+  return { singular: base.name, plural: base.namePlural };
+}
+
+/**
+ * Heuristic plural for combo names without an authored `namePlural`. Only the
+ * trailing word is inflected so "Bloodstone Cluster" → "Bloodstone Clusters".
+ */
+function heuristicPlural(name: string): string {
+  if (!name) return name;
+  const parts = name.split(" ");
+  const last = parts[parts.length - 1];
+  let pluralLast: string;
+  if (/[bcdfghjklmnpqrstvwxz]y$/i.test(last)) {
+    pluralLast = last.slice(0, -1) + "ies";
+  } else if (/(s|x|z|ch|sh)$/i.test(last)) {
+    pluralLast = last + "es";
+  } else {
+    pluralLast = last + "s";
+  }
+  parts[parts.length - 1] = pluralLast;
+  return parts.join(" ");
+}
+
+/** One row of the stacked apply-button label. */
+function makeApplyLine(text: string, cls: string): HTMLSpanElement {
+  const el = document.createElement("span");
+  el.className = cls;
+  el.textContent = text;
+  return el;
+}
+
+/** Build a tray chip — just a labelled pixel button. */
+function makeChip(label: string): HTMLButtonElement {
+  const chip = document.createElement("button");
+  chip.className = "tt-chip";
+  const t = document.createElement("span");
+  t.className = "tt-chip-label";
+  t.textContent = label;
+  chip.appendChild(t);
+  return chip;
 }
 
 function towerDisplayName(t: TowerState): string {
@@ -1050,7 +1469,7 @@ function renderRock(body: HTMLDivElement, game: Game, rockId: number): void {
 
 const CREEP_KIND_NAMES: Record<string, string> = {
   shambler: "SHAMBLER",
-  skitter: "SWIFT",
+  skitter: "SKITTER",
   carapace: "CARAPACE",
   shrike: "SHRIKE",
   amalgam: "AMALGAM",

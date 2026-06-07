@@ -1,4 +1,4 @@
-import { State, emptyState, allDrawsPlaced } from '../game/State';
+import { State, emptyState, allDrawsPlaced, pickInitialTowerTargeting, type TargetingPriority } from '../game/State';
 import { EventBus } from '../events/EventBus';
 import { RNG } from '../game/rng';
 import { BASE, Cell } from '../data/map';
@@ -162,6 +162,10 @@ export class HeadlessGame {
 
   selectRock(id: number | null): void {
     this.state.selectedRockId = id;
+  }
+
+  initialTowerTargeting(gem: GemType, comboKey?: string): TargetingPriority[] {
+    return pickInitialTowerTargeting(this.state, gem, comboKey);
   }
 
   handleCreepDeath(c: import('../game/State').CreepState): void {

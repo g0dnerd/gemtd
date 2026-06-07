@@ -5,9 +5,10 @@
  */
 
 import { Cell } from "../data/map";
-import type { CreepKind } from "../data/creeps";
+import type { CreepKind, TargetGroupKey } from "../data/creeps";
 import type { WaveDef } from "../data/waves";
 import type { GemType, Quality } from "../render/theme";
+import { initialTargetingFor } from "../data/gems";
 
 export interface CreepPayload {
   kind: CreepKind;
@@ -25,6 +26,30 @@ export interface CreepPayload {
 }
 
 export type Phase = "title" | "build" | "wave" | "gameover" | "victory";
+
+/**
+ * One entry in a tower's ordered targeting-priority list. The engine walks
+ * the list in order and stops at the first entry that matches at least one
+ * in-range creep; if nothing matches, the implicit fallback is
+ * "furthest along path" (NOT stored in the list).
+ *
+ * - `creep_kind`  — filters by a single archetype; falls through if none.
+ * - `creep_group` — filters by a TargetGroupKey (e.g. `containers` covers
+ *   vessel/gazer/coral/anemone with one entry); falls through if none.
+ * - Terminal orderings (`lowest_hp_pct`, `highest_hp_abs`, `fastest`,
+ *   `slowest`, `nearest_spawn`) always match every in-range creep — they
+ *   just reorder. The UI enforces only one terminal ordering at a time
+ *   and that it sits at the end of the list (anything after would be
+ *   unreachable).
+ */
+export type TargetingPriority =
+  | { kind: "lowest_hp_pct" }
+  | { kind: "highest_hp_abs" }
+  | { kind: "fastest" }
+  | { kind: "slowest" }
+  | { kind: "nearest_spawn" }
+  | { kind: "creep_kind"; creep: CreepKind }
+  | { kind: "creep_group"; group: TargetGroupKey };
 
 /** Number of gems drawn at the start of each build phase (canonical: 5). */
 export const DRAW_COUNT = 5;
@@ -49,6 +74,12 @@ export interface TowerState {
   waveDamage: number;
   /** Wave number when this tower was placed. */
   placedWave: number;
+  /**
+   * Ordered targeting priorities. `undefined` = uninitialised; the engine
+   * treats it as empty and Game.ts hydrates from `GemBase.targetPriority` on
+   * placement. `[]` = explicit "furthest along path" fallback only.
+   */
+  targetingPriority?: TargetingPriority[];
   /** Beam state — tracks current beam target and ramp stacks. */
   beam?: { targetId: number; stacks: number };
   /** Trap towers don't block pathing and trigger on creep proximity instead of firing projectiles. */
@@ -316,6 +347,26 @@ export interface State {
   rocksRemoved: number;
   /** Whether the one-per-round downgrade has been used this round. */
   downgradeUsedThisRound: boolean;
+  /**
+   * "Apply globally" default. When set, every new tower (basic placement,
+   * combine result, debug spawner) hydrates `targetingPriority` from this
+   * list instead of the per-gem default. Cleared only by another global
+   * apply (which replaces it) — there's no UI to reset it directly.
+   */
+  globalTargetingDefault?: TargetingPriority[];
+  /**
+   * Per-gem-type "apply to all" defaults. Written by
+   * `cmdApplyTargetingToType` for basic towers; supersedes
+   * `globalTargetingDefault` so a player can fix one rule for the world
+   * and then override it for specific gems.
+   */
+  gemTargetingDefaults?: Partial<Record<GemType, TargetingPriority[]>>;
+  /**
+   * Per-combo-key "apply to all" defaults. Written by
+   * `cmdApplyTargetingToType` for combo towers; same precedence rule as
+   * `gemTargetingDefaults` (per-combo > per-gem > global > stock).
+   */
+  comboTargetingDefaults?: Record<string, TargetingPriority[]>;
   /** Total simulation ticks since game start. */
   tick: number;
   /** Number of waves remaining; computed on init. */
@@ -351,6 +402,38 @@ export function allDrawsPlaced(state: State): boolean {
   return (
     state.draws.length > 0 && state.draws.every((d) => d.placedTowerId !== null)
   );
+}
+
+/**
+ * Pick the initial `targetingPriority` for a freshly created tower.
+ * Precedence (most specific wins):
+ *   1. per-combo default (set by Apply-to-all on a combo tower)
+ *   2. per-gem default   (set by Apply-to-all on a basic tower)
+ *   3. global default    (set by Apply Globally)
+ *   4. stock default     (`initialTargetingFor(gem)` for basics, `[]` for combos)
+ *
+ * Shared between Game (live) and HeadlessGame (sim) so balance and behaviour
+ * stay locked. Returns a fresh array — callers may mutate it.
+ */
+export function pickInitialTowerTargeting(
+  state: Pick<
+    State,
+    "comboTargetingDefaults" | "gemTargetingDefaults" | "globalTargetingDefault"
+  >,
+  gem: GemType,
+  comboKey?: string,
+): TargetingPriority[] {
+  if (comboKey) {
+    const perCombo = state.comboTargetingDefaults?.[comboKey];
+    if (perCombo) return structuredClone(perCombo);
+  } else {
+    const perGem = state.gemTargetingDefaults?.[gem];
+    if (perGem) return structuredClone(perGem);
+  }
+  if (state.globalTargetingDefault) {
+    return structuredClone(state.globalTargetingDefault);
+  }
+  return comboKey ? [] : initialTargetingFor(gem);
 }
 
 /** Lowest-slotId unplaced draw, or null. Used to auto-advance after a place. */

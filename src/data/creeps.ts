@@ -39,6 +39,70 @@ export interface CreepArchetype {
   blurb?: string;
 }
 
+/** Display name for the targeting-priority editor's kind-filter menu. */
+export const CREEP_DISPLAY_NAMES: Record<CreepKind, string> = {
+  shambler: "Shamblers",
+  skitter: "Skitters",
+  carapace: "Carapaces",
+  shrike: "Shrikes",
+  amalgam: "Amalgams",
+  mender: "Menders",
+  wizard: "Wizards",
+  burrower: "Burrowers",
+  vessel: "Vessels",
+  gazer: "Gazers",
+  coral: "Coral",
+  anemone: "Anemones",
+  chrysalid: "Chrysalids",
+  mycoid: "Mycoids",
+  gestation: "Gestation",
+};
+
+/**
+ * Creep kinds offered as individual rows in the per-tower targeting editor.
+ *
+ * Excluded:
+ *  - `wizard` / `mycoid` — their disruption isn't worth a priority slot.
+ *  - `gestation` — always the only enemy on the map when it spawns; pointing
+ *    at it adds no leverage.
+ *  - `vessel` / `gazer` / `coral` / `anemone` — collapsed into the
+ *    `containers` target group below (one chip covers all four).
+ */
+export const TARGETABLE_CREEP_KINDS: readonly CreepKind[] = [
+  "shambler",
+  "skitter",
+  "carapace",
+  "shrike",
+  "amalgam",
+  "mender",
+  "burrower",
+  "chrysalid",
+];
+
+/**
+ * Targetable groups bundle multiple kinds under one chip. A `creep_group`
+ * priority entry matches any in-range creep whose kind is in the group's
+ * `kinds` set; same fall-through semantics as a single-kind filter.
+ */
+export type TargetGroupKey = "containers";
+
+export const TARGET_GROUPS: Record<
+  TargetGroupKey,
+  { displayName: string; kinds: readonly CreepKind[] }
+> = {
+  containers: {
+    displayName: "Containers",
+    kinds: ["vessel", "gazer", "coral", "anemone"],
+  },
+};
+
+export const TARGET_GROUP_KEYS: readonly TargetGroupKey[] = ["containers"];
+
+/** Quick membership lookup keyed by group, used by Combat.orderByPriorities. */
+export const TARGET_GROUP_KIND_SETS: Record<TargetGroupKey, ReadonlySet<CreepKind>> = {
+  containers: new Set(TARGET_GROUPS.containers.kinds),
+};
+
 export const CREEP_ARCHETYPES: Record<CreepKind, CreepArchetype> = {
   shambler: {
     kind: "shambler",

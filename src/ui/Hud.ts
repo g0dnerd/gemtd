@@ -19,11 +19,17 @@ import {
   COMBOS,
   ComboRecipe,
   findAllCombosFor,
+  findComboFor,
   findDrawPartners,
   findCompletableDrawRecipes,
   completableDrawSlotSet,
 } from "../data/combos";
-import { mountInspector, refreshInspector } from "./Inspector";
+import {
+  computeIngredientStates,
+  mountInspector,
+  refreshInspector,
+  renderIngredientRow,
+} from "./Inspector";
 import { mountTutorialModal } from "./TutorialModal";
 import { mountGameOver } from "./GameOver";
 import { activeDraw, allDrawsPlaced, type TowerState } from "../game/State";
@@ -787,6 +793,12 @@ export function mountHud(
   recipes.append(recipesHead, recipesList);
   right.appendChild(recipes);
 
+  function selectedTowerForRecipes(): TowerState | null {
+    const id = game.state.selectedTowerId;
+    if (id === null) return null;
+    return game.state.towers.find((t) => t.id === id) ?? null;
+  }
+
   function rebuildRecipes(): void {
     recipesList.innerHTML = "";
     const tierCost = (c: ComboRecipe): number =>
@@ -796,6 +808,8 @@ export function mountHud(
     const ordered = [...COMBOS].sort(
       (a, b) => sortRank(a) - sortRank(b) || a.name.localeCompare(b.name),
     );
+    const selected = selectedTowerForRecipes();
+    const selectedBasic = selected && !selected.comboKey ? selected : null;
     for (const c of ordered) {
       const card = document.createElement("div");
       card.className = "px-panel-inset recipe-card v2c";
@@ -829,22 +843,58 @@ export function mountHud(
 
       const ingredients = document.createElement("div");
       ingredients.className = "recipe-ingredients";
-      for (const inp of c.inputs) {
-        const row = document.createElement("div");
-        row.className = "recipe-ingredient";
+      const states = computeIngredientStates(c, selectedBasic, game.state.towers);
+      for (let i = 0; i < c.inputs.length; i++) {
+        const inp = c.inputs[i];
+        const row = renderIngredientRow(inp, states[i]);
+        row.classList.add("recipe-ingredient");
         row.style.setProperty("--tier-color", TIER_COLORS[inp.quality]);
-        row.appendChild(htmlGemTier(inp.gem, inp.quality, 22, inp.quality > 2));
-        const gemName = document.createElement("span");
-        gemName.className = "recipe-ingredient-name";
-        gemName.textContent = GEM_PALETTE[inp.gem].name.toUpperCase();
         const tierLabel = document.createElement("span");
         tierLabel.className = "recipe-ingredient-tier";
         tierLabel.textContent = QUALITY_NAMES[inp.quality].toUpperCase();
-        row.append(gemName, tierLabel);
+        row.appendChild(tierLabel);
         ingredients.appendChild(row);
       }
       card.appendChild(ingredients);
       recipesList.appendChild(card);
+    }
+  }
+
+  /**
+   * Fingerprint of state that the recipe panel reads. The panel rebuilds
+   * inside the 100ms `tick()` whenever this changes — covers placements,
+   * combines, quality changes, and selection.
+   */
+  function recipesFingerprint(): string {
+    const sel = game.state.selectedTowerId ?? "";
+    const parts: string[] = [String(sel)];
+    for (const t of game.state.towers) {
+      if (t.comboKey) continue;
+      parts.push(`${t.gem}:${t.quality}`);
+    }
+    return parts.join("|");
+  }
+  let lastRecipesFingerprint = "";
+  let lastScrolledForSelectedId: number | null = null;
+
+  function refreshRecipesPanel(): void {
+    const fp = recipesFingerprint();
+    if (fp !== lastRecipesFingerprint) {
+      lastRecipesFingerprint = fp;
+      rebuildRecipes();
+    }
+    const selId = game.state.selectedTowerId;
+    if (selId !== lastScrolledForSelectedId) {
+      lastScrolledForSelectedId = selId;
+      if (selId !== null) {
+        const sel = game.state.towers.find((t) => t.id === selId);
+        if (sel && !sel.comboKey) {
+          const recipe = findComboFor(sel.gem, sel.quality);
+          if (recipe) {
+            game.bus.emit("focusRecipe", { key: recipe.key });
+          }
+        }
+      }
     }
   }
 
@@ -1198,6 +1248,7 @@ export function mountHud(
     chance.refresh();
     refreshStartGate();
     refreshInspector(inspector, game);
+    refreshRecipesPanel();
     mobileWaveNum.textContent = game.state.endless
       ? `W${game.state.wave || 0}`
       : `W${game.state.wave || 0}/${WAVES.length}`;

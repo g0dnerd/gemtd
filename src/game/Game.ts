@@ -9,7 +9,13 @@
  */
 
 import { Application, Container, Ticker } from "pixi.js";
-import { State, emptyState, allDrawsPlaced } from "./State";
+import {
+  State,
+  emptyState,
+  allDrawsPlaced,
+  pickInitialTowerTargeting,
+  type TargetingPriority,
+} from "./State";
 import { EventBus } from "../events/EventBus";
 import { attachTelemetry } from "../telemetry";
 import { RNG } from "./rng";
@@ -413,6 +419,7 @@ export class Game {
         waveDamage: 0,
         placedWave: this.state.wave,
         isTrap: spec.isTrap || undefined,
+        targetingPriority: this.initialTowerTargeting(spec.gem, spec.comboKey),
       });
       specIdx++;
     }
@@ -1079,6 +1086,74 @@ export class Game {
   }
   cmdDowngrade(towerId: number): boolean {
     return this.buildPhase.downgrade(towerId);
+  }
+  /**
+   * Overwrite the tower's targeting-priority list. Used by the inspector
+   * editor for add/remove/reorder. Caller is responsible for the
+   * HP-orderings-are-terminal invariant (UI enforces it).
+   */
+  cmdSetTowerTargeting(
+    towerId: number,
+    list: TargetingPriority[],
+  ): boolean {
+    const tower = this.state.towers.find((t) => t.id === towerId);
+    if (!tower) return false;
+    tower.targetingPriority = list;
+    return true;
+  }
+  /**
+   * Copy the source tower's targeting priority to every other placed tower
+   * of the same type AND remember it as the per-type default so any
+   * future tower of the same type inherits it. Per-type defaults supersede
+   * `globalTargetingDefault`. "Same type" = same `comboKey` for combo
+   * towers, or same `gem` (any quality) for basic towers.
+   */
+  cmdApplyTargetingToType(towerId: number): number {
+    const src = this.state.towers.find((t) => t.id === towerId);
+    if (!src) return 0;
+    const list = src.targetingPriority ?? [];
+    // Stash the per-type default so future placements/combines inherit it.
+    if (src.comboKey) {
+      this.state.comboTargetingDefaults ??= {};
+      this.state.comboTargetingDefaults[src.comboKey] = structuredClone(list);
+    } else {
+      this.state.gemTargetingDefaults ??= {};
+      this.state.gemTargetingDefaults[src.gem] = structuredClone(list);
+    }
+    let applied = 0;
+    for (const t of this.state.towers) {
+      if (t.id === src.id) continue;
+      if (src.comboKey) {
+        if (t.comboKey !== src.comboKey) continue;
+      } else {
+        if (t.comboKey || t.gem !== src.gem) continue;
+      }
+      t.targetingPriority = structuredClone(list);
+      applied++;
+    }
+    return applied;
+  }
+  /**
+   * Copy the source tower's targeting priority to *every* other placed
+   * tower on the board AND remember it as the global default, so any
+   * tower placed or combined afterwards inherits the same list.
+   */
+  cmdApplyTargetingGlobally(towerId: number): number {
+    const src = this.state.towers.find((t) => t.id === towerId);
+    if (!src) return 0;
+    const list = src.targetingPriority ?? [];
+    this.state.globalTargetingDefault = structuredClone(list);
+    let applied = 0;
+    for (const t of this.state.towers) {
+      if (t.id === src.id) continue;
+      t.targetingPriority = structuredClone(list);
+      applied++;
+    }
+    return applied;
+  }
+  /** Thin wrapper around the shared helper — see `pickInitialTowerTargeting`. */
+  initialTowerTargeting(gem: GemType, comboKey?: string): TargetingPriority[] {
+    return pickInitialTowerTargeting(this.state, gem, comboKey);
   }
   cmdUpgradeTower(towerId: number): boolean {
     const state = this.state;

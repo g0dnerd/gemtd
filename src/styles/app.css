@@ -550,6 +550,9 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  /* Reserve room for the scrollbar so content doesn't shift on overflow. */
+  padding-right: 2px;
 }
 .inspector-hero {
   display: flex;
@@ -947,90 +950,315 @@
   color: var(--px-accent-hi);
 }
 
-/* FORGES INTO — recipe card with per-ingredient state (this / have / missing) */
-.inspector-forge-card {
-  margin-bottom: 6px;
+/* TARGETING — placeholder UI; will be redesigned. */
+/* TARGETING editor — Rule Rail (direction A from mockups/targeting.html).
+   ── Numbered slots → empty add-slot → permanent ghost tail "Furthest along
+   path". Empty slot opens a drawer with all kind/group chips + HP ordering.
+   HP locks the tail (gold halo + STOP cap). Apply-to-all is a peer primary
+   button under the rail. */
+.inspector-targeting {
+  margin: 4px 0 6px;
+  padding: 8px;
   background: var(--px-bg);
   box-shadow:
     inset 1px 1px 0 0 var(--px-border-dark),
     0 0 0 2px var(--px-border-dark);
-  border-left: 3px solid var(--px-accent);
-  padding: 7px 10px 9px;
   display: flex;
   flex-direction: column;
   gap: 6px;
-  cursor: pointer;
-  transition:
-    border-left-color 120ms ease,
-    transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
-@media (hover: hover) and (pointer: fine) {
-  .inspector-forge-card:hover {
-    border-left-color: var(--px-accent-hi);
-  }
-}
-.inspector-forge-card:active {
-  transform: scale(0.99);
-}
-.inspector-forge-card .forge-strip-head {
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
-  align-items: center;
-  gap: 8px;
-}
-.inspector-forge-card .strip-eye {
+.inspector-targeting-head {
   font-family: "Press Start 2P", monospace;
-  font-size: 7px;
-  color: var(--px-ink-dimmer);
+  font-size: 9px;
   letter-spacing: 1.3px;
-  line-height: 1;
+  color: var(--px-ink-dim);
 }
-.inspector-forge-card .strip-icon {
-  width: 22px;
-  height: 22px;
+/* Rail — 2-column grid; reading order is left → right, top → bottom (the
+   slot number on each tile keeps "tried in order" legible). HP-terminal
+   slots and the ghost tail span both columns so the visual capstone of
+   the list reads as one decisive row, not a half-row. */
+.inspector-targeting-rail {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.inspector-targeting .tt-slot.is-hp,
+.inspector-targeting .tt-slot-tail {
+  grid-column: 1 / -1;
+}
+/* Slot tile — base. Each slot is grid: [num][body][rm], aligned baseline.
+   Sized to fit the two-column rail at the real 296px inspector width:
+   ~120px per slot leaves room for 10-char labels (Containers, Chrysalids)
+   when the chrome is kept tight. */
+.inspector-targeting .tt-slot {
+  display: grid;
+  grid-template-columns: 14px 1fr 12px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 5px;
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  color: var(--px-ink);
+  line-height: 1;
+  user-select: none;
+  background: var(--px-panel-2);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2-hi),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark);
+  border: none;
+  text-align: left;
+}
+.inspector-targeting .tt-slot-filled {
+  cursor: grab;
+}
+.inspector-targeting .tt-slot-filled.is-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+.inspector-targeting .tt-slot.is-drop-target {
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2-hi),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark),
+    0 0 0 3px rgba(240, 160, 64, 0.55);
+}
+/* Empty add-slot — looks recessive, pulses on hover. */
+.inspector-targeting .tt-slot-empty {
+  background: transparent;
+  box-shadow:
+    inset 1px 1px 0 0 rgba(0,0,0,0.25),
+    0 0 0 1px var(--px-border-dark);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+.inspector-targeting .tt-slot-empty:hover {
+  background: rgba(82, 68, 112, 0.45);
+}
+/* Tail — always-on ghost, reads as the implicit fallback. */
+.inspector-targeting .tt-slot-tail {
+  background: transparent;
+  box-shadow: 0 0 0 1px var(--px-border-dark);
+  cursor: default;
+  opacity: 0.75;
+}
+.inspector-targeting .tt-slot-tail .tt-slot-name {
+  color: var(--px-ink-dim);
+  font-style: italic;
+}
+.inspector-targeting .tt-slot-tail .tt-slot-num {
+  color: var(--px-ink-dimmer);
+}
+/* HP-locked slot — gold halo + STOP cap. Locks the tail; the picker
+   removes itself once HP is present. */
+.inspector-targeting .tt-slot.is-hp {
+  background: var(--px-panel-2);
+  cursor: default;
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2-hi),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark),
+    0 0 0 3px rgba(240, 160, 64, 0.4);
+}
+.inspector-targeting .tt-slot.is-hp .tt-slot-name { color: var(--px-accent-hi); }
+.inspector-targeting .tt-slot.is-hp .tt-slot-num { color: var(--px-accent); }
+.inspector-targeting .tt-slot-num {
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  color: var(--px-ink-dim);
+  text-align: center;
+}
+.inspector-targeting .tt-slot-body {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  min-width: 0;
 }
-.inspector-forge-card .strip-name {
+.inspector-targeting .tt-slot-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inspector-targeting .tt-slot-add-hint {
   font-family: "VT323", monospace;
-  font-size: 18px;
+  font-size: 14px;
+  color: var(--px-ink-dimmer);
+  font-style: italic;
+}
+.inspector-targeting .tt-slot-hp-cap {
+  font-family: "Press Start 2P", monospace;
+  font-size: 6px;
   color: var(--px-accent);
+  letter-spacing: 1px;
+  background: var(--px-bg);
+  padding: 2px 3px;
+  box-shadow: 0 0 0 1px var(--px-accent);
+}
+.inspector-targeting .tt-slot-rm {
+  background: transparent;
+  border: none;
+  color: var(--px-bad);
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  cursor: pointer;
+  padding: 2px;
+}
+.inspector-targeting .tt-slot-rm:hover { color: #ff8888; }
+/* Drawer — opens on empty-slot tap. Gold-haloed so the appearance reads
+   as a confirmation that the picker is the active surface. */
+.inspector-targeting-drawer {
+  margin-top: 2px;
+  padding: 7px;
+  background: var(--px-bg);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-border-dark),
+    0 0 0 2px var(--px-border-dark),
+    0 0 0 3px rgba(240, 160, 64, 0.45);
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+}
+.inspector-targeting-drawer.is-open { display: flex; }
+.inspector-targeting .tt-drawer-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-family: "Press Start 2P", monospace;
+  font-size: 8px;
+  letter-spacing: 1px;
+  color: var(--px-accent);
+}
+.inspector-targeting .tt-drawer-close {
+  background: transparent;
+  border: none;
+  color: var(--px-ink-dim);
+  cursor: pointer;
+  font-family: "Press Start 2P", monospace;
+  font-size: 10px;
+  padding: 0 4px;
+}
+.inspector-targeting .tt-drawer-close:hover { color: var(--px-ink); }
+.inspector-targeting .tt-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 4px;
+}
+.inspector-targeting .tt-hp-divider {
+  font-family: "Press Start 2P", monospace;
+  font-size: 7px;
+  color: var(--px-accent);
+  letter-spacing: 1px;
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--px-panel-2);
+}
+.inspector-targeting .tt-hp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+.inspector-targeting .tt-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 6px;
+  background: var(--px-panel);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2-hi),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark);
+  cursor: pointer;
+  font-family: "VT323", monospace;
+  font-size: 14px;
+  color: var(--px-ink);
   line-height: 1;
+  user-select: none;
+  border: none;
+  transition: filter 100ms ease, transform 100ms cubic-bezier(0.23, 1, 0.32, 1);
+  text-align: left;
+}
+.inspector-targeting .tt-chip:hover:not(:disabled) { filter: brightness(1.12); }
+.inspector-targeting .tt-chip:active:not(:disabled) { transform: scale(0.97); }
+.inspector-targeting .tt-chip:disabled {
+  cursor: not-allowed;
+  filter: grayscale(1) brightness(0.55);
+}
+.inspector-targeting .tt-chip-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.inspector-targeting .tt-chip-hp {
+  background: var(--px-panel-2);
+  color: var(--px-accent-hi);
+  box-shadow:
+    inset 1px 1px 0 0 var(--px-panel-2-hi),
+    inset -1px -1px 0 0 var(--px-border-dark),
+    0 0 0 1px var(--px-border-dark),
+    0 0 0 2px rgba(240, 160, 64, 0.35);
+}
+/* Apply-to-all peer buttons. Two-column row: same-type primary +
+   "apply globally" secondary. Both stretch so the row reads as a
+   single segmented control rather than mismatched chips. */
+.inspector-targeting-apply-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 2px;
+}
+.inspector-targeting-apply {
+  align-self: stretch;
+  font-size: 9px;
+  padding: 8px 6px;
+  min-width: 0;
+  /* Two stacked label lines: "APPLY TO ALL" + "<TYPE PLURAL>". The
+     gem/combo name owns its own line so a long name like "STAR RUBIES"
+     doesn't push the prefix into a third line at the narrow column. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  line-height: 1;
+}
+.inspector-targeting-apply .tt-apply-prefix {
+  /* VT323 is much denser than Press Start 2P at the same pixel height,
+     so the prefix reads cleanly at a usable size without overflowing
+     the narrow button column. Inherits the button's own foreground
+     (border-dark on primary, ink on the global variant) so contrast is
+     automatic on both surfaces. */
+  font-family: "VT323", monospace;
+  font-size: 12px;
+  letter-spacing: 1px;
+  opacity: 0.9;
+}
+.inspector-targeting-apply .tt-apply-target {
+  /* 8px Press Start 2P fits the longest common gem plurals
+     ("AQUAMARINES", "STAR RUBIES", "GOLDEN BERYLS") in the ~112px
+     content width per button column. Very long combo names
+     ("ANCIENT BLOODSTONES") still fall back to the ellipsis.
+     line-height 1.5 keeps the bottom row of pixels from being clipped
+     by the overflow:hidden that ellipsis requires; padding gives a tiny
+     bit of vertical breathing room around the glyph cell. */
+  font-size: 8px;
+  letter-spacing: 0;
+  line-height: 1.5;
+  padding: 1px 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
 }
-.inspector-forge-card .strip-tally {
-  font-family: "VT323", monospace;
-  font-size: 13px;
-  color: var(--px-ink-dim);
-  line-height: 1;
-  white-space: nowrap;
-}
-.inspector-forge-card .strip-tally b {
-  color: var(--px-good);
-  font-weight: normal;
-}
-.inspector-forge-card .forge-blurb {
-  display: none;
-  font-family: "VT323", monospace;
-  font-size: 13px;
-  color: var(--px-ink-dim);
-  line-height: 1.25;
-  margin-bottom: 1px;
-}
-@media (min-height: 1200px) {
-  .inspector-forge-card .forge-blurb {
-    display: block;
-  }
-}
-.inspector-forge-card .forge-from {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.inspector-targeting-apply-global {
+  /* Quieter than the primary — same-type is the common case. */
 }
 
+/* Recipe-card ingredient row — used by the right-rail recipe panel. The
+   surrounding card chrome (.inspector-forge-card and friends) lived in the
+   inspector forge card that the targeting editor replaced; only the
+   ingredient sub-pieces survive here for the recipe panel. */
 .forge-ingredient {
   display: grid;
   grid-template-columns: 22px 1fr auto;
@@ -2478,29 +2706,35 @@
 /* Pixel-art scrollbars for the two containers that actually scroll.
    Firefox uses scrollbar-width/color; Chromium/Safari use the webkit pseudo-elements. */
 .recipes-list,
-.tutorial-body {
+.tutorial-body,
+.inspector-body {
   scrollbar-width: thin;
   scrollbar-color: var(--px-accent) var(--px-border-dark);
 }
 .recipes-list::-webkit-scrollbar,
-.tutorial-body::-webkit-scrollbar {
+.tutorial-body::-webkit-scrollbar,
+.inspector-body::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 .recipes-list::-webkit-scrollbar-track,
-.tutorial-body::-webkit-scrollbar-track {
+.tutorial-body::-webkit-scrollbar-track,
+.inspector-body::-webkit-scrollbar-track {
   background: var(--px-border-dark);
 }
 .recipes-list::-webkit-scrollbar-thumb,
-.tutorial-body::-webkit-scrollbar-thumb {
+.tutorial-body::-webkit-scrollbar-thumb,
+.inspector-body::-webkit-scrollbar-thumb {
   background: var(--px-accent);
   border: 1px solid var(--px-border-dark);
 }
 .recipes-list::-webkit-scrollbar-thumb:hover,
-.tutorial-body::-webkit-scrollbar-thumb:hover {
+.tutorial-body::-webkit-scrollbar-thumb:hover,
+.inspector-body::-webkit-scrollbar-thumb:hover {
   background: var(--px-accent-hi);
 }
 .recipes-list::-webkit-scrollbar-corner,
-.tutorial-body::-webkit-scrollbar-corner {
+.tutorial-body::-webkit-scrollbar-corner,
+.inspector-body::-webkit-scrollbar-corner {
   background: var(--px-border-dark);
 }

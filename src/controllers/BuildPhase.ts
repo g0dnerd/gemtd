@@ -197,6 +197,7 @@ export class BuildPhase {
       totalDamage: 0,
       waveDamage: 0,
       placedWave: state.wave,
+      targetingPriority: this.game.initialTowerTargeting(placedGem),
     };
     state.towers.push(tower);
     setFootprint(state, x, y, Cell.Tower);
@@ -470,6 +471,7 @@ export class BuildPhase {
       waveDamage: 0,
       placedWave: state.wave,
       isTrap: isTrap || undefined,
+      targetingPriority: this.game.initialTowerTargeting(outGem, comboKey),
     };
     state.towers.push(newTower);
     setFootprint(

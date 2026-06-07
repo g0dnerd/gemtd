@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { BuildPhase } from "../src/controllers/BuildPhase";
-import { emptyState, State, TowerState, DrawSlot } from "../src/game/State";
+import { emptyState, pickInitialTowerTargeting, State, TowerState, DrawSlot } from "../src/game/State";
 import { BASE, Cell } from "../src/data/map";
 import { EventBus } from "../src/events/EventBus";
 import { RNG } from "../src/game/rng";
 import { findRoute, flattenRoute } from "../src/systems/Pathfinding";
 import { Quality } from "../src/render/theme";
 import { findCombo } from "../src/data/combos";
+import type { TargetingPriority } from "../src/game/State";
+import type { GemType } from "../src/render/theme";
 
 interface FakeGame {
   state: State;
@@ -17,6 +19,7 @@ interface FakeGame {
   selectTower(id: number | null): void;
   enterWave(): void;
   waveStarted: boolean;
+  initialTowerTargeting(gem: GemType, comboKey?: string): TargetingPriority[];
 }
 
 function setup() {
@@ -45,6 +48,7 @@ function setup() {
       game.waveStarted = true;
     },
     waveStarted: false,
+    initialTowerTargeting: (gem, comboKey) => pickInitialTowerTargeting(state, gem, comboKey),
   };
   const phase = new BuildPhase(
     game as unknown as import("../src/game/Game").Game,

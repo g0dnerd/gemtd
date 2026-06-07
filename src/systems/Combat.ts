@@ -13,15 +13,20 @@ import { Game } from "../game/Game";
 import { RNG } from "../game/rng";
 import { gemStats } from "../data/gems";
 import { COMBO_BY_NAME, comboStatsAtTier } from "../data/combos";
+import { TARGET_GROUP_KIND_SETS } from "../data/creeps";
 import {
   creepDeathMetrics,
   type CreepState,
   type ProjectileState,
+  type TargetingPriority,
   type TowerState,
 } from "../game/State";
 import type { EffectKind } from "../data/gems";
 
 const PROJECTILE_PX_PER_SEC = 480;
+
+/** Shared zero-allocation default for towers without a targeting list. */
+const EMPTY_PRIORITIES: readonly TargetingPriority[] = [];
 
 /** Pivot speed for Golden Beryl's speed_damage_aura. Per-tick damage scales
  *  with speed² normalised at this value (≈ the run-wide average creep speed),
@@ -174,6 +179,7 @@ export class Combat {
             stats.targeting,
             tick,
             Infinity,
+            t.targetingPriority ?? EMPTY_PRIORITIES,
           );
           if (inRange.length === 0) continue;
           const prevFireTickA = t.lastFireTick;
@@ -219,6 +225,7 @@ export class Combat {
             stats.targeting,
             tick,
             multiEffect.count,
+            t.targetingPriority ?? EMPTY_PRIORITIES,
           );
           if (targets.length === 0) continue;
           const prevFireTickM = t.lastFireTick;
@@ -233,7 +240,7 @@ export class Combat {
             state.creeps,
             stats.targeting,
             tick,
-            stats.targetPriority,
+            t.targetingPriority ?? EMPTY_PRIORITIES,
           );
           if (!target) {
             if (beamEffect) t.beam = undefined;
@@ -260,6 +267,7 @@ export class Combat {
                 stats.targeting,
                 tick,
                 Infinity,
+                t.targetingPriority ?? EMPTY_PRIORITIES,
               );
               for (const tgt of allTargets)
                 this.fire(t, tgt, stats, dmgMult, false, 0.5, prevFireTick);
@@ -1612,7 +1620,6 @@ interface ResolvedStats {
   effects: EffectKind[];
   visualGem: TowerState["gem"];
   targeting: "all" | "ground" | "air";
-  targetPriority?: "furthest" | "highest_hp";
   projectileSpeed?: number;
   groundTarget?: boolean;
   // Pre-bucketed effect slots — populated once at cache-build time so the per-tick
@@ -1779,7 +1786,6 @@ function buildResolvedStats(t: TowerState, lvl: number): ResolvedStats {
     effects: scaleBurnEffects(s.effects, mult),
     visualGem: t.gem,
     targeting: s.targeting,
-    targetPriority: s.targetPriority,
     projectileSpeed: s.projectileSpeed,
     groundTarget: s.groundTarget,
     hasPassiveBurn: false,
@@ -1881,42 +1887,12 @@ function isBurrowed(c: CreepState, tick: number): boolean {
   return !!c.burrowed && c.burrowed.expiresAt > tick;
 }
 
-function pickTarget(
+function collectInRange(
   t: TowerState,
   rangeTiles: number,
   creeps: CreepState[],
   targeting: "all" | "ground" | "air",
   tick: number,
-  priority?: "furthest" | "highest_hp",
-): CreepState | null {
-  const r2 = rangeTiles * TILE * (rangeTiles * TILE);
-  const tx = (t.x + 1) * FINE_TILE;
-  const ty = (t.y + 1) * FINE_TILE;
-  let best: CreepState | null = null;
-  for (const c of creeps) {
-    if (!c.alive) continue;
-    if (isBurrowed(c, tick)) continue;
-    if (!canTarget(targeting, c)) continue;
-    const dx = c.px - tx;
-    const dy = c.py - ty;
-    if (dx * dx + dy * dy > r2) continue;
-    if (!best) {
-      best = c;
-      continue;
-    }
-    if (priority === "highest_hp" ? c.hp > best.hp : c.pathPos > best.pathPos)
-      best = c;
-  }
-  return best;
-}
-
-function pickTargets(
-  t: TowerState,
-  rangeTiles: number,
-  creeps: CreepState[],
-  targeting: "all" | "ground" | "air",
-  tick: number,
-  count: number,
 ): CreepState[] {
   const r2 = (rangeTiles * TILE) ** 2;
   const tx = (t.x + 1) * FINE_TILE;
@@ -1928,8 +1904,175 @@ function pickTargets(
       dy = c.py - ty;
     if (dx * dx + dy * dy <= r2) inRange.push(c);
   }
-  inRange.sort((a, b) => b.pathPos - a.pathPos);
-  return inRange.slice(0, count);
+  return inRange;
+}
+
+/**
+ * Order an in-range creep list according to the priority list. Returns a new
+ * sorted array. Algorithm: walk priorities in order; the first kind-filter
+ * with any match returns just those (sorted by pathPos desc); the first HP
+ * ordering returns the full set reordered (terminal — UI enforces). If no
+ * priority matches, falls back to "furthest along path".
+ */
+function orderByPriorities(
+  inRange: CreepState[],
+  priorities: readonly TargetingPriority[],
+): CreepState[] {
+  for (const p of priorities) {
+    if (p.kind === "creep_kind") {
+      const match = inRange.filter((c) => c.kind === p.creep);
+      if (match.length > 0) {
+        match.sort((a, b) => b.pathPos - a.pathPos);
+        return match;
+      }
+      continue;
+    }
+    if (p.kind === "creep_group") {
+      const set = TARGET_GROUP_KIND_SETS[p.group];
+      const match = inRange.filter((c) => set.has(c.kind));
+      if (match.length > 0) {
+        match.sort((a, b) => b.pathPos - a.pathPos);
+        return match;
+      }
+      continue;
+    }
+    if (p.kind === "lowest_hp_pct") {
+      const out = inRange.slice();
+      out.sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp);
+      return out;
+    }
+    if (p.kind === "highest_hp_abs") {
+      const out = inRange.slice();
+      out.sort((a, b) => b.hp - a.hp);
+      return out;
+    }
+    if (p.kind === "fastest") {
+      const out = inRange.slice();
+      out.sort((a, b) => b.speed - a.speed);
+      return out;
+    }
+    if (p.kind === "slowest") {
+      const out = inRange.slice();
+      out.sort((a, b) => a.speed - b.speed);
+      return out;
+    }
+    // nearest_spawn — ascending pathPos (mirror of the implicit "furthest" fallback)
+    const out = inRange.slice();
+    out.sort((a, b) => a.pathPos - b.pathPos);
+    return out;
+  }
+  const out = inRange.slice();
+  out.sort((a, b) => b.pathPos - a.pathPos);
+  return out;
+}
+
+/**
+ * Single-target priority walk — picks the head of what `orderByPriorities`
+ * would return, but without allocating sort buffers. Runs every shot on the
+ * combat hot path, so each branch is a one-pass min/max scan.
+ */
+function pickHeadByPriorities(
+  inRange: CreepState[],
+  priorities: readonly TargetingPriority[],
+): CreepState {
+  for (const p of priorities) {
+    if (p.kind === "creep_kind") {
+      let best: CreepState | null = null;
+      for (const c of inRange) {
+        if (c.kind === p.creep && (!best || c.pathPos > best.pathPos)) best = c;
+      }
+      if (best) return best;
+      continue;
+    }
+    if (p.kind === "creep_group") {
+      const set = TARGET_GROUP_KIND_SETS[p.group];
+      let best: CreepState | null = null;
+      for (const c of inRange) {
+        if (set.has(c.kind) && (!best || c.pathPos > best.pathPos)) best = c;
+      }
+      if (best) return best;
+      continue;
+    }
+    let best = inRange[0];
+    if (p.kind === "lowest_hp_pct") {
+      let bestVal = best.hp / best.maxHp;
+      for (let i = 1; i < inRange.length; i++) {
+        const c = inRange[i];
+        const v = c.hp / c.maxHp;
+        if (v < bestVal) { best = c; bestVal = v; }
+      }
+    } else if (p.kind === "highest_hp_abs") {
+      for (let i = 1; i < inRange.length; i++) {
+        if (inRange[i].hp > best.hp) best = inRange[i];
+      }
+    } else if (p.kind === "fastest") {
+      for (let i = 1; i < inRange.length; i++) {
+        if (inRange[i].speed > best.speed) best = inRange[i];
+      }
+    } else if (p.kind === "slowest") {
+      for (let i = 1; i < inRange.length; i++) {
+        if (inRange[i].speed < best.speed) best = inRange[i];
+      }
+    } else {
+      // nearest_spawn — lowest pathPos
+      for (let i = 1; i < inRange.length; i++) {
+        if (inRange[i].pathPos < best.pathPos) best = inRange[i];
+      }
+    }
+    return best;
+  }
+  // Implicit fallback: furthest along path
+  let best = inRange[0];
+  for (let i = 1; i < inRange.length; i++) {
+    if (inRange[i].pathPos > best.pathPos) best = inRange[i];
+  }
+  return best;
+}
+
+export function pickTarget(
+  t: TowerState,
+  rangeTiles: number,
+  creeps: CreepState[],
+  targeting: "all" | "ground" | "air",
+  tick: number,
+  priorities: readonly TargetingPriority[],
+): CreepState | null {
+  // Fast path for the common empty-priority case — single-pass max-pathPos
+  // scan over the raw creep list, no inRange allocation.
+  if (priorities.length === 0) {
+    const r2 = (rangeTiles * TILE) ** 2;
+    const tx = (t.x + 1) * FINE_TILE;
+    const ty = (t.y + 1) * FINE_TILE;
+    let best: CreepState | null = null;
+    for (const c of creeps) {
+      if (!c.alive || isBurrowed(c, tick) || !canTarget(targeting, c)) continue;
+      const dx = c.px - tx, dy = c.py - ty;
+      if (dx * dx + dy * dy > r2) continue;
+      if (!best || c.pathPos > best.pathPos) best = c;
+    }
+    return best;
+  }
+  const inRange = collectInRange(t, rangeTiles, creeps, targeting, tick);
+  if (inRange.length === 0) return null;
+  return pickHeadByPriorities(inRange, priorities);
+}
+
+export function pickTargets(
+  t: TowerState,
+  rangeTiles: number,
+  creeps: CreepState[],
+  targeting: "all" | "ground" | "air",
+  tick: number,
+  count: number,
+  priorities: readonly TargetingPriority[],
+): CreepState[] {
+  const inRange = collectInRange(t, rangeTiles, creeps, targeting, tick);
+  if (inRange.length === 0) return [];
+  if (count === 1) {
+    return [pickHeadByPriorities(inRange, priorities)];
+  }
+  const ordered = orderByPriorities(inRange, priorities);
+  return ordered.slice(0, count);
 }
 
 function nearest(

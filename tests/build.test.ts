@@ -7,7 +7,7 @@
 
 import { describe, expect, it, beforeEach } from 'vitest';
 import { BuildPhase } from '../src/controllers/BuildPhase';
-import { emptyState, State, DRAW_COUNT, activeDraw } from '../src/game/State';
+import { emptyState, pickInitialTowerTargeting, State, DRAW_COUNT, activeDraw } from '../src/game/State';
 import { BASE, Cell, GRID_H } from '../src/data/map';
 import { findRoute, flattenRoute } from '../src/systems/Pathfinding';
 import { EventBus } from '../src/events/EventBus';
@@ -21,6 +21,7 @@ interface FakeGame {
   refreshRoute(): boolean;
   selectTower(id: number | null): void;
   selectRock(id: number | null): void;
+  initialTowerTargeting(gem: import('../src/render/theme').GemType, comboKey?: string): import('../src/game/State').TargetingPriority[];
 }
 
 function makeFake(): { game: FakeGame; phase: BuildPhase } {
@@ -46,6 +47,7 @@ function makeFake(): { game: FakeGame; phase: BuildPhase } {
     },
     selectTower: (id) => { state.selectedTowerId = id; },
     selectRock: (id) => { state.selectedRockId = id; },
+    initialTowerTargeting: (gem, comboKey) => pickInitialTowerTargeting(state, gem, comboKey),
   };
   // BuildPhase is constructed with a Game; emulate enough surface here.
   const phase = new BuildPhase(game as unknown as import('../src/game/Game').Game);

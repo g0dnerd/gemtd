@@ -36,6 +36,12 @@ export interface UpgradeTier {
 export interface ComboRecipe {
   key: string;
   name: string;
+  /**
+   * Plural for UI labels (e.g. "APPLY TO ALL <plural>"). Optional: omit for
+   * the regular `<name>s` case; set explicitly for uncountables ("Gold",
+   * "Silver", "Uranium") and head-noun-only forms ("Runes of Holding").
+   */
+  namePlural?: string;
   inputs: ComboInput[];
   stats: ComboStats;
   upgrades: UpgradeTier[];
@@ -197,6 +203,7 @@ const ALL_COMBOS: ComboRecipe[] = [
   {
     key: "gold",
     name: "Gold",
+    namePlural: "Gold",
     inputs: [
       { gem: "amethyst", quality: 5 },
       { gem: "spinel", quality: 4 },
@@ -440,6 +447,7 @@ const ALL_COMBOS: ComboRecipe[] = [
   {
     key: "uranium",
     name: "Uranium",
+    namePlural: "Uranium",
     inputs: [
       { gem: "topaz", quality: 5 },
       { gem: "peridot", quality: 3 },
@@ -904,6 +912,7 @@ const ALL_COMBOS: ComboRecipe[] = [
   {
     key: "silver",
     name: "Silver",
+    namePlural: "Silver",
     inputs: [
       { gem: "sapphire", quality: 1 },
       { gem: "garnet", quality: 1 },
@@ -989,6 +998,7 @@ const ALL_COMBOS: ComboRecipe[] = [
   {
     key: "rune_holding",
     name: "Rune of Holding",
+    namePlural: "Runes of Holding",
     inputs: [
       { gem: "topaz", quality: 3 },
       { gem: "amethyst", quality: 2 },
@@ -1010,6 +1020,7 @@ const ALL_COMBOS: ComboRecipe[] = [
   {
     key: "rune_damage",
     name: "Rune of Damage",
+    namePlural: "Runes of Damage",
     inputs: [
       { gem: "diamond", quality: 3 },
       { gem: "opal", quality: 2 },

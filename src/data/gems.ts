@@ -8,7 +8,20 @@
  */
 
 import { GemType, Quality } from "../render/theme";
+import type { TargetingPriority } from "../game/State";
 import { QUALITY_BASE_COST } from "../game/constants";
+
+/**
+ * Default targeting list for a freshly placed tower of `gem`. Used by
+ * placement code to hydrate `TowerState.targetingPriority` when it is
+ * `undefined`. Returns `[]` for the standard "furthest along path" default,
+ * or `[{ kind: "highest_hp_abs" }]` when the gem's `targetPriority` says so.
+ */
+export function initialTargetingFor(gem: GemType): TargetingPriority[] {
+  return GEM_BASE[gem].targetPriority === "highest_hp"
+    ? [{ kind: "highest_hp_abs" }]
+    : [];
+}
 
 export type EffectKind =
   | { kind: "none" }
@@ -111,6 +124,8 @@ export type Targeting = "all" | "ground" | "air";
 export interface GemBase {
   /** Display name (without quality prefix). */
   name: string;
+  /** Plural form for UI labels (e.g. "APPLY TO ALL <plural>"). Defaults to name+'s' if absent. */
+  namePlural: string;
   /** One-line flavor for the inspector. */
   blurb: string;
   /** Base damage (mid of the dmg range). Quality multiplier applied at runtime. */
@@ -141,6 +156,7 @@ export interface GemBase {
 export const GEM_BASE: Record<GemType, GemBase> = {
   ruby: {
     name: "Ruby",
+    namePlural: "Rubies",
     blurb: "Steady, splashing fire damage.",
     baseDmg: 15,
     spread: 0.2,
@@ -152,6 +168,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   sapphire: {
     name: "Sapphire",
+    namePlural: "Sapphires",
     blurb: "Frost bolt — slows on hit.",
     baseDmg: 17,
     spread: 0.15,
@@ -163,6 +180,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   emerald: {
     name: "Emerald",
+    namePlural: "Emeralds",
     blurb: "Lingering venom over time.",
     baseDmg: 13,
     spread: 0.15,
@@ -173,6 +191,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   topaz: {
     name: "Topaz",
+    namePlural: "Topazes",
     blurb: "Rapid arcs — chain to nearby foes.",
     baseDmg: 8,
     spread: 0.2,
@@ -183,6 +202,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   amethyst: {
     name: "Amethyst",
+    namePlural: "Amethysts",
     blurb: "Arcane lance — true damage, devastating vs air.",
     baseDmg: 21,
     spread: 0.2,
@@ -196,6 +216,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   opal: {
     name: "Opal",
+    namePlural: "Opals",
     blurb: "Support aura — boosts attack speed of nearby towers.",
     baseDmg: 4,
     spread: 0.2,
@@ -206,6 +227,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   diamond: {
     name: "Diamond",
+    namePlural: "Diamonds",
     blurb: "Crystalline edge — devastating crits. Ground only.",
     baseDmg: 25,
     spread: 0.3,
@@ -216,6 +238,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   aquamarine: {
     name: "Aquamarine",
+    namePlural: "Aquamarines",
     blurb: "Focusing beam — damage ramps on the same target.",
     baseDmg: 3,
     spread: 0.15,
@@ -226,6 +249,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   garnet: {
     name: "Garnet",
+    namePlural: "Garnets",
     blurb: "Mortar — arcing shell splashes at ground position.",
     baseDmg: 40,
     spread: 0.2,
@@ -238,6 +262,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   spinel: {
     name: "Spinel",
+    namePlural: "Spinels",
     blurb: "Sniper — targets highest-HP creep. Pure damage.",
     baseDmg: 60,
     spread: 0.15,
@@ -250,6 +275,7 @@ export const GEM_BASE: Record<GemType, GemBase> = {
   },
   peridot: {
     name: "Peridot",
+    namePlural: "Peridots",
     blurb: "Charged burst — first shot after idle hits hard.",
     baseDmg: 18,
     spread: 0.2,
@@ -274,7 +300,6 @@ export interface GemStats {
   cost: number;
   effects: EffectKind[];
   targeting: Targeting;
-  targetPriority?: "furthest" | "highest_hp";
   projectileSpeed?: number;
   groundTarget?: boolean;
 }
@@ -406,7 +431,6 @@ export function gemStats(gem: GemType, quality: Quality): GemStats {
     cost: QUALITY_BASE_COST[quality],
     effects: scaleEffects(base.effects, quality, dmgMult),
     targeting: base.targeting,
-    targetPriority: base.targetPriority,
     projectileSpeed: base.projectileSpeed,
     groundTarget: base.groundTarget,
   };

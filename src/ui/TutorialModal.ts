@@ -311,6 +311,15 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "2.1.0",
+      notes: [
+        {
+          tag: "new",
+          text: "You can now configure per-tower targeting priorities in the gem inspector.",
+        },
+      ],
+    },
+    {
       ver: "2.0.3",
       notes: [
         {
