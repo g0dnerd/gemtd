@@ -318,7 +318,9 @@ function render(refs: InspectorRefs, game: Game): void {
     body.appendChild(grid);
   }
 
-  body.appendChild(renderTargetingEditor(game, tower));
+  if (firesProjectiles(tower)) {
+    body.appendChild(renderTargetingEditor(game, tower));
+  }
 
   const actions = document.createElement("div");
   actions.className = "inspector-actions";
@@ -494,6 +496,23 @@ function priorityLabel(p: TargetingPriority): string {
     case "creep_group":
       return TARGET_GROUPS[p.group].displayName;
   }
+}
+
+/**
+ * Combo towers that don't fire projectiles — pure auras / damage fields.
+ * They never call `pickTarget`, so the targeting editor would be a dead
+ * control on these towers; hide it entirely. Covers every upgrade tier
+ * since tiers share a comboKey.
+ */
+const NON_FIRING_COMBO_KEYS: ReadonlySet<string> = new Set([
+  "star_ruby",
+  "golden_beryl",
+  "uranium",
+]);
+
+function firesProjectiles(t: TowerState): boolean {
+  if (t.comboKey && NON_FIRING_COMBO_KEYS.has(t.comboKey)) return false;
+  return true;
 }
 
 /**
