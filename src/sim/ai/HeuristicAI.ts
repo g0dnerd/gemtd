@@ -42,8 +42,21 @@ const SHRIKE_THEN_MENDER: TargetingPriority[] = [
   { kind: "creep_kind", creep: "shrike" },
   { kind: "creep_kind", creep: "mender" },
 ];
-const MENDER_ONLY: TargetingPriority[] = [
+const SHRIKE: TargetingPriority[] = [{ kind: "creep_kind", creep: "shrike" }];
+const SLOWEST: TargetingPriority[] = [{ kind: "slowest" }];
+const HIGHEST_HP: TargetingPriority[] = [{ kind: "highest_hp_abs" }];
+const MENDER_THEN_SLOWEST: TargetingPriority[] = [
   { kind: "creep_kind", creep: "mender" },
+  { kind: "slowest" },
+];
+const MENDER_THEN_HIGHEST_HP: TargetingPriority[] = [
+  { kind: "creep_kind", creep: "mender" },
+  { kind: "highest_hp_abs" },
+];
+const MENDER_AMALGAM_SLOWEST: TargetingPriority[] = [
+  { kind: "creep_kind", creep: "mender" },
+  { kind: "creep_kind", creep: "amalgam" },
+  { kind: "slowest" },
 ];
 
 const ARMOR_SHRED_COMBOS = new Set([
@@ -94,10 +107,22 @@ export class HeuristicAI extends BlueprintAI {
   override playBuild(game: HeadlessGame): void {
     this._game = game;
     const s = game.state;
-    s.globalTargetingDefault = structuredClone(MENDER_ONLY);
-    s.gemTargetingDefaults = { amethyst: structuredClone(SHRIKE_THEN_MENDER) };
+    s.globalTargetingDefault = structuredClone(SHRIKE_THEN_MENDER);
+    s.gemTargetingDefaults = {
+      aquamarine: structuredClone(MENDER_THEN_SLOWEST),
+      garnet: structuredClone(SLOWEST),
+      amethyst: structuredClone(SHRIKE),
+      emerald: structuredClone(HIGHEST_HP),
+      spinel: structuredClone(MENDER_THEN_HIGHEST_HP),
+      sapphire: structuredClone(MENDER_THEN_SLOWEST),
+    };
     s.comboTargetingDefaults = {
-      red_crystal: structuredClone(SHRIKE_THEN_MENDER),
+      red_crystal: structuredClone(SHRIKE),
+      jade: structuredClone(HIGHEST_HP),
+      dark_emerald: structuredClone(HIGHEST_HP),
+      tigers_eye: structuredClone(MENDER_THEN_HIGHEST_HP),
+      yellow_sapphire: structuredClone(MENDER_THEN_SLOWEST),
+      pink_diamond: structuredClone(MENDER_AMALGAM_SLOWEST),
     };
     if (this.logging) {
       const ws = s.waveStats;
