@@ -44,12 +44,21 @@ const SHRIKE_THEN_MENDER: TargetingPriority[] = [
 ];
 const SHRIKE: TargetingPriority[] = [{ kind: "creep_kind", creep: "shrike" }];
 const SLOWEST: TargetingPriority[] = [{ kind: "slowest" }];
-const HIGHEST_HP: TargetingPriority[] = [{ kind: "highest_hp_abs" }];
 const MENDER_THEN_SLOWEST: TargetingPriority[] = [
   { kind: "creep_kind", creep: "mender" },
   { kind: "slowest" },
 ];
-const MENDER_THEN_HIGHEST_HP: TargetingPriority[] = [
+const SHRIKE_THEN_HIGHEST_HP: TargetingPriority[] = [
+  { kind: "creep_kind", creep: "shrike" },
+  { kind: "highest_hp_abs" },
+];
+const SHRIKE_MENDER_FASTEST: TargetingPriority[] = [
+  { kind: "creep_kind", creep: "shrike" },
+  { kind: "creep_kind", creep: "mender" },
+  { kind: "fastest" },
+];
+const SHRIKE_MENDER_HIGHEST_HP: TargetingPriority[] = [
+  { kind: "creep_kind", creep: "shrike" },
   { kind: "creep_kind", creep: "mender" },
   { kind: "highest_hp_abs" },
 ];
@@ -112,16 +121,16 @@ export class HeuristicAI extends BlueprintAI {
       aquamarine: structuredClone(MENDER_THEN_SLOWEST),
       garnet: structuredClone(SLOWEST),
       amethyst: structuredClone(SHRIKE),
-      emerald: structuredClone(HIGHEST_HP),
-      spinel: structuredClone(MENDER_THEN_HIGHEST_HP),
-      sapphire: structuredClone(MENDER_THEN_SLOWEST),
+      emerald: structuredClone(SHRIKE_THEN_HIGHEST_HP),
+      spinel: structuredClone(SHRIKE_MENDER_HIGHEST_HP),
+      sapphire: structuredClone(SHRIKE_MENDER_FASTEST),
     };
     s.comboTargetingDefaults = {
       red_crystal: structuredClone(SHRIKE),
-      jade: structuredClone(HIGHEST_HP),
-      dark_emerald: structuredClone(HIGHEST_HP),
-      tigers_eye: structuredClone(MENDER_THEN_HIGHEST_HP),
-      yellow_sapphire: structuredClone(MENDER_THEN_SLOWEST),
+      jade: structuredClone(SHRIKE_THEN_HIGHEST_HP),
+      dark_emerald: structuredClone(SHRIKE_THEN_HIGHEST_HP),
+      tigers_eye: structuredClone(SHRIKE_MENDER_HIGHEST_HP),
+      yellow_sapphire: structuredClone(SHRIKE_MENDER_FASTEST),
       pink_diamond: structuredClone(MENDER_AMALGAM_SLOWEST),
     };
     if (this.logging) {

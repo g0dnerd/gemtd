@@ -311,6 +311,16 @@ function changesBody(): HTMLElement {
 
   const versions: VersionEntry[] = [
     {
+      ver: "2.1.1-beta",
+      notes: [
+        { tag: "bal", text: "W43-W50 armor reduced ~11%." },
+        {
+          tag: "nerf",
+          text: "Living Diamond upgrade cost 300 -> 350; execute threshold 25% -> 20% HP.",
+        },
+      ],
+    },
+    {
       ver: "2.1.0",
       notes: [
         {

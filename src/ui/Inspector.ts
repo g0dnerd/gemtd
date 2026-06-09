@@ -27,11 +27,13 @@ import {
   TowerState,
 } from "../game/State";
 import {
+  CREEP_ARCHETYPES,
   CREEP_DISPLAY_NAMES,
   TARGETABLE_CREEP_KINDS,
   TARGET_GROUPS,
   TARGET_GROUP_KEYS,
 } from "../data/creeps";
+import type { CreepKind } from "../data/creeps";
 import { towerLevel } from "../systems/Combat";
 import { SIM_HZ } from "../game/constants";
 
@@ -571,10 +573,26 @@ function priorityChipId(p: TargetingPriority): string {
  *  - Apply-to-all is a peer primary button under the rail — one tap away,
  *    no meta text.
  */
+/**
+ * Whether a tower firing with the given targeting can ever hit this creep kind.
+ * Ground-only towers can't touch air creeps (and vice-versa), so those rules
+ * are impossible and shouldn't be offered in the editor.
+ */
+function towerCanHitKind(
+  targeting: "all" | "ground" | "air",
+  kind: CreepKind,
+): boolean {
+  const isAir = CREEP_ARCHETYPES[kind].flags.air === true;
+  if (targeting === "ground") return !isAir;
+  if (targeting === "air") return isAir;
+  return true;
+}
+
 function renderTargetingEditor(
   game: Game,
   tower: TowerState,
 ): HTMLDivElement {
+  const targeting = effectiveStatsFor(tower).targeting;
   const card = document.createElement("div");
   card.className = "inspector-targeting";
 
@@ -662,12 +680,16 @@ function renderTargetingEditor(
 
   // Kind + group chips, alpha-sorted so Containers sits naturally.
   const kindOptions: { label: string; entry: TargetingPriority }[] =
-    TARGETABLE_CREEP_KINDS.map((k) => ({
-      label: CREEP_DISPLAY_NAMES[k],
-      entry: { kind: "creep_kind", creep: k },
-    }));
+    TARGETABLE_CREEP_KINDS.filter((k) => towerCanHitKind(targeting, k)).map(
+      (k) => ({
+        label: CREEP_DISPLAY_NAMES[k],
+        entry: { kind: "creep_kind", creep: k },
+      }),
+    );
   const groupOptions: { label: string; entry: TargetingPriority }[] =
-    TARGET_GROUP_KEYS.map((g) => ({
+    TARGET_GROUP_KEYS.filter((g) =>
+      TARGET_GROUPS[g].kinds.some((k) => towerCanHitKind(targeting, k)),
+    ).map((g) => ({
       label: TARGET_GROUPS[g].displayName,
       entry: { kind: "creep_group", group: g },
     }));

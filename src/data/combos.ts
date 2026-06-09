@@ -267,7 +267,7 @@ const ALL_COMBOS: ComboRecipe[] = [
     upgrades: [
       {
         name: "Living Diamond",
-        cost: 300,
+        cost: 350,
         stats: {
           dmgMin: 300,
           dmgMax: 470,
@@ -276,9 +276,9 @@ const ALL_COMBOS: ComboRecipe[] = [
           effects: [
             { kind: "crit", chance: 0.09, multiplier: 6 },
             { kind: "focus_crit", pctPerHit: 0.06, maxBonus: 0.18, trueAtMax: true },
-            { kind: "execute", dmgBonus: 0.4, hpThreshold: 0.25 },
+            { kind: "execute", dmgBonus: 0.4, hpThreshold: 0.20 },
           ],
-          blurb: "9% crit x6. Focus: +6% crit/hit; true dmg at max focus. Execute below 25% HP.",
+          blurb: "9% crit x6. Focus: +6% crit/hit; true dmg at max focus. Execute below 20% HP.",
           targeting: "ground",
         },
       },
